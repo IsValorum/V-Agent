@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-open-engine-folder"
+description = "Enables the open_engine_folder command without any pre-configured scope."
+commands.allow = ["open_engine_folder"]
+
+[[permission]]
+identifier = "deny-open-engine-folder"
+description = "Denies the open_engine_folder command without any pre-configured scope."
+commands.deny = ["open_engine_folder"]

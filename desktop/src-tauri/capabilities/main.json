@@ -1,0 +1,33 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main-local",
+  "description": "VAL Agent main webview bundled with Tauri. Browser child webviews have no capability.",
+  "webviews": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "allow-open-sandbox-folder",
+    "allow-open-engine-folder",
+    "allow-open-guide",
+    "allow-window-appearance",
+    "allow-window-brand-icon",
+    "allow-browser-tab-open",
+    "allow-browser-tab-bounds",
+    "allow-browser-tab-show",
+    "allow-browser-tab-hide",
+    "allow-browser-tab-close",
+    "allow-browser-tab-state",
+    "allow-browser-tab-navigate",
+    "allow-browser-tab-back",
+    "allow-browser-tab-forward",
+    "allow-browser-tab-reload",
+    "allow-browser-tab-dom",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-internal-toggle-maximize",
+    "core:window:allow-close",
+    "core:window:allow-start-dragging",
+    "core:window:allow-is-maximized"
+  ]
+}

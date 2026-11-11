@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "profiles": {
+    "code": {
+      "label": "Código preciso",
+      "effort": "high",
+      "sampling": {
+        "temperature": 0.6,
+        "top_p": 0.95,
+        "top_k": 20,
+        "min_p": 0,
+        "presence_penalty": 0,
+        "frequency_penalty": 0,
+        "repetition_penalty": 1.0,
+        "max_tokens": 0,
+        "seed": 0
+      },
+      "functions": {
+        "search": false,
+        "visit": false,
+        "files": false,
+        "shell": false,
+        "sys": false,
+        "date": true
+      },
+      "rounds": 50
+    },
+    "agent": {
+      "label": "Trabajo agéntico",
+      "effort": "high",
+      "sampling": {
+        "temperature": 0.6,
+        "top_p": 0.95,
+        "top_k": 20,
+        "min_p": 0,
+        "presence_penalty": 0,
+        "frequency_penalty": 0,
+        "repetition_penalty": 1.0,
+        "max_tokens": 0,
+        "seed": 0
+      },
+      "functions": {
+        "search": true,
+        "visit": true,
+        "files": true,
+        "shell": false,
+        "sys": true,
+        "date": true
+      },
+      "rounds": 50
+    },
+    "research": {
+      "label": "Investigación web",
+      "effort": "high",
+      "sampling": {
+        "temperature": 1,
+        "top_p": 0.95,
+        "top_k": 20,
+        "min_p": 0,
+        "presence_penalty": 1.5,
+        "frequency_penalty": 0,
+        "repetition_penalty": 1.0,
+        "max_tokens": 0,
+        "seed": 0
+      },
+      "functions": {
+        "search": true,
+        "visit": true,
+        "files": false,
+        "shell": false,
+        "sys": false,
+        "date": true
+      },
+      "rounds": 50
+    }
+  },
+  "models": {},
+  "ignored_models": []
+}

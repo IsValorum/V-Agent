@@ -1,0 +1,20 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const style={setProperty(){}};
+const elements={decoSaveState:{textContent:''}};
+const document={documentElement:{dataset:{},style},querySelectorAll:()=>[],querySelector:()=>({getAttribute:()=>'',set href(value){}}),getElementById:id=>elements[id]||null,activeElement:null};
+const context={window:{},document,TH:{mode:'night',night:{},day:{}},uiPreferences:{},uiText:x=>x,
+  requestJSON:async(path,options)=>JSON.parse(options.body),syncDesktopChrome(){},syncApplicationIcon(){},syncThemeControls(){},applyTheme(){},console};
+vm.createContext(context);vm.runInContext(fs.readFileSync('agent/ui-palette.js','utf8'),context);
+const p=context.window.VALPalette;
+Object.assign(context.TH.night,p.tone('gold','night'));Object.assign(context.TH.day,p.tone('gold','day'));
+p.apply({palette:'gold',logo:'gold'});
+context.TH.night.accent='#123456';context.TH.day.bg='#abcdef';
+p.choose('blue');assert.equal(context.TH.night.accent,p.tone('blue','night').accent);
+context.TH.night.accent='#654321';p.choose('gold');
+assert.equal(context.TH.night.accent,'#123456');assert.equal(context.TH.day.bg,'#abcdef');
+p.resetPalette('blue');assert.equal(context.TH.night.accent,'#123456');
+p.choose('blue');assert.equal(context.TH.night.accent,p.tone('blue','night').accent);
+p.choose('gold');p.resetPalette('gold');assert.equal(context.TH.night.accent,p.tone('gold','night').accent);
+console.log('Palette selection and per-palette reset OK');

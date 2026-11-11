@@ -1,0 +1,34 @@
+/.venv/
+/.cargo/
+/.test-models/
+/data/
+/agent/data/
+/dist/
+/build/
+/downloads/
+/runtime/
+/browser/
+/seeds/
+/desktop/src-tauri/target/
+**/__pycache__/
+*.pyc
+*.log
+*.dpapi
+/desktop/src-tauri/gen/
+/web_mcp/respaldo*/
+/web_mcp/modelos_prueba/
+/dist-release/
+/agent/.browser-profile/
+
+# Engine-development tools that live on the developer's machine only;
+# V-Agent itself needs just these two modules.
+/tools/*
+!/tools/gguf_reader.py
+!/tools/strata_tokenizer.py
+
+# Personal working notes (kept locally, not published)
+/CONTINUAR-VAL-AGENT.md
+/agent/HARNESS_LOCAL.md
+/agent/HUGGING_FACE_MCP.md
+/agent/PARAMETROS_MODELOS.md
+/docs/AGENT_AUDIT_*.md
