@@ -167,6 +167,7 @@ const VAL_TOUR=(()=>{
     };
     box.querySelector('#tourAgain').onclick=()=>{window.setDrawer?.(false);document.querySelector('#gear')?.getAttribute('aria-expanded')==='true'&&document.querySelector('#gear').click();setTimeout(start,350);};
     requestJSON('/api/harness/app-update').then(paint).catch(()=>{});
+    document.addEventListener('v-agent-app-update',event=>paint(event.detail));
     requestJSON('/api/harness/components').then(paintComponents).catch(()=>{});
   }
 

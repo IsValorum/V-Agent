@@ -132,6 +132,10 @@ class AppUpdates:
             data['installer']['url'] = installer['browser_download_url']
             data['release_url'] = release.get('html_url', '')
             with self.lock:
+                previous=self.state.get('available') or {}
+                previous_hash=(previous.get('installer') or {}).get('sha256')
+                if not data['newer'] or previous_hash!=data['installer']['sha256']:
+                    self.state.update(ready=None,progress=None)
                 self.state.update(available=data if data['newer'] else None, checked_at=time.time())
         except urllib.error.HTTPError as error:
             # 404: the repository is still private or not created; there is simply nothing published.

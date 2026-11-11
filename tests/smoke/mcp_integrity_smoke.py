@@ -11,9 +11,12 @@ sys.path[:0]=[str(ROOT/'agent'),str(ROOT)]
 from serve.mcp import McpHub
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('core');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('core');parser.add_argument('--config',default=str(ROOT/'data/mcp.json'));args=parser.parse_args()
     executable=str(Path(args.core).resolve())
-    config=json.loads((ROOT/'data/mcp.json').read_text(encoding='utf8'))['mcpServers']
+    config=json.loads(Path(args.config).read_text(encoding='utf8'))['mcpServers']
+    # Never launch custom servers from a user's configuration during a smoke test.
+    builtin={'pc','hf','duckduckgo','web','autobrowser','admin','computer'}
+    config={name:cfg for name,cfg in config.items() if name in builtin}
     with tempfile.TemporaryDirectory(prefix='val-mcp-check-') as directory:
         for server in config.values():
             server['command']=executable;server['cwd']=directory

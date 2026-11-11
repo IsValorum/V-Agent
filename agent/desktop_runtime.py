@@ -261,14 +261,22 @@ def install(a):
         Both are verified against the maintainer's key; installing a full update still asks first."""
         import time
         time.sleep(4)
-        try:
-            from components import COMPONENTS
-            if COMPONENTS.check().get('available'):COMPONENTS.apply()
-        except Exception:pass
-        try:
-            from app_updates import UPDATES as app_update
-            if app_update.check().get('available'):app_update.download()
-        except Exception:pass
+        def components_update():
+            while True:
+                try:
+                    from components import COMPONENTS
+                    if COMPONENTS.check().get('available'):COMPONENTS.apply()
+                except Exception:pass
+                time.sleep(6*60*60)
+        def app_update():
+            while True:
+                try:
+                    from app_updates import UPDATES
+                    state=UPDATES.check()
+                    if state.get('available') and not state.get('ready'):UPDATES.download()
+                except Exception:pass
+                time.sleep(6*60*60)
+        for work in (components_update,app_update):threading.Thread(target=work,daemon=True).start()
     if os.environ.get('V_AGENT_NO_AUTO_UPDATE')!='1':
         threading.Thread(target=automatic_updates,name='v-agent-auto-updates',daemon=True).start()
 
