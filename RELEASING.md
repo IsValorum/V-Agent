@@ -15,7 +15,8 @@ Only the holder of the signing key can publish updates that installed copies of 
 ## Each release
 
 1. Update `VERSION` in `agent/app_updates.py`, `version` in `desktop/src-tauri/tauri.conf.json` and
-   `CHANGELOG.md` (same number, e.g. `1.0.1`).
+   `desktop/src-tauri/Cargo.toml`, and `CHANGELOG.md` (same number, e.g. `1.0.1`). Save these files
+   as UTF-8 **without** BOM (Tauri and Cargo reject a BOM).
 2. Build the official installer (no engines, no personal data):
 
    ```bat

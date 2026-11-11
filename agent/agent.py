@@ -2069,7 +2069,7 @@ class Handler(BaseHTTPRequestHandler):
             if self.headers.get_content_type() != 'application/json':
                 self._json(415, {'error': 'Se requiere JSON.'})
                 return
-        if self.path in ('/api/projects/select','/api/projects/remove','/api/models/vision'):
+        if self.path in ('/api/projects/select','/api/projects/add','/api/projects/remove','/api/models/vision'):
             if not ui_origin_allowed(self.headers.get('Origin')):
                 self._json(403,{'error':'Usa los controles de la interfaz para cambiar el proyecto o visión.'});return
             if not ENGINE_LOCK.acquire(blocking=False):
@@ -2080,6 +2080,8 @@ class Handler(BaseHTTPRequestHandler):
                 body=json.loads(self.rfile.read(size))
                 if self.path=='/api/projects/select':
                     self._json(200,PROJECTS.select(body['conversation_id'],body.get('project_id'),body.get('path')))
+                elif self.path=='/api/projects/add':
+                    self._json(200,PROJECTS.add(body.get('path')))
                 elif self.path=='/api/projects/remove':
                     self._json(200,PROJECTS.remove(body['project_id']))
                 else:

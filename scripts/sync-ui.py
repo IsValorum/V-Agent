@@ -31,6 +31,7 @@ source=inject(source,'ART-DECO','ui-palette.js','// VAL-TOOLS-END')
 source=inject(source,'LOAD-SETTINGS','ui-load-settings.js','// VAL-ART-DECO-END')
 source=inject(source,'PLUGINS','ui-plugins.js','// VAL-LOAD-SETTINGS-END')
 source=inject(source,'TOUR','ui-tour.js','// VAL-PLUGINS-END')
+source=inject(source,'MODELS','ui-models.js','// VAL-TOUR-END')
 catalog=json.loads((ROOT/'agent/locales.json').read_text(encoding='utf8'))
 for phrase,translations in catalog.items():
     if any(not isinstance(translations.get(code),str) or not translations[code] for code in ('en','pt','fr','de')):

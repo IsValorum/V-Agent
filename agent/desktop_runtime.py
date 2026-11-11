@@ -5,6 +5,7 @@ the conversation, tools, drafts and UI protocols are shared.
 """
 import hashlib
 import json
+import os
 import threading
 from pathlib import Path
 from runtime_paths import DATA_ROOT,CONFIG_ROOT,RUNTIME_ROOT
@@ -213,6 +214,47 @@ def install(a):
     atexit.register(browser.close)
     import extensions
     catalog=extensions.Catalog();catalog.refresh()
+    import model_hub,external_models
+
+    def add_gguf(path,name=None,settings=None):
+        """Add a GGUF for llama.cpp (as the Add model dialog does) and keep the settings it came with."""
+        settings=settings or {};template_path=None
+        if settings.get('template'):
+            text=str(settings['template'])
+            if len(text.encode())>262144:raise ValueError('La plantilla es demasiado grande (máximo 256 KB).')
+            folder=DATA_ROOT/'imported-templates';folder.mkdir(parents=True,exist_ok=True)
+            template_path=folder/(hashlib.sha256(text.encode()).hexdigest()[:24]+'.jinja');template_path.write_text(text,encoding='utf-8')
+        info=inspect_llama_import(str(path),str(template_path) if template_path else None)
+        result=register_llama_import(info,name)
+        model='llama--'+info['identifier'];preferences={}
+        from model_preferences import RANGES
+        sampling={k:v for k,v in (settings.get('sampling') or {}).items() if k in RANGES and isinstance(v,(int,float)) and not isinstance(v,bool) and RANGES[k][0]<=v<=RANGES[k][1]}
+        for key in ('top_k','max_tokens','seed'):
+            if key in sampling:sampling[key]=int(sampling[key])
+        if sampling:preferences['sampling']=sampling
+        if isinstance(settings.get('context'),int):preferences['context']=max(2048,min(262144,settings['context']))
+        if settings.get('kv') in ('fp16','bf16','q8_0','q4_0'):preferences['kv']=settings['kv']
+        if preferences:a.MODEL_PREFERENCES.save(model,preferences)
+        return {'id':model,'status':result['status'],'applied':sorted(preferences)}
+
+    def hub_register(path,job):
+        return add_gguf(path,Path(job['name']).stem)['id']
+    hub_downloads=model_hub.Downloads(register=hub_register)
+
+    def registered_paths():
+        record=DATA_ROOT/'llama-added.json'
+        try:entries=json.loads(record.read_text(encoding='utf8')) if record.exists() else []
+        except ValueError:entries=[]
+        return {os.path.normcase(str(Path(item.get('path','')).resolve())) for item in entries if item.get('path')}
+
+    def model_settings(model_id):
+        item=selected(model_id);pref=item.get('preferences') or {}
+        settings={'name':item.get('display_name') or model_id,'path':item.get('path'),'sampling':pref.get('sampling') or {},
+                  'context':pref.get('context'),'kv':pref.get('kv')}
+        template=(item.get('llama_settings') or {}).get('template')
+        if template and Path(template).is_file():settings['template']=Path(template).read_text(encoding='utf-8-sig')
+        return settings
+
     old_handler=a.Handler
     class Handler(old_handler):
         def do_GET(self):
@@ -251,6 +293,23 @@ def install(a):
                 from components import COMPONENTS
                 self._json(200,COMPONENTS.snapshot());return
             if self.path=='/api/harness/hardware':self._json(200,update_payload());return
+            if self.path.startswith('/api/harness/hub/') or self.path.startswith('/api/harness/external/'):
+                import urllib.parse
+                parts=urllib.parse.urlsplit(self.path);query=urllib.parse.parse_qs(parts.query);arg=lambda key:(query.get(key) or [''])[0]
+                try:
+                    if parts.path=='/api/harness/hub/search':self._json(200,{'models':model_hub.search(arg('q'),arg('sort') or 'downloads',arg('kind') or 'text')})
+                    elif parts.path=='/api/harness/hub/model':
+                        from hardware_stats import profile_snapshot
+                        hardware=profile_snapshot();gpu=hardware.get('primary_gpu') or {}
+                        self._json(200,{**model_hub.details(arg('repo')),'hardware':{'vram_mib':gpu.get('vram_mib') or 0,'ram_gib':(hardware.get('ram') or {}).get('total_gib') or 0}})
+                    elif parts.path=='/api/harness/hub/downloads':self._json(200,hub_downloads.snapshot())
+                    elif parts.path=='/api/harness/external/scan':
+                        result=external_models.scan();known=registered_paths()
+                        for item in result['models']:item['registered']=os.path.normcase(str(Path(item['path']).resolve())) in known
+                        self._json(200,result)
+                    else:self._json(404,{'error':'Ruta desconocida.'})
+                except Exception as error:self._json(400,{'error':str(error)[:300]})
+                return
             if self.path=='/api/harness/state':self._json(200,manager.snapshot());return
             if manager.kind!='strata' and self.path=='/api/context/usage':
                 run=dict(a.ACTIVE_CONTEXT_RUN);usage=a.context_usage(manager.metrics(),bool(manager.loaded)) if run else None
@@ -443,6 +502,32 @@ def install(a):
                     else:raise ValueError('Unknown action.')
                     self._json(200,update_payload(result))
                 except (ValueError,OSError) as error:self._json(400,{'error':str(error)})
+                return
+            if self.path.startswith('/api/harness/hub/') or self.path.startswith('/api/harness/external/'):
+                try:
+                    size=int(self.headers.get('Content-Length') or 0)
+                    if not 0<size<=4*2**20:raise ValueError('Solicitud no válida.')
+                    body=json.loads(self.rfile.read(size))
+                    if self.path=='/api/harness/hub/download':result=hub_downloads.start(body.get('repo'),body.get('file'))
+                    elif self.path=='/api/harness/hub/cancel':result=hub_downloads.cancel(body.get('id'))
+                    elif self.path=='/api/harness/hub/folder':result=hub_downloads.set_folder(body.get('path'))
+                    elif self.path=='/api/harness/external/import':
+                        items=body.get('items')
+                        if not isinstance(items,list) or not 0<len(items)<=200:raise ValueError('Elige al menos un modelo.')
+                        done=[]
+                        for item in items:
+                            try:done.append({'path':item.get('path'),**add_gguf(item.get('path',''),item.get('name'),item)})
+                            except (ValueError,OSError,KeyError) as error:done.append({'path':item.get('path'),'error':str(error)[:200]})
+                        result={'results':done}
+                    elif self.path=='/api/harness/external/export':
+                        settings=model_settings(body.get('model'));target=body.get('target')
+                        if target=='lmstudio':result={'written':external_models.export_lmstudio(settings['path'],settings)}
+                        elif target=='unsloth':result={'written':external_models.export_unsloth(settings['name'],settings)}
+                        elif target=='file':result={'file':{'type':'v-agent-model-settings','version':1,'models':[settings]}}
+                        else:raise ValueError('Destino desconocido.')
+                    else:raise ValueError('Acción desconocida.')
+                    self._json(200,result)
+                except (ValueError,OSError,KeyError,TypeError) as error:self._json(400,{'error':str(error)[:300]})
                 return
             if self.path=='/api/harness/approval':
                 try:

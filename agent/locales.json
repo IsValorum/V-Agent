@@ -6808,5 +6808,413 @@
     "pt": "As melhorias menores instaladas serão removidas. Vale ao reiniciar o V-Agent.",
     "fr": "Les améliorations mineures installées seront retirées. Effectif au redémarrage de V-Agent.",
     "de": "Die installierten kleinen Verbesserungen werden entfernt. Wirksam nach dem Neustart von V-Agent."
+  },
+  "Descubrir": {
+    "en": "Discover",
+    "pt": "Descobrir",
+    "fr": "Découvrir",
+    "de": "Entdecken"
+  },
+  "Importar y exportar": {
+    "en": "Import & export",
+    "pt": "Importar e exportar",
+    "fr": "Importer et exporter",
+    "de": "Import & Export"
+  },
+  "Buscar en Hugging Face…": {
+    "en": "Search Hugging Face…",
+    "pt": "Pesquisar no Hugging Face…",
+    "fr": "Rechercher sur Hugging Face…",
+    "de": "Hugging Face durchsuchen…"
+  },
+  "Buscar modelos GGUF en Hugging Face": {
+    "en": "Search GGUF models on Hugging Face",
+    "pt": "Pesquisar modelos GGUF no Hugging Face",
+    "fr": "Rechercher des modèles GGUF sur Hugging Face",
+    "de": "GGUF-Modelle auf Hugging Face suchen"
+  },
+  "Ordenar": {
+    "en": "Sort",
+    "pt": "Ordenar",
+    "fr": "Trier",
+    "de": "Sortieren"
+  },
+  "Tipo de modelo": {
+    "en": "Model type",
+    "pt": "Tipo de modelo",
+    "fr": "Type de modèle",
+    "de": "Modelltyp"
+  },
+  "Visión": {
+    "en": "Vision",
+    "pt": "Visão",
+    "fr": "Vision",
+    "de": "Vision"
+  },
+  "Más descargados": {
+    "en": "Most downloaded",
+    "pt": "Mais baixados",
+    "fr": "Les plus téléchargés",
+    "de": "Meistgeladen"
+  },
+  "Tendencia": {
+    "en": "Trending",
+    "pt": "Em alta",
+    "fr": "Tendance",
+    "de": "Im Trend"
+  },
+  "Más valorados": {
+    "en": "Most liked",
+    "pt": "Mais curtidos",
+    "fr": "Les plus aimés",
+    "de": "Beliebteste"
+  },
+  "Actualizados": {
+    "en": "Recently updated",
+    "pt": "Atualizados",
+    "fr": "Mis à jour",
+    "de": "Aktualisiert"
+  },
+  "Resultados": {
+    "en": "Results",
+    "pt": "Resultados",
+    "fr": "Résultats",
+    "de": "Ergebnisse"
+  },
+  "Elige un modelo para ver sus estadísticas, archivos y ficha.": {
+    "en": "Choose a model to see its stats, files and model card.",
+    "pt": "Escolha um modelo para ver estatísticas, arquivos e ficha.",
+    "fr": "Choisissez un modèle pour voir ses statistiques, fichiers et fiche.",
+    "de": "Wähle ein Modell, um Statistiken, Dateien und Modellkarte zu sehen."
+  },
+  "Traer desde otras apps": {
+    "en": "Bring in from other apps",
+    "pt": "Trazer de outros apps",
+    "fr": "Importer depuis d’autres apps",
+    "de": "Aus anderen Apps übernehmen"
+  },
+  "Buscar de nuevo": {
+    "en": "Scan again",
+    "pt": "Procurar novamente",
+    "fr": "Rechercher à nouveau",
+    "de": "Erneut suchen"
+  },
+  "Seleccionar todo": {
+    "en": "Select all",
+    "pt": "Selecionar tudo",
+    "fr": "Tout sélectionner",
+    "de": "Alle auswählen"
+  },
+  "Importar seleccionados": {
+    "en": "Import selected",
+    "pt": "Importar selecionados",
+    "fr": "Importer la sélection",
+    "de": "Auswahl importieren"
+  },
+  "Enviar ajustes de V-Agent": {
+    "en": "Send V-Agent settings",
+    "pt": "Enviar ajustes do V-Agent",
+    "fr": "Envoyer les réglages de V-Agent",
+    "de": "V-Agent-Einstellungen senden"
+  },
+  "Parámetros de muestreo, contexto, caché KV y plantilla de chat del modelo elegido.": {
+    "en": "Sampling parameters, context, KV cache and chat template of the chosen model.",
+    "pt": "Parâmetros de amostragem, contexto, cache KV e template de chat do modelo escolhido.",
+    "fr": "Paramètres d’échantillonnage, contexte, cache KV et modèle de chat du modèle choisi.",
+    "de": "Sampling-Parameter, Kontext, KV-Cache und Chat-Vorlage des gewählten Modells."
+  },
+  "Modelo de V-Agent": {
+    "en": "V-Agent model",
+    "pt": "Modelo do V-Agent",
+    "fr": "Modèle V-Agent",
+    "de": "V-Agent-Modell"
+  },
+  "A LM Studio": {
+    "en": "To LM Studio",
+    "pt": "Para o LM Studio",
+    "fr": "Vers LM Studio",
+    "de": "An LM Studio"
+  },
+  "A Unsloth Studio": {
+    "en": "To Unsloth Studio",
+    "pt": "Para o Unsloth Studio",
+    "fr": "Vers Unsloth Studio",
+    "de": "An Unsloth Studio"
+  },
+  "Importar archivo de ajustes…": {
+    "en": "Import settings file…",
+    "pt": "Importar arquivo de ajustes…",
+    "fr": "Importer un fichier de réglages…",
+    "de": "Einstellungsdatei importieren…"
+  },
+  "Cambiar carpeta": {
+    "en": "Change folder",
+    "pt": "Alterar pasta",
+    "fr": "Changer de dossier",
+    "de": "Ordner ändern"
+  },
+  "Buscando…": {
+    "en": "Searching…",
+    "pt": "Pesquisando…",
+    "fr": "Recherche…",
+    "de": "Suche…"
+  },
+  "Sin resultados.": {
+    "en": "No results.",
+    "pt": "Sem resultados.",
+    "fr": "Aucun résultat.",
+    "de": "Keine Ergebnisse."
+  },
+  "Cabe en la GPU": {
+    "en": "Fits on GPU",
+    "pt": "Cabe na GPU",
+    "fr": "Tient dans le GPU",
+    "de": "Passt in die GPU"
+  },
+  "GPU + RAM": {
+    "en": "GPU + RAM",
+    "pt": "GPU + RAM",
+    "fr": "GPU + RAM",
+    "de": "GPU + RAM"
+  },
+  "Cabe en RAM": {
+    "en": "Fits in RAM",
+    "pt": "Cabe na RAM",
+    "fr": "Tient en RAM",
+    "de": "Passt in den RAM"
+  },
+  "Demasiado grande": {
+    "en": "Too large",
+    "pt": "Grande demais",
+    "fr": "Trop grand",
+    "de": "Zu groß"
+  },
+  "Cargando ficha…": {
+    "en": "Loading model card…",
+    "pt": "Carregando ficha…",
+    "fr": "Chargement de la fiche…",
+    "de": "Modellkarte wird geladen…"
+  },
+  "descargas": {
+    "en": "downloads",
+    "pt": "downloads",
+    "fr": "téléchargements",
+    "de": "Downloads"
+  },
+  "de contexto": {
+    "en": "context",
+    "pt": "de contexto",
+    "fr": "de contexte",
+    "de": "Kontext"
+  },
+  "parámetros": {
+    "en": "parameters",
+    "pt": "parâmetros",
+    "fr": "paramètres",
+    "de": "Parameter"
+  },
+  "partes": {
+    "en": "parts",
+    "pt": "partes",
+    "fr": "parties",
+    "de": "Teile"
+  },
+  "Visión (mmproj)": {
+    "en": "Vision (mmproj)",
+    "pt": "Visão (mmproj)",
+    "fr": "Vision (mmproj)",
+    "de": "Vision (mmproj)"
+  },
+  "Este repositorio no tiene archivos GGUF.": {
+    "en": "This repository has no GGUF files.",
+    "pt": "Este repositório não tem arquivos GGUF.",
+    "fr": "Ce dépôt ne contient aucun fichier GGUF.",
+    "de": "Dieses Repository enthält keine GGUF-Dateien."
+  },
+  "Abrir en Hugging Face": {
+    "en": "Open on Hugging Face",
+    "pt": "Abrir no Hugging Face",
+    "fr": "Ouvrir sur Hugging Face",
+    "de": "Auf Hugging Face öffnen"
+  },
+  "Acceso restringido": {
+    "en": "Gated access",
+    "pt": "Acesso restrito",
+    "fr": "Accès restreint",
+    "de": "Eingeschränkter Zugang"
+  },
+  "Archivo": {
+    "en": "File",
+    "pt": "Arquivo",
+    "fr": "Fichier",
+    "de": "Datei"
+  },
+  "Tu equipo": {
+    "en": "Your computer",
+    "pt": "Seu computador",
+    "fr": "Votre ordinateur",
+    "de": "Dein Computer"
+  },
+  "Este modelo no publica una ficha (README).": {
+    "en": "This model has no model card (README).",
+    "pt": "Este modelo não publica uma ficha (README).",
+    "fr": "Ce modèle ne publie pas de fiche (README).",
+    "de": "Dieses Modell hat keine Modellkarte (README)."
+  },
+  "Añadido": {
+    "en": "Added",
+    "pt": "Adicionado",
+    "fr": "Ajouté",
+    "de": "Hinzugefügt"
+  },
+  "Descargado": {
+    "en": "Downloaded",
+    "pt": "Baixado",
+    "fr": "Téléchargé",
+    "de": "Heruntergeladen"
+  },
+  "Verificando…": {
+    "en": "Verifying…",
+    "pt": "Verificando…",
+    "fr": "Vérification…",
+    "de": "Wird geprüft…"
+  },
+  "Modelo descargado y añadido.": {
+    "en": "Model downloaded and added.",
+    "pt": "Modelo baixado e adicionado.",
+    "fr": "Modèle téléchargé et ajouté.",
+    "de": "Modell heruntergeladen und hinzugefügt."
+  },
+  "Archivo descargado.": {
+    "en": "File downloaded.",
+    "pt": "Arquivo baixado.",
+    "fr": "Fichier téléchargé.",
+    "de": "Datei heruntergeladen."
+  },
+  "rep.": {
+    "en": "rep.",
+    "pt": "rep.",
+    "fr": "rép.",
+    "de": "Wdh."
+  },
+  "plantilla propia": {
+    "en": "custom template",
+    "pt": "template próprio",
+    "fr": "modèle personnalisé",
+    "de": "eigene Vorlage"
+  },
+  "Sin ajustes guardados; usará los predeterminados.": {
+    "en": "No saved settings; defaults will be used.",
+    "pt": "Sem ajustes salvos; usará os padrões.",
+    "fr": "Aucun réglage enregistré ; les valeurs par défaut seront utilisées.",
+    "de": "Keine gespeicherten Einstellungen; Standardwerte werden verwendet."
+  },
+  "Buscando modelos en este equipo…": {
+    "en": "Looking for models on this computer…",
+    "pt": "Procurando modelos neste computador…",
+    "fr": "Recherche de modèles sur cet ordinateur…",
+    "de": "Suche nach Modellen auf diesem Computer…"
+  },
+  "no encontrado": {
+    "en": "not found",
+    "pt": "não encontrado",
+    "fr": "introuvable",
+    "de": "nicht gefunden"
+  },
+  "No se encontraron modelos GGUF de LM Studio ni de Unsloth Studio.": {
+    "en": "No GGUF models from LM Studio or Unsloth Studio were found.",
+    "pt": "Nenhum modelo GGUF do LM Studio ou do Unsloth Studio foi encontrado.",
+    "fr": "Aucun modèle GGUF de LM Studio ou d’Unsloth Studio n’a été trouvé.",
+    "de": "Keine GGUF-Modelle aus LM Studio oder Unsloth Studio gefunden."
+  },
+  "Ya está en V-Agent": {
+    "en": "Already in V-Agent",
+    "pt": "Já está no V-Agent",
+    "fr": "Déjà dans V-Agent",
+    "de": "Bereits in V-Agent"
+  },
+  "seleccionados": {
+    "en": "selected",
+    "pt": "selecionados",
+    "fr": "sélectionnés",
+    "de": "ausgewählt"
+  },
+  "Importando…": {
+    "en": "Importing…",
+    "pt": "Importando…",
+    "fr": "Importation…",
+    "de": "Wird importiert…"
+  },
+  "importados": {
+    "en": "imported",
+    "pt": "importados",
+    "fr": "importés",
+    "de": "importiert"
+  },
+  "con error": {
+    "en": "with errors",
+    "pt": "com erro",
+    "fr": "en erreur",
+    "de": "mit Fehler"
+  },
+  "No hay modelos locales": {
+    "en": "No local models",
+    "pt": "Não há modelos locais",
+    "fr": "Aucun modèle local",
+    "de": "Keine lokalen Modelle"
+  },
+  "Elige un modelo.": {
+    "en": "Choose a model.",
+    "pt": "Escolha um modelo.",
+    "fr": "Choisissez un modèle.",
+    "de": "Wähle ein Modell."
+  },
+  "Archivo de ajustes guardado.": {
+    "en": "Settings file saved.",
+    "pt": "Arquivo de ajustes salvo.",
+    "fr": "Fichier de réglages enregistré.",
+    "de": "Einstellungsdatei gespeichert."
+  },
+  "Ajustes escritos en": {
+    "en": "Settings written to",
+    "pt": "Ajustes gravados em",
+    "fr": "Réglages écrits dans",
+    "de": "Einstellungen geschrieben nach"
+  },
+  "No es un archivo de ajustes de V-Agent.": {
+    "en": "This is not a V-Agent settings file.",
+    "pt": "Não é um arquivo de ajustes do V-Agent.",
+    "fr": "Ce n’est pas un fichier de réglages V-Agent.",
+    "de": "Keine V-Agent-Einstellungsdatei."
+  },
+  "Descubrir, descargar, importar y exportar modelos": {
+    "en": "Discover, download, import and export models",
+    "pt": "Descobrir, baixar, importar e exportar modelos",
+    "fr": "Découvrir, télécharger, importer et exporter des modèles",
+    "de": "Modelle entdecken, herunterladen, importieren und exportieren"
+  },
+  "Añadir proyecto": {
+    "en": "Add project",
+    "pt": "Adicionar projeto",
+    "fr": "Ajouter un projet",
+    "de": "Projekt hinzufügen"
+  },
+  "Nuevo chat en este proyecto": {
+    "en": "New chat in this project",
+    "pt": "Novo chat neste projeto",
+    "fr": "Nouvelle conversation dans ce projet",
+    "de": "Neuer Chat in diesem Projekt"
+  },
+  "Proyecto añadido.": {
+    "en": "Project added.",
+    "pt": "Projeto adicionado.",
+    "fr": "Projet ajouté.",
+    "de": "Projekt hinzugefügt."
+  },
+  "Descargar GGUF": {
+    "en": "Download GGUF",
+    "pt": "Baixar GGUF",
+    "fr": "Télécharger le GGUF",
+    "de": "GGUF herunterladen"
   }
 }
