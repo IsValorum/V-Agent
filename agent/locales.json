@@ -7228,5 +7228,23 @@
     "pt": "nenhuma instalada",
     "fr": "aucune installée",
     "de": "keine installiert"
+  },
+  "Actualización menor aplicada": {
+    "en": "Minor update applied",
+    "pt": "Atualização menor aplicada",
+    "fr": "Mise à jour mineure appliquée",
+    "de": "Kleines Update angewendet"
+  },
+  "Nueva versión lista para instalar": {
+    "en": "New version ready to install",
+    "pt": "Nova versão pronta para instalar",
+    "fr": "Nouvelle version prête à installer",
+    "de": "Neue Version bereit zur Installation"
+  },
+  "Configuración → General": {
+    "en": "Settings → General",
+    "pt": "Configurações → Geral",
+    "fr": "Réglages → Général",
+    "de": "Einstellungen → Allgemein"
   }
 }

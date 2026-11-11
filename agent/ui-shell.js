@@ -577,5 +577,12 @@ function setupSegmentedSliders(){
   };
   const scan=()=>document.querySelectorAll(groups).forEach(attach);
   scan();new MutationObserver(scan).observe(document.body,{childList:true,subtree:true});
+  // A group measured while its window was closed has no pill once the window opens; catch up any
+  // visible group whose pill is hidden or out of step (reads only; writes on mismatch).
+  setInterval(()=>{for(const group of document.querySelectorAll('[data-segmented]')){
+    if(!group.offsetWidth)continue;const pill=group.querySelector(':scope>.seg-pill');
+    const active=[...group.children].find(el=>el.tagName==='BUTTON'&&(el.getAttribute('aria-pressed')==='true'||el.getAttribute('aria-selected')==='true'));
+    if(pill&&active&&active.offsetWidth&&(pill.style.opacity!=='1'||pill.style.width!==active.offsetWidth+'px'||pill.style.transform!=='translate('+active.offsetLeft+'px,'+active.offsetTop+'px)'))place(group);
+  }},600);
 }
 setupSegmentedSliders();
