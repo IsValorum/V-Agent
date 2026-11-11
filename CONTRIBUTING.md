@@ -18,17 +18,23 @@ python -m venv .venv && .venv\Scripts\pip install -r requirements.txt
 ```
 
 Open http://127.0.0.1:19381 to use the interface in a browser while developing. Interface modules live
-in `agent/ui-*.js` and `agent/ui-panels.css`; run `python scripts/sync-ui.py` after editing them.
+in `agent/ui-*.js` and `agent/ui-panels.css`; run `python scripts/sync-ui.py` after editing them (it
+injects them into `agent/index.html` and regenerates `desktop/web/`). See
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for where things are.
+
+Set `V_AGENT_NO_AUTO_UPDATE=1` while developing so the core does not apply published minor updates
+to your test data.
 
 ## Tests
 
 ```bat
-.venv\Scripts\python -m unittest discover -s tests -p "test_*.py"
-node tests\test_ui_i18n.cjs
+.venv\Scripts\python -m unittest discover -s tests
+for %f in (tests\*.cjs) do node %f
 ```
 
-Changes to the agent loop or tools should also be tried with a real local model: unit tests do not
-show how a model actually uses a tool.
+Both run on every push and pull request (GitHub Actions, `.github/workflows/tests.yml`). Changes to
+the agent loop or tools should also be tried with a real local model — unit tests do not show how a
+model actually uses a tool. `tests/smoke/` has scripts for that (see [tests/README.md](tests/README.md)).
 
 ## Style
 

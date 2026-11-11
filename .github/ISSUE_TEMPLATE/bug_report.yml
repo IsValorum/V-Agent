@@ -1,0 +1,41 @@
+name: Bug report
+description: Something does not work as expected.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please do not paste API keys, tokens or private file contents.
+        Security problems go to SECURITY.md instead of a public issue.
+  - type: input
+    id: version
+    attributes:
+      label: V-Agent version
+      description: Settings → General → V-Agent updates (for example "1.0.0 C2").
+    validations:
+      required: true
+  - type: dropdown
+    id: engine
+    attributes:
+      label: Engine
+      options: [llama.cpp CUDA, llama.cpp Vulkan, llama.cpp CPU, Strata, Strata Rust, Remote API, Not relevant]
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Model
+      description: Name and quant of the model, if the problem involves one.
+  - type: textarea
+    id: steps
+    attributes:
+      label: What happened
+      description: Steps to reproduce, what you expected and what you saw. Screenshots help.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs (optional)
+      description: Relevant lines from %LOCALAPPDATA%\V-Agent-Data\logs\agent.log.
+      render: text
