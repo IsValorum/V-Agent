@@ -283,6 +283,14 @@ def install(a):
                 name,mime=assets[self.path]
                 raw=(SOURCE_ROOT/'agent'/name).read_bytes()
                 self.send_response(200);self.send_header('Content-Type',mime);self.send_header('Content-Length',str(len(raw)));self.send_header('Cache-Control','no-store');self.end_headers();self.wfile.write(raw);return
+            if self.path.split('?')[0] in ('/assets/ui-patch.css','/assets/ui-patch.js'):
+                # Interface fixes from the signed components channel (empty when none is applied).
+                import components
+                name=self.path.split('?')[0].rsplit('/',1)[1]
+                found=components.resource(name,Path('/nonexistent')/name)
+                raw=found.read_bytes() if found.is_file() else b''
+                self.send_response(200);self.send_header('Content-Type','text/css; charset=utf-8' if name.endswith('.css') else 'text/javascript; charset=utf-8')
+                self.send_header('Content-Length',str(len(raw)));self.send_header('Cache-Control','no-store');self.send_header('X-Content-Type-Options','nosniff');self.end_headers();self.wfile.write(raw);return
             if self.path=='/api/harness/preferences':self._json(200,preferences.get());return
             if self.path=='/api/harness/mcp-options':self._json(200,OPTIONS.get());return
             if self.path=='/api/harness/updates':self._json(200,update_payload());return

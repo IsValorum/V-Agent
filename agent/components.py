@@ -26,12 +26,13 @@ import app_updates
 
 MANIFEST = 'v-agent-components.json'
 ROOT = DATA_ROOT / 'components'
-# Modules that can be updated without a new installer. They are leaf modules (MCP servers and their
-# helpers, tool descriptions) that the core and every MCP process import by name.
+# Files that can be updated without a new installer: leaf modules (MCP servers and their helpers,
+# tool descriptions) that the core and every MCP process import by name, plus two interface patches
+# (ui-patch.css / ui-patch.js) that the window loads on top of the bundled interface at startup.
 ALLOWED = {
     'pc_mcp.py', 'browser_mcp.py', 'computer_mcp.py', 'admin_mcp.py', 'hf_mcp.py', 'buscador_mcp.py',
     'busqueda_local.py', 'http_tools_mcp.py', 'mcp_prompt.py', 'tool_budget.py', 'verify.py',
-    'render_check.py', 'scene_probe.js',
+    'render_check.py', 'scene_probe.js', 'ui-patch.css', 'ui-patch.js',
 }
 MAX_FILE = 2 * 2**20
 

@@ -2,6 +2,13 @@
 
 All notable changes to V-Agent are listed here. Versions follow [Semantic Versioning](https://semver.org/).
 
+Minor updates delivered through the signed components channel are numbered per version:
+**1.0.1 C1**, **1.0.1 C2**… They change only the listed parts and never the version number.
+
+## 1.0.1 C1 (minor update)
+
+- Tighter spacing above "Projects" in the sidebar (interface patch).
+
 ## 1.0.1
 
 - **Modelos** window (sidebar): browse GGUF models on Hugging Face by text or vision, sorted by downloads,
@@ -15,6 +22,12 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
   sit in its top row), so conversations start at the top of the window.
 - **Projects** section in the sidebar: a single "Projects +" line until you add one, then each project
   with its own chats and a quick "new chat in this project".
+- Windows no longer flicker: settings, Modelos, tools, console and model controls use a frosted,
+  nearly opaque surface instead of a live blur over their whole area (the blur was recomputed on
+  every scroll, image or progress change, which flashed on hybrid-GPU laptops). Small menus, notices
+  and the composer keep the real glass blur. (Installer re-published the same day.)
+- The signed minor-updates channel can also fix the interface (ui-patch.css / ui-patch.js), so small
+  visual fixes arrive as 1.0.1 C1, C2… without a new installer.
 
 ## 1.0.0 — first public release
 

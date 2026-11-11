@@ -854,6 +854,18 @@ body.desktop-frame.browser-open .topbar{padding-right:32px;}
   background:var(--glass-fill)!important;-webkit-backdrop-filter:var(--glass-filter)!important;backdrop-filter:var(--glass-filter)!important;
   border:1px solid var(--glass-edge)!important;box-shadow:var(--glass-shine),0 22px 56px rgb(0 0 0 / .28),0 2px 8px rgb(0 0 0 / .10);}
 :root[data-ui-style=glass] :is(.fw,#drawer,#composerControls) :is(.drawer-head,.controls-head,.fw-head,.dlg-head,.settings-navigation,.drawer-body,.controls-body){background:transparent!important;}
+/* Windows (settings, models, tools, console, model controls) are large and their content keeps
+   changing (scrolling, images, progress). A live blur over that much area is recomputed on every
+   change and flickers on hybrid-GPU laptops, so windows get a frosted, nearly opaque fill with the
+   same edge and shine instead. It never switches while moving either, so there is nothing to flash.
+   Small, short-lived layers (menus, notices, dialogs, the composer) keep the real blur. */
+:root[data-ui-style=glass] :is(.fw,#drawer,#composerControls),
+:root[data-ui-style=glass] :is(.fw,#drawer,#composerControls)[data-motion]{
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  background:linear-gradient(180deg,color-mix(in srgb,#fff 3%,transparent),transparent 120px),color-mix(in srgb,var(--panel) 95%,var(--bg))!important;
+  transition:none!important;}
+/* Same reason in the soft and Art Deco styles, where the blur slider would apply to windows too. */
+:root:not([data-ui-style=glass]) :is(.fw,#drawer,#composerControls){-webkit-backdrop-filter:none!important;backdrop-filter:none!important;}
 /* The composer keeps the older rule of pausing blur while a reply streams (GPU cost). */
 :root[data-ui-style=glass] #chatwrap:not([data-generating=true]) .compose-surface{-webkit-backdrop-filter:var(--glass-filter)!important;backdrop-filter:var(--glass-filter)!important;}
 :root[data-ui-style=glass] .compose-surface{background:var(--glass-fill-strong)!important;border:1px solid var(--glass-edge)!important;box-shadow:var(--glass-shine),0 12px 36px rgb(0 0 0 / .18);}
@@ -907,9 +919,9 @@ body.desktop-frame.browser-open .topbar{padding-right:32px;}
 #composerBox.drop-ready .compose-surface{outline:2px dashed color-mix(in srgb,var(--accent) 70%,transparent);outline-offset:3px;}
 
 /* Glass in motion: no live blur, near-opaque fill; blur and translucency fade back once settled. */
-:root[data-ui-style=glass] :is(.fw,#drawer,#composerControls,.agent-small-menu,#composerAddMenu)[data-motion]{
+:root[data-ui-style=glass] :is(.agent-small-menu,#composerAddMenu)[data-motion]{
   -webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:color-mix(in srgb,var(--panel) 94%,transparent)!important;}
-:root[data-ui-style=glass] :is(.fw,#drawer,#composerControls,.agent-small-menu,#composerAddMenu){transition:background-color .28s ease;}
+:root[data-ui-style=glass] :is(.agent-small-menu,#composerAddMenu){transition:background-color .28s ease;}
 
 /* ===================== Interactive tour ===================== */
 .tour-layer{position:fixed;inset:0;z-index:9000;}
