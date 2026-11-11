@@ -837,7 +837,7 @@ def call(name, args, *, full_access=False, policy=None):
         return project_map(policy,args.get('path') or '.',full_access)
     if name == "file_history":
         path=policy.path(args.get('path'),full_access)
-        return json.dumps(VERSIONS.restore(path,policy.root,args['revision']) if args.get('revision') else VERSIONS.history(path,policy.root),ensure_ascii=False)
+        return json.dumps(VERSIONS.restore(path,policy.root,args['revision']) if args.get('revision') else VERSIONS.describe(path,policy.root),ensure_ascii=False)
     if name == "code_check":
         import verify
         path=policy.path(args.get('path'),full_access)
@@ -1132,6 +1132,14 @@ def call(name, args, *, full_access=False, policy=None):
         limit = max(1, min(int(args.get("max_results") or 80), 500))
         max_file = max(1024, min(int(args.get("max_file_bytes") or 2_000_000), 5_000_000))
         files, matches, truncated = [], [], False
+        # "**/" also matches zero folders (glob semantics), so **/*.py includes files at the top level.
+        patterns, rest = {pattern}, pattern
+        while rest.startswith(("**/", "**\\")):
+            rest = rest[3:]
+            if rest:
+                patterns.add(rest)
+        def wanted(relative, name):
+            return any(fnmatch.fnmatch(relative, p) or fnmatch.fnmatch(name, p) for p in patterns)
         candidates = [base] if base.is_file() else base.rglob("*")
         for candidate in candidates:
             if len(files) + len(matches) >= limit:
@@ -1141,7 +1149,7 @@ def call(name, args, *, full_access=False, policy=None):
                 if candidate.is_symlink() or not candidate.is_file():
                     continue
                 relative = str(candidate.relative_to(base)) if base.is_dir() else str(candidate)
-                if base.is_dir() and not (fnmatch.fnmatch(relative, pattern) or fnmatch.fnmatch(candidate.name, pattern)):
+                if base.is_dir() and not wanted(relative, candidate.name):
                     continue
                 if needle is None:
                     files.append({"path": relative, "bytes": candidate.stat().st_size})
@@ -1189,29 +1197,44 @@ def call(name, args, *, full_access=False, policy=None):
             return "deleted: " + str(source)
         if action in ("move", "copy"):
             destination = policy.path(args.get("destination"), full_access)
+            # Check the source before touching anything: a mistaken move must never cost the destination.
+            if not source.exists():
+                raise ValueError("Source does not exist: %s. Nothing was changed; list the folder with fs_list to see the real names." % args.get("path"))
+            if source.resolve() == destination.resolve():
+                raise ValueError("Source and destination are the same; nothing was changed.")
+            if source.is_dir() and destination.resolve().is_relative_to(source.resolve()):
+                raise ValueError("A folder cannot be copied or moved into itself; nothing was changed.")
+            if action == "copy" and source.is_dir() and not bool(args.get("recursive")):
+                raise ValueError("Directory copy requires recursive=true.")
             if destination.exists() and not bool(args.get("overwrite")):
-                raise ValueError("Destination exists; pass overwrite=true.")
-            if action == "move":
-                if destination.exists():
-                    if destination.is_dir():
-                        shutil.rmtree(destination)
-                    else:
-                        destination.unlink()
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                shutil.move(str(source), str(destination))
-                return "moved: " + str(source) + " -> " + str(destination)
+                raise ValueError("Destination exists; pass overwrite=true to replace it.")
             destination.parent.mkdir(parents=True, exist_ok=True)
-            if source.is_dir():
-                if not bool(args.get("recursive")):
-                    raise ValueError("Directory copy requires recursive=true.")
-                if destination.exists():
-                    shutil.rmtree(destination)
-                shutil.copytree(source, destination, symlinks=False)
-            else:
-                if destination.exists():
-                    destination.unlink()
-                shutil.copy2(source, destination)
-            return "copied: " + str(source) + " -> " + str(destination)
+            backup = None
+            if destination.is_dir() and not destination.is_symlink():
+                # Keep the old folder aside until the new one is complete, so a failure restores it.
+                backup = destination.with_name(destination.name + ".val-replace")
+                if backup.exists():
+                    shutil.rmtree(backup)
+                destination.rename(backup)
+            try:
+                if action == "move":
+                    if source.is_file() and destination.is_file():
+                        os.replace(source, destination)  # atomic swap of one file for another
+                    else:
+                        shutil.move(str(source), str(destination))
+                elif source.is_dir():
+                    shutil.copytree(source, destination, symlinks=False)
+                else:
+                    staged = destination.with_name("." + destination.name + ".val-copy")
+                    shutil.copy2(source, staged)
+                    os.replace(staged, destination)  # the old file is replaced only once the copy is complete
+            except Exception:
+                if backup is not None and not destination.exists():
+                    backup.rename(destination)
+                raise
+            if backup is not None:
+                shutil.rmtree(backup, ignore_errors=True)
+            return ("moved: " if action == "move" else "copied: ") + str(source) + " -> " + str(destination)
         raise ValueError("Acción fs_manage no válida.")
     if name == "shell_run":
         if not full_access:

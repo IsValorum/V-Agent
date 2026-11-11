@@ -28,6 +28,7 @@ throw-away data folder first:
 |---|---|
 | `smoke/ling_tools_smoke.py` | A small local model using file and system tools end to end. Set `V_AGENT_TEST_MODEL` to a small GGUF. |
 | `smoke/llama_smoke.py` | Loading, context change and a reply with a tiny GGUF in `.test-models/`. |
+| `smoke/tool_battery.py` | A real model choosing file tools: write, edit, copy/paste lines, diagnose and fix, restore a version (5 cases, ~2 min; `SUITE_FULL=1` runs all 13, including search, move, HTML in the browser, interrupted drafts and writes outside the folder). Works with any engine. |
 | `smoke/mcp_bundle_smoke.py` | Every MCP server inside a packaged build. |
 | `smoke/mcp_integrity_smoke.py` | Read-only MCP checks and isolated edits against a packaged core. |
 | `smoke/provider_smoke.py`, `smoke/api_fixture.py` | The remote-API path (OpenAI and Claude formats) against a local fake server. |
