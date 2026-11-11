@@ -45,7 +45,7 @@ class MigrationRepairs(unittest.TestCase):
 
     def test_llama_custom_template_and_name_survive_registration(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root=Path(tmp);gguf=root/'weights.gguf';gguf.write_bytes(b'fake')
+            root=Path(tmp).resolve();gguf=root/'weights.gguf';gguf.write_bytes(b'fake')  # long form (CI temp can be 8.3)
             template=root/'template.jinja';template.write_text('{% if enable_thinking %}yes{% endif %}',encoding='utf8')
             fake=type('GGUF',(),{'metadata':{'general.architecture':'other','other.context_length':32768}})
             with patch.object(desktop_runtime,'DATA_ROOT',root),patch('gguf_reader.GGUFFile',return_value=fake):

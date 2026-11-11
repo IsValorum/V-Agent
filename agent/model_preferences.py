@@ -6,7 +6,7 @@ from pathlib import Path
 import threading
 from ui_preferences import atomic_json
 
-from runtime_paths import SETTINGS_ROOT,CONFIG_ROOT
+from runtime_paths import SETTINGS_ROOT,CONFIG_ROOT,SOURCE_ROOT
 BASE = SETTINGS_ROOT
 RANGES = {'temperature':(0,2),'top_p':(0,1),'top_k':(0,1000),'min_p':(0,1),
           'repetition_penalty':(.8,2),'presence_penalty':(-2,2),'frequency_penalty':(-2,2),
@@ -24,7 +24,10 @@ class ModelPreferences:
         except (OSError,ValueError) as error:
             self.records = {}
             self.load_error = str(error)
-        self.creators = json.loads((CONFIG_ROOT/'agent/creator-recommendations.json').read_text(encoding='utf-8'))
+        # The user's copy is created on first start; before that (fresh clone, tests) use the bundled one.
+        source = CONFIG_ROOT/'agent/creator-recommendations.json'
+        if not source.is_file():source = SOURCE_ROOT/'agent/creator-recommendations.json'
+        self.creators = json.loads(source.read_text(encoding='utf-8'))
 
     def load(self, model):
         with self.lock:

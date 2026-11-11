@@ -80,6 +80,7 @@ class ControlsTests(unittest.TestCase):
     def test_linux_rooted_path_maps_into_isolated_folder(self):
         from access_policy import AccessPolicy,AccessDenied
         with tempfile.TemporaryDirectory() as folder:
+            folder=str(Path(folder).resolve())  # long form (CI temp folders can be 8.3 short names)
             policy=AccessPolicy(Path(folder))
             self.assertEqual(policy.path('/flowtrack.html',False),Path(folder).resolve()/'flowtrack.html')
             for outside in ('C:\\Windows\\win.ini','//server/share/x','/../escape.txt'):
