@@ -365,7 +365,8 @@ def install(a):
                     caps=capabilities(manager.executable()) if manager.kind=='llama' else {}
                     if manager.kind=='strata':
                         config=json.loads(Path(model['config']).read_text(encoding='utf-8-sig'));args=config.get('args',[]);caps['prompt_batch']=int(args[args.index('--prompt-batch')+1]) if '--prompt-batch' in args else 1024
-                    cfg=manager.settings.get('llama',{});layers='auto' if manager.kind=='strata' else '0' if cfg.get('variant')=='cpu' else cfg.get('gpu_layers','auto')
+                    from load_settings import gpu_layers
+                    cfg=manager.settings.get('llama',{});layers='auto' if manager.kind=='strata' else '0' if cfg.get('variant')=='cpu' else gpu_layers(load,cfg.get('gpu_layers','auto'))
                     result=estimate(model,context,kv,load,manager.kind,layers,caps)
                     from draft_models import validate as validate_draft,weight_bytes
                     draft=validate_draft(body.get('draft') or model.get('preferences',{}).get('draft') or {})

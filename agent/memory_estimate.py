@@ -52,11 +52,17 @@ def estimate_facts(facts,context,kv,settings,kind='llama',gpu_layers='auto',caps
     else:
         ratio=0 if str(gpu_layers)=='0' else min(1,max(0,int(gpu_layers))/max(1,layers)) if str(gpu_layers).isdigit() else 1
         gpu_weights=weights*ratio
+        moe=0 if v['auto'] else v.get('cpu_moe',0)
+        if moe and layers and facts.get('expert_bytes'):
+            # --n-cpu-moe keeps the experts of the first N layers in RAM.
+            gpu_weights=max(0,gpu_weights-facts['expert_bytes']*min(1,moe/layers))
+            notes.append('Parte de los expertos MoE se queda en la RAM (--n-cpu-moe).')
     cpu=str(gpu_layers)=='0';total=None if cache is None else weights+cache+state+buffers
     gpu=None if total is None else 0 if cpu else gpu_weights+cache+state+buffers
     if m.get('split.count',1)>1:notes.append('Archivo GGUF dividido: estimación parcial de pesos.');total=None;gpu=None
     notes.append('Buffers aproximados; visión, draft, controladores y asignaciones temporales pueden añadir memoria.')
-    return {'estimated':True,'weights':weights,'kv':cache,'recurrent':state,'buffers':buffers,'total':total,'gpu_full_offload':gpu,'cpu_weights':weights-gpu_weights,'context_per_slot':context,'slots':slots,'kv_type':kv,'effective':v,'notes':notes,'architecture':a}
+    return {'estimated':True,'weights':weights,'kv':cache,'recurrent':state,'buffers':buffers,'total':total,'gpu_full_offload':gpu,'cpu_weights':weights-gpu_weights,'context_per_slot':context,'slots':slots,'kv_type':kv,'effective':v,'notes':notes,'architecture':a,
+            'block_count':layers,'moe':bool(facts.get('expert_bytes'))}
 
 def estimate(model,context,kv,settings,kind,layers,caps=None):
     result=estimate_facts(inspect(Path(model['path'])),context,kv,settings,kind,layers,caps)

@@ -7246,5 +7246,77 @@
     "pt": "Configurações → Geral",
     "fr": "Réglages → Général",
     "de": "Einstellungen → Allgemein"
+  },
+  "Margen de VRAM (MiB)": {
+    "en": "VRAM margin (MiB)",
+    "pt": "Margem de VRAM (MiB)",
+    "fr": "Marge de VRAM (Mio)",
+    "de": "VRAM-Reserve (MiB)"
+  },
+  "Memoria que --fit deja libre en la GPU. Auto usa 1024 MiB.": {
+    "en": "Memory --fit leaves free on the GPU. Auto uses 1024 MiB.",
+    "pt": "Memória que o --fit deixa livre na GPU. Auto usa 1024 MiB.",
+    "fr": "Mémoire que --fit laisse libre sur le GPU. Auto utilise 1024 Mio.",
+    "de": "Speicher, den --fit auf der GPU frei lässt. Auto nutzt 1024 MiB."
+  },
+  "Capas en GPU": {
+    "en": "GPU layers",
+    "pt": "Camadas na GPU",
+    "fr": "Couches sur le GPU",
+    "de": "GPU-Schichten"
+  },
+  "Cuántas capas van a la VRAM (-ngl). Escribe un número o Todas; Auto usa el ajuste del motor.": {
+    "en": "How many layers go to VRAM (-ngl). Type a number or All; Auto uses the engine setting.",
+    "pt": "Quantas camadas vão para a VRAM (-ngl). Digite um número ou Todas; Auto usa o ajuste do motor.",
+    "fr": "Nombre de couches en VRAM (-ngl). Saisissez un nombre ou Toutes ; Auto utilise le réglage du moteur.",
+    "de": "Wie viele Schichten in den VRAM gehen (-ngl). Zahl oder Alle eingeben; Auto nutzt die Motor-Einstellung."
+  },
+  "Expertos MoE en CPU": {
+    "en": "MoE experts on CPU",
+    "pt": "Especialistas MoE na CPU",
+    "fr": "Experts MoE sur le CPU",
+    "de": "MoE-Experten auf der CPU"
+  },
+  "Capas cuyos expertos se quedan en la RAM (--n-cpu-moe). Ideal para modelos MoE en GPU pequeña.": {
+    "en": "Layers whose experts stay in RAM (--n-cpu-moe). Ideal for MoE models on a small GPU.",
+    "pt": "Camadas cujos especialistas ficam na RAM (--n-cpu-moe). Ideal para modelos MoE em GPU pequena.",
+    "fr": "Couches dont les experts restent en RAM (--n-cpu-moe). Idéal pour les modèles MoE sur un petit GPU.",
+    "de": "Schichten, deren Experten im RAM bleiben (--n-cpu-moe). Ideal für MoE-Modelle auf kleiner GPU."
+  },
+  "Todas": {
+    "en": "All",
+    "pt": "Todas",
+    "fr": "Toutes",
+    "de": "Alle"
+  },
+  "capas": {
+    "en": "layers",
+    "pt": "camadas",
+    "fr": "couches",
+    "de": "Schichten"
+  },
+  "Automático: llama.cpp ajusta capas y contexto a tu memoria (--fit).": {
+    "en": "Automatic: llama.cpp fits layers and context to your memory (--fit).",
+    "pt": "Automático: o llama.cpp ajusta camadas e contexto à sua memória (--fit).",
+    "fr": "Automatique : llama.cpp adapte couches et contexte à votre mémoire (--fit).",
+    "de": "Automatisch: llama.cpp passt Schichten und Kontext an deinen Speicher an (--fit)."
+  },
+  "Personalizado: tú eliges las capas (sin --fit). Se aplicará en la próxima carga.": {
+    "en": "Custom: you choose the layers (no --fit). Applies on the next load.",
+    "pt": "Personalizado: você escolhe as camadas (sem --fit). Vale na próxima carga.",
+    "fr": "Personnalisé : vous choisissez les couches (sans --fit). Appliqué au prochain chargement.",
+    "de": "Benutzerdefiniert: du wählst die Schichten (ohne --fit). Gilt beim nächsten Laden."
+  },
+  "El modelo tiene": {
+    "en": "The model has",
+    "pt": "O modelo tem",
+    "fr": "Le modèle a",
+    "de": "Das Modell hat"
+  },
+  "Parte de los expertos MoE se queda en la RAM (--n-cpu-moe).": {
+    "en": "Part of the MoE experts stays in RAM (--n-cpu-moe).",
+    "pt": "Parte dos especialistas MoE fica na RAM (--n-cpu-moe).",
+    "fr": "Une partie des experts MoE reste en RAM (--n-cpu-moe).",
+    "de": "Ein Teil der MoE-Experten bleibt im RAM (--n-cpu-moe)."
   }
 }

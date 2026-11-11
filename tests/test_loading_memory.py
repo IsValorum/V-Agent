@@ -15,6 +15,26 @@ class LoadingMemoryTests(unittest.TestCase):
   for v in ({'parallel':True},{'checkpoints':65},{'batch':32,'ubatch':64},{'auto':1},{'unknown':0}):
    with self.assertRaises(ValueError):validate(v)
   with self.assertRaises(ValueError):arguments({'auto':False,'checkpoints':4},8192,{'checkpoints':False})
+ def test_fit_mode_lets_llama_place_layers_with_a_margin(self):
+  from load_settings import gpu_layers
+  caps={'checkpoints':True,'fit':True,'fit_target':True,'cpu_moe':True}
+  self.assertEqual(gpu_layers({},'all'),'auto')  # --fit cannot move layers that are pinned
+  a=arguments({'fit_target':2048},8192,caps);self.assertEqual(a[-4:],['--fit','on','--fit-target','2048'])
+  self.assertNotIn('--fit-target',arguments({},8192,caps))
+ def test_manual_mode_sets_layers_and_moe_experts_by_hand(self):
+  from load_settings import gpu_layers
+  caps={'checkpoints':True,'fit':True,'fit_target':True,'cpu_moe':True}
+  manual={'auto':False,'gpu_layers':30,'cpu_moe':12}
+  self.assertEqual(gpu_layers(manual,'auto'),'30');self.assertEqual(gpu_layers({'auto':False},'99'),'99')  # -1 = engine setting
+  a=arguments(manual,8192,caps);self.assertIn('--n-cpu-moe',a);self.assertEqual(a[a.index('--n-cpu-moe')+1],'12');self.assertEqual(a[-2:],['--fit','off'])
+  with self.assertRaises(ValueError):arguments(manual,8192,{'checkpoints':True,'fit':True})  # build without --n-cpu-moe
+  for bad in ({'gpu_layers':-2},{'cpu_moe':1000},{'fit_target':-1}):
+   with self.assertRaises(ValueError):validate(bad)
+  self.assertEqual(validate({'auto':True,'parallel':1})['gpu_layers'],-1)  # older saved settings keep working
+ def test_moe_experts_on_cpu_lower_the_gpu_estimate(self):
+  f=self.facts();f['expert_bytes']=8*2**30
+  full=estimate_facts(f,8192,'fp16',{'auto':False},gpu_layers='8');half=estimate_facts(f,8192,'fp16',{'auto':False,'cpu_moe':4},gpu_layers='8')
+  self.assertAlmostEqual(full['gpu_full_offload']-half['gpu_full_offload'],4*2**30,delta=2**20);self.assertEqual(half['block_count'],8);self.assertTrue(half['moe'])
  def facts(self):return {'metadata':{'general.architecture':'test','test.block_count':8,'test.embedding_length':1024,'test.attention.head_count':8,'test.attention.head_count_kv':2,'test.attention.key_length':128,'test.attention.value_length':128},'dense_bytes':2**30,'expert_bytes':0}
  def test_kv_tracks_context_slots_and_quantization(self):
   f=self.facts();v={'auto':False,'parallel':1}
