@@ -882,14 +882,37 @@ async function waitForCore(){
 // served by the core (empty when no update is applied), loaded on top of the bundled interface.
 function loadUiPatch(){
   const base=window.VAL_CORE_BASE||'',stamp=Date.now();
-  const style=document.createElement('link');style.rel='stylesheet';style.id='uiPatchCss';style.href=base+'/assets/ui-patch.css?t='+stamp;document.head.append(style);
+  let style=document.getElementById('uiPatchCss');
+  if(!style){style=document.createElement('link');style.rel='stylesheet';style.id='uiPatchCss';document.head.append(style);}
+  style.href=base+'/assets/ui-patch.css?t='+stamp;
+  if(document.getElementById('uiPatchJs'))return;
   fetch('/assets/ui-patch.js',{cache:'no-store'}).then(response=>response.ok?response.text():'').then(code=>{
-    if(!code.trim())return;const script=document.createElement('script');script.id='uiPatchJs';script.src=base+'/assets/ui-patch.js?t='+stamp;document.body.append(script);
+    if(!code.trim()||document.getElementById('uiPatchJs'))return;const script=document.createElement('script');script.id='uiPatchJs';script.src=base+'/assets/ui-patch.js?t='+stamp;document.body.append(script);
   }).catch(()=>{});
+}
+// V-Agent applies signed minor updates by itself shortly after starting (see desktop_runtime): when one
+// lands while the window is open, its interface patch is loaded at once; a downloaded installer is announced.
+async function watchAutomaticUpdates(){
+  let start=null,announced=false;
+  for(let attempt=0;attempt<40;attempt++){
+    await new Promise(resolve=>setTimeout(resolve,attempt?3000:1500));
+    try{
+      const c=await requestJSON('/api/harness/components');
+      if(start===null)start=c.revision||0;
+      if((c.revision||0)>start){
+        start=c.revision;loadUiPatch();
+        const version=(await requestJSON('/api/harness/app-update').catch(()=>({}))).version||'';
+        note(uiText('Actualización menor aplicada')+': '+(version?version+' ':'')+'C'+c.revision);
+      }
+      const u=await requestJSON('/api/harness/app-update');
+      if(u.ready&&!announced){announced=true;note(uiText('Nueva versión lista para instalar')+': '+(u.available?.version||'')+' · '+uiText('Configuración → General'));}
+      if(!c.busy&&c.checked_at&&!u.busy&&u.checked_at&&attempt>3)break;
+    }catch{}
+  }
 }
 (async function initializeAgent() {
   const coreReady=await waitForCore();
-  if(coreReady)loadUiPatch();
+  if(coreReady){loadUiPatch();watchAutomaticUpdates();}
   if(!coreReady){
     const connection=document.getElementById('connectionText');if(connection)connection.textContent='Sin conexión local';
     const mode=document.getElementById('modeNote');if(mode)mode.textContent='El servicio local no respondió. Revisa data/logs/agent.log.';
@@ -4115,6 +4138,13 @@ function setupSegmentedSliders(){
   };
   const scan=()=>document.querySelectorAll(groups).forEach(attach);
   scan();new MutationObserver(scan).observe(document.body,{childList:true,subtree:true});
+  // A group measured while its window was closed has no pill once the window opens; catch up any
+  // visible group whose pill is hidden or out of step (reads only; writes on mismatch).
+  setInterval(()=>{for(const group of document.querySelectorAll('[data-segmented]')){
+    if(!group.offsetWidth)continue;const pill=group.querySelector(':scope>.seg-pill');
+    const active=[...group.children].find(el=>el.tagName==='BUTTON'&&(el.getAttribute('aria-pressed')==='true'||el.getAttribute('aria-selected')==='true'));
+    if(pill&&active&&active.offsetWidth&&(pill.style.opacity!=='1'||pill.style.width!==active.offsetWidth+'px'||pill.style.transform!=='translate('+active.offsetLeft+'px,'+active.offsetTop+'px)'))place(group);
+  }},600);
 }
 setupSegmentedSliders();
 

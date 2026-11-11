@@ -106,10 +106,16 @@ class AppUpdates:
                 return self.snapshot()
             self.state.update(busy=True, error='')
         try:
-            # Newest published app release: minor "components-*" releases share the repository but carry
-            # no installer, so GitHub's "latest" is not necessarily an app update.
-            release = next((r for r in json.loads(self._get('https://api.github.com/repos/%s/releases?per_page=30' % self.repository, 2**21))
-                            if not r.get('draft') and not r.get('prerelease') and not str(r.get('tag_name', '')).startswith('components-')), None)
+            # Highest published app version (by number, not by date): minor "components-*" releases share
+            # the repository but carry no installer, so GitHub's "latest" is not necessarily an app update.
+            candidates = [r for r in json.loads(self._get('https://api.github.com/repos/%s/releases?per_page=30' % self.repository, 2**21))
+                          if not r.get('draft') and not r.get('prerelease') and not str(r.get('tag_name', '')).startswith('components-')]
+            def number(r):
+                try:
+                    return parse_version(str(r.get('tag_name', '')).lstrip('vV'))
+                except ValueError:
+                    return (-1, -1, -1)
+            release = max(candidates, key=number, default=None)
             if release is None:
                 with self.lock:
                     self.state.update(available=None, checked_at=time.time())

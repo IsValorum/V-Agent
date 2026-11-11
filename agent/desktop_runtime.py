@@ -255,6 +255,23 @@ def install(a):
         if template and Path(template).is_file():settings['template']=Path(template).read_text(encoding='utf-8-sig')
         return settings
 
+    def automatic_updates():
+        """A few seconds after start: apply the newest signed minor update (1.0.0 C1, C2…) and fetch
+        a newer installer if there is one, so a fresh install always ends up on the latest release.
+        Both are verified against the maintainer's key; installing a full update still asks first."""
+        import time
+        time.sleep(4)
+        try:
+            from components import COMPONENTS
+            if COMPONENTS.check().get('available'):COMPONENTS.apply()
+        except Exception:pass
+        try:
+            from app_updates import UPDATES as app_update
+            if app_update.check().get('available'):app_update.download()
+        except Exception:pass
+    if os.environ.get('V_AGENT_NO_AUTO_UPDATE')!='1':
+        threading.Thread(target=automatic_updates,name='v-agent-auto-updates',daemon=True).start()
+
     old_handler=a.Handler
     class Handler(old_handler):
         def do_GET(self):

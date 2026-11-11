@@ -4,6 +4,14 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.0.0 C2 (minor update)
+
+- Tabs are at least as wide as their label, so longer texts ("Importar y exportar", "Importer et
+  exporter"…) no longer spill out of the sliding pill.
+- Segmented controls measured while their window was closed (Model & engine → "On this computer /
+  APIs") show their selection again.
+- Includes C1.
+
 ## 1.0.0 C1 (minor update)
 
 - Tighter spacing above "Projects" in the sidebar (interface patch).
@@ -16,7 +24,9 @@ Minor updates delivered through the signed components channel are numbered per v
 - Interactive tour of the interface in the installer's language.
 - Signed self-updates from the official repository (Ed25519, newer-version and checksum checks), plus a
   signed components channel for minor updates (MCP servers, tools and interface patches) without a new
-  installer.
+  installer. Shortly after starting, V-Agent applies the newest minor update by itself and downloads a
+  newer installer if there is one (installing it still asks first), so a fresh install always ends up
+  on the latest release.
 - **Modelos** window: browse GGUF models on Hugging Face by text or vision, sorted by downloads, trend,
   likes or date; see downloads, likes, architecture, context, parameters and license, the rendered model
   card, and every quant with its size and whether it fits your GPU. Downloads are resumable, verified

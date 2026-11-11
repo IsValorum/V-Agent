@@ -60,6 +60,20 @@ class AppUpdateTests(unittest.TestCase):
                                                       {'tag_name': 'v1.1.0', 'assets': []}]).encode()
         self.assertIn('no signed update manifest', updater.check()['error'])
 
+    def test_highest_version_wins_regardless_of_order(self):
+        updater = app_updates.AppUpdates('owner/V-Agent')
+        def release(tag, **extra):
+            return {'tag_name': tag, 'assets': [{'name': app_updates.MANIFEST, 'browser_download_url': 'manifest-' + tag},
+                                                {'name': app_updates.MANIFEST + '.sig', 'browser_download_url': 'sig-' + tag}], **extra}
+        listing = [release('v1.0.0'), release('v1.2.0'), release('v1.1.9'), release('v9.0.0', draft=True),
+                   release('components-1.0.0-r7'), release('nightly')]
+        def fake(url, limit):
+            if url.startswith('manifest-'):
+                raise ValueError('examined ' + url)
+            return json.dumps(listing).encode()
+        updater._get = fake
+        self.assertEqual(updater.check()['error'], 'examined manifest-v1.2.0')
+
     def test_unpublished_or_private_repository_is_not_an_error(self):
         import urllib.error
         updater = app_updates.AppUpdates('owner/V-Agent')
