@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-browser-tab-hide"
+description = "Enables the browser_tab_hide command without any pre-configured scope."
+commands.allow = ["browser_tab_hide"]
+
+[[permission]]
+identifier = "deny-browser-tab-hide"
+description = "Denies the browser_tab_hide command without any pre-configured scope."
+commands.deny = ["browser_tab_hide"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-window-brand-icon"
+description = "Enables the window_brand_icon command without any pre-configured scope."
+commands.allow = ["window_brand_icon"]
+
+[[permission]]
+identifier = "deny-window-brand-icon"
+description = "Denies the window_brand_icon command without any pre-configured scope."
+commands.deny = ["window_brand_icon"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-browser-tab-bounds"
+description = "Enables the browser_tab_bounds command without any pre-configured scope."
+commands.allow = ["browser_tab_bounds"]
+
+[[permission]]
+identifier = "deny-browser-tab-bounds"
+description = "Denies the browser_tab_bounds command without any pre-configured scope."
+commands.deny = ["browser_tab_bounds"]
