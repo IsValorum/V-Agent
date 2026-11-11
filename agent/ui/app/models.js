@@ -10,7 +10,7 @@
   const icon=path=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+path+'</svg>';
   const ICONS={models:'<path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3Z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/>',down:'<path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/>',heart:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/>',
     clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',chip:'<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 3v3m6-3v3M9 18v3m6-3v3M3 9h3m-3 6h3m12-6h3m-3 6h3"/>',ext:'<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',search:'<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/>'};
-  let win=null,current=null,hardware={vram_mib:0,ram_gib:0},jobs=[],folder='',poll=0,searchTimer=0,scanData=null,searchSeq=0;
+  let win=null,transfer=null,current=null,hardware={vram_mib:0,ram_gib:0},jobs=[],folder='',poll=0,searchTimer=0,scanData=null,searchSeq=0;
 
   // ---------------------------------------------------------------- README rendering (safe subset)
   const TAGS=new Set(['p','div','span','a','img','br','hr','h1','h2','h3','h4','h5','h6','ul','ol','li','table','thead','tbody','tr','th','td','strong','em','b','i','u','s','del','code','pre','blockquote','details','summary','sup','sub','center','picture','source','kbd','small']);
@@ -95,7 +95,6 @@
   function build(){
     win=document.createElement('section');win.id='modelsWindow';win.setAttribute('role','dialog');win.setAttribute('aria-labelledby','modelsTitle');win.hidden=true;
     win.innerHTML='<header class="fw-head models-head"><h2 id="modelsTitle">Modelos</h2>'+
-      '<div class="section-tabs models-tabs" role="tablist"><button type="button" role="tab" data-tab="discover" aria-selected="true">Descubrir</button><button type="button" role="tab" data-tab="transfer" aria-selected="false">Importar y exportar</button></div>'+
       '<button class="icon-btn" type="button" data-fw-close aria-label="Cerrar" title="Cerrar">×</button></header>'+
       '<div class="models-body">'+
       '<div class="models-pane" data-pane="discover">'+
@@ -116,28 +115,27 @@
       '</div></div>'+
       '<footer class="models-foot"><span class="models-folder">'+icon(ICONS.down)+'<span id="hubFolder"></span></span><button id="hubFolderChange" type="button" class="text-btn">Cambiar carpeta</button><div id="hubJobs" class="hub-jobs"></div></footer>';
     document.body.append(win);
+    const transferSection=document.createElement('details');transferSection.id='modelTransfer';transferSection.className='settings-group model-transfer';
+    const transferTitle=document.createElement('summary');transferTitle.textContent=T('Importar y exportar');
+    transfer=win.querySelector('[data-pane="transfer"]');transfer.hidden=false;transferSection.append(transferTitle,transfer);
+    document.getElementById('controls-model').append(transferSection);
+    transferSection.addEventListener('toggle',()=>{if(transferSection.open){scan();fillExportModels();}});
     window.VALWindows?.register('models',win,{onOpen:()=>{refreshJobs();if(!document.querySelector('#hubResults .hub-item'))search();},onClose:()=>clearInterval(poll)});
-    win.querySelectorAll('.models-tabs [data-tab]').forEach(tab=>tab.onclick=()=>selectTab(tab.dataset.tab));
     const query=win.querySelector('#hubQuery');query.oninput=()=>{clearTimeout(searchTimer);searchTimer=setTimeout(search,380);};
     query.onkeydown=event=>{if(event.key==='Enter'){clearTimeout(searchTimer);search();}};
     win.querySelector('#hubSort').onchange=search;win.querySelector('#hubKind').onchange=search;
     win.querySelector('#hubFolderChange').onclick=changeFolder;
-    win.querySelector('#transferScan').onclick=scan;
-    win.querySelector('#transferAll').onchange=event=>{win.querySelectorAll('#transferList input[type=checkbox]:not(:disabled)').forEach(box=>box.checked=event.target.checked);syncTransfer();};
-    win.querySelector('#transferImport').onclick=importSelected;
-    win.querySelector('#exportLm').onclick=()=>exportTo('lmstudio');
-    win.querySelector('#exportUnsloth').onclick=()=>exportTo('unsloth');
-    win.querySelector('#exportFile').onclick=()=>exportTo('file');
-    win.querySelector('#importFileBtn').onclick=()=>win.querySelector('#importFile').click();
-    win.querySelector('#importFile').onchange=importFile;
-    window.VALI18n?.observe?.(win);
+    transfer.querySelector('#transferScan').onclick=scan;
+    transfer.querySelector('#transferAll').onchange=event=>{transfer.querySelectorAll('#transferList input[type=checkbox]:not(:disabled)').forEach(box=>box.checked=event.target.checked);syncTransfer();};
+    transfer.querySelector('#transferImport').onclick=importSelected;
+    transfer.querySelector('#exportLm').onclick=()=>exportTo('lmstudio');
+    transfer.querySelector('#exportUnsloth').onclick=()=>exportTo('unsloth');
+    transfer.querySelector('#exportFile').onclick=()=>exportTo('file');
+    transfer.querySelector('#importFileBtn').onclick=()=>transfer.querySelector('#importFile').click();
+    transfer.querySelector('#importFile').onchange=importFile;
+    window.VALI18n?.observe?.(win);window.VALI18n?.observe?.(transferSection);
   }
-  function selectTab(name){
-    win.querySelectorAll('.models-tabs [data-tab]').forEach(tab=>tab.setAttribute('aria-selected',String(tab.dataset.tab===name)));
-    win.querySelectorAll('.models-pane').forEach(pane=>pane.hidden=pane.dataset.pane!==name);
-    if(name==='transfer'){if(!scanData)scan();fillExportModels();}
-  }
-  function open(tab){if(!win)build();window.VALWindows?.open('models');if(tab)selectTab(tab);}
+  function open(tab){if(!win)build();if(tab==='transfer'){setChatControls('model');document.getElementById('modelTransfer').open=true;}else window.VALWindows?.open('models');}
 
   // ---------------------------------------------------------------- discover
   async function search(){
@@ -237,43 +235,44 @@
     return parts.join(' · ')||T('Sin ajustes guardados; usará los predeterminados.');
   }
   async function scan(){
-    const list=win.querySelector('#transferList');list.innerHTML='<p class="mini hub-note">'+esc(T('Buscando modelos en este equipo…'))+'</p>';
+    const list=transfer.querySelector('#transferList');list.innerHTML='<p class="mini hub-note">'+esc(T('Buscando modelos en este equipo…'))+'</p>';
     try{
       scanData=await api('/api/harness/external/scan');
       const sources=Object.entries(scanData.sources).map(([key,src])=>SOURCE[key]+': '+(src.available?src.folder:T('no encontrado'))).join(' · ');
-      win.querySelector('#transferSources').textContent=sources;
+      transfer.querySelector('#transferSources').textContent=sources;
       if(!scanData.models.length){list.innerHTML='<p class="mini hub-note">'+esc(T('No se encontraron modelos GGUF de LM Studio ni de Unsloth Studio.'))+'</p>';syncTransfer();return;}
       list.replaceChildren(...scanData.models.map((item,index)=>{
         const row=document.createElement('label');row.className='transfer-row';
-        row.innerHTML='<input type="checkbox" data-index="'+index+'"'+(item.registered?' disabled':'')+'><span class="transfer-main"><strong></strong><small></small></span><span class="transfer-source" data-source="'+item.source+'">'+SOURCE[item.source]+'</span><span class="transfer-size">'+bytes(item.size)+'</span>';
+        row.innerHTML='<input type="checkbox" data-index="'+index+'"><span class="transfer-main"><strong></strong><small></small></span><span class="transfer-source" data-source="'+item.source+'">'+SOURCE[item.source]+'</span><span class="transfer-size">'+bytes(item.size)+'</span>';
         row.querySelector('strong').textContent=item.name;row.querySelector('small').textContent=(item.registered?T('Ya está en V-Agent')+' · ':'')+summary(item);row.title=item.path;
         row.querySelector('input').onchange=syncTransfer;return row;
       }));
     }catch(error){list.innerHTML='<p class="mini hub-note" data-error="1">'+esc(error.message)+'</p>';}
     syncTransfer();
   }
-  function selected(){return [...win.querySelectorAll('#transferList input:checked')].map(box=>scanData.models[+box.dataset.index]);}
-  function syncTransfer(){const n=selected().length;win.querySelector('#transferImport').disabled=!n;win.querySelector('#transferCount').textContent=n?n+' '+T('seleccionados'):'';}
+  function selected(){return [...transfer.querySelectorAll('#transferList input:checked')].map(box=>scanData.models[+box.dataset.index]);}
+  function syncTransfer(){const n=selected().length;transfer.querySelector('#transferImport').disabled=!n;transfer.querySelector('#transferCount').textContent=n?n+' '+T('seleccionados'):'';}
   async function importItems(items,status){
     status.textContent=T('Importando…');
     try{
       const data=await api('/api/harness/external/import',{items:items.map(item=>({path:item.path,name:item.name,sampling:item.sampling,context:item.context,kv:item.kv,template:item.template}))});
       const ok=data.results.filter(r=>!r.error),bad=data.results.filter(r=>r.error);
-      status.textContent=ok.length+' '+T('importados')+(bad.length?' · '+bad.length+' '+T('con error')+': '+bad.map(r=>r.error).join(' · '):'');
+      const warnings=ok.flatMap(r=>r.warnings||[]);
+      status.textContent=ok.length+' '+T('importados')+(bad.length?' · '+bad.length+' '+T('con error')+': '+bad.map(r=>r.error).join(' · '):'')+(warnings.length?' · '+warnings.join(' · '):'');
       document.getElementById('refreshModels')?.click();
       return data;
     }catch(error){status.textContent=error.message;}
   }
-  async function importSelected(){const button=win.querySelector('#transferImport');button.disabled=true;await importItems(selected(),win.querySelector('#transferStatus'));await scan();}
+  async function importSelected(){const button=transfer.querySelector('#transferImport');button.disabled=true;await importItems(selected(),transfer.querySelector('#transferStatus'));await scan();}
   async function fillExportModels(){
-    const select=win.querySelector('#exportModel');
+    const select=transfer.querySelector('#exportModel');
     try{const data=await api('/api/models');const models=(data.models||data.data||[]).filter(m=>!m.remote);
       select.replaceChildren(...models.map(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.display_name||m.gguf_name||m.id;return o;}));
       if(!models.length){const o=document.createElement('option');o.value='';o.textContent=T('No hay modelos locales');select.append(o);}
     }catch{}
   }
   async function exportTo(target){
-    const model=win.querySelector('#exportModel').value,status=win.querySelector('#exportStatus');
+    const model=transfer.querySelector('#exportModel').value,status=transfer.querySelector('#exportStatus');
     if(!model){status.textContent=T('Elige un modelo.');return;}
     try{
       const data=await api('/api/harness/external/export',{model,target});
@@ -285,7 +284,7 @@
     }catch(error){status.textContent=error.message;}
   }
   async function importFile(event){
-    const file=event.target.files[0];event.target.value='';if(!file)return;const status=win.querySelector('#exportStatus');
+    const file=event.target.files[0];event.target.value='';if(!file)return;const status=transfer.querySelector('#exportStatus');
     try{
       const data=JSON.parse(await file.text());
       if(data.type!=='v-agent-model-settings'||!Array.isArray(data.models))throw new Error(T('No es un archivo de ajustes de V-Agent.'));
@@ -301,5 +300,5 @@
     button.onclick=()=>open('discover');extras.append(button);return true;
   }
   if(!addSidebarEntry()){const retry=setInterval(()=>{if(addSidebarEntry())clearInterval(retry);},300);setTimeout(()=>clearInterval(retry),8000);}
-  window.VALModels={open,readmeHTML};
+  window.VALModels={open,readmeHTML,setupTransfer:()=>{if(!win)build();}};
 })();

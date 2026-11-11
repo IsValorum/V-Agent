@@ -1097,4 +1097,11 @@ body.desktop-frame #chatwrap .topbar{pointer-events:auto;}
 .transfer-size{font-size:11px;color:var(--muted);min-width:62px;text-align:right;}
 .transfer-export{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px;}
 .transfer-export select{flex:1;min-width:200px;}
+.model-transfer .models-pane[data-pane=transfer]{display:flex;flex-direction:column;overflow:visible;padding:8px 0;gap:12px;}
+.model-transfer .transfer-head,.model-transfer .transfer-tools{flex-wrap:wrap;gap:8px;}
+.model-transfer .transfer-export select{min-width:0;width:100%;}
+.model-transfer .transfer-row{min-width:0;gap:6px;}
+.model-transfer .transfer-size{min-width:0;}
+.model-transfer .transfer-list{max-height:240px;}
+.model-transfer [data-error="1"]{color:color-mix(in srgb,#e5484d 80%,var(--text));}
 @media(max-width:760px){.models-pane[data-pane=discover]{flex-direction:column;}.hub-list{width:auto;flex:0 0 auto;max-height:45%;border-right:0;border-bottom:1px solid var(--soft-line,var(--border));}}

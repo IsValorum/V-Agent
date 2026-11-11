@@ -106,6 +106,7 @@ await refreshProjectAssignments();
 setupModelWindow();
 setupCompactSections();
 setupSettingsHub();
+window.VALModels?.setupTransfer();
 watchAutomaticUpdates({requestJSON,uiText,note,setDrawer,selectSettingsCategory});
 setupLoadSettings();
 setupPluginManager();
