@@ -359,9 +359,9 @@ def ensure_engine(config):
         if engine_health():
             return
         if process is not None and process.poll() is not None:
-            raise RuntimeError("Strata no pudo arrancar. Revisa agent/engine-server.log.")
+            raise RuntimeError(f"Strata no pudo arrancar. Revisa el registro: {SERVER_LOG}")
         time.sleep(.5)
-    raise RuntimeError("Strata no respondió al arrancar. Revisa agent/engine-server.log.")
+    raise RuntimeError(f"Strata no respondió al arrancar. Revisa el registro: {SERVER_LOG}")
 
 
 def require_loaded_model(name):
@@ -564,7 +564,14 @@ def configure_model_draft(body):
 
 
 def start_engine(name=None):
-    config = selected_model(name)["config"] if name else DEFAULT_CONFIG
+    if name:
+        config = selected_model(name)["config"]
+    else:
+        models = registry.discover(ROOT)
+        available = next((model for model in models if model.get('status') != 'unavailable'), None)
+        if available is None:
+            raise ValueError('Añade un modelo compatible primero; Strata se iniciará al cargarlo.')
+        config = available['config']
     ensure_engine(config)
     return {"status": "running", "engine_online": True}
 

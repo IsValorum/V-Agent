@@ -56,7 +56,7 @@ def _gguf(path: Path) -> dict:
     parts = int(m.get("split.count") or 1)
     out = {
         "backend": BACKENDS.get(arch, arch or "unknown"),
-        "runnable": arch in BACKENDS,
+        "runnable": True if arch in BACKENDS else None,
         "display_name": m.get("general.name") or m.get("general.basename"),
         "size_label": m.get("general.size_label"),
         "context_trained": m.get(arch + ".context_length"),
@@ -144,7 +144,7 @@ def describe(config: Path) -> dict | None:
                     e["ram_gb"] = round((g["dense_bytes"] + g["expert_bytes"]) / 1e9, 1)
                     e["vram_gb"] = {"least": round(g["dense_bytes"] / 1e9 + 1.0, 1),
                                     "all": round((g["dense_bytes"] + g["expert_bytes"]) / 1e9 + 1.0, 1)}
-                if not g["runnable"]:
+                if g["runnable"] is False:
                     e["status"], e["problem"] = "unavailable", f"no engine here runs a '{g['backend']}' model"
     # the name setup gave it, else the file's own (a file's can be a converter's leftover), else the id
     e["display_name"] = cfg.get("display_name") or e["display_name"] or e["id"]
