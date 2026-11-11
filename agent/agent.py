@@ -30,7 +30,7 @@ for _stream in (sys.stdout, sys.stderr):
     if hasattr(_stream, "reconfigure"):
         _stream.reconfigure(encoding="utf-8", errors="replace")
 
-from runtime_paths import CONFIG_ROOT,SOURCE_ROOT,DATA_ROOT,SETTINGS_ROOT,LOG_ROOT,command
+from runtime_paths import CONFIG_ROOT,SOURCE_ROOT,DATA_ROOT,SETTINGS_ROOT,LOG_ROOT,UI_DIST,command
 ROOT = CONFIG_ROOT
 sys.path.insert(0, str(SOURCE_ROOT))
 sys.path.insert(0, str(SOURCE_ROOT / "agent"))
@@ -1968,7 +1968,7 @@ class Handler(BaseHTTPRequestHandler):
             self.proxy_engine()
             return
         if self.path in ("/guide.html", "/guide"):
-            raw = (SOURCE_ROOT / "agent" / "guide.html").read_bytes()
+            raw = (UI_DIST / "guide.html").read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
@@ -1976,8 +1976,12 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(raw)
             return
-        if self.path in ("/", "/index.html"):
-            raw = (SOURCE_ROOT / "agent" / "index.html").read_bytes()
+        if self.path in ("/", "/index.html", "/v-agent.html"):
+            page = UI_DIST / "v-agent.html"
+            if not page.is_file():
+                self._json(503, {"error": "The interface is not built yet. Run: python scripts/build-ui.py"})
+                return
+            raw = page.read_bytes()
             appearance = json.dumps(APPEARANCE.get(), ensure_ascii=False).replace("<", chr(92) + "u003c").encode("utf-8")
             raw = raw.replace(b'<script id="savedAppearance" type="application/json">null</script>',
                               b'<script id="savedAppearance" type="application/json">' + appearance + b'</script>', 1)

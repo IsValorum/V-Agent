@@ -1,7 +1,7 @@
 from pathlib import Path
 from PyInstaller.utils.hooks import collect_all, collect_submodules, collect_data_files
 root=Path(SPECPATH).parent
-datas=[(str(root/'agent/index.html'),'agent'),(str(root/'agent/guide.html'),'agent'),(str(root/'agent/ui-mcp.js'),'agent'),(str(root/'agent/ui-motion.js'),'agent'),(str(root/'agent/ui-i18n.js'),'agent'),(str(root/'agent/ui-panels.css'),'agent'),(str(root/'agent/locales.json'),'agent'),(str(root/'agent/ocr.ps1'),'agent'),(str(root/'agent/scene_probe.js'),'agent'),(str(root/'agent/pick_model_file.py'),'agent'),
+datas=[(str(root/'agent/ui/dist'),'agent/ui/dist'),(str(root/'agent/ocr.ps1'),'agent'),(str(root/'agent/scene_probe.js'),'agent'),(str(root/'agent/pick_model_file.py'),'agent'),
        (str(root/'serve/chat_template.jinja'),'serve'),(str(root/'browser'),'browser')]
 # V_AGENT_RELEASE=1 (scripts/build-release.cmd): no engines, no seeds, empty model data from
 # scripts/prepare_release.py. Otherwise the developer build bundles the local runtime and seeds.

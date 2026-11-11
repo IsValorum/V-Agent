@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>V-Agent</title>
+<script id="savedAppearance" type="application/json">null</script>
+<script>
+try {
+  window.strataSavedAppearance=JSON.parse(document.getElementById('savedAppearance').textContent);
+  const theme=window.strataSavedAppearance?.theme||JSON.parse(localStorage.getItem('strataTheme2')||'null');
+  const mode=theme?.mode==='day'?'day':'night',colors=theme?.[mode];
+  const [uiStyle,buttonStyle]=String(localStorage.getItem('valUiStyle')||'').split(' ');
+  document.documentElement.dataset.uiStyle=['glass','soft','deco'].includes(uiStyle)?uiStyle:'glass';document.documentElement.dataset.buttonStyle=buttonStyle==='outline'?'outline':'tint';
+  if(colors){for(const key of ['accent','bg','panel','text'])if(/^#[0-9a-f]{6}$/i.test(colors[key]))document.documentElement.style.setProperty('--'+key,colors[key]);document.documentElement.style.colorScheme=mode==='day'?'light':'dark';}
+} catch {}
+</script>
+<style>
+/*@include styles/base.css*/
+</style>
+<link rel="stylesheet" href="/assets/ui-panels.css">
+<script src="/assets/ui-mcp.js"></script>
+<script src="/assets/ui-motion.js"></script>
+<script src="/assets/ui-i18n.js"></script>
+</head>
+<body>
+<div id="bootCover" aria-hidden="true">
+  <div class="boot-stage">
+    <div class="boot-emblem"><img id="bootLogo" src="/assets/branding/gold-icon.png" alt="" width="128" height="128"></div>
+    <div class="boot-wordmark" aria-label="V-Agent"><span>V</span><span class="thin">-AGENT</span></div>
+    <span class="boot-track"><i></i></span>
+  </div>
+</div>
+<script>
+try{const logo=localStorage.getItem('valBootLogo');if(['gold','silver','jade','blue','rose','ruby','violet','ivory'].includes(logo))document.getElementById('bootLogo').src='/assets/branding/'+logo+'-icon.png';}catch{}
+</script>
+<div id="ambient" aria-hidden="true"></div>
+
+<div class="app">
+  <aside id="sidebar" class="glass" aria-label="Conversaciones">
+    <div class="sidebar-chrome" role="toolbar" aria-label="Navegación">
+      <button id="sidebarToggle" type="button" class="icon-btn" aria-label="Ocultar barra lateral"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/><rect x="5.4" y="6.4" width="1.7" height="11.2" rx=".4" fill="currentColor" stroke="none"/></svg></button>
+      <button id="chatBack" type="button" class="icon-btn" aria-label="Conversación anterior" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <button id="chatForward" type="button" class="icon-btn" aria-label="Conversación siguiente" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>
+      <div class="chrome-actions top-actions">
+        <span id="connection" class="connection" title="Estado del agente"><span class="status-dot"></span><span id="connectionText">Conectando</span></span>
+        <button id="openConsole" class="icon-btn" title="Abrir consola" aria-label="Abrir consola"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h5"/></svg></button>
+        <button id="openBrowser" class="icon-btn" title="Abrir navegador" aria-label="Abrir navegador"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14 0 18M12 3c-3 3.5-3 14 0 18"/></svg></button>
+        <button id="themeBtn" class="icon-btn" title="Cambiar a tema claro" aria-label="Cambiar a tema claro"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg></button>
+      </div>
+    </div>
+    <button id="newchat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Nuevo chat</button>
+    <div class="side-head projects-head"><span>Proyectos</span><button id="addProject" type="button" class="side-add" title="Añadir proyecto" aria-label="Añadir proyecto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+    <nav id="projectsNav" aria-label="Proyectos"></nav>
+    <div class="side-head"><span>Recientes</span><span id="convCount">0</span></div>
+    <input id="convSearch" type="search" placeholder="Buscar chats…" aria-label="Buscar chats" autocomplete="off" hidden>
+    <nav id="convs" aria-label="Historial de conversaciones"></nav>
+    <div class="sidebar-bottom">
+      <div class="engine-card" id="engineCard">
+        <details id="engineMetrics">
+          <summary class="engine-heading"><svg class="engine-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 4 4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Rendimiento</span><span id="st-state">—</span></summary>
+          <div class="telemetry">
+            <div class="telemetry-speeds">
+              <div><span class="telemetry-label" id="st-speed-label">Generación</span><div class="telemetry-value"><span id="st-speed">—</span><small>tok/s</small></div></div>
+              <div><span class="telemetry-label" id="st-prefill-label">Lectura</span><div class="telemetry-value"><span id="st-prefill">—</span><small>tok/s</small></div></div>
+            </div>
+            <div class="telemetry-memory"><div class="telemetry-caption"><span>VRAM</span><span id="st-vram">—</span></div><div class="telemetry-track" id="st-vram-meter" role="meter" aria-label="Memoria gráfica utilizada" aria-valuemin="0" aria-valuemax="100" aria-valuetext="Sin datos"><span></span></div></div>
+            <div class="telemetry-memory"><div class="telemetry-caption"><span>RAM</span><span id="st-ram">—</span></div><div class="telemetry-track" id="st-ram-meter" role="meter" aria-label="Memoria del equipo utilizada" aria-valuemin="0" aria-valuemax="100" aria-valuetext="Sin datos"><span></span></div></div>
+            <details class="metrics-more"><summary>Detalles</summary><dl class="telemetry-details"><div><dt>GPU</dt><dd id="st-gpu">—</dd></div><div><dt>Disco · lectura</dt><dd id="st-disk">—</dd></div><div><dt>Caché expertos</dt><dd id="st-cache">—</dd></div><div><dt>Aciertos caché</dt><dd id="st-hit">—</dd></div></dl></details>
+          </div>
+        </details>
+        <span id="metricsHelpAnchor"></span>
+      </div>
+      <div class="sidebar-foot"><button id="gear" type="button" aria-controls="drawer" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9m4 0h3M4 17h3m4 0h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>Configuración</button><div class="sidebar-local"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Zm-4 9 3 3 5-6"/></svg> <span>Local</span><span id="localHelpAnchor"></span></div></div>
+    </div>
+    <div id="sidebarResizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Ajustar ancho de la barra lateral"></div>
+  </aside>
+  <div id="sidebarScrim"></div>
+  <section id="chatwrap" aria-label="Chat" data-empty="true" data-raised="true">
+    <header class="topbar">
+      <button id="sidebarReopen" class="icon-btn" type="button" aria-label="Mostrar barra lateral"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/><rect x="5.4" y="6.4" width="1.7" height="11.2" rx=".4" fill="currentColor" stroke="none"/></svg></button>
+      <button id="mobileMenu" class="icon-btn" title="Abrir conversaciones" aria-label="Abrir conversaciones" aria-controls="sidebar" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <div class="breadcrumb" hidden><span id="chatTitle">Nuevo chat</span></div>
+      <div class="spacer"></div>
+    </header>
+    <div id="chat" role="log" aria-label="Mensajes" aria-live="off"></div>
+    <button id="followBtn" type="button" title="Volver al final y seguir la generación">↓ Seguir leyendo</button>
+    <div id="composerBox">
+      <div class="compose-inner">
+        <div class="project-strip"><button id="projectBtn" class="composer-control" type="button" title="Carpeta de trabajo de esta conversación"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v11H3V7Zm0 0V4h7l2 3"/></svg><span>Sin proyecto</span><span class="control-chevron">⌄</span></button></div>
+        <div class="compose-surface">
+          <div id="attachments" aria-label="Archivos adjuntos"></div>
+          <textarea id="input" rows="2" placeholder="Mensaje…" aria-label="Mensaje" autocomplete="off"></textarea>
+          <div class="composer-tools">
+            <input type="file" id="file" multiple hidden>
+            <div id="composerLeft" class="composer-config" data-composer-side="left" aria-label="Botones a la izquierda">
+              <button id="attach" class="icon-btn" aria-label="Adjuntar archivo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 12 6-6a3.5 3.5 0 0 1 5 5l-8 8a5 5 0 0 1-7-7l8-8m-6 10 8-8"/></svg></button>
+              <button id="modelBtn" class="composer-control model-control" data-controls="model" aria-controls="composerControls" aria-haspopup="dialog" aria-expanded="false"><span class="model-dot" aria-hidden="true"></span><span id="modelBtnLabel">Modelo</span><span class="control-chevron" aria-hidden="true">⌄</span></button>
+              <button id="responseBtn" class="composer-control" data-controls="response" aria-controls="composerControls" aria-haspopup="dialog" aria-expanded="false"><span id="responseBtnLabel">Respuesta</span><span class="control-chevron" aria-hidden="true">⌄</span></button>
+              <button id="ctxBtn" class="composer-control context-control" data-controls="context" aria-controls="composerControls" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 9h6v6H9V9Z"/></svg><span id="ctxLabel">— / — · —</span></button>
+              <button id="mcpBtn" class="composer-control" data-controls="tools" aria-controls="composerControls" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v4m8-4v4M6 7h12v3a6 6 0 0 1-12 0V7Zm6 9v5"/></svg>Herramientas <span id="toolCount">0</span></button>
+              <button id="scopeBtn" class="composer-control" data-controls="tools" data-scope="sandbox" aria-controls="composerControls" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 4 8 9 8 9s8-5 8-9V6l-8-3Z"/><path d="m8 12 3 3 5-6"/></svg><span id="scopeLabel">Sandbox</span></button>
+            </div>
+            <div id="composerRight" data-composer-side="right" aria-label="Botones a la derecha"><button id="send" aria-label="Enviar mensaje"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg></button></div>
+          </div>
+        </div>
+        <div id="modelPreparation" hidden><div class="preparation-caption"><span id="preparationLabel" role="status">Preparando modelo…</span><span id="preparationAmount"></span><button id="cancelModelLoad" type="button" title="Cancelar la carga y detener el motor" disabled>Cancelar carga</button></div><progress id="preparationProgress" max="100" aria-label="Preparación del modelo"></progress></div>
+        <div class="composer-foot"><span id="modeNote"></span><span class="compose-hint"><span id="composeHelpAnchor"></span></span></div>
+      </div>
+    </div>
+  </section>
+</div>
+<div id="composerControls" role="dialog" aria-labelledby="composerControlsTitle">
+  <div class="controls-head"><h2 id="composerControlsTitle">Modelo y motor</h2><button id="closeControls" class="icon-btn" aria-label="Cerrar controles" title="Cerrar (Escape)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div>
+  <div class="controls-body"><div id="controls-model" data-controls-pane="model" hidden><div class="sec">
+        <div class="power-row"><span id="engineStateTxt">Comprobando motor…</span><button id="engineToggle" disabled>Encender motor</button></div>
+        <label class="mini" for="model">Modelo seleccionado</label>
+        <select id="model" title="Modelo" aria-label="Modelo"><option value="">Conectando…</option></select>
+        <div class="model-library-actions"><button id="refreshModels" class="text-btn">Actualizar</button><button id="addModel">+ Añadir modelo</button></div>
+        <div id="draftSettings" class="settings-group">
+          <div class="stack-field"><span class="field-label"><label for="draftSource">MTP</label></span><select id="draftSource" style="width:100%" aria-label="Fuente MTP"></select></div>
+          <button id="draftBrowse" class="text-btn" type="button">Elegir cabeza MTP…</button>
+          <div class="row"><label for="draftTokens">Draft tokens</label><select id="draftTokens" aria-label="Draft tokens"><option value="0">0 · Desactivado</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div>
+          <p id="draftStatus" class="mini" role="status"></p>
+          <button id="draftReload" type="button" hidden>Aplicar y recargar</button>
+        </div>
+        <div class="row"><label>En memoria</label><span id="loadedTxt">Comprobando…</span></div>
+        <div class="model-actions"><button id="load" title="Cargar el modelo seleccionado">Cargar modelo</button><button id="unload" title="Descargar el modelo y liberar su memoria">Descargar modelo</button></div>
+        <p id="modelHint" class="mini"></p>
+        <p id="modelStatus" class="mini" role="status"></p>
+        <div class="row" id="templateRow" hidden><label>Plantilla jinja</label><span id="templateTxt" class="mini"></span><button id="templateFix" type="button" title="Bajar y aplicar el chat_template.jinja que publica el repo de ESTE modelo">Reaplicar del repo</button></div>
+      </div></div>
+<div id="controls-response" data-controls-pane="response" hidden>
+  <div class="sec"><div class="stack-field"><span class="field-label"><label for="workProfile">Perfil</label></span><select id="workProfile" disabled aria-label="Perfil de trabajo" style="width:100%;font-size:12px"><option value="code">Código preciso</option><option value="agent">Trabajo agéntico</option><option value="research">Investigación web</option><option value="custom">Personalizado</option></select></div><span id="profileNote" hidden></span>
+  <div class="row"><span class="field-label"><label for="effort">Razonamiento</label></span><select id="effort" title="Nivel de razonamiento" aria-label="Nivel de razonamiento"><option value="none">Sin razonar</option><option value="low">Rápido</option><option value="medium" selected>Equilibrado</option><option value="high">Profundo</option></select></div><div class="row"><label for="p_max">Límite de respuesta</label><input type="number" id="p_max" min="0" step="16" title="0 = sin límite"></div></div>
+  <details class="settings-group"><summary>Muestreo</summary><div class="group-body"><div class="row"><label for="p_temp">Temperatura</label><input type="range" id="p_temp" min="0" max="2" step="0.05"><output id="o_temp"></output></div><div class="row"><label for="p_topp">Top P</label><input type="range" id="p_topp" min="0.05" max="1" step="0.01"><output id="o_topp"></output></div><div class="row"><label for="p_topk">Top K</label><input type="range" id="p_topk" min="0" max="200" step="1"><output id="o_topk"></output></div><div class="row"><label for="p_minp">Min P</label><input type="range" id="p_minp" min="0" max="1" step="0.01"><output id="o_minp"></output></div><div class="row"><label for="p_rep">Repetición</label><input title="1,00 = sin penalización; recomendado para código y llamadas a herramientas" type="range" id="p_rep" min="0.8" max="1.6" step="0.01"><output id="o_rep"></output></div><div class="row"><label for="p_presence">Presencia</label><input type="range" id="p_presence" min="0" max="2" step="0.1"><output id="o_presence"></output></div><div class="row"><label for="p_frequency">Frecuencia</label><input type="range" id="p_frequency" min="-2" max="2" step="0.1"><output id="o_frequency"></output></div><div class="row"><label for="p_seed">Semilla</label><input type="number" id="p_seed" min="0" step="1" title="0 = aleatoria"></div></div></details>
+</div>
+<div id="controls-context" data-controls-pane="context" hidden><div id="contextUsage" class="context-usage"><div><span>Uso actual</span><span id="contextUsagePercent">—</span></div><strong id="contextUsageNumbers">— / —</strong><div id="contextUsageBar" class="context-usage-bar" role="progressbar" aria-label="Contexto ocupado" aria-valuemin="0" aria-valuemax="100" aria-valuetext="Sin medida disponible"><span></span></div></div>
+    <div class="context-setting">
+      <div class="row"><label for="ctxInput">Límite de contexto</label><output id="ctxValue" for="ctxInput">16.384 tokens</output></div>
+      <input type="range" id="ctxInput" min="2048" max="262144" step="1024" value="16384" aria-describedby="ctxTarget">
+      <div class="context-ticks" aria-hidden="true"><span>2 k</span><span>64 k</span><span>128 k</span><span>192 k</span><span>256 k</span></div>
+      <div id="ctxTarget" class="mini"></div>
+    </div>
+    <p class="mini">El límite se guarda para el modelo seleccionado. <span id="contextHelpAnchor"></span></p>
+    <button id="ctxApply">Guardar contexto</button>
+    <span id="ctxStatus" class="mini" role="status"></span>
+    <div id="kvSettings" class="sec"><div class="row"><label for="kvCache">Caché KV</label><select id="kvCache" aria-describedby="kvStatus"></select></div><p class="mini" id="kvStatus" role="status"></p></div>
+</div>
+<div id="controls-tools" data-controls-pane="tools" hidden>
+  <div class="sec"><div class="section-inline"><h3 id="mcpHelpAnchor">Conexiones</h3><button id="mcpReconnect" class="text-btn">Reconectar</button></div><div id="mcpHealth" class="mini" role="status">Conectando…</div><p class="mini" id="mcpTokens" role="status" style="margin-top:-4px"></p></div>
+  <section class="tool-group"><label class="chk group-title"><input type="checkbox" id="s_ddg"> Internet</label>
+    <label class="chk sub"><input type="checkbox" id="f_search"> Buscar</label><label class="chk sub"><input type="checkbox" id="f_visit"> Leer páginas</label></section>
+  <section class="tool-group"><label class="chk group-title"><input type="checkbox" id="s_pc"> Mi equipo</label>
+    <div class="row"><label for="pcAccess">Acceso</label><select id="pcAccess" aria-label="Acceso del agente"><option value="sandbox">Sandbox</option><option value="full_pc">Acceso completo</option></select></div>
+    <p class="mini" id="sandboxPath" style="overflow-wrap:anywhere"></p><button id="openSandbox" type="button">Abrir carpeta del Sandbox</button><p class="mini" id="accessStatus" role="status"></p>
+    <label class="chk sub"><input type="checkbox" id="f_files"> Archivos</label><label class="chk sub"><input type="checkbox" id="f_shell"> Comandos</label><label class="chk sub"><input type="checkbox" id="f_sys"> Información del equipo</label></section>
+  <section class="tool-group"><h3>Navegador y consola</h3><label class="chk"><input type="checkbox" id="f_browser"> Navegador del agente</label><label class="chk"><input type="checkbox" id="f_autobrowser"> Navegador autónomo</label><label class="chk"><input type="checkbox" id="f_console"> Consola compartida</label><label class="chk"><input type="checkbox" id="f_web"> HTTP, API y descargas</label><label class="chk"><input type="checkbox" id="f_computer"> Control del equipo</label><label class="chk"><input type="checkbox" id="f_admin"> Administrador elevado</label><p class="mini">El agente puede leer la página, hacer clic y escribir en la misma ventana de navegador que ves. La consola es la misma ventana de Consola y requiere Acceso completo.</p></section>
+  <section class="tool-group"><h3>Hugging Face</h3><label class="chk"><input type="checkbox" id="f_hf"> Cuenta, repositorios y archivos</label><p class="mini">Usa tu sesión local de HF. Permite consultar, publicar, modificar y borrar contenido según tus permisos.</p></section><section class="tool-group"><h3>Opciones</h3><label class="chk"><input type="checkbox" id="f_date"> Fecha y hora</label><div class="row"><label for="p_rounds">Máximo de rondas</label><input id="p_rounds" type="number" min="2" max="100" step="1"></div></section>
+</div></div>
+</div>
+<aside id="drawer" role="dialog" aria-label="Configuración">
+  <div class="drawer-head"><div><h2>Personalización</h2></div><button id="closeDrawer" class="icon-btn" title="Cerrar ajustes" aria-label="Cerrar ajustes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div>
+  <div class="drawer-body">
+<div id="settings-appearance">
+  <div class="mode-toggle" aria-label="Modo"><button data-mode="night" aria-pressed="true">Oscuro</button><button data-mode="day" aria-pressed="false">Claro</button></div>
+  <details class="settings-group" open><summary>Colores</summary><div class="group-body"><div class="row"><span class="field-label"><label for="t_accent">Acento</label></span><input type="color" id="t_accent"></div><div class="row"><span class="field-label"><label for="t_bg">Base</label></span><input type="color" id="t_bg"></div><div class="row"><span class="field-label"><label for="t_panel">Paneles</label></span><input type="color" id="t_panel"></div><div class="row"><span class="field-label"><label for="t_text">Texto</label></span><input type="color" id="t_text"></div><div class="row"><label for="t_codeBg">Fondo del código</label><input type="color" id="t_codeBg"></div><div class="row"><label for="t_userBg">Tus mensajes</label><input type="color" id="t_userBg"></div></div></details>
+  <details class="settings-group" open><summary>Fondo</summary><div class="group-body"><div class="row"><span class="field-label"><label for="t_gradient">Tipo</label></span><select id="t_gradient"><option value="none">Liso</option><option value="linear">Degradado</option><option value="radial">Radial</option><option value="mesh">Bruma</option></select></div><div class="row"><span class="field-label"><label for="t_g1">Color 1</label></span><input type="color" id="t_g1"></div><div class="row"><span class="field-label"><label for="t_g2">Color 2</label></span><input type="color" id="t_g2"></div><div class="row"><span class="field-label"><label for="t_g3">Color 3</label></span><input type="color" id="t_g3"></div><div class="row"><span class="field-label"><label for="t_strength">Intensidad</label></span><input type="range" id="t_strength" min="0" max="100" step="1"><output id="o_strength"></output></div><div class="row"><span class="field-label"><label for="t_angle">Dirección</label></span><input type="range" id="t_angle" min="0" max="360" step="1"><output id="o_angle"></output></div><div class="row"><span class="field-label"><label for="t_backgroundBlur">Difuminado</label></span><input type="range" id="t_backgroundBlur" min="0" max="100" step="1"><output id="o_backgroundBlur"></output></div><div class="row"><span class="field-label"><label for="t_grain">Grano</label></span><input type="range" id="t_grain" min="0" max="30" step="1"><output id="o_grain"></output></div></div></details>
+  <details class="settings-group" id="responseAppearance"><summary>Respuestas del modelo</summary><div class="group-body"><label class="chk"><input id="t_solidResponses" type="checkbox" checked> Fondo sólido</label><div class="row"><span class="field-label"><label for="t_responseOpacity">Opacidad</label></span><input id="t_responseOpacity" type="range" min="0" max="100" step="1"><output id="o_responseOpacity"></output></div><div class="row"><span class="field-label"><label for="t_responseBlur">Desenfoque del cristal</label></span><input id="t_responseBlur" type="range" min="0" max="32" step="1"><output id="o_responseBlur"></output></div><div class="row"><span class="field-label"><label for="t_responseRadius">Redondez</label></span><input id="t_responseRadius" type="range" min="0" max="36" step="1"><output id="o_responseRadius"></output></div></div></details><details class="settings-group" id="readabilitySettings"><summary>Legibilidad</summary><div class="group-body"><div class="row"><span class="field-label"><label for="t_outsideOpacity">Fondo de los selectores</label></span><input type="range" id="t_outsideOpacity" min="0" max="100" step="1"><output id="o_outsideOpacity"></output></div><div class="row"><label for="t_textShadow">Sombra de texto</label><input type="range" id="t_textShadow" min="0" max="100" step="1"><output id="o_textShadow"></output></div></div></details><details class="settings-group"><summary>Transparencia y bordes</summary><div class="group-body"><div class="row"><span class="field-label"><label for="t_blur">Desenfoque</label></span><input type="range" id="t_blur" min="0" max="48" step="1"><output id="o_blur"></output></div><div class="row"><span class="field-label"><label for="t_alpha">Barra lateral</label></span><input type="range" id="t_alpha" min="40" max="100" step="1"><output id="o_alpha"></output></div><div class="row"><span class="field-label"><label for="t_composerAlpha">Cuadro de mensaje</label></span><input type="range" id="t_composerAlpha" min="40" max="100" step="1"><output id="o_composerAlpha"></output></div><div class="row"><span class="field-label"><label for="t_drawerAlpha">Ajustes</label></span><input type="range" id="t_drawerAlpha" min="60" max="100" step="1"><output id="o_drawerAlpha"></output></div><div class="row"><span class="field-label"><label for="t_border">Bordes</label></span><input type="range" id="t_border" min="0" max="35" step="1"><output id="o_border"></output></div><div class="row"><span class="field-label"><label for="t_shadow">Sombra</label></span><input type="range" id="t_shadow" min="0" max="100" step="1"><output id="o_shadow"></output></div><div class="row"><span class="field-label"><label for="t_radius">Redondez general</label></span><input type="range" id="t_radius" min="2" max="28" step="1"><output id="o_radius"></output></div></div></details>
+  <details class="settings-group"><summary>Distribución y formas</summary><div class="group-body"><div class="row"><label for="t_messageRadius">Esquinas de mensajes</label><input type="range" id="t_messageRadius" min="2" max="36" step="1"><output id="o_messageRadius"></output></div><div class="row"><label for="t_composerRadius">Esquinas del cuadro</label><input type="range" id="t_composerRadius" min="2" max="40" step="1"><output id="o_composerRadius"></output></div><div class="row"><label for="t_lineHeight">Interlineado (%)</label><input type="range" id="t_lineHeight" min="130" max="210" step="1"><output id="o_lineHeight"></output></div>
+    <div class="row"><span class="field-label"><label for="workspaceName">Nombre</label></span><input id="workspaceName" type="text" maxlength="32" autocomplete="off"></div><div class="row"><span class="field-label"><label for="t_sidebarWidth">Ancho lateral</label></span><input type="range" id="t_sidebarWidth" min="200" max="340" step="4"><output id="o_sidebarWidth"></output></div><div class="row"><span class="field-label"><label for="t_chatWidth">Ancho del chat</label></span><input type="range" id="t_chatWidth" min="560" max="1200" step="20"><output id="o_chatWidth"></output></div><div class="row"><span class="field-label"><label for="t_fontSize">Tamaño de texto</label></span><input type="range" id="t_fontSize" min="12" max="20" step="1"><output id="o_fontSize"></output></div><div class="row"><span class="field-label"><label for="t_font">Letra</label></span><select id="t_font"><option value="system">Sistema</option><option value="rounded">Redondeada</option><option value="mono">Monoespaciada</option></select></div><div class="row"><span class="field-label"><label for="t_density">Espaciado</label></span><select id="t_density"><option value="compact">Compacto</option><option value="normal">Normal</option><option value="airy">Amplio</option></select></div></div></details>
+  <details class="settings-group"><summary>Botones del chat</summary><div class="group-body"><p class="mini">Arrastra los botones del cuadro o cambia su lado y orden aquí.</p><div id="composerLayoutEditor" class="layout-list"></div><label class="chk"><input id="emptyComposerRaised" type="checkbox" checked> Elevar el cuadro en un chat vacío</label><button id="resetComposerLayout" class="text-btn" type="button">Restablecer botones</button></div></details>
+  <details class="settings-group"><summary>Historial local</summary><div class="group-body"><p class="mini">Conversaciones guardadas en este equipo, independientes del navegador.</p><button id="exportSessions" type="button">Exportar historial</button><button id="importSessions" type="button">Importar historial</button><input id="sessionsFile" type="file" accept=".json,application/json" hidden></div></details><div class="theme-actions"><button id="exportTheme">Exportar</button><button id="importTheme">Importar</button><input id="themeFile" type="file" accept="application/json,.json" hidden><button id="resetTheme">Restablecer</button></div><div class="theme-save-line"><span id="themeSaveState" class="mini" role="status">Comprobando aspecto…</span><button id="retryThemeSave" class="text-btn" hidden>Reintentar</button></div>
+</div>
+
+  </div>
+</aside>
+<section id="toolsWindow" class="fw" role="dialog" aria-label="Herramientas" hidden>
+  <header class="fw-head"><h2>Herramientas</h2><button class="icon-btn" type="button" data-fw-close aria-label="Cerrar herramientas" title="Cerrar">×</button></header>
+  <div class="fw-body" id="toolsHost"></div>
+</section>
+<section id="consoleWindow" class="fw" role="dialog" aria-label="Consola" hidden>
+  <header class="fw-head"><h2>Consola</h2><span id="consoleState" class="fw-state">Inactiva</span><button class="icon-btn" type="button" data-fw-close aria-label="Cerrar consola" title="Cerrar">×</button></header>
+  <div class="fw-body console-body">
+    <div class="console-bar"><select id="consoleShell" aria-label="Intérprete"><option value="powershell">PowerShell</option><option value="cmd">CMD</option></select><input id="consoleCommand" type="text" autocomplete="off" spellcheck="false" placeholder="Escribe un comando y pulsa Enter" aria-label="Comando"><button id="consoleRun" type="button">Ejecutar</button><button id="consoleStop" type="button" disabled>Detener</button></div>
+    <p id="consoleHint" class="mini">Sesión persistente: conserva la carpeta y las variables entre comandos. Tú y el agente compartís esta consola. No es un terminal interactivo completo; los programas que piden entrada no funcionan. Requiere Acceso completo en la ventana de Herramientas.</p>
+    <pre id="consoleOutput" class="console-output" tabindex="0" aria-label="Salida de la consola"></pre>
+    <div class="console-foot"><span id="consoleMeta" class="mini"></span><button id="consoleCopy" type="button" class="text-btn">Copiar salida</button><button id="consoleClear" type="button" class="text-btn">Limpiar vista</button></div>
+  </div>
+</section>
+<aside id="browserDock" class="browser-dock" aria-label="Navegador integrado" hidden>
+  <div class="browser-dock-head">
+    <div id="browserTabs" class="browser-tabs" role="tablist" aria-label="Pestañas del navegador"></div>
+    <button id="browserNewTab" class="icon-btn" type="button" title="Nueva pestaña" aria-label="Nueva pestaña">+</button>
+    <button id="browserDockClose" class="icon-btn" type="button" title="Cerrar navegador" aria-label="Cerrar navegador">×</button>
+  </div>
+  <div class="browser-toolbar">
+    <button id="browserBack" type="button" title="Atrás" aria-label="Atrás">←</button>
+    <button id="browserForward" type="button" title="Adelante" aria-label="Adelante">→</button>
+    <button id="browserReload" type="button" title="Recargar" aria-label="Recargar">⟳</button>
+    <input id="browserUrl" type="text" autocomplete="off" spellcheck="false" placeholder="Busca o escribe una URL" aria-label="Dirección web">
+    <button id="browserGo" type="button">Abrir</button>
+    <button id="browserBookmark" class="icon-btn" type="button" title="Guardar marcador" aria-label="Guardar marcador">☆</button>
+  </div>
+  <div id="browserPage" class="browser-page">
+    <div id="browserStart" class="browser-start">
+      <div class="browser-start-brand">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14 0 18M12 3c-3 3.5-3 14 0 18"/></svg>
+        <div><h2>Navegador integrado</h2><p>Tú y el agente compartís esta página. No es una ventana aparte.</p></div>
+      </div>
+      <div class="browser-start-tools">
+        <button id="browserBookmarksCard" type="button"><strong>Marcadores</strong><small>Guardados en este equipo</small></button>
+        <button id="browserHistoryCard" type="button"><strong>Historial</strong><small>Páginas visitadas</small></button>
+        <button id="browserDownloadsCard" type="button"><strong>Descargas</strong><small>Abre los archivos del sistema</small></button>
+      </div>
+      <div class="browser-recent"><h3>Recientes</h3><div id="browserRecentList"></div></div>
+      <label class="browser-agent-toggle"><span><strong>Uso del navegador</strong><small>Permite que los modelos controlen el navegador integrado</small></span><input type="checkbox" id="browserAgentUse" checked></label>
+    </div>
+    <div id="browserListView" class="browser-list-view" hidden>
+      <header><strong id="browserListTitle">Historial</strong><button id="browserListClose" class="icon-btn" type="button" aria-label="Cerrar lista">×</button></header>
+      <div id="browserListItems"></div>
+    </div>
+  </div>
+  <div class="browser-dock-foot"><span id="browserStatus" role="status">Escribe una dirección o deja que el agente abra una página.</span><span id="browserState" class="browser-state">Cerrado</span></div>
+  <span id="browserDockResize" class="browser-dock-resize" title="Redimensionar" aria-hidden="true"></span>
+</aside>
+<div id="toast" role="status" hidden><span id="toastText" aria-atomic="true"></span><button id="dismissToast" type="button" aria-label="Cerrar notificación" title="Cerrar (Escape)">×</button></div>
+<div id="helpCard" role="tooltip" popover="manual" hidden><strong id="helpTitle"></strong><p id="helpText"></p></div>
+<dialog id="viewer" aria-label="Visor de código">
+  <div class="dlg-head">
+    <span class="t" id="vtitle">Código</span>
+    <button id="vtabCode">Código</button>
+    <button id="vtabPrev">Vista previa</button>
+    <button id="vcopy" type="button">Copiar</button><button id="vclose" type="button" aria-label="Cerrar visor">×</button>
+  </div>
+  <p id="vstatus" role="status" hidden></p>
+  <pre id="vcode"></pre>
+  <iframe title="Vista previa del código" id="vframe" sandbox="allow-scripts allow-modals"></iframe>
+</dialog>
+
+<dialog id="editMessageDialog" aria-labelledby="editMessageTitle">
+  <div class="dlg-head"><span class="t" id="editMessageTitle">Editar mensaje</span><button id="closeMessageEdit" aria-label="Cerrar">×</button></div>
+  <div class="dlg-body"><textarea id="editMessageInput" aria-label="Mensaje editado" rows="7"></textarea><p class="mini">Se conserva el chat original.</p><div class="import-actions"><button id="cancelMessageEdit">Cancelar</button><button id="saveMessageEdit">Guardar y reenviar</button></div></div>
+</dialog>
+
+<section id="addModelDialog" class="fw" role="dialog" aria-labelledby="addModelTitle" hidden>
+  <div class="dlg-head"><span class="t" id="addModelTitle">Añadir modelo</span><button id="closeAddModel" class="icon-btn" type="button" aria-label="Cerrar">×</button></div>
+  <div class="dlg-body">
+    <div class="stack-field"><label for="modelPath">Archivo GGUF</label><div class="path-picker"><input id="modelPath" type="text" placeholder="D:\Modelos\modelo.gguf" autocomplete="off" spellcheck="false"><button id="browseModel">Examinar…</button></div></div>
+    <details class="settings-group"><summary>Plantilla</summary><div class="group-body"><div class="stack-field"><label for="modelTemplate">Jinja opcional</label><div class="path-picker"><input id="modelTemplate" type="text" placeholder="Automática" autocomplete="off" spellcheck="false"><button id="browseTemplate">Examinar…</button></div></div></div></details>
+    <div id="modelInspection" hidden><p id="modelInfo" class="mini"></p><div class="stack-field"><label for="modelName">Nombre en la lista</label><input id="modelName" type="text" maxlength="120"></div></div>
+    <p id="importStatus" class="mini" role="status" aria-live="polite"></p>
+    <div class="import-actions"><button id="cancelAddModel" type="button">Cancelar</button><button id="registerModel" class="primary" type="button">Comprobar</button></div>
+  </div>
+</section>
+
+
+
+<script>
+/*@include app/core-connection.js*/
+(async function initializeAgent() {
+/*@include app/startup.js*/
+/*@include app/markdown.js*/
+/*@include app/conversations.js*/
+/*@include app/chat.js*/
+/*@include app/composer.js*/
+/*@include app/model-controls.js*/
+/*@include app/settings.js*/
+/*@include app/engine-controls.js*/
+/*@include app/model-panel.js*/
+/*@include app/sessions.js*/
+/*@include app/shell.js*/
+/*@include app/windows.js*/
+/*@include app/tools.js*/
+/*@include app/palette.js*/
+/*@include app/load-settings.js*/
+/*@include app/plugins.js*/
+/*@include app/tour.js*/
+/*@include app/models.js*/
+/*@include app/controls.js*/
+/*@include app/events.js*/
+})().catch(error=>{console.error(error);document.body.classList.add("app-ready");(window.__finishBoot?window.__finishBoot(true):document.getElementById("bootCover")?.remove());const t=document.getElementById("toast");t.hidden=false;t.textContent="No se pudo iniciar la interfaz: "+error.message;});
+</script>
+</body>
+</html>

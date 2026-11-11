@@ -10,6 +10,9 @@ A small [Tauri 2](https://tauri.app) shell in Rust. It opens the window, starts 
 | `src-tauri/windows/hooks.nsh` | Installer hooks: remembers the chosen language; optional data removal on uninstall. |
 | `src-tauri/capabilities/`, `permissions/` | What the window is allowed to call. |
 | `src-tauri/icons/` | App icons for every palette. |
-| `web/` | **Generated** copy of the interface (`scripts/sync-ui.py`), not in git. |
+
+
+The window shows the interface built from [`agent/ui/`](../agent/ui/) into `agent/ui/dist/`
+(`frontendDist` in `tauri.conf.json`), so the desktop app and the core always use the same files.
 
 Build with `scripts\build-desktop.cmd` (developer build) or `scripts\build-release.cmd` (installer).

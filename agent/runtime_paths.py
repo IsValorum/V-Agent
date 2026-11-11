@@ -7,6 +7,8 @@ SOURCE_ROOT=Path(getattr(sys,'_MEIPASS',Path(__file__).resolve().parents[1]))
 DATA_ROOT=Path(os.environ.get('STRATA_AGENT_DATA') or (Path(sys.executable).parent/'data' if getattr(sys,'frozen',False) else SOURCE_ROOT/'data')).resolve()
 CONFIG_ROOT=DATA_ROOT/'strata'
 RUNTIME_ROOT=SOURCE_ROOT/'runtime'
+# The interface as built by scripts/build-ui.py from agent/ui/ (served by the core and the desktop app).
+UI_DIST=SOURCE_ROOT/'agent'/'ui'/'dist'
 SETTINGS_ROOT=DATA_ROOT/'settings'
 LOG_ROOT=DATA_ROOT/'logs'
 

@@ -4,6 +4,13 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## Source (not a release)
+
+- The interface is no longer one 5,900-line `index.html`: its source is split by topic in
+  `agent/ui/` (`v-agent.html` skeleton, `styles/`, 21 program files in `app/`, `standalone/`) and
+  `scripts/build-ui.py` assembles it. The assembled page is the same as before, so nothing changes
+  for people using V-Agent.
+
 ## 1.0.0 C2 (minor update)
 
 - Tabs are at least as wide as their label, so longer texts ("Importar y exportar", "Importer et

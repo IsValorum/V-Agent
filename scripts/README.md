@@ -2,7 +2,7 @@
 
 | Script | What it does |
 |---|---|
-| `sync-ui.py` | Injects the interface modules into `agent/index.html`, checks translations and generates `desktop/web/`. Run it after editing any `agent/ui-*` file. |
+| `build-ui.py` | Assembles the interface from `agent/ui/` into `agent/ui/dist/` and checks that every text has its five translations. Run it after editing anything in `agent/ui/`. |
 | `build-desktop.cmd` | Developer build of the desktop app. |
 | `build-core.cmd` | Packages the core (`dist/core/strata-core.exe`) with PyInstaller for the developer build. |
 | `build-release.cmd` | Official installer: clean data, no engines, notices, PyInstaller, then the NSIS installer in `dist-release/`. |

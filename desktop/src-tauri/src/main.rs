@@ -441,7 +441,7 @@ fn main(){
   let background=theme[theme_mode]["bg"].as_str().unwrap_or("#11171c");
   let rgb=u32::from_str_radix(background.trim_start_matches('#'),16).unwrap_or(0x11171c);
   let background_color=tauri::window::Color(((rgb>>16)&255) as u8,((rgb>>8)&255) as u8,(rgb&255) as u8,255);
-  let mut builder=WebviewWindowBuilder::new(app,"main",WebviewUrl::App("index.html".into())).title("V-Agent").inner_size(width,height).min_inner_size(width.min(760.),height.min(480.)).center().maximized(true).visible(false).decorations(false).disable_drag_drop_handler().background_color(background_color);
+  let mut builder=WebviewWindowBuilder::new(app,"main",WebviewUrl::App("v-agent.html".into())).title("V-Agent").inner_size(width,height).min_inner_size(width.min(760.),height.min(480.)).center().maximized(true).visible(false).decorations(false).disable_drag_drop_handler().background_color(background_color);
   // Explicit live-window icon also updates the taskbar, independent of Explorer's executable cache.
   let preferences=std::fs::read_to_string(user_data().join("settings/app-preferences.json")).ok().and_then(|v|serde_json::from_str::<serde_json::Value>(&v).ok()).unwrap_or_default();
   let decoration=&preferences["decoration"];

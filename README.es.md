@@ -47,7 +47,7 @@ solo instala cuando tú lo indicas.
 
 | Carpeta | Qué contiene |
 |---|---|
-| [`agent/`](agent/) | El núcleo: bucle del agente, API local, motores, herramientas (servidores MCP), actualizaciones y la interfaz (`index.html` + `ui-*.js`). |
+| [`agent/`](agent/) | El núcleo: bucle del agente, API local, motores, herramientas (servidores MCP), actualizaciones y el código de la interfaz en [`agent/ui/`](agent/ui/). |
 | [`serve/`](serve/) | Capa de peticiones compatible con OpenAI/Anthropic y el hub MCP, tomados de PolyStrata. |
 | [`web_mcp/`](web_mcp/) | Búsqueda web, lectura de páginas y herramientas HTTP (servidores MCP). |
 | [`tools/`](tools/) | Lector de cabeceras GGUF y tokenizador usados al importar modelos. |

@@ -1,5 +1,5 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
-const html=fs.readFileSync('agent/index.html','utf8');
+const html=fs.readFileSync('agent/ui/dist/v-agent.html','utf8');
 class Element{constructor(){this.children=[];this.textContent='';this.hidden=false;} append(...items){this.children.push(...items);} replaceChildren(...items){this.children=[...items];} querySelector(selector){return this.children.find(x=>x.className==='response-metrics')||null;} remove(){this.removed=true;}}
 const context={document:{createElement:()=>new Element()},window:{VALI18n:{locale:'en-US'}},uiText:x=>x};vm.createContext(context);
 vm.runInContext(html.slice(html.indexOf('function updateResponsePerformance('),html.indexOf('function messageFileList(')),context);

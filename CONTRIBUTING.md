@@ -17,10 +17,10 @@ python -m venv .venv && .venv\Scripts\pip install -r requirements.txt
 .venv\Scripts\python backend.py --port 19381 --data-dir %TEMP%\v-agent-dev -- --background
 ```
 
-Open http://127.0.0.1:19381 to use the interface in a browser while developing. Interface modules live
-in `agent/ui-*.js` and `agent/ui-panels.css`; run `python scripts/sync-ui.py` after editing them (it
-injects them into `agent/index.html` and regenerates `desktop/web/`). See
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for where things are.
+Run `python scripts/build-ui.py` once (and after every change in `agent/ui/`), then open
+http://127.0.0.1:19381 to use the interface in a browser while developing. The interface source is in
+[`agent/ui/`](agent/ui/) — see its README — and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explains
+where everything else is.
 
 Set `V_AGENT_NO_AUTO_UPDATE=1` while developing so the core does not apply published minor updates
 to your test data.
@@ -28,6 +28,7 @@ to your test data.
 ## Tests
 
 ```bat
+.venv\Scripts\python scripts\build-ui.py
 .venv\Scripts\python -m unittest discover -s tests
 for %f in (tests\*.cjs) do node %f
 ```
@@ -39,6 +40,6 @@ model actually uses a tool. `tests/smoke/` has scripts for that (see [tests/READ
 ## Style
 
 - User-facing text goes through `uiText(...)` with translations for es, en, pt, fr and de in
-  `agent/locales.json`.
+  `agent/ui/locales.json`.
 - Respect the palette tokens (`--accent`, `--panel`, `--text`…) so every theme and style keeps working.
 - Explain *why* in comments when the reason is not obvious from the code.
