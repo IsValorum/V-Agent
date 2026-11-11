@@ -4,6 +4,17 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## Next release
+
+- **Fix — models now create files instead of only printing code.** V-Agent tells the model, in one
+  short rule, that it works inside a folder and must create/edit files with its tools and verify them.
+  Before, a 35B MoE with a template saying "if no function call is needed, answer directly" wrote the
+  page into the chat and never called `fs_write` (same model and request: 0 tools before, `fs_write` +
+  `code_check` after).
+- **llama.cpp loading per model:** *Automatic* uses llama.cpp's `--fit` with GPU layers left to it and
+  an optional VRAM margin (`--fit-target`); *Custom* turns `--fit` off and sets GPU layers (`-ngl`) and
+  MoE experts kept in RAM (`--n-cpu-moe`) by hand. The memory estimate follows both.
+
 ## Source (not a release)
 
 - The interface is no longer one 5,900-line `index.html`: its source is split by topic in

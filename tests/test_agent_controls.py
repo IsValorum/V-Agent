@@ -77,6 +77,17 @@ class ControlsTests(unittest.TestCase):
         self.assertIn('Spanish',rule('Visita la web y resúmeme su contenido, por favor.'))
         self.assertIn('English',rule('Please visit the page and tell me what it says'))
         self.assertEqual(rule('Hola'),agent.LANGUAGE_RULE)
+    def test_tool_rule_names_only_offered_tools(self):
+        import agent
+        tool = lambda name: {'type': 'function', 'function': {'name': 'pc__' + name}}
+        self.assertEqual(agent.tool_rule([]), '')
+        rule = agent.tool_rule([tool('fs_write'), tool('fs_edit'), tool('code_check'), tool('web_render')])
+        for word in ('fs_write', 'fs_edit', 'code_check or web_render', 'instead of only showing the code'):
+            self.assertIn(word, rule)
+        only_write = agent.tool_rule([tool('fs_write')])
+        self.assertNotIn('fs_edit', only_write); self.assertNotIn('check it with', only_write)
+        self.assertIn('call it instead of describing', agent.tool_rule([tool('sys_info')]))
+
     def test_linux_rooted_path_maps_into_isolated_folder(self):
         from access_policy import AccessPolicy,AccessDenied
         with tempfile.TemporaryDirectory() as folder:

@@ -811,6 +811,29 @@ _LANGUAGE_HINTS = {
 }
 
 
+def tool_rule(tools):
+    """Say where the model works and that files are made with tools, not printed in the reply.
+
+    Without it, capable models (e.g. a 35B MoE with a template that says "if no function call is
+    needed, answer directly") treat "create the file" as "show the code" and never call fs_write.
+    Only names tools that are actually offered in this request.
+    """
+    names = {t["function"]["name"].split("__")[-1] for t in tools or []}
+    if not names:
+        return ""
+    if "fs_write" not in names:
+        return ("You can act through the tools listed above. When the user's request needs one of them, "
+                "call it instead of describing what you would do.")
+    verify = [n for n in ("code_check", "web_render") if n in names]
+    rule = ("You work inside a folder on the user's computer through the tools listed above. When the user asks you to "
+            "create, save or change a file, do it with the tools (fs_write creates or replaces a file"
+            + (", fs_edit changes part of one" if "fs_edit" in names else "")
+            + ") instead of only showing the code in your reply.")
+    if verify:
+        rule += " After writing, check it with " + " or ".join(verify) + " and fix what the check reports."
+    return rule + " Then tell the user briefly what you created and what the check showed."
+
+
 def language_rule(messages):
     """Name the language: small models follow "Reply in Spanish" far better than "the user's language".
 
@@ -1250,6 +1273,12 @@ def _run_chat_stream(body, control=None):
     from agent_profiles import normalize,PROFILES
     agent_profile=normalize(body.get("agent_profile"))
     tools = tools_for(body.get("functions") or {}, plantilla_del_modelo,agent_profile)
+    rule = tool_rule(tools)
+    if rule:
+        if messages and messages[0].get('role') == 'system':
+            messages[0] = {**messages[0], 'content': rule + '\n\n' + messages[0].get('content', '')}
+        else:
+            messages.insert(0, {'role': 'system', 'content': rule})
     if tools and plantilla_del_modelo:
         contract = tool_contract.check_template(plantilla_del_modelo / 'chat_template.jinja')
         if not contract['ok']:

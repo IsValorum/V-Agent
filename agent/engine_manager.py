@@ -240,9 +240,12 @@ class EngineManager:
         argv=[str(exe),'--model',model['path'],'--host','127.0.0.1','--port','19383','--ctx-size',str(context),'--parallel','1',
               '--n-gpu-layers',layers,'--jinja','--no-webui','--alias',model['id'],'--cache-type-k',kv,'--cache-type-v',kv]
         if self.kind=='llama':
-            from load_settings import arguments,capabilities
+            from load_settings import arguments,capabilities,gpu_layers
+            load=model.get('preferences',{}).get('load',{})
             i=argv.index('--ctx-size');del argv[i:i+4]
-            argv+=arguments(model.get('preferences',{}).get('load',{}),context,capabilities(exe))
+            # Per model: automatic lets --fit place layers ('auto'); manual uses its own -ngl. CPU builds stay at 0.
+            if cfg.get('variant')!='cpu':argv[argv.index('--n-gpu-layers')+1]=gpu_layers(load,cfg.get('gpu_layers','auto'))
+            argv+=arguments(load,context,capabilities(exe))
             from draft_models import arguments as draft_arguments
             argv+=draft_arguments(model.get('preferences',{}).get('draft') or {})
         if self.kind=='rust':argv=[str(exe),'serve','--model',model['path'],'--addr','127.0.0.1:19383','--gpu','--ctx',str(context),'--kv',{'fp16':'f16','q8_0':'q8','q4_0':'q4'}.get(kv,kv)]
