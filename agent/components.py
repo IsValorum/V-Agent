@@ -203,7 +203,9 @@ class Components:
                 if old.is_dir() and old != final:
                     shutil.rmtree(old, ignore_errors=True)
             with self.lock:
-                self.state.update(revision=data['revision'], available=None, restart_needed=True, error='')
+                # Interface patches load in the open window; only modules (MCP servers, tools) need a restart.
+                restart = any(not item['name'].startswith('ui-patch.') for item in data['files'])
+                self.state.update(revision=data['revision'], available=None, restart_needed=restart, error='')
         except Exception as error:
             with self.lock:
                 self.state['error'] = str(error)[:300]
