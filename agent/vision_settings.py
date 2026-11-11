@@ -9,8 +9,8 @@ from draft_settings import argument
 def describe(config_path):
     path=Path(config_path);cfg=json.loads(path.read_text(encoding='utf-8-sig'))
     saved=cfg.get('vision') or cfg.get('agent_vision') or {}
-    from runtime_paths import RUNTIME_ROOT
-    encoder=saved.get('exe') or str(RUNTIME_ROOT/'strata/strata-vision.exe')
+    from runtime_paths import _managed_vision_encoder
+    encoder=_managed_vision_encoder(saved.get('exe'))
     import kv_settings
     arch=kv_settings.describe(path).get('architecture')
     return {'enabled':bool(cfg.get('vision')),'mmproj':saved.get('mmproj',''),'encoder':encoder,

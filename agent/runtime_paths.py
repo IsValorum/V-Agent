@@ -32,6 +32,22 @@ def installer_language():
 
 SEED_FILES=('model-profiles.json','creator-recommendations.json','template-provenance.json')
 
+
+def strata_vision_executable():
+    """Use the vision encoder alongside the active, downloaded Strata engine."""
+    from engine_updates import executable
+    engine=executable('strata',RUNTIME_ROOT/'strata/strata-poly.exe')
+    return engine.parent/'strata-vision.exe'
+
+
+def _managed_vision_encoder(saved):
+    path=Path(saved) if saved else None
+    bundled=RUNTIME_ROOT/'strata/strata-vision.exe'
+    updates=DATA_ROOT/'engine-updates'/'strata'
+    if not path or path==bundled or path.is_relative_to(updates):
+        return str(strata_vision_executable())
+    return str(path)  # An explicitly selected encoder is not overwritten.
+
 def seed_agent_files():
     """Copy the clean starting data into the user's folder when missing (first start, fresh clone)."""
     import shutil
@@ -63,8 +79,8 @@ def bootstrap():
         cfg.update(exe=str(RUNTIME_ROOT/'strata/strata-poly.exe'),cwd=str(CONFIG_ROOT),port=19382,
                    tokenizer=str(assets/identifier/'tokenizer'),log=str(LOG_ROOT/(seed.stem+'.log')))
         cfg['lib_dirs']=[str(RUNTIME_ROOT/'strata/lib')]
-        if cfg.get('vision'):cfg['vision']['exe']=str(RUNTIME_ROOT/'strata/strata-vision.exe')
-        if cfg.get('agent_vision'):cfg['agent_vision']['exe']=str(RUNTIME_ROOT/'strata/strata-vision.exe')
+        if cfg.get('vision'):cfg['vision']['exe']=_managed_vision_encoder(cfg['vision'].get('exe'))
+        if cfg.get('agent_vision'):cfg['agent_vision']['exe']=_managed_vision_encoder(cfg['agent_vision'].get('exe'))
         args=cfg.get('args',[])
         if '--expert-profile' in args:
             old=Path(args[args.index('--expert-profile')+1]);profile=assets/identifier/'expert-profile.txt'
@@ -82,7 +98,7 @@ def bootstrap():
             if '--expert-profile' in args and profile.exists():args[args.index('--expert-profile')+1]=str(profile)
             changed['args']=args
             for key in ('vision','agent_vision'):
-                if cfg.get(key):changed[key]={**cfg[key],'exe':str(RUNTIME_ROOT/'strata/strata-vision.exe')}
+                if cfg.get(key):changed[key]={**cfg[key],'exe':_managed_vision_encoder(cfg[key].get('exe'))}
             if changed!=cfg:dest.write_text(json.dumps(changed,ensure_ascii=False,indent=2),encoding='utf8')
     mcp=DATA_ROOT/'mcp.json'
     servers={}

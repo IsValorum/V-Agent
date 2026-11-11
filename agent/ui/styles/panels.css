@@ -321,6 +321,11 @@ body.browser-resizing{cursor:ew-resize;user-select:none;}
 #updateStack{position:fixed;top:auto;left:auto;right:16px;bottom:var(--update-bottom,16px);z-index:70;display:flex;flex-direction:column;align-items:flex-end;gap:8px;width:min(310px,calc(100vw - 24px));max-height:calc(100dvh - 140px);pointer-events:none;}
 body.browser-open #updateStack{right:calc(var(--browser-width) + 16px);}
 #updateStack[hidden]{display:none!important;}
+#appUpdateNotice{position:fixed;top:64px;right:16px;z-index:71;width:min(310px,calc(100vw - 32px));grid-template-columns:minmax(0,1fr) auto;}
+#appUpdateNotice[hidden]{display:none!important;}
+#appUpdateNotice strong{font-size:12px;grid-column:1/-1;}
+#appUpdateNotice span{font-size:11px;color:var(--muted);}
+#appUpdateNotice>button:not(.update-card-close){font-size:11px;}
 .update-card{position:relative;pointer-events:auto;width:100%;background:color-mix(in srgb,var(--panel) 98%,transparent);border:1px solid var(--border);border-radius:10px;box-shadow:0 12px 30px #0005;padding:8px 28px 8px 9px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;animation:updateToastIn calc(var(--motion-duration) * .28) ease-out both;}
 @keyframes updateToastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .update-card-close{position:absolute;top:5px;right:5px;width:22px;height:22px;border:0;border-radius:6px;background:transparent;color:var(--muted);font-size:16px;line-height:1;cursor:pointer;}

@@ -8,6 +8,7 @@ fn main() {
             "open_sandbox_folder",
             "open_engine_folder",
             "open_guide",
+            "open_uninstaller",
             "window_appearance",
             "window_brand_icon",
             "browser_tab_open",

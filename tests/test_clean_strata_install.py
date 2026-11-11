@@ -55,5 +55,14 @@ class CleanStrataInstall(unittest.TestCase):
             self.assertEqual(agent.start_engine()['status'],'running')
             launch.assert_called_once_with('good.json')
 
+    def test_managed_vision_encoder_tracks_engine_without_overwriting_custom(self):
+        import runtime_paths
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);active=root/'new'/'strata-vision.exe'
+            with patch.object(runtime_paths,'DATA_ROOT',root),patch.object(runtime_paths,'RUNTIME_ROOT',root/'runtime'),patch.object(runtime_paths,'strata_vision_executable',return_value=active):
+                self.assertEqual(runtime_paths._managed_vision_encoder(str(root/'runtime'/'strata'/'strata-vision.exe')),str(active))
+                self.assertEqual(runtime_paths._managed_vision_encoder(str(root/'engine-updates'/'strata'/'old'/'strata-vision.exe')),str(active))
+                self.assertEqual(runtime_paths._managed_vision_encoder(str(root/'custom'/'strata-vision.exe')),str(root/'custom'/'strata-vision.exe'))
+
 
 if __name__=='__main__':unittest.main()

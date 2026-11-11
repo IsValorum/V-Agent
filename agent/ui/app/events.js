@@ -106,6 +106,7 @@ await refreshProjectAssignments();
 setupModelWindow();
 setupCompactSections();
 setupSettingsHub();
+watchAutomaticUpdates({requestJSON,uiText,note,setDrawer,selectSettingsCategory});
 setupLoadSettings();
 setupPluginManager();
 await restoreEngine();

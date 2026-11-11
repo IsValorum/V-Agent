@@ -1,5 +1,5 @@
   const coreReady=await waitForCore();
-  if(coreReady){loadUiPatch();watchAutomaticUpdates();}
+  if(coreReady)loadUiPatch();
   if(!coreReady){
     const connection=document.getElementById('connectionText');if(connection)connection.textContent='Sin conexión local';
     const mode=document.getElementById('modeNote');if(mode)mode.textContent='El servicio local no respondió. Revisa data/logs/agent.log.';

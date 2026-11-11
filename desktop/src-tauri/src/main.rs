@@ -420,13 +420,20 @@ fn open_guide()->Result<(),String>{
  let url="http://127.0.0.1:19380/guide.html";
  Command::new("rundll32").args(["url.dll,FileProtocolHandler",url]).creation_flags(0x08000000).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().map(|_|()).map_err(|error|format!("No se pudo abrir la guía: {error}"))
 }
+#[tauri::command]
+fn open_uninstaller()->Result<(),String>{
+ let executable=std::env::current_exe().map_err(|e|e.to_string())?;
+ let uninstaller=executable.parent().ok_or("No se encontró la carpeta de V-Agent.")?.join("uninstall.exe");
+ if !uninstaller.is_file(){return Err("No se encontró el desinstalador. Esta instalación puede ser portátil.".into());}
+ Command::new(&uninstaller).current_dir(executable.parent().unwrap()).spawn().map(|_|()).map_err(|e|format!("No se pudo abrir el desinstalador: {e}"))
+}
 fn main(){
  unsafe{let _=windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID(windows::core::w!("local.valharness.preview"));}
  let owned:Arc<Mutex<Option<Child>>>=Arc::new(Mutex::new(None));
  let setup_child=owned.clone();
  let app=tauri::Builder::default()
  .plugin(tauri_plugin_single_instance::init(|app,_,_|{if let Some(window)=app.get_webview_window("main"){let _=window.show();let _=window.unminimize();let _=window.set_focus();}}))
- .invoke_handler(tauri::generate_handler![open_sandbox_folder,open_engine_folder,open_guide,window_appearance,window_brand_icon,browser_tab_open,browser_tab_bounds,browser_tab_show,browser_tab_hide,browser_tab_close,browser_tab_state,browser_tab_navigate,browser_tab_back,browser_tab_forward,browser_tab_reload,browser_tab_dom])
+ .invoke_handler(tauri::generate_handler![open_sandbox_folder,open_engine_folder,open_guide,open_uninstaller,window_appearance,window_brand_icon,browser_tab_open,browser_tab_bounds,browser_tab_show,browser_tab_hide,browser_tab_close,browser_tab_state,browser_tab_navigate,browser_tab_back,browser_tab_forward,browser_tab_reload,browser_tab_dom])
  .setup(move|app|{
   let (width,height)=app.primary_monitor()?.map(|monitor|{
    let area=monitor.work_area();let scale=monitor.scale_factor();

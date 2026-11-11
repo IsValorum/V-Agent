@@ -2,6 +2,7 @@ import base64
 import json
 import sys
 import unittest
+from unittest.mock import patch
 
 sys.path[:0] = ['agent', '.']
 import app_updates
@@ -22,6 +23,22 @@ def manifest(version='1.2.0', **installer):
 
 
 class AppUpdateTests(unittest.TestCase):
+    def test_new_release_clears_previous_download(self):
+        updater=app_updates.AppUpdates('owner/V-Agent')
+        updater.state.update(available={'installer':{'sha256':'a'*64}},ready='old.exe',progress={'received':1})
+        assets=[{'name':app_updates.MANIFEST,'browser_download_url':'manifest'},
+                {'name':app_updates.MANIFEST+'.sig','browser_download_url':'signature'},
+                {'name':'V-Agent_1.2.0_x64-setup.exe','size':1234,'browser_download_url':'installer'}]
+        def fetch(url,limit):
+            if url=='manifest':return b'manifest'
+            if url=='signature':return b'signature'
+            return json.dumps([{'tag_name':'v1.2.0','assets':assets}]).encode()
+        data={'newer':True,'version':'1.2.0','installer':{'name':'V-Agent_1.2.0_x64-setup.exe','size':1234,'sha256':'b'*64}}
+        with patch.object(updater,'_get',side_effect=fetch),patch.object(app_updates,'validate_manifest',return_value=data):
+            state=updater.check()
+        self.assertIsNone(state['ready']);self.assertIsNone(state['progress'])
+        self.assertEqual(state['available']['installer']['sha256'],'b'*64)
+
     def test_signed_newer_release_is_accepted(self):
         private, public = keypair(); body = manifest()
         data = app_updates.validate_manifest(body, base64.b64encode(private.sign(body)).decode(), '1.0.0', public)

@@ -7313,6 +7313,11 @@
     "fr": "Le modèle a",
     "de": "Das Modell hat"
   },
+  "Ver actualización": {"en":"View update","pt":"Ver atualização","fr":"Voir la mise à jour","de":"Update anzeigen"},
+  "Desinstalar V-Agent": {"en":"Uninstall V-Agent","pt":"Desinstalar V-Agent","fr":"Désinstaller V-Agent","de":"V-Agent deinstallieren"},
+  "Abrir desinstalador": {"en":"Open uninstaller","pt":"Abrir desinstalador","fr":"Ouvrir le programme de désinstallation","de":"Deinstallationsprogramm öffnen"},
+  "Se abrirá el desinstalador y se cerrará V-Agent. Puedes elegir si conservar tus datos.": {"en":"The uninstaller will open and V-Agent will close. You can choose whether to keep your data.","pt":"O desinstalador será aberto e o V-Agent será fechado. Você poderá escolher se deseja manter seus dados.","fr":"Le programme de désinstallation s’ouvrira et V-Agent se fermera. Vous pourrez choisir de conserver vos données.","de":"Das Deinstallationsprogramm wird geöffnet und V-Agent geschlossen. Du kannst wählen, ob deine Daten erhalten bleiben."},
+  "Detén la operación actual antes de desinstalar.": {"en":"Stop the current operation before uninstalling.","pt":"Interrompa a operação atual antes de desinstalar.","fr":"Arrêtez l’opération en cours avant de désinstaller.","de":"Beende den aktuellen Vorgang vor der Deinstallation."},
   "Parte de los expertos MoE se queda en la RAM (--n-cpu-moe).": {
     "en": "Part of the MoE experts stays in RAM (--n-cpu-moe).",
     "pt": "Parte dos especialistas MoE fica na RAM (--n-cpu-moe).",
