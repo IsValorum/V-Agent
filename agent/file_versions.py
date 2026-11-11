@@ -29,8 +29,23 @@ class FileVersions:
         with self.connect() as db:db.execute('INSERT INTO revisions VALUES(?,?,?,?,?,?)',(ident,workspace,path,time.time(),content,int(target.exists())))
         return ident
     def history(self, path, workspace):
+        """Saved states of a file, newest first, each described so a model can pick the right one."""
         path,workspace=self.identity(path,workspace)
-        with self.connect() as db:return [{'id':row[0],'created':row[1],'bytes':row[2],'existed':bool(row[3])} for row in db.execute('SELECT id,created,length(content),present FROM revisions WHERE path=? AND workspace=? ORDER BY created DESC LIMIT 100',(path,workspace))]
+        with self.connect() as db:
+            rows=db.execute('SELECT id,created,content,present FROM revisions WHERE path=? AND workspace=? ORDER BY created DESC LIMIT 100',(path,workspace)).fetchall()
+        versions=[]
+        for ident,created,content,present in rows:
+            entry={'id':ident,'created':created,'bytes':len(content),'existed':bool(present)}
+            if present:entry['preview']=content[:240].decode('utf-8',errors='replace')
+            else:entry['state']='the file did not exist yet; restoring this deletes the file'
+            versions.append(entry)
+        return versions
+    def describe(self, path, workspace):
+        """History for a model: current content, versions with previews, and how to choose."""
+        current=Path(path)
+        return {'current':current.read_bytes()[:240].decode('utf-8',errors='replace') if current.is_file() else None,
+                'versions':[{k:v for k,v in entry.items() if k!='created'} for entry in self.history(path,workspace)],
+                'note':'Each version is how the file was before a change, newest first. Compare the previews with the content you want back and pass that id as revision.'}
     def restore(self, path, workspace, revision=None):
         original=path;path,workspace=self.identity(path,workspace)
         with self.connect() as db:

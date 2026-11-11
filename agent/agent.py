@@ -834,6 +834,32 @@ def tool_rule(tools):
     return rule + " Then tell the user briefly what you created and what the check showed."
 
 
+_CREATE_VERB = re.compile(r"\b(crea|cre[aá]|cr[eé]alo|genera|guarda|escribe|haz|create|make|write|save|generate|"
+                          r"cria|gera|salva|escreve|cr[eé]e|[eé]cris|enregistre|g[eé]n[eè]re|erstell\w*|schreib\w*|speicher\w*)\b", re.I)
+_FILE_NAME = re.compile(r"(?<![\w/\\.-])([\w-]+(?:[/\\][\w-]+)*\.(?:html?|css|m?js|ts|jsx|tsx|py|json|md|txt|csv|xml|svg|java|c|cpp|h|rs|go|"
+                        r"sh|ps1|bat|cmd|ya?ml|toml|sql|ini|cfg))\b", re.I)
+
+
+def archivo_no_creado(messages, tools, reply):
+    """Name of the file the user asked for when the reply shows code but no file tool ran this turn."""
+    names = {t["function"]["name"].split("__")[-1] for t in tools or []}
+    if "fs_write" not in names or "```" not in (reply or ""):
+        return None
+    last = max((i for i, m in enumerate(messages) if m.get("role") == "user"), default=None)
+    if last is None:
+        return None
+    text = messages[last].get("content")
+    text = text if isinstance(text, str) else " ".join(p.get("text", "") for p in text or [] if isinstance(p, dict))
+    if not _CREATE_VERB.search(text):
+        return None
+    for message in messages[last + 1:]:
+        for call in message.get("tool_calls") or []:
+            if (call.get("function") or {}).get("name", "").split("__")[-1] in ("fs_write", "fs_edit", "fs_copy", "fs_manage"):
+                return None
+    match = _FILE_NAME.search(text)
+    return match.group(1) if match else None
+
+
 def language_rule(messages):
     """Name the language: small models follow "Reply in Spanish" far better than "the user's language".
 
@@ -1330,6 +1356,7 @@ def _run_chat_stream(body, control=None):
     guardado_en_turno = None      # ruta guardada con exito en esta vuelta, si la hubo
     denegada = None               # herramienta que el usuario rechazo; corta el turno
     escrituras_fallidas = 0       # fs_write grandes que fallaron en este turno (1 reintento)
+    archivo_recordado = False     # ya se pidió una vez crear el archivo que solo se mostró en el chat
     llamadas_hechas = {}          # (herramienta, argumentos) ya ejecutados: la misma llamada
                                   # repetida es el bucle que se vio, y no aporta nada
     fallos_forma = 0              # fallos de FORMA seguidos (no se ejecuto nada): tope 3
@@ -1624,6 +1651,18 @@ def _run_chat_stream(body, control=None):
                 yield {"type": "content_fixed", "text": final}
                 yield {"type": "done", "content": final, "reasoning_content": reasoning}
                 return
+            # The user asked for a named file, the model showed code in the reply and created nothing:
+            # give it one more round to actually write it (models do this despite the tool rule).
+            missing = None if archivo_recordado or rnd >= rounds - 1 else archivo_no_creado(messages, tools, content)
+            if missing:
+                archivo_recordado = True
+                messages.append({"role": "assistant", "content": content, "reasoning_content": reasoning})
+                messages.append({"role": "tool", "content": (
+                    "[Recovery: %s was NOT created; the code only appeared in your reply. Call fs_write now with "
+                    "path %s and the complete content, then verify it.]" % (missing, missing))})
+                full.append("\n\n")
+                yield {"type": "content", "text": "\n\n"}
+                continue
             yield {"type": "done", "content": "".join(full), "reasoning_content": reasoning}
             return
 
