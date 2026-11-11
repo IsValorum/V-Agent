@@ -6,7 +6,7 @@
 Run GGUF models on your own PC — or connect an OpenAI/Claude-compatible API — and give them real
 tools with clear permissions.
 
-[![Tests](https://github.com/TabebuiaRosea/V-Agent/actions/workflows/tests.yml/badge.svg)](https://github.com/TabebuiaRosea/V-Agent/actions/workflows/tests.yml) [![Latest release](https://img.shields.io/github/v/release/TabebuiaRosea/V-Agent)](https://github.com/TabebuiaRosea/V-Agent/releases/latest) [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+[![Tests](https://github.com/IsValorum/V-Agent/actions/workflows/tests.yml/badge.svg)](https://github.com/IsValorum/V-Agent/actions/workflows/tests.yml) [![Latest release](https://img.shields.io/github/v/release/IsValorum/V-Agent)](https://github.com/IsValorum/V-Agent/releases/latest) [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
 [Download](../../releases/latest) · [Architecture](docs/ARCHITECTURE.md) · [Changelog](CHANGELOG.md) · [Leer en español](README.es.md)
 
@@ -35,9 +35,21 @@ tools with clear permissions.
 ## Install
 
 1. Download `V-Agent_<version>_x64-setup.exe` from [Releases](../../releases/latest) (Windows 10/11, x64).
-2. Pick your language (Español, English, Português, Français, Deutsch) and the folder. No admin rights needed.
-3. On first start V-Agent recommends an engine for your hardware and installs it after you confirm.
-4. Add a GGUF model or open **Models** to find one, and start chatting. A short tour explains the rest.
+2. Open it. Windows will probably show a blue **"Windows protected your PC"** screen — see the note below.
+3. Pick your language (Español, English, Português, Français, Deutsch) and the folder. No admin rights needed.
+4. On first start V-Agent recommends an engine for your hardware and installs it after you confirm.
+5. Add a GGUF model or open **Models** to find one, and start chatting. A short tour explains the rest.
+
+> [!IMPORTANT]
+> **About the "Windows protected your PC" warning.** The installer is not signed with a paid
+> Microsoft code-signing certificate yet, so Windows SmartScreen does not recognise the publisher and
+> shows this warning for new downloads. To continue, click **More info → Run anyway**.
+>
+> Only do this with the installer downloaded from this repository's [Releases](../../releases/latest).
+> You can check that your file is the published one: run
+> `Get-FileHash .\V-Agent_<version>_x64-setup.exe` in PowerShell and compare the result with the
+> `sha256` value in the release's `v-agent-update.json` (capital letters don't matter; that file is signed by the maintainer, and
+> V-Agent verifies the same signature before installing any update).
 
 V-Agent keeps itself current: shortly after it starts it applies the newest signed **minor update**
 (numbered *1.0.0 C1, C2…*, no installer) and downloads a newer installer if one exists, which it

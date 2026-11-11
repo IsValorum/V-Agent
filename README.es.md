@@ -6,7 +6,7 @@
 Ejecuta modelos GGUF en tu propio PC —o conecta una API compatible con OpenAI o Claude— y dales
 herramientas reales con permisos claros.
 
-[![Tests](https://github.com/TabebuiaRosea/V-Agent/actions/workflows/tests.yml/badge.svg)](https://github.com/TabebuiaRosea/V-Agent/actions/workflows/tests.yml) [![Latest release](https://img.shields.io/github/v/release/TabebuiaRosea/V-Agent)](https://github.com/TabebuiaRosea/V-Agent/releases/latest) [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+[![Tests](https://github.com/IsValorum/V-Agent/actions/workflows/tests.yml/badge.svg)](https://github.com/IsValorum/V-Agent/actions/workflows/tests.yml) [![Latest release](https://img.shields.io/github/v/release/IsValorum/V-Agent)](https://github.com/IsValorum/V-Agent/releases/latest) [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
 [Descargar](../../releases/latest) · [Arquitectura](docs/ARCHITECTURE.md) · [Cambios](CHANGELOG.md) · [Read in English](README.md)
 
@@ -35,9 +35,22 @@ herramientas reales con permisos claros.
 ## Instalar
 
 1. Descarga `V-Agent_<versión>_x64-setup.exe` desde [Releases](../../releases/latest) (Windows 10/11, x64).
-2. Elige idioma (Español, English, Português, Français, Deutsch) y carpeta. No hace falta ser administrador.
-3. Al abrirlo por primera vez te recomienda un motor para tu hardware y lo instala cuando confirmas.
-4. Añade un modelo GGUF o abre **Modelos** para buscar uno, y empieza a chatear. Un tutorial breve explica el resto.
+2. Ábrelo. Lo más probable es que Windows muestre una pantalla azul **"Windows protegió tu PC"**: mira la nota de abajo.
+3. Elige idioma (Español, English, Português, Français, Deutsch) y carpeta. No hace falta ser administrador.
+4. Al abrirlo por primera vez te recomienda un motor para tu hardware y lo instala cuando confirmas.
+5. Añade un modelo GGUF o abre **Modelos** para buscar uno, y empieza a chatear. Un tutorial breve explica el resto.
+
+> [!IMPORTANT]
+> **Sobre el aviso "Windows protegió tu PC".** El instalador todavía no está firmado con un
+> certificado de firma de código de Microsoft (es de pago), así que Windows SmartScreen no reconoce al
+> autor y muestra este aviso con las descargas nuevas. Para continuar, pulsa **Más información →
+> Ejecutar de todas formas**.
+>
+> Hazlo solo con el instalador descargado de los [Releases](../../releases/latest) de este
+> repositorio. Puedes comprobar que tu archivo es el publicado: ejecuta
+> `Get-FileHash .\V-Agent_<versión>_x64-setup.exe` en PowerShell y compara el resultado con el valor
+> `sha256` del archivo `v-agent-update.json` de la versión (da igual que esté en mayúsculas o minúsculas; ese archivo lo firma el autor, y V-Agent
+> verifica esa misma firma antes de instalar cualquier actualización).
 
 V-Agent se mantiene al día solo: al poco de abrirse aplica la **actualización menor** firmada más
 reciente (numeradas *1.0.0 C1, C2…*, sin instalador) y descarga un instalador más nuevo si existe, que
