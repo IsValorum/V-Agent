@@ -252,7 +252,7 @@ button{transition-duration:var(--motion-duration);}
 .fw#composerControls[hidden],.fw#drawer[hidden],.fw[hidden]{display:none!important;}
 .fw#projectDialog,.fw#addModelDialog{padding:0;max-height:none;overflow:hidden;width:auto;}
 #projectDialog .fw-body{padding:10px 12px;}
-#addModelDialog .dlg-body{flex:1 1 auto;min-height:0;overflow:auto;display:grid;gap:10px;padding:12px;}
+#addModelDialog .dlg-body{flex:1 1 auto;min-height:0;overflow:auto;display:grid;align-content:start;grid-auto-rows:max-content;gap:10px;padding:12px;}
 .console-body{display:flex;flex-direction:column;gap:8px;overflow:hidden;}
 .console-bar,.console-foot{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
 .console-bar input{flex:1 1 160px;min-width:80px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;}

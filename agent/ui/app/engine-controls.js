@@ -1,6 +1,6 @@
 function syncEngineVersions(){
   const builds=engineSnapshot?.builds||{},variant=$('#llamaVariant').value;
-  const label=info=>[info.version?'v'+info.version:'Versión no declarada',info.build].filter(Boolean).join(' · ');
+  const label=info=>{const version=info.version?('v'+String(info.version).replace(/^v/,'')):'Versión no declarada';return [version,info.build&&String(info.build).replace(/^v/,'')!==String(info.version||'').replace(/^v/,'')?info.build:''].filter(Boolean).join(' · ');};
   for(const key of ['strata','rust','llama'])$('#engineKind').querySelector(`[value="${key}"]`).textContent=(key==='strata'?'Strata':key==='rust'?'Strata Rust':'llama.cpp')+' · '+label(builds[key==='llama'?variant:key]||{});
   for(const id of ['cpu','cuda','vulkan']){const info=builds[id]||{};$('#llamaVariant').querySelector(`[value="${id}"]`).textContent=({cpu:'Oficial · CPU',vulkan:'Oficial · Vulkan (AMD, Intel Arc, NVIDIA)'}[id]||'Oficial · NVIDIA CUDA '+(info.cuda||''))+(info.build?' · '+info.build:'');}
   const kind=$('#engineKind').value,info=builds[kind==='llama'?variant:kind]||{};

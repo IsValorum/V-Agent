@@ -12,7 +12,7 @@ import tempfile
 import threading
 import unicodedata
 
-from runtime_paths import CONFIG_ROOT,SOURCE_ROOT,RUNTIME_ROOT,command
+from runtime_paths import CONFIG_ROOT,SOURCE_ROOT,RUNTIME_ROOT,LOG_ROOT,command
 ROOT = CONFIG_ROOT
 PROFILES = ROOT / 'agent' / 'model-profiles.json'
 ASSETS = ROOT / 'agent' / 'model-assets'
@@ -100,10 +100,6 @@ def inspect_local_model(value, template_path=None):
                 'model':existing,'family':'Registrado','size_gib':round(path.stat().st_size/2**30,2)}
     metadata = _metadata(path)
     arch = metadata.get('general.architecture')
-    if arch not in SUPPORTED:
-        raise ValueError('El motor instalado no admite la familia «'+str(arch or 'desconocida')+'». No se ha añadido el modelo.')
-    if not (RUNTIME_ROOT/'strata/strata-poly.exe').is_file():
-        raise ValueError('No se encontró el motor de PolyStrata.')
     count = int(metadata.get('split.count') or 1)
     if count > 1:
         match = re.fullmatch(r'(.+)-(\d{5})-of-(\d{5})\.gguf',path.name,re.I)
@@ -119,6 +115,7 @@ def inspect_local_model(value, template_path=None):
             'architecture':arch,'family':FAMILY_NAMES.get(arch,arch),'size_gib':round(path.stat().st_size/2**30,2),
             'template_source':origin,'template_name':Path(origin).name if origin!='gguf' else 'Incluida en el GGUF',
             'trained_context':int(context) if isinstance(context,(int,float)) and context>0 else None,
+            'warnings':([] if arch in SUPPORTED else ['La compatibilidad de esta arquitectura se comprobará al cargar el modelo.']),
             'already_registered':False}
 
 
@@ -189,13 +186,14 @@ def register_local_model(value, name=None, template_path=None):
                 preset['sampling']['repetition_penalty'] = 1.0
             for key in ('code','agent'):
                 presets[key]['sampling']['presence_penalty'] = 0
-            defaults = json.loads((ROOT/'strata-qwen36-apex.json').read_text(encoding='utf-8-sig'))
+            from engine_updates import executable
+            engine = executable('strata', RUNTIME_ROOT/'strata/strata-poly.exe')
             asset = ASSETS/model_id
-            config = {'exe':str(RUNTIME_ROOT/'strata/strata-poly.exe'),
+            config = {'exe':str(engine),'_val_managed_engine':True,
                       'args':['--model',str(path),'--kv',kv,'--vram-reserve-mib','512','--stage-mib','1024','--prompt-cache','1','--max-context',str(context)],
                       'cwd':str(ROOT),'tokenizer':str(asset/'tokenizer'),'model_name':model_id,'display_name':display,
-                      'log':str(ROOT/'logs'/f'strata-{model_id}.log'),'lib_dirs':defaults.get('lib_dirs',[]),
-                      'host':'127.0.0.1','port':8082,'gpu':defaults.get('gpu',0),'gpus_asked':True,'fit_max_tokens':True,
+                      'log':str(LOG_ROOT/f'strata-{model_id}.log'),'lib_dirs':[str(engine.parent/'lib'),str(engine.parent)],
+                      'host':'127.0.0.1','port':19382,'gpu':0,'gpus_asked':True,'fit_max_tokens':True,
                       'switch_on_request':True,'reasoning_effort':'high','preserve_thinking':True,'tool_call_recovery':True,
                       'sampling':{key:value for key,value in presets['code']['sampling'].items() if key not in ('max_tokens','seed')}}
             asset.mkdir()
