@@ -15,6 +15,7 @@ jobs:
     env:
       V_AGENT_NO_AUTO_UPDATE: "1"
       PYTHONUTF8: "1"
+      STRATA_AGENT_DATA: ${{ github.workspace }}\..\v-agent-test-data
     steps:
       - uses: actions/checkout@v4
 

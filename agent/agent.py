@@ -65,6 +65,9 @@ ACTIVE_CONTEXT_RUN = {}
 ENGINE_PORT = 19382
 STRATA = f"http://127.0.0.1:{ENGINE_PORT}"
 PROFILE_PATH = ROOT / "agent" / "model-profiles.json"
+# The user's copies of the starting model data exist from the first start on; create them now when
+# this module is used before that (fresh clone, tests).
+__import__('runtime_paths').seed_agent_files()
 MCP_CONFIG = str(DATA_ROOT/"mcp.json")
 WEB_MCP = str(DATA_ROOT/"engine-mcp.json")
 DEFAULT_CONFIG = str(ROOT/"strata-qwen36-apex.json")

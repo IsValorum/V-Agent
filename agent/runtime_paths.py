@@ -28,6 +28,16 @@ def installer_language():
     except (OSError,ValueError):return None
     return INSTALLER_LANGUAGES.get(value) or INSTALLER_LANGUAGES.get(value&0x3ff|0x400)
 
+SEED_FILES=('model-profiles.json','creator-recommendations.json','template-provenance.json')
+
+def seed_agent_files():
+    """Copy the clean starting data into the user's folder when missing (first start, fresh clone)."""
+    import shutil
+    (CONFIG_ROOT/'agent').mkdir(parents=True,exist_ok=True)
+    for name in SEED_FILES:
+        dest=CONFIG_ROOT/'agent'/name
+        if not dest.exists():shutil.copy2(SOURCE_ROOT/'agent'/name,dest)
+
 def bootstrap():
     import json,shutil
     for folder in (DATA_ROOT,CONFIG_ROOT,SETTINGS_ROOT,LOG_ROOT,CONFIG_ROOT/'agent',DATA_ROOT/'cache/browser'):folder.mkdir(parents=True,exist_ok=True)
@@ -39,9 +49,7 @@ def bootstrap():
     assets=CONFIG_ROOT/'agent/model-assets'
     if not assets.exists() and (SOURCE_ROOT/'seeds/model-assets').is_dir():shutil.copytree(SOURCE_ROOT/'seeds/model-assets',assets)
     assets.mkdir(parents=True,exist_ok=True)
-    for name in ('model-profiles.json','creator-recommendations.json','template-provenance.json'):
-        dest=CONFIG_ROOT/'agent'/name
-        if not dest.exists():shutil.copy2(SOURCE_ROOT/'agent'/name,dest)
+    seed_agent_files()
     for name in ('ui-preferences.json','model-preferences.json'):
         dest=SETTINGS_ROOT/name;seed=SOURCE_ROOT/'seeds/preferences'/name
         if not dest.exists() and seed.exists():shutil.copy2(seed,dest)
