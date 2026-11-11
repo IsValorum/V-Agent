@@ -4,6 +4,14 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.0.2
+
+- Fix model registration and startup with downloaded Strata engines on clean installations.
+- Import and export model settings from the model selector for Strata, Strata Rust and llama.cpp.
+- Show signed V-Agent updates in a persistent notification; refresh checks while the app is open.
+- Add a desktop uninstall entry and locate the vision encoder next to the active Strata engine.
+- Refine the model import dialog and avoid duplicated engine versions.
+
 ## 1.0.1
 
 - **Fix — models now create files instead of only printing code.** V-Agent tells the model, in one
