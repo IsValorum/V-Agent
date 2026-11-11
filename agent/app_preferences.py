@@ -47,7 +47,7 @@ class AppPreferences:
             windows=body['windows']
             if not isinstance(windows,dict) or len(windows)>12:raise ValueError('Invalid window settings.')
             for key,box in windows.items():
-                if key not in ('settings','model','tools','project','import','console','browser') or not isinstance(box,dict) or set(box)!={'width','height'}:raise ValueError('Invalid window.')
+                if key not in ('settings','model','tools','project','import','console','browser','models') or not isinstance(box,dict) or set(box)!={'width','height'}:raise ValueError('Invalid window.')
                 if any(type(v) is not int or not 160<=v<=5000 for v in box.values()):raise ValueError('Invalid window size.')
         if 'decoration' in body:
             d=body['decoration']

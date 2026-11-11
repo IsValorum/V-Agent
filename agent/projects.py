@@ -45,6 +45,22 @@ class ProjectStore:
             self.path.parent.mkdir(parents=True,exist_ok=True);_atomic_json(self.path,data)
             return {'projects':data['projects'],'selected':project_id}
 
+    def add(self,path):
+        """Register a folder as a project without assigning it to a conversation yet."""
+        with self.lock:
+            data=self._read()
+            root=Path(os.path.abspath(os.path.expanduser(str(path or ''))))
+            if not str(path or '').strip() or not root.is_dir():raise ValueError('La carpeta del proyecto no existe.')
+            AccessPolicy._check_links(root)
+            project=next((p for p in data['projects'] if os.path.normcase(p['path'])==os.path.normcase(str(root))),None)
+            if not project:
+                if len(data['projects'])>=128:raise ValueError('El registro admite hasta 128 proyectos.')
+                project={'id':uuid.uuid4().hex,'name':root.name or str(root),'path':str(root)}
+                data['projects'].append(project)
+                from model_import import _atomic_json
+                self.path.parent.mkdir(parents=True,exist_ok=True);_atomic_json(self.path,data)
+            return {**self.snapshot(None),'added':project}
+
     def remove(self,project_id):
         with self.lock:
             data=self._read();before=len(data['projects'])

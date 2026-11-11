@@ -2,6 +2,20 @@
 
 All notable changes to V-Agent are listed here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## 1.0.1
+
+- **Modelos** window (sidebar): browse GGUF models on Hugging Face by text or vision, sorted by downloads,
+  trend, likes or date; see downloads, likes, architecture, context, parameters and license, the rendered
+  model card, and every quant with its size and whether it fits your GPU. Downloads are resumable,
+  verified against the Hub's SHA-256 and added to V-Agent automatically.
+- Import models from **LM Studio** and **Unsloth Studio** together with their settings (sampling,
+  context, KV cache and custom chat template); send V-Agent's settings back to LM Studio, as an Unsloth
+  Studio preset, or as a portable settings file.
+- One bar: the header above the chat is merged into the sidebar (status, console, browser and theme
+  sit in its top row), so conversations start at the top of the window.
+- **Projects** section in the sidebar: a single "Projects +" line until you add one, then each project
+  with its own chats and a quick "new chat in this project".
+
 ## 1.0.0 — first public release
 
 - Installer with language selection (es, en, pt, fr, de) and install folder; no administrator rights.
