@@ -4,7 +4,7 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
-## Next release
+## 1.0.1
 
 - **Fix — models now create files instead of only printing code.** V-Agent tells the model, in one
   short rule, that it works inside a folder and must create/edit files with its tools and verify them.
@@ -14,6 +14,8 @@ Minor updates delivered through the signed components channel are numbered per v
 - **llama.cpp loading per model:** *Automatic* uses llama.cpp's `--fit` with GPU layers left to it and
   an optional VRAM margin (`--fit-target`); *Custom* turns `--fit` off and sets GPU layers (`-ngl`) and
   MoE experts kept in RAM (`--n-cpu-moe`) by hand. The memory estimate follows both.
+- **File tools fixed after a real-model battery:** moving or copying no longer deletes the destination when the source is missing (replacements are staged and swapped atomically); search finds files in the top folder again; the version history shows a preview of each version so the right one is restored; if you ask for a named file and the model only shows code, it gets one more round to write it.
+- Minor updates C1 and C2 of 1.0.0 are included.
 
 ## Source (not a release)
 
