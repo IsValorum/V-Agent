@@ -10,7 +10,7 @@ import draft_models
 class DraftTests(unittest.TestCase):
     def test_validate_and_arguments(self):
         with tempfile.TemporaryDirectory() as folder:
-            file = Path(folder) / 'draft.gguf'
+            file = Path(folder).resolve() / 'draft.gguf'  # long form (CI temp folders can be 8.3 short names)
             file.write_bytes(b'GGUF')
             settings = draft_models.validate({'enabled': True, 'path': str(file), 'type': 'draft-dflash', 'max': 4, 'min': 1}, require_file=True)
             self.assertEqual(settings['max'], 4)
@@ -28,7 +28,7 @@ class DraftTests(unittest.TestCase):
 
     def test_auto_inference_falls_back_to_simple(self):
         with tempfile.TemporaryDirectory() as folder:
-            file = Path(folder) / 'draft.gguf'
+            file = Path(folder).resolve() / 'draft.gguf'  # long form (CI temp folders can be 8.3 short names)
             file.write_bytes(b'not a real gguf')
             self.assertEqual(draft_models.infer_type(file), 'draft-simple')
 
