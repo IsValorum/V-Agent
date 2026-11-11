@@ -5340,7 +5340,7 @@ const VAL_TOUR=(()=>{
     box.querySelector('#tourAgain').textContent=uiText('Ver el tutorial');
     general.append(box);
     const status=box.querySelector('#appUpdateStatus'),go=box.querySelector('#appUpdateGo');
-    // Minor updates never change the version number: they show as "1.0.1 C1", "1.0.1 C2"…
+    // Minor updates never change the version number: they show as "1.0.0 C1", "1.0.0 C2"…
     let componentRevision=0,lastApp=null;
     const label=version=>version+(componentRevision?' C'+componentRevision:'');
     const paint=s=>{

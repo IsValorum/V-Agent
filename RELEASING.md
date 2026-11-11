@@ -40,7 +40,7 @@ SmartScreen recognises the publisher.
 ## Minor updates (components channel)
 
 For small fixes to MCP servers, web search, tool descriptions or code checks, no installer is needed.
-Since 1.0.2 the channel also carries interface fixes: `ui-patch.css` (style overrides) and
+The channel also carries interface fixes: `ui-patch.css` (style overrides) and
 `ui-patch.js` (behaviour), which the window loads on top of the bundled interface when it opens.
 Bigger interface changes still need a new installer. Fold each patch into the regular files before
 the next installer so that version starts clean.
@@ -58,3 +58,5 @@ the next installer so that version starts clean.
    `v-agent-components.json.sig`. Users see it in *Settings → General* and it applies on restart.
 
 Components are tied to one app version: after publishing a new installer, start again at `r1`.
+In the app, revision N of version X is shown as **"X CN"** (for example `components-1.0.0-r1` is
+"1.0.0 C1"); the version number itself does not change.
