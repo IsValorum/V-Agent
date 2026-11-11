@@ -6,6 +6,8 @@
 Run GGUF models on your own PC — or connect an OpenAI/Claude-compatible API — and give them real
 tools with clear permissions.
 
+[![Tests](https://github.com/TabebuiaRosea/V-Agent/actions/workflows/tests.yml/badge.svg)](https://github.com/TabebuiaRosea/V-Agent/actions/workflows/tests.yml) [![Latest release](https://img.shields.io/github/v/release/TabebuiaRosea/V-Agent)](https://github.com/TabebuiaRosea/V-Agent/releases/latest) [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+
 [Download](../../releases/latest) · [Architecture](docs/ARCHITECTURE.md) · [Changelog](CHANGELOG.md) · [Leer en español](README.es.md)
 
 ![V-Agent](docs/images/main.png)
