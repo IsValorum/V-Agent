@@ -5,7 +5,7 @@
   function setDuration(value){const duration=Number(value);if(!Number.isInteger(duration)||duration<100||duration>1600)return;timing.duration=duration;document.documentElement.style.setProperty('--motion-duration',duration+'ms');}
   const visibility=new WeakMap();
   function cancelVisibility(el){const old=visibility.get(el);visibility.delete(el);old?.cancel();}
-  // Glass menus skip live blur while they animate (see floating-windows.js); blur returns when still.
+  // Glass menus skip live blur while they animate (see app/windows.js); blur returns when still.
   function settle(el,motion){el.dataset.motion='1';const done=()=>setTimeout(()=>{if(visibility.get(el)!==motion||motion.playState==='finished')delete el.dataset.motion;},0);if(typeof motion.addEventListener==='function'){motion.addEventListener('finish',done);motion.addEventListener('cancel',done);}else motion.finished?.then?.(done,done);}
   function showPopover(el){
     const visible=el.matches(':popover-open'),closing=el.dataset.motionClosing==='true';

@@ -1,5 +1,5 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
-const source=fs.readFileSync('agent/ui-shell.js','utf8');
+const source=fs.readFileSync('agent/ui/app/shell.js','utf8');
 const begin=source.indexOf('async function setAgentMode('),end=source.indexOf('function setupAgentModeSeat()',begin);
 assert(begin>=0&&end>begin);
 const calls=[];

@@ -1,6 +1,6 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert'),path=require('path');
 const media={matches:false},context={window:{},document:{addEventListener(){},documentElement:{style:{setProperty(key,value){this[key]=value;}}}},matchMedia:()=>media,requestAnimationFrame:f=>f(),getComputedStyle:e=>({opacity:e.opacity,transform:'none'})};
-vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../agent/ui-motion.js'),'utf8'),context);
+vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../agent/ui/standalone/motion.js'),'utf8'),context);
 const api=context.window.VALMotion;
 function element(){return {open:false,dataset:{},style:{},opacity:'1',animations:[],matches(){return this.open;},showPopover(){this.open=true;},hidePopover(){this.open=false;},animate(frames,timing){const animation={frames,timing,cancel(){this.cancelled=true;}};this.animations.push(animation);return animation;}};}
 let e=element(),closed=0;

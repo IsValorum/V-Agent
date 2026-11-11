@@ -3,6 +3,7 @@
 ## Automatic tests (run on every push)
 
 ```bat
+.venv\Scripts\python scripts\build-ui.py
 .venv\Scripts\python -m unittest discover -s tests
 for %f in (tests\*.cjs) do node %f
 ```

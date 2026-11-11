@@ -6,7 +6,7 @@ const elements={decoSaveState:{textContent:''}};
 const document={documentElement:{dataset:{},style},querySelectorAll:()=>[],querySelector:()=>({getAttribute:()=>'',set href(value){}}),getElementById:id=>elements[id]||null,activeElement:null};
 const context={window:{},document,TH:{mode:'night',night:{},day:{}},uiPreferences:{},uiText:x=>x,
   requestJSON:async(path,options)=>JSON.parse(options.body),syncDesktopChrome(){},syncApplicationIcon(){},syncThemeControls(){},applyTheme(){},console};
-vm.createContext(context);vm.runInContext(fs.readFileSync('agent/ui-palette.js','utf8'),context);
+vm.createContext(context);vm.runInContext(fs.readFileSync('agent/ui/app/palette.js','utf8'),context);
 const p=context.window.VALPalette;
 Object.assign(context.TH.night,p.tone('gold','night'));Object.assign(context.TH.day,p.tone('gold','day'));
 p.apply({palette:'gold',logo:'gold'});

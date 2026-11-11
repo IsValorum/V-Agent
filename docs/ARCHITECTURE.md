@@ -7,7 +7,7 @@ packaged as `strata-core.exe`) that does everything else.
 ```mermaid
 flowchart LR
     subgraph Window["Desktop app — desktop/src-tauri (Rust, Tauri 2)"]
-        UI["Interface<br/>agent/index.html + ui-*.js<br/>(copied to desktop/web)"]
+        UI["Interface<br/>agent/ui → built to agent/ui/dist<br/>(WebView2)"]
     end
     subgraph Core["Core — backend.py → agent/ (Python)"]
         API["Local API :19380<br/>agent.py + desktop_runtime.py"]
@@ -65,17 +65,16 @@ flowchart LR
 
 ## The interface
 
-`agent/index.html` is the whole interface in one page, served by the core and bundled into the
-desktop app. Newer parts are kept as separate modules — `ui-shell.js`, `ui-models.js`, `ui-tour.js`,
-`ui-palette.js`, `ui-plugins.js`, `ui-tools.js`, `ui-load-settings.js`, `floating-windows.js`,
-`engine_controls.js` — and **`scripts/sync-ui.py` injects them** into `index.html` between markers
-such as `// VAL-MODELS-BEGIN` / `// VAL-MODELS-END`. Edit the module, never the injected copy, then
-run the script. It also copies the page and its assets to `desktop/web/` (generated, not in git).
+Tauri 2 draws the window with WebView2, so the interface is a web page. Its source is in
+[`agent/ui/`](../agent/ui/): `v-agent.html` (the page skeleton), `styles/`, `standalone/` scripts and
+`app/` — the program split by topic into 21 files (chat, conversations, settings, models, tour…).
+`scripts/build-ui.py` assembles them into `agent/ui/dist/v-agent.html`, which the core serves and the
+desktop app embeds (`tauri.conf.json` → `frontendDist`). The parts share one scope, so their order
+in `v-agent.html` matters; [agent/ui/README.md](../agent/ui/README.md) lists what each one does.
 
-Styles are in `ui-panels.css`; colours always come from palette tokens (`--accent`, `--panel`,
-`--text`, `--muted`, `--border`…) so the eight palettes and the glass, soft and Art Deco styles all
-apply. Text shown to people goes through `uiText()` and is translated in `locales.json`
-(es, en, pt, fr, de).
+Colours always come from palette tokens (`--accent`, `--panel`, `--text`, `--muted`, `--border`…) so
+the eight palettes and the glass, soft and Art Deco styles all apply. Text shown to people goes
+through `uiText()` and is translated in `agent/ui/locales.json` (es, en, pt, fr, de).
 
 ## Updates and trust
 

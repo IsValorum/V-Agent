@@ -296,9 +296,9 @@ def install(a):
                     '/assets/ui-panels.css':('ui-panels.css','text/css; charset=utf-8'),
                     '/assets/locales.json':('locales.json','application/json; charset=utf-8')}
             if self.path in assets:
-                from runtime_paths import SOURCE_ROOT
+                from runtime_paths import UI_DIST
                 name,mime=assets[self.path]
-                raw=(SOURCE_ROOT/'agent'/name).read_bytes()
+                raw=(UI_DIST/'assets'/name).read_bytes()
                 self.send_response(200);self.send_header('Content-Type',mime);self.send_header('Content-Length',str(len(raw)));self.send_header('Cache-Control','no-store');self.end_headers();self.wfile.write(raw);return
             if self.path.split('?')[0] in ('/assets/ui-patch.css','/assets/ui-patch.js'):
                 # Interface fixes from the signed components channel (empty when none is applied).

@@ -1,4 +1,3 @@
-let activeEngine='strata',engineSnapshot=null;
 function syncEngineVersions(){
   const builds=engineSnapshot?.builds||{},variant=$('#llamaVariant').value;
   const label=info=>[info.version?'v'+info.version:'Versión no declarada',info.build].filter(Boolean).join(' · ');

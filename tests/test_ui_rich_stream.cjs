@@ -1,5 +1,5 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
-const html=fs.readFileSync('agent/index.html','utf8');
+const html=fs.readFileSync('agent/ui/dist/v-agent.html','utf8');
 class Element{
  constructor(){this.childNodes=[];this.classList={add(){}};this.className='';this.writes=0;this._html='';}
  set innerHTML(value){this._html=value;this.writes++;} get innerHTML(){return this._html;}

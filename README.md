@@ -47,7 +47,7 @@ installs only when you say so.
 
 | Folder | What lives there |
 |---|---|
-| [`agent/`](agent/) | The core: chat/agent loop, local API, engines, tools (MCP servers), updates, and the interface (`index.html` + `ui-*.js`). |
+| [`agent/`](agent/) | The core: chat/agent loop, local API, engines, tools (MCP servers), updates, and the interface source in [`agent/ui/`](agent/ui/). |
 | [`serve/`](serve/) | OpenAI/Anthropic-compatible request layer and MCP hub, vendored from PolyStrata. |
 | [`web_mcp/`](web_mcp/) | Web search, page reading and HTTP tools (MCP servers). |
 | [`tools/`](tools/) | GGUF header reader and tokenizer used when importing models. |
@@ -68,7 +68,8 @@ Build Tools.
 python -m venv .venv
 .venv\Scripts\pip install -r requirements.txt
 
-:: run the automatic tests
+:: build the interface, then run the automatic tests
+.venv\Scripts\python scripts\build-ui.py
 .venv\Scripts\python -m unittest discover -s tests
 for %f in (tests\*.cjs) do node %f
 
