@@ -56,6 +56,53 @@ def register_llama_import(info, name=None):
     return {'status':'already_registered' if existing else 'registered','model':{'id':'llama--'+identifier}}
 
 
+def import_external_model(path,name,settings,kind,preference_store):
+    """Register a GGUF and its compatible settings for the specified local engine."""
+    settings=settings or {};template_path=None;warnings=[]
+    if not isinstance(settings,dict) or not isinstance(settings.get('sampling') or {},dict):raise ValueError('Ajustes de modelo no válidos.')
+    if kind not in ('llama','rust','strata'):raise ValueError('Selecciona un motor local antes de importar modelos.')
+    template=settings.get('template')
+    if template and kind=='rust':
+        warnings.append('Strata Rust no aplica la plantilla importada; usa la plantilla admitida por el motor.')
+    elif template:
+        if not isinstance(template,str):raise ValueError('Plantilla no válida.')
+        text=template
+        if len(text.encode())>262144:raise ValueError('La plantilla es demasiado grande (máximo 256 KB).')
+        from model_import import _validate_source, _existing, _path
+        _validate_source(text)
+        if kind=='strata' and _existing(_path(str(path),('.gguf',))):
+            warnings.append('El modelo ya estaba registrado; su plantilla existente no se sobrescribió.')
+        else:
+            folder=DATA_ROOT/'imported-templates';folder.mkdir(parents=True,exist_ok=True)
+            template_path=folder/(hashlib.sha256(text.encode()).hexdigest()[:24]+'.jinja');template_path.write_text(text,encoding='utf-8')
+    if kind=='strata':
+        from model_import import register_local_model
+        result=register_local_model(str(path),name,str(template_path) if template_path else None)
+        model=result['model']['id']
+    else:
+        info=inspect_llama_import(str(path),str(template_path) if template_path else None)
+        result=register_llama_import({**info,'template':''} if kind=='rust' else info,name)
+        model=('rust--' if kind=='rust' else 'llama--')+info['identifier']
+    preferences={}
+    from model_preferences import RANGES
+    import math
+    sampling={k:v for k,v in (settings.get('sampling') or {}).items() if k in RANGES and isinstance(v,(int,float)) and not isinstance(v,bool) and math.isfinite(v) and RANGES[k][0]<=v<=RANGES[k][1]}
+    for key in ('top_k','max_tokens','seed'):
+        if key in sampling:sampling[key]=int(sampling[key])
+    if sampling:preferences['sampling']=sampling
+    if type(settings.get('context')) is int:preferences['context']=max(2048,min(262144,settings['context']))
+    kv=settings.get('kv')
+    if kv:
+        if kind=='strata':
+            import kv_settings
+            options={item['value'] for item in kv_settings.describe(result['model']['config']).get('options',[])}
+        else:options={'fp16','q8_0'} if kind=='rust' else {'fp16','bf16','q8_0','q4_0'}
+        if kv in options:preferences['kv']=kv
+        else:warnings.append('La caché KV '+str(kv)+' no está disponible para este motor o modelo; se conservó el valor actual.')
+    if preferences:preference_store.save(model,preferences)
+    return {'id':model,'status':result['status'],'applied':sorted(preferences),'warnings':warnings}
+
+
 def _safe(job):
     try:job()
     except Exception:pass
@@ -88,7 +135,12 @@ def install(a):
         if manager.kind in ('llama','rust'):
             sources=a.registry.discover(CONFIG_ROOT)
             extra=DATA_ROOT/'llama-added.json'
-            if extra.exists():sources+=json.loads(extra.read_text(encoding='utf8'))
+            if extra.exists():
+                imported=json.loads(extra.read_text(encoding='utf8'))
+                # A file registered in Strata and the shared local catalogue is one model.
+                # Prefer the explicitly imported entry so its per-engine settings remain visible.
+                imported_paths={os.path.normcase(str(Path(item['path']).resolve())) for item in imported if item.get('path')}
+                sources=imported+[item for item in sources if not item.get('path') or os.path.normcase(str(Path(item['path']).resolve())) not in imported_paths]
         else:sources=[{**item,'id':manager.remote_identifier(item),'remote_id':item['id'],'display_name':item.get('display_name') or item['id'],'path':None,'backend':manager.settings.get('api',{}).get('name','API'),'remote':True} for item in manager.remote_models]
         ignored=set(json.loads(a.PROFILE_PATH.read_text(encoding='utf8')).get('ignored_models',[]))
         for source in sources:
@@ -216,42 +268,28 @@ def install(a):
     catalog=extensions.Catalog();catalog.refresh()
     import model_hub,external_models
 
-    def add_gguf(path,name=None,settings=None):
-        """Add a GGUF for llama.cpp (as the Add model dialog does) and keep the settings it came with."""
-        settings=settings or {};template_path=None
-        if settings.get('template'):
-            text=str(settings['template'])
-            if len(text.encode())>262144:raise ValueError('La plantilla es demasiado grande (máximo 256 KB).')
-            folder=DATA_ROOT/'imported-templates';folder.mkdir(parents=True,exist_ok=True)
-            template_path=folder/(hashlib.sha256(text.encode()).hexdigest()[:24]+'.jinja');template_path.write_text(text,encoding='utf-8')
-        info=inspect_llama_import(str(path),str(template_path) if template_path else None)
-        result=register_llama_import(info,name)
-        model='llama--'+info['identifier'];preferences={}
-        from model_preferences import RANGES
-        sampling={k:v for k,v in (settings.get('sampling') or {}).items() if k in RANGES and isinstance(v,(int,float)) and not isinstance(v,bool) and RANGES[k][0]<=v<=RANGES[k][1]}
-        for key in ('top_k','max_tokens','seed'):
-            if key in sampling:sampling[key]=int(sampling[key])
-        if sampling:preferences['sampling']=sampling
-        if isinstance(settings.get('context'),int):preferences['context']=max(2048,min(262144,settings['context']))
-        if settings.get('kv') in ('fp16','bf16','q8_0','q4_0'):preferences['kv']=settings['kv']
-        if preferences:a.MODEL_PREFERENCES.save(model,preferences)
-        return {'id':model,'status':result['status'],'applied':sorted(preferences)}
+    def add_gguf(path,name=None,settings=None,engine=None):
+        return import_external_model(path,name,settings,engine or manager.kind,a.MODEL_PREFERENCES)
 
     def hub_register(path,job):
-        return add_gguf(path,Path(job['name']).stem)['id']
+        return add_gguf(path,Path(job['name']).stem,engine='llama' if manager.kind=='api' else manager.kind)['id']
     hub_downloads=model_hub.Downloads(register=hub_register)
 
     def registered_paths():
-        record=DATA_ROOT/'llama-added.json'
-        try:entries=json.loads(record.read_text(encoding='utf8')) if record.exists() else []
-        except ValueError:entries=[]
-        return {os.path.normcase(str(Path(item.get('path','')).resolve())) for item in entries if item.get('path')}
+        entries=models().get('data',[])
+        return {os.path.normcase(str(Path(item['path']).resolve())) for item in entries if item.get('path')}
 
     def model_settings(model_id):
-        item=selected(model_id);pref=item.get('preferences') or {}
+        item=selected(model_id)
+        # Strata's raw registry entry does not include the user's preferences.
+        item=next((entry for entry in models().get('data',[]) if entry.get('id')==item['id']),item)
+        pref=item.get('preferences') or {}
         settings={'name':item.get('display_name') or model_id,'path':item.get('path'),'sampling':pref.get('sampling') or {},
                   'context':pref.get('context'),'kv':pref.get('kv')}
         template=(item.get('llama_settings') or {}).get('template')
+        if not template and manager.kind=='strata':
+            cfg=json.loads(Path(item['config']).read_text(encoding='utf-8-sig'))
+            template=str(Path(cfg.get('tokenizer') or '')/'chat_template.jinja')
         if template and Path(template).is_file():settings['template']=Path(template).read_text(encoding='utf-8-sig')
         return settings
 
