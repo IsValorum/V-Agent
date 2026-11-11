@@ -7216,5 +7216,17 @@
     "pt": "Baixar GGUF",
     "fr": "Télécharger le GGUF",
     "de": "GGUF herunterladen"
+  },
+  "Actualizaciones menores": {
+    "en": "Minor updates",
+    "pt": "Atualizações menores",
+    "fr": "Mises à jour mineures",
+    "de": "Kleine Updates"
+  },
+  "ninguna instalada": {
+    "en": "none installed",
+    "pt": "nenhuma instalada",
+    "fr": "aucune installée",
+    "de": "keine installiert"
   }
 }

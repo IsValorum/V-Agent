@@ -40,6 +40,10 @@ SmartScreen recognises the publisher.
 ## Minor updates (components channel)
 
 For small fixes to MCP servers, web search, tool descriptions or code checks, no installer is needed.
+Since 1.0.2 the channel also carries interface fixes: `ui-patch.css` (style overrides) and
+`ui-patch.js` (behaviour), which the window loads on top of the bundled interface when it opens.
+Bigger interface changes still need a new installer. Fold each patch into the regular files before
+the next installer so that version starts clean.
 
 1. Put only the changed files in a folder (allowed names are listed in `agent/components.py`,
    e.g. `pc_mcp.py`, `buscador_mcp.py`, `mcp_prompt.py`, `scene_probe.js`).

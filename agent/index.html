@@ -878,8 +878,19 @@ async function waitForCore(){
   }
   return false;
 }
+// Interface fixes published through the signed minor-updates channel: a stylesheet and a script
+// served by the core (empty when no update is applied), loaded on top of the bundled interface.
+function loadUiPatch(){
+  const base=window.VAL_CORE_BASE||'',stamp=Date.now();
+  const style=document.createElement('link');style.rel='stylesheet';style.id='uiPatchCss';style.href=base+'/assets/ui-patch.css?t='+stamp;document.head.append(style);
+  fetch('/assets/ui-patch.js',{cache:'no-store'}).then(response=>response.ok?response.text():'').then(code=>{
+    if(!code.trim())return;const script=document.createElement('script');script.id='uiPatchJs';script.src=base+'/assets/ui-patch.js?t='+stamp;document.body.append(script);
+  }).catch(()=>{});
+}
 (async function initializeAgent() {
-  if(!await waitForCore()){
+  const coreReady=await waitForCore();
+  if(coreReady)loadUiPatch();
+  if(!coreReady){
     const connection=document.getElementById('connectionText');if(connection)connection.textContent='Sin conexión local';
     const mode=document.getElementById('modeNote');if(mode)mode.textContent='El servicio local no respondió. Revisa data/logs/agent.log.';
     return;
@@ -5329,14 +5340,17 @@ const VAL_TOUR=(()=>{
     box.querySelector('#tourAgain').textContent=uiText('Ver el tutorial');
     general.append(box);
     const status=box.querySelector('#appUpdateStatus'),go=box.querySelector('#appUpdateGo');
+    // Minor updates never change the version number: they show as "1.0.1 C1", "1.0.1 C2"…
+    let componentRevision=0,lastApp=null;
+    const label=version=>version+(componentRevision?' C'+componentRevision:'');
     const paint=s=>{
-      if(!s)return;
-      if(!s.configured){status.textContent=uiText('Versión')+' '+s.version+' · '+uiText('Las actualizaciones automáticas se activarán cuando se publique el repositorio oficial.');go.hidden=true;return;}
+      if(!s)return;lastApp=s;
+      if(!s.configured){status.textContent=uiText('Versión')+' '+label(s.version)+' · '+uiText('Las actualizaciones automáticas se activarán cuando se publique el repositorio oficial.');go.hidden=true;return;}
       if(s.error){status.textContent=uiText('No se pudo comprobar')+': '+s.error;}
       else if(s.ready){status.textContent=uiText('Actualización descargada y verificada.');go.textContent=uiText('Instalar y reiniciar');go.hidden=false;go.dataset.action='launch';}
       else if(s.busy&&s.progress){status.textContent=uiText('Descargando')+' · '+Math.round(s.progress.received/s.progress.total*100)+' %';}
       else if(s.available){status.textContent=uiText('Nueva versión disponible')+': '+s.available.version+(s.available.notes?' · '+s.available.notes.slice(0,140):'');go.textContent=uiText('Descargar')+' '+s.available.version;go.hidden=false;go.dataset.action='download';}
-      else status.textContent=uiText('Versión')+' '+s.version+(s.checked_at?' · '+uiText('Estás al día.'):'');
+      else status.textContent=uiText('Versión')+' '+label(s.version)+(s.checked_at?' · '+uiText('Estás al día.'):'');
     };
     const post=action=>requestJSON('/api/harness/app-update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})});
     // Minor updates channel (MCP servers, tools): signed components for this exact version.
@@ -5346,9 +5360,11 @@ const VAL_TOUR=(()=>{
     const paintComponents=c=>{
       if(!c||!c.configured){cStatus.hidden=cActions.hidden=true;return;}
       cStatus.hidden=cActions.hidden=false;
-      let text=uiText('Componentes (MCPs y herramientas)')+': '+(c.revision?uiText('revisión')+' '+c.revision:uiText('originales'));
+      const version=lastApp?.version||'';
+      if(componentRevision!==(c.revision||0)){componentRevision=c.revision||0;if(lastApp)paint(lastApp);}
+      let text=uiText('Actualizaciones menores')+': '+(c.revision?version+' C'+c.revision:uiText('ninguna instalada'));
       if(c.restart_needed)text+=' · '+uiText('Se aplicarán al reiniciar V-Agent.');
-      else if(c.available)text+=' · '+uiText('Mejoras disponibles')+': '+uiText('revisión')+' '+c.available.revision+(c.available.notes?' — '+c.available.notes.slice(0,140):'');
+      else if(c.available)text+=' · '+uiText('Disponible')+': '+version+' C'+c.available.revision+(c.available.notes?' — '+c.available.notes.slice(0,140):'');
       if(c.error)text+=' · '+c.error;
       cStatus.textContent=text;cApply.hidden=!c.available||c.restart_needed;cReset.hidden=!c.revision;
     };

@@ -63,6 +63,17 @@ class ComponentTests(unittest.TestCase):
         other = base64.b64encode(Ed25519PrivateKey.generate().sign(raw)).decode()
         with self.assertRaises(ValueError): components.validate(raw, other)
 
+    def test_interface_patch_is_served_only_when_verified(self):
+        missing = Path('/nonexistent/ui-patch.css')
+        self.assertEqual(components.resource('ui-patch.css', missing), missing)
+        folder = self.install({'ui-patch.css': b'.x{color:red}', 'ui-patch.js': b'window.patched=1;'})
+        self.assertEqual(components.resource('ui-patch.css', missing), folder / 'ui-patch.css')
+        self.assertEqual(components.resource('ui-patch.js', missing).read_bytes(), b'window.patched=1;')
+        (folder / 'ui-patch.css').write_bytes(b'.x{color:blue}')  # tampered: back to nothing
+        self.assertEqual(components.resource('ui-patch.css', missing), missing)
+        raw, sig = self.manifest({'index.html': b'<html>'})  # the whole interface is still installer-only
+        with self.assertRaises(ValueError): components.validate(raw, sig)
+
     def test_reset_returns_to_bundled_components(self):
         self.install({'pc_mcp.py': b'x = 1\n'})
         updater = components.Components('owner/V-Agent')
