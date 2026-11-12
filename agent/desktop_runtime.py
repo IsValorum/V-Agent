@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import threading
+import urllib.parse
 from pathlib import Path
 from runtime_paths import DATA_ROOT,CONFIG_ROOT,RUNTIME_ROOT
 from engine_manager import EngineManager
@@ -103,6 +104,30 @@ def import_external_model(path,name,settings,kind,preference_store):
     return {'id':model,'status':result['status'],'applied':sorted(preferences),'warnings':warnings}
 
 
+def follow_desktop():
+    """End this core (and the engines and tools it started) when the window that started it is gone.
+
+    The window stops its core when it closes normally, but a crash, "End task" or a power cut skips
+    that, and the core kept running with its engine and model in memory. The next start then found
+    a core it did not own: it never stopped it, and the updater and uninstaller met locked files.
+    """
+    import ctypes
+    pid=os.environ.get('V_AGENT_DESKTOP_PID','')
+    if os.name!='nt' or not pid.isdigit() or int(pid)<=0:return
+    kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+    kernel.OpenProcess.restype=ctypes.c_void_p
+    SYNCHRONIZE=0x00100000
+    handle=kernel.OpenProcess(SYNCHRONIZE,False,int(pid))
+    if not handle:return  # Already gone before we looked: the window did its own clean-up, or never existed.
+    try:kernel.WaitForSingleObject(ctypes.c_void_p(handle),0xFFFFFFFF)
+    finally:kernel.CloseHandle(ctypes.c_void_p(handle))
+    import subprocess,time
+    time.sleep(2)  # A normal close already stops this tree; this is only for a window that vanished.
+    subprocess.run(['taskkill','/F','/T','/PID',str(os.getpid())],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
+                   creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+    os._exit(0)
+
+
 def _safe(job):
     try:job()
     except Exception:pass
@@ -124,6 +149,9 @@ def install(a):
             state={**state,'hardware':profile,'recommendations':recommended['engines'],'hardware_summary':recommended['summary']}
         except Exception:
             state={**state,'hardware':{},'recommendations':[],'hardware_summary':''}
+        # Release notes (up to 100 KB per engine) travelled in every 10 s poll; they are fetched
+        # only when someone opens them (/api/harness/updates/notes?engine=...).
+        state['releases']={key:{k:v for k,v in (release or {}).items() if k!='notes'} for key,release in (state.get('releases') or {}).items()}
         return state
     original={name:getattr(a,name) for name in ('installed_models','selected_model','engine_health','current_model','load_agent_model','unload_agent_model',
         'change_context','start_engine','stop_engine','stats','require_loaded_model','engine_context','engine_chat_stream','tokenizer_del_modelo','configure_model_draft')}
@@ -183,6 +211,16 @@ def install(a):
                 exe=updated_executable('strata',RUNTIME_ROOT/'strata/strata-poly.exe')
                 if str(exe)!=cfg.get('exe'):
                     cfg['exe']=str(exe);cfg['lib_dirs']=[str(exe.parent/'lib'),str(exe.parent)];__import__('ui_preferences').atomic_json(file,cfg)
+            # A model registered earlier, or an engine update that dropped a family: say so now,
+            # instead of three engine restarts and an English stack of log lines.
+            try:
+                cfg=json.loads(Path(selected(name)['config']).read_text(encoding='utf-8-sig'));args=cfg.get('args',[])
+                model_file=args[args.index('--model')+1] if '--model' in args else None
+            except (OSError,ValueError,KeyError,IndexError):model_file=None
+            if model_file:
+                from model_import import strata_rejection,unsupported_message
+                rejected=strata_rejection(cfg.get('exe',''),model_file)
+                if rejected:raise ValueError(unsupported_message(rejected))
         if manager.kind=='strata':
             model=selected(name);saved=a.MODEL_PREFERENCES.load(name)
             if saved and not (health() or {}).get('loaded'):
@@ -221,7 +259,7 @@ def install(a):
     def stats():
         if manager.kind=='strata':return system_metrics(original['stats']())
         import psutil
-        metrics=manager.metrics();ram=psutil.virtual_memory();usage=a.context_usage(metrics,bool(manager.loaded))
+        metrics=manager.metrics();usage=a.context_usage(metrics,bool(manager.loaded))
         timing=manager.last_timing
         return system_metrics({'engine_online':manager.online or manager.kind in ('llama','rust'),'loaded':bool(manager.loaded),'model':manager.loaded,'preparation':a.PREPARATION.snapshot(),
                 'live':metrics['live'],'last':{'decode':timing.get('predicted_per_second'),'prefill':timing.get('prompt_per_second')},'context_usage':usage,
@@ -315,6 +353,7 @@ def install(a):
                 except Exception:pass
                 time.sleep(6*60*60)
         for work in (components_update,app_update):threading.Thread(target=work,daemon=True).start()
+    threading.Thread(target=follow_desktop,name='v-agent-desktop-watch',daemon=True).start()
     if os.environ.get('V_AGENT_NO_AUTO_UPDATE')!='1':
         threading.Thread(target=automatic_updates,name='v-agent-auto-updates',daemon=True).start()
 
@@ -357,6 +396,10 @@ def install(a):
             if self.path=='/api/harness/preferences':self._json(200,preferences.get());return
             if self.path=='/api/harness/mcp-options':self._json(200,OPTIONS.get());return
             if self.path=='/api/harness/updates':self._json(200,update_payload());return
+            if self.path.startswith('/api/harness/updates/notes?'):
+                key=urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query).get('engine',[''])[0]
+                release=(updates.snapshot().get('releases') or {}).get(key) or {}
+                self._json(200,{'engine':key,'notes':release.get('notes') or ''});return
             if self.path=='/api/harness/app-update':
                 from app_updates import UPDATES as app_update
                 self._json(200,app_update.snapshot());return
@@ -365,7 +408,6 @@ def install(a):
                 self._json(200,COMPONENTS.snapshot());return
             if self.path=='/api/harness/hardware':self._json(200,update_payload());return
             if self.path.startswith('/api/harness/hub/') or self.path.startswith('/api/harness/external/'):
-                import urllib.parse
                 parts=urllib.parse.urlsplit(self.path);query=urllib.parse.parse_qs(parts.query);arg=lambda key:(query.get(key) or [''])[0]
                 try:
                     if parts.path=='/api/harness/hub/search':self._json(200,{'models':model_hub.search(arg('q'),arg('sort') or 'downloads',arg('kind') or 'text')})

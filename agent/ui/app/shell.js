@@ -1,6 +1,16 @@
 /* Settings own application preferences; the side inspector owns per-model controls. */
 let settingsCategory='general',lastHardwareState=null,uiPreferences={language:'es'};
 function uiText(text){return window.VALI18n?.t(text)||text;}
+// Core texts made of facts and phrases joined by " · " (GPU name, driver, a recommendation): each
+// part is translated on its own; a number inside a phrase is kept ("…driver {n} or newer").
+function uiParts(text){
+  return String(text||'').split(' · ').map(part=>{
+    const whole=uiText(part);if(whole!==part)return whole;
+    const numbers=part.match(/\d+(?:[.,]\d+)?/g);if(!numbers)return part;
+    const pattern=part.replace(/\d+(?:[.,]\d+)?/g,'{n}'),translated=uiText(pattern);
+    if(translated===pattern)return part;let i=0;return translated.replace(/\{n\}/g,()=>numbers[i++]??'');
+  }).join(' · ');
+}
 function uiNumber(value){return Number(value).toLocaleString(window.VALI18n?.locale||undefined);}
 function setupSettingsHub(){
   const drawer=$('#drawer'),body=$('#drawer .drawer-body'),appearance=$('#settings-appearance');
@@ -93,7 +103,7 @@ function restoreInspectorContent(){
 function syncSettingsSummary(){
   if(!$('#engineQuickName')||!engineSnapshot)return;
   const kind=activeEngine,builds=engineSnapshot.builds||{},info=kind==='strata'?builds.strata:kind==='rust'?builds.rust:builds[engineSnapshot.llama?.variant||'cuda'];
-  $('#engineQuickName').textContent=kind==='api'?(engineSnapshot.api?.name||'API'):(kind==='strata'?'Strata':kind==='rust'?'Strata Rust':'llama.cpp')+' · '+(info?.build||info?.version||'');
+  $('#engineQuickName').textContent=kind==='api'?(engineSnapshot.api?.name||'API'):[kind==='strata'?'Strata':kind==='rust'?'Strata Rust':'llama.cpp',info?.build||info?.version||uiText('sin instalar')].join(' · ');
   $('#appBuild').textContent='V-Agent '+(engineSnapshot.version||'');
   $('#settingsDataPath').textContent=engineSnapshot.data_dir||'';
 }
@@ -331,7 +341,7 @@ function setupAgentProfilesAndUpdates(){
     chips.append(hardwareChip('RAM',profile.ram?.total_gib?uiNumber(profile.ram.total_gib)+' GB':'—'));
     chips.append(hardwareChip(uiText('Disco libre'),profile.disk?.free_gib?uiNumber(profile.disk.free_gib)+' GB':'—'));
     chips.append(hardwareChip(uiText('Sistema'),[profile.os?.product,profile.os?.display].filter(Boolean).join(' · ')||'—'));
-    const summary=$('#hwSummary');if(summary)summary.textContent=state.hardware_summary||'';
+    const summary=$('#hwSummary');if(summary)summary.textContent=uiParts(state.hardware_summary||'');
     const box=$('#engineRecommendations');if(!box)return;box.replaceChildren();
     const visible=rows.filter(row=>row.recommended);
     for(const row of visible){
@@ -339,7 +349,7 @@ function setupAgentProfilesAndUpdates(){
       const head=document.createElement('div');head.className='engine-recommendation-head';
       const name=document.createElement('strong');name.textContent=row.name;
       const badge=document.createElement('span');badge.className='recommendation-badge';badge.textContent=uiText('Recomendado');head.append(name,badge);
-      const reason=document.createElement('p');reason.className='mini';reason.textContent=row.reason;
+      const reason=document.createElement('p');reason.className='mini';reason.textContent=uiParts(row.reason);
       const asset=document.createElement('div');asset.className='engine-asset';
       const tag=document.createElement('code');tag.textContent=row.tag||uiText('Sin versión publicada');asset.append(tag);
       if(row.asset){const filename=document.createElement('code');filename.textContent=row.asset;asset.append(filename);}
@@ -384,7 +394,7 @@ function setupAgentProfilesAndUpdates(){
     const names={'llama-cpu':'llama.cpp · CPU','llama-cuda':'llama.cpp · CUDA 12.4','llama-vulkan':'llama.cpp · Vulkan',strata:'Strata · PolyStrata',rust:'Strata Rust'};
     for(const [key,release] of Object.entries(state.releases||{})){
       const row=document.createElement('div');row.className='engine-update-row';const name=document.createElement('strong');name.textContent=names[key]||key;const details=document.createElement('small');details.textContent=release.error||release.message||(release.tag+' · '+(release.available?uiText('Disponible'):uiText('Actualizado'))+(release.development?' · '+uiText('Desarrollo oficial'):''));row.append(name,details);
-      if(release.url){const link=document.createElement('a');link.href=release.url;link.onclick=event=>{event.preventDefault();showReleaseNotes(release);};link.textContent=uiText('Notas de versión');row.append(link);}
+      if(release.url){const link=document.createElement('a');link.href=release.url;link.onclick=event=>{event.preventDefault();showReleaseNotes({...release,key});};link.textContent=uiText('Notas de versión');row.append(link);}
       if(release.asset&&release.available){const button=document.createElement('button');button.textContent=uiText('Actualizar');button.disabled=state.busy||busy||!!loadedModel;button.onclick=()=>action('install',{engine:key});const actions=document.createElement('div');actions.className='engine-update-actions';actions.append(button);row.append(actions);}
       if(Object.hasOwn(state.previous||{},key)){const rollback=document.createElement('button');rollback.textContent=uiText('Restaurar anterior');rollback.disabled=state.busy||!!loadedModel;rollback.onclick=()=>action('rollback',{engine:key});row.append(rollback);}
       list.append(row);
@@ -434,7 +444,7 @@ function setupAgentProfilesAndUpdates(){
     for(const [key,release] of shown){
       const card=document.createElement('article');card.className='update-card';
       const close=document.createElement('button');close.type='button';close.className='update-card-close';close.setAttribute('aria-label',uiText('Descartar aviso'));close.textContent='×';
-      close.onclick=()=>{dismissed.add(key+':'+release.tag);card.remove();if(!stack.children.length)stack.hidden=true;};
+      close.onclick=()=>{dismissed.add(key+':'+release.tag);delete stack.dataset.signature;renderUpdateStack(state);};
       const head=document.createElement('div');head.className='update-card-head';
       const icon=document.createElement('span');icon.className='update-card-icon';icon.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 21h14"/></svg>';
       const text=document.createElement('div');text.className='update-card-text';
@@ -480,7 +490,8 @@ function setupAgentProfilesAndUpdates(){
   pollUpdates();
 }
 
-function showReleaseNotes(release){
+async function showReleaseNotes(release){
+  if(!release.notes&&release.key){try{release={...release,notes:(await requestJSON('/api/harness/updates/notes?engine='+encodeURIComponent(release.key))).notes};}catch{}}
   let dialog=document.getElementById('releaseNotesDialog');
   if(!dialog){dialog=document.createElement('dialog');dialog.id='releaseNotesDialog';dialog.innerHTML='<header><strong></strong><button type="button" aria-label="Cerrar">×</button></header><div class="release-notes-content"></div><p></p>';document.body.append(dialog);dialog.querySelector('button').onclick=()=>dialog.close();dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close();});}
   dialog.querySelector('strong').textContent=uiText('Notas de versión')+' · '+release.tag;
@@ -581,7 +592,7 @@ function setupSegmentedSliders(){
   scan();new MutationObserver(scan).observe(document.body,{childList:true,subtree:true});
   // A group measured while its window was closed has no pill once the window opens; catch up any
   // visible group whose pill is hidden or out of step (reads only; writes on mismatch).
-  setInterval(()=>{for(const group of document.querySelectorAll('[data-segmented]')){
+  setInterval(()=>{if(document.hidden)return;for(const group of document.querySelectorAll('[data-segmented]')){
     if(!group.offsetWidth)continue;const pill=group.querySelector(':scope>.seg-pill');
     const active=[...group.children].find(el=>el.tagName==='BUTTON'&&(el.getAttribute('aria-pressed')==='true'||el.getAttribute('aria-selected')==='true'));
     if(pill&&active&&active.offsetWidth&&(pill.style.opacity!=='1'||pill.style.width!==active.offsetWidth+'px'||pill.style.transform!=='translate('+active.offsetLeft+'px,'+active.offsetTop+'px)'))place(group);

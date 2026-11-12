@@ -9,7 +9,10 @@ const $ = (s) => document.querySelector(s);
 const LS = { set: "strataSettings", theme: "strataTheme2", convs: "strataConvs" };
 
 const DEF_SAMPLING = { temperature: 0.6, top_p: 0.95, top_k: 20, min_p: 0, repetition_penalty: 1.0, max_tokens: 0, seed: 0, presence_penalty: 0, frequency_penalty: 0 };
-const DEF_FUNCS = { search: false, visit: false, files: false, shell: false, sys: false, hf:false, date: true, browser: true, console: false, web:false, autobrowser:false, computer:false, admin:false };
+// A fresh install starts with what the Standard mode describes: files and system (confined to the chat's
+// folder, every write asks in "Ask" mode) and web search. Before, only the browser was on, so a new
+// user's agent could not create a single file. Saved choices (savedSettings.functions) still win.
+const DEF_FUNCS = { search: true, visit: true, files: true, shell: false, sys: true, hf:false, date: true, browser: true, console: false, web:false, autobrowser:false, computer:false, admin:false };
 let activeEngine='strata',engineSnapshot=null;
 let selectedProject=null,selectedProjectChat=null,projectAssignments={},projectNames={};
 let pcAccess={mode:'sandbox',root:''},accessChanging=false;

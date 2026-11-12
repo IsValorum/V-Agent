@@ -115,24 +115,24 @@ def recommend(profile, releases):
     elif other:
         gpu_facts = f"{other.get('name')}" + (f" · {other['vram_mib'] / 1024:.1f} GB" if other.get('vram_mib') else '')
     else:
-        gpu_facts = 'No dedicated GPU detected'
+        gpu_facts = 'No se detectó una GPU dedicada'
     rows = [
         _entry('llama-cuda', best == 'llama-cuda',
-               gpu_facts + ('' if best == 'llama-cuda' else (f' · needs NVIDIA driver {CUDA_LLAMA_MIN_DRIVER:.2f} or newer' if nvidia else ' · needs an NVIDIA GPU')),
+               gpu_facts + ('' if best == 'llama-cuda' else (f' · necesita el controlador NVIDIA {CUDA_LLAMA_MIN_DRIVER:.2f} o posterior' if nvidia else ' · necesita una GPU NVIDIA')),
                releases, CUDA_LLAMA_MIN_DRIVER),
         _entry('llama-vulkan', best == 'llama-vulkan',
-               (gpu_facts + ' · Vulkan runs on AMD, Intel Arc and NVIDIA GPUs') if best == 'llama-vulkan'
-               else 'Alternative GPU build for AMD, Intel Arc and NVIDIA (Vulkan)', releases, None),
+               (gpu_facts + ' · Vulkan funciona en GPU AMD, Intel Arc y NVIDIA') if best == 'llama-vulkan'
+               else 'Alternativa para GPU AMD, Intel Arc y NVIDIA (Vulkan)', releases, None),
         _entry('llama-cpu', best == 'llama-cpu',
-               'Works on any Windows x64 PC' + (' · best choice without a dedicated GPU' if best == 'llama-cpu' else ' · fallback'),
+               'Funciona en cualquier PC con Windows x64' + (' · la mejor opción sin GPU dedicada' if best == 'llama-cpu' else ' · alternativa de respaldo'),
                releases, None),
         _entry('strata', strata,
-               (gpu_facts if nvidia else 'Strata Poly prebuilt needs an NVIDIA GPU and a CUDA 13 driver')
-               + ('' if strata else ' · not recommended for this GPU/driver'), releases, CUDA_STRATA_MIN_DRIVER),
-        _entry('rust', True, 'Strata Rust is the Qwen3.5/3.6 backend; install when using those model families', releases, None),
+               (gpu_facts if nvidia else 'Strata Poly necesita una GPU NVIDIA y un controlador CUDA 13')
+               + ('' if strata else ' · no recomendado para esta GPU o controlador'), releases, CUDA_STRATA_MIN_DRIVER),
+        _entry('rust', True, 'Strata Rust es el motor para Qwen3.5/3.6; instálalo si usas esas familias de modelos', releases, None),
     ]
     order = {'llama-cuda': 0, 'llama-vulkan': 1, 'llama-cpu': 2, 'strata': 3, 'rust': 4}
     rows.sort(key=lambda row: (not row['recommended'], order.get(row['key'], 9)))
-    summary = gpu_facts + ' · ' + {'llama-cuda': 'llama.cpp CUDA recommended', 'llama-vulkan': 'llama.cpp Vulkan recommended',
-                                    'llama-cpu': 'llama.cpp CPU recommended'}[best]
+    summary = gpu_facts + ' · ' + {'llama-cuda': 'llama.cpp CUDA recomendado', 'llama-vulkan': 'llama.cpp Vulkan recomendado',
+                                    'llama-cpu': 'llama.cpp CPU recomendado'}[best]
     return {'profile': profile, 'engines': rows, 'summary': summary, 'best': best, 'variant': LLAMA_VARIANT[best]}

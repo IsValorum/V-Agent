@@ -7323,5 +7323,20 @@
     "pt": "Parte dos especialistas MoE fica na RAM (--n-cpu-moe).",
     "fr": "Une partie des experts MoE reste en RAM (--n-cpu-moe).",
     "de": "Ein Teil der MoE-Experten bleibt im RAM (--n-cpu-moe)."
-  }
+  },
+  "sin instalar": {"en":"not installed","pt":"não instalado","fr":"non installé","de":"nicht installiert"},
+  "No se detectó una GPU dedicada": {"en":"No dedicated GPU detected","pt":"Nenhuma GPU dedicada detectada","fr":"Aucun GPU dédié détecté","de":"Keine dedizierte GPU erkannt"},
+  "necesita el controlador NVIDIA {n} o posterior": {"en":"needs NVIDIA driver {n} or newer","pt":"requer o driver NVIDIA {n} ou mais recente","fr":"nécessite le pilote NVIDIA {n} ou plus récent","de":"benötigt NVIDIA-Treiber {n} oder neuer"},
+  "necesita una GPU NVIDIA": {"en":"needs an NVIDIA GPU","pt":"requer uma GPU NVIDIA","fr":"nécessite un GPU NVIDIA","de":"benötigt eine NVIDIA-GPU"},
+  "Vulkan funciona en GPU AMD, Intel Arc y NVIDIA": {"en":"Vulkan runs on AMD, Intel Arc and NVIDIA GPUs","pt":"Vulkan funciona em GPUs AMD, Intel Arc e NVIDIA","fr":"Vulkan fonctionne sur les GPU AMD, Intel Arc et NVIDIA","de":"Vulkan läuft auf AMD-, Intel-Arc- und NVIDIA-GPUs"},
+  "Alternativa para GPU AMD, Intel Arc y NVIDIA (Vulkan)": {"en":"Alternative GPU build for AMD, Intel Arc and NVIDIA (Vulkan)","pt":"Alternativa para GPUs AMD, Intel Arc e NVIDIA (Vulkan)","fr":"Alternative pour GPU AMD, Intel Arc et NVIDIA (Vulkan)","de":"Alternative für AMD-, Intel-Arc- und NVIDIA-GPUs (Vulkan)"},
+  "Funciona en cualquier PC con Windows x64": {"en":"Works on any Windows x64 PC","pt":"Funciona em qualquer PC com Windows x64","fr":"Fonctionne sur tout PC Windows x64","de":"Läuft auf jedem Windows-x64-PC"},
+  "la mejor opción sin GPU dedicada": {"en":"best choice without a dedicated GPU","pt":"melhor opção sem GPU dedicada","fr":"meilleur choix sans GPU dédié","de":"beste Wahl ohne dedizierte GPU"},
+  "alternativa de respaldo": {"en":"fallback","pt":"alternativa de reserva","fr":"solution de repli","de":"Ausweichlösung"},
+  "Strata Poly necesita una GPU NVIDIA y un controlador CUDA 13": {"en":"Strata Poly needs an NVIDIA GPU and a CUDA 13 driver","pt":"Strata Poly requer uma GPU NVIDIA e um driver CUDA 13","fr":"Strata Poly nécessite un GPU NVIDIA et un pilote CUDA 13","de":"Strata Poly benötigt eine NVIDIA-GPU und einen CUDA-13-Treiber"},
+  "no recomendado para esta GPU o controlador": {"en":"not recommended for this GPU or driver","pt":"não recomendado para esta GPU ou driver","fr":"non recommandé pour ce GPU ou ce pilote","de":"für diese GPU oder diesen Treiber nicht empfohlen"},
+  "Strata Rust es el motor para Qwen3.5/3.6; instálalo si usas esas familias de modelos": {"en":"Strata Rust is the Qwen3.5/3.6 engine; install it if you use those model families","pt":"Strata Rust é o motor para Qwen3.5/3.6; instale-o se usar essas famílias de modelos","fr":"Strata Rust est le moteur pour Qwen3.5/3.6 ; installez-le si vous utilisez ces familles de modèles","de":"Strata Rust ist die Engine für Qwen3.5/3.6; installiere sie, wenn du diese Modellfamilien nutzt"},
+  "llama.cpp CUDA recomendado": {"en":"llama.cpp CUDA recommended","pt":"llama.cpp CUDA recomendado","fr":"llama.cpp CUDA recommandé","de":"llama.cpp CUDA empfohlen"},
+  "llama.cpp Vulkan recomendado": {"en":"llama.cpp Vulkan recommended","pt":"llama.cpp Vulkan recomendado","fr":"llama.cpp Vulkan recommandé","de":"llama.cpp Vulkan empfohlen"},
+  "llama.cpp CPU recomendado": {"en":"llama.cpp CPU recommended","pt":"llama.cpp CPU recomendado","fr":"llama.cpp CPU recommandé","de":"llama.cpp CPU empfohlen"}
 }

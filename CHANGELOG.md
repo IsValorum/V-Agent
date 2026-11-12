@@ -4,6 +4,48 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.0.4
+
+- **Error detection matches the preview.** Pages are checked under the same isolation as V-Agent's
+  preview (sandboxed iframe without same-origin), so `localStorage`, cookies or IndexedDB used without
+  a fallback are reported instead of "0 errors"; page errors now include their line.
+- **More languages checked.** Python is compiled (catches `return`/`await`/`break` in the wrong place);
+  JavaScript is checked in the bundled browser when Node.js is not installed; CSS structure and
+  PowerShell (Windows' own parser) are checked; TypeScript, C/C++, Rust, Go, PHP, Ruby, Lua and sh use
+  their compiler when installed, and say "not checked" otherwise.
+- **Engine updates keep two versions** (active and previous, for "Restore previous") instead of every
+  version ever installed, delete downloaded archives after extracting them (837 MB on a test PC), reuse
+  llama.cpp's unchanged CUDA runtime (373 MB) instead of downloading it again, and remove failed downloads.
+- **Updater:** a verified installer is reused instead of downloaded at every start and old installers are
+  removed; "Install and restart" also works when a core from an earlier session is still running; a
+  check no longer interrupts a running download; the progress poll can no longer freeze.
+- **Lower background cost:** GPU readings use NVIDIA's driver library (about 1 ms) instead of starting
+  `nvidia-smi` every 5 s (about 60 ms each); the window polls every 20 s instead of 2.5 s while hidden;
+  release notes are fetched only when opened; engine logs are capped at 8 MB.
+- **Security (audit):** the local server now refuses requests that name another host (DNS rebinding:
+  a web page could read saved conversations through 127.0.0.1); llama.cpp's own server gets a private
+  per-session key, so web pages cannot use the GPU or read its slots; restoring a file version
+  (`file_history` with `revision`) now asks for approval in "Ask" mode, and sensitive file names are
+  checked in every path argument (copy and move included).
+- **Strata compatibility is asked to the engine itself.** A model whose architecture the installed
+  Strata does not run is refused at once with a clear message (it took three restarts and ~45 s, with an
+  English error); the answer is cached per engine build and model file.
+- **Clearer messages:** a reply cut by the loop guard says why, without asking to "press Save" when
+  nothing was being written; a second chat while another is replying says so.
+- Pillow is declared (screen-capture tools); a clean build environment left them out silently.
+- **A fresh install can work right away:** file, system and web-search tools start enabled, as the
+  Standard mode describes (only the browser was on, so a new agent could not create a file). Writes
+  still ask in "Ask" mode; console and commands stay off.
+- **The date note no longer ends up in files:** it is labelled as a system note and removed if a model
+  copies it to the end of a file it writes.
+- **Interface:** the built-in browser floats over the chat when the window is too narrow instead of
+  squeezing it into a column; buttons and labels use one size per page (several were left at 14 px);
+  the same close button in every window; dismissing an update notice shows the next one instead of
+  leaving a lone "N more updates" row; Windows 11 is no longer shown as Windows 10; engine
+  recommendations are translated (they were English in every language); "No chats" and the engine name
+  follow a language change; parameter counts read "9.2B"; the history buttons no longer touch.
+- **The core ends with its window.** If the window crashes or is ended from Task Manager, the core and
+  the engine it started no longer stay in memory.
 ## 1.0.3
 
 - Fix installing and restarting after a signed update. The updater waits for the app to close, installs silently, verifies the installed version and restarts it.

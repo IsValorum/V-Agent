@@ -57,6 +57,10 @@
 .settings-data {margin-top:13px;}
 #settingsDataPath {display:block;font:11px/1.7 Consolas,monospace;word-break:break-all;margin-bottom:7px;}
 .settings-data button {font-size:11px;padding:5px 8px;}
+/* One button size per settings page: the update box's soft buttons were taller than their neighbours. */
+.settings-page .soft-btn{padding:5px 10px;}
+#importSessions{margin-left:6px;} /* the two history buttons touched */
+#installedMCPs:not(:has(*)){font-size:11px;color:var(--muted);} /* "No custom MCP." matched the page text, not a heading */
 #drawer .mini {font-size:10px;line-height:1.5;}
 #drawer #engineSettings {margin:8px 0 0;padding:8px 0;border:0;border-top:1px solid var(--border);}
 #drawer .engine-bar {align-items:end;gap:6px;flex-wrap:wrap;}
@@ -199,6 +203,10 @@ button{transition-duration:var(--motion-duration);}
 #projectBtn{position:static;margin:0;transform:none;max-width:min(300px,100%);}
 .agent-profile-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0 10px;}
 .agent-profile-row select{max-width:160px;}
+/* Same scale as the rest of the panel (labels 12 px, controls 11 px): these two kept the 14 px default. */
+.agent-profile-row label{font-size:12px;color:var(--muted);}
+.agent-profile-row select{font-size:11px;padding:6px 8px;}
+#openSandbox{font-size:11px;padding:8px 9px;}
 #engineUpdates{margin-top:10px;border-top:1px solid var(--border);padding-top:10px;}
 .engine-update-row{padding:9px 0;border-bottom:1px solid var(--border);font-size:11px;}
 .engine-update-row small{display:block;color:var(--muted);margin:3px 0;}
@@ -233,6 +241,9 @@ button{transition-duration:var(--motion-duration);}
 .fw-head h2{font-size:13px;font-weight:600;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .fw-state{color:var(--muted);font-size:10px;white-space:nowrap;}
 .fw-head .icon-btn{flex:none;}
+/* Windows closed with a text "×" (Models, Console, Project, Tools) get the same 27 px button as the
+   drawn ✕ of Settings and Model & generation. */
+.fw-head [data-fw-close]:not(:has(svg)){width:27px;height:27px;padding:0;display:inline-grid;place-items:center;font-size:20px;line-height:1;}
 .fw-body{flex:1 1 auto;min-height:0;overflow:auto;padding:10px 12px;scrollbar-gutter:stable;overscroll-behavior:contain;}
 .fw-resize{position:absolute;right:0;bottom:0;width:18px;height:18px;cursor:nwse-resize;touch-action:none;z-index:2;}
 .fw-resize::before{content:"";position:absolute;right:3px;bottom:3px;width:9px;height:9px;border-right:2px solid color-mix(in srgb,var(--text) 38%,transparent);border-bottom:2px solid color-mix(in srgb,var(--text) 38%,transparent);border-radius:0 0 2px 0;}
@@ -268,6 +279,11 @@ button{transition-duration:var(--motion-duration);}
 /* Integrated browser dock inside the main window. */
 :root{--browser-width:520px;}
 body.browser-open #chatwrap{margin-right:var(--browser-width);}
+body.browser-open.browser-overlay #chatwrap{margin-right:0;}
+/* Floating over the chat: an opaque surface (the glass panel colour is translucent and the chat showed
+   through it), and the update notice stays at the right instead of moving over the sidebar. */
+body.browser-overlay #browserDock{background:linear-gradient(color-mix(in srgb,var(--panel) 97%,transparent),color-mix(in srgb,var(--panel) 97%,transparent)),var(--bg);box-shadow:-18px 0 44px #0007;}
+body.browser-open.browser-overlay #updateStack{right:16px;}
 #browserDock{position:fixed;top:0;right:0;bottom:0;width:var(--browser-width,520px);z-index:45;display:flex;flex-direction:column;background:color-mix(in srgb,var(--panel) 97%,transparent);border-left:1px solid var(--border);box-shadow:-10px 0 34px #0003;overflow:hidden;}
 #browserDock[hidden]{display:none!important;}
 .browser-dock-head{flex:none;display:flex;align-items:center;gap:4px;padding:5px 7px;border-bottom:1px solid var(--border);min-height:40px;background:color-mix(in srgb,var(--panel) 85%,transparent);}
@@ -278,6 +294,7 @@ body.browser-open #chatwrap{margin-right:var(--browser-width);}
 .browser-tab-close{flex:none;padding:0 2px;border:0;background:transparent;color:var(--muted);font-size:15px;line-height:1;cursor:pointer;}
 .browser-toolbar{flex:none;display:flex;align-items:center;gap:4px;padding:6px 8px;border-bottom:1px solid var(--border);}
 .browser-toolbar button{min-width:30px;padding:5px 7px;flex:none;}
+#browserGo{font-size:12px;} /* same size as the address field beside it */
 #browserUrl{flex:1;min-width:50px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:7px;padding:6px 9px;font-size:12px;}
 #browserGo{flex:none;}
 #browserBookmark{flex:none;font-size:16px;line-height:1;}

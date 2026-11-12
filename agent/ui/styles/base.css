@@ -34,6 +34,11 @@
     .app{opacity:1;transform:none}body.app-ready .app{animation:none}
   }
   button,input,textarea,select { font:inherit; } button,select { cursor:pointer; }
+  /* Settings, windows and dialogs use an 11 px control scale. Controls added by later modules (updates,
+     tour, market cards…) had no size of their own and inherited the 14 px body text, so one page mixed
+     11 and 14 px buttons. Same specificity as the rule above (it only wins over font:inherit); any
+     class or id rule still decides its own size. */
+  :where(.settings-page,section.fw,dialog,#updateStack) :is(button:not(.icon-btn),select,input,textarea) { font-size:11px; }
   button,input,textarea,select { color:var(--text); } button,select,input[type=number],input[type=text] { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:8px 11px; }
   button { transition:background .15s,border-color .15s,color .15s; } button:hover { background:color-mix(in srgb,var(--text) 7%,var(--panel)); border-color:color-mix(in srgb,var(--text) 24%,var(--panel)); }
   button:disabled { opacity:.4; cursor:not-allowed; } :focus-visible { outline:2px solid var(--accent); outline-offset:3px; }

@@ -22,7 +22,7 @@ class EngineCustomTests(unittest.TestCase):
  def test_live_metrics_accept_list_next_token_from_newer_llama(self):
   # llama.cpp b12xxx: "next_token" is a list. A dict-only parser broke /api/stats while generating.
   import io,json
-  manager=EngineManager.__new__(EngineManager);manager.kind='llama';manager.loaded='m';manager.live=True;manager.last_usage={}
+  manager=EngineManager.__new__(EngineManager);manager.kind='llama';manager.loaded='m';manager.live=True;manager.last_usage={};manager.llama_key='k'
   for next_token in ([{'n_prompt_tokens':120,'n_decoded':30}],{'n_prompt_tokens':120,'n_decoded':30}):
    body=json.dumps([{'n_ctx':8192,'is_processing':True,'next_token':next_token}]).encode()
    with patch('engine_manager.urllib.request.urlopen',return_value=io.BytesIO(body)):

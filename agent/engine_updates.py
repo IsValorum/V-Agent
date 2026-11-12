@@ -1,6 +1,7 @@
 """Official prebuilt releases, staged locally and activated only on explicit request."""
 import hashlib
 import json
+import os
 from pathlib import Path,PurePosixPath
 import re
 import shutil
@@ -29,12 +30,31 @@ def executable(key,fallback):
     return path if path.is_file() else Path(fallback)
 
 def extract_zip(archive,target):
+    """Extract after checking every path; returns the files written (relative, for reuse later)."""
     with zipfile.ZipFile(archive) as z:
         if sum(i.file_size for i in z.infolist())>5*2**30:raise ValueError('Archive is too large.')
         for item in z.infolist():
             name=PurePosixPath(item.filename.replace('\\','/'))
             if name.is_absolute() or '..' in name.parts or ':' in str(name) or (item.external_attr>>16)&0o170000==0o120000:raise ValueError('Unsafe archive path.')
         z.extractall(target)
+        return [item.filename.replace('\\','/') for item in z.infolist() if not item.is_dir()]
+
+
+def _link_or_copy(source,target):
+    """Same disk: a hard link costs no space and survives deleting the old version."""
+    target.parent.mkdir(parents=True,exist_ok=True)
+    try:os.link(source,target)
+    except OSError:shutil.copy2(source,target)
+
+
+def _version_folder(record):
+    """engine-updates/<key>/<tag-time>/ of an installed record (its executable is under bin/)."""
+    try:
+        exe=Path(record['executable'])
+        for parent in exe.parents:
+            if parent.name=='bin':return parent.parent
+    except (KeyError,TypeError):pass
+    return None
 
 class Updates:
     def __init__(self,builds):
@@ -48,6 +68,30 @@ class Updates:
             self.state['last_error']=self.state.pop('error')
         if not self.state.get('busy') and str(self.state.get('operation') or '').startswith(('Descargando','Comprobando')):
             self.state['operation']=''
+        # Low priority and off the startup path: deleting gigabytes must not delay the first reply.
+        threading.Thread(target=self.prune,name='engine-prune',daemon=True).start()
+    def prune(self,only=None):
+        """Keep, per engine, the active version and the one before it (for "Restore previous").
+
+        Before, every update added a folder (llama.cpp CUDA: ~1.9 GB, and llama.cpp publishes almost
+        daily) and kept the downloaded .zip files beside the extracted engine. A folder still in use
+        by a running engine cannot be deleted on Windows: it is skipped and removed on a later start.
+        """
+        with self.lock:
+            if self.installing:return
+            active=active_installations();previous=self.state.get('previous',{})
+        for key in ([only] if only else FEEDS):
+            base=self.root/key
+            if not base.is_dir():continue
+            keep={folder for folder in (_version_folder(active.get(key)),_version_folder(previous.get(key))) if folder}
+            for folder in base.iterdir():
+                if not folder.is_dir():continue
+                if folder in keep:
+                    for archive in folder.iterdir():
+                        if archive.is_file():
+                            try:archive.unlink()
+                            except OSError:pass
+                else:shutil.rmtree(folder,ignore_errors=True)
     def snapshot(self):
         with self.lock:return {**self.state,'busy':self.busy,'installing':self.installing,'installed':active_installations(),'progress':dict(self.progress) if self.progress else None}
     def save(self):atomic_json(self.root/'status.json',self.state)
@@ -83,6 +127,7 @@ class Updates:
         with self.lock:
             if self.busy or key not in self.state.get('previous',{}):raise ValueError('No hay una versión anterior disponible.')
             active=active_installations();previous=self.state['previous'].pop(key)
+            if active.get(key):self.state['previous'][key]=active[key]
             if previous:active[key]=previous
             else:active.pop(key,None)
             atomic_json(self.root/'active.json',active)
@@ -108,8 +153,19 @@ class Updates:
         def work():
             try:
                 tag=re.sub(r'[^a-zA-Z0-9_.-]','_',release['tag']);folder=self.root/key/(tag+'-'+str(time.time_ns()));folder.mkdir(parents=True)
+                work_folder[0]=folder
                 files=[]
+                old=active_installations().get(key) or {}
+                old_bin=(_version_folder(old) or Path('/nonexistent'))/'bin'
+                reusable={item['upstream_digest']:item for item in old.get('files',[]) if item.get('upstream_digest') and item.get('extracted')}
                 for asset in [release['asset'],*release.get('dependencies',[])]:
+                    same=reusable.get(asset.get('digest') or '')
+                    if same and all((old_bin/name).is_file() for name in same['extracted']):
+                        # cudart (373 MB) rarely changes between llama.cpp builds: link it instead of downloading.
+                        for name in same['extracted']:_link_or_copy(old_bin/name,folder/'bin'/name)
+                        files.append(same)
+                        with self.lock:self.progress['received']+=asset.get('size',0)
+                        continue
                     url=asset['browser_download_url'];parts=urllib.parse.urlsplit(url)
                     if parts.scheme!='https' or parts.hostname!='github.com' or not parts.path.startswith('/'+FEEDS[key][0]+'/releases/download/'):raise ValueError('Release URL is not official.')
                     with self.lock:self.progress['phase']='download'
@@ -123,10 +179,11 @@ class Updates:
                     if size!=asset['size']:raise ValueError('Incomplete engine download.')
                     expected=asset.get('digest')
                     if expected and expected!='sha256:'+digest.hexdigest():raise ValueError('Engine checksum mismatch.')
-                    files.append({'name':asset['name'],'sha256':digest.hexdigest(),'upstream_digest':expected})
                     with self.lock:self.progress['phase']='extract'
-                    if path.suffix=='.zip':extract_zip(path,folder/'bin')
-                    else:(folder/'bin').mkdir(exist_ok=True);shutil.copy2(path,folder/'bin'/FEEDS[key][2])
+                    if path.suffix=='.zip':extracted=extract_zip(path,folder/'bin')
+                    else:(folder/'bin').mkdir(exist_ok=True);extracted=[FEEDS[key][2]];shutil.copy2(path,folder/'bin'/FEEDS[key][2])
+                    path.unlink()  # The archive is not needed once extracted.
+                    files.append({'name':asset['name'],'sha256':digest.hexdigest(),'upstream_digest':expected,'extracted':extracted})
                 with self.lock:self.progress['phase']='verify'
                 found=list((folder/'bin').rglob(FEEDS[key][2]))
                 if len(found)!=1:raise ValueError('No se encontró un único ejecutable compatible.')
@@ -139,10 +196,14 @@ class Updates:
                 record={'tag':release['tag'],'executable':str(exe),'repository':FEEDS[key][0],'files':files}
                 active=active_installations();self.state.setdefault('previous',{})[key]=active.get(key);active[key]=record;atomic_json(self.root/'active.json',active)
                 with self.lock:self.state['releases'][key]['available']=False;self.progress['phase']='complete';self.state['operation']='Actualizado: '+key;self.save()
+                work_folder[0]=None
             except Exception as error:
                 with self.lock:
                     if self.progress:self.progress['phase']='error'
                     self.state['error']=str(error);self.state['operation']='';self.save()
             finally:
+                if work_folder[0]:shutil.rmtree(work_folder[0],ignore_errors=True)  # A failed download is gigabytes of nothing.
                 with self.lock:self.busy=False;self.installing=False
+            self.prune(key)
+        work_folder=[None]
         threading.Thread(target=work,daemon=True).start();return self.snapshot()

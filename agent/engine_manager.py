@@ -31,6 +31,11 @@ def protect(value,decrypt=False):
 class EngineManager:
     def __init__(self):
         self.file=DATA_ROOT/'engines.json'
+        # llama-server listens on 127.0.0.1:19383 without any check of its own: a web page that makes its
+        # domain resolve to 127.0.0.1 (DNS rebinding) could generate with the GPU or read /slots. A key
+        # known only to this process closes it (/health stays open, which is all a probe needs).
+        import secrets
+        self.llama_key=secrets.token_urlsafe(24)
         # A fresh install starts on llama.cpp with the build this hardware should use (CUDA / Vulkan /
         # CPU); nothing is downloaded until the user accepts it in the first-run guide.
         self.settings=json.loads(self.file.read_text(encoding='utf8')) if self.file.exists() else {'active':'llama','llama':{'variant':self.recommended_variant(),'gpu_layers':'auto'},'api':{}}
@@ -135,7 +140,7 @@ class EngineManager:
         if self.kind=='api' and urllib.parse.urlsplit(base).path in ('','/'):base+='/v1'
         return base+path
     def headers(self):
-        key=self.key() if self.kind=='api' else ''
+        key=self.key() if self.kind=='api' else self.llama_key if self.kind=='llama' else ''
         cfg=self.settings.get('api',{});headers={'Content-Type':'application/json'}
         if self.kind=='api' and cfg.get('protocol')=='anthropic':
             headers['anthropic-version']=cfg.get('api_version','2026-10-21')
@@ -246,6 +251,7 @@ class EngineManager:
             # Per model: automatic lets --fit place layers ('auto'); manual uses its own -ngl. CPU builds stay at 0.
             if cfg.get('variant')!='cpu':argv[argv.index('--n-gpu-layers')+1]=gpu_layers(load,cfg.get('gpu_layers','auto'))
             argv+=arguments(load,context,capabilities(exe))
+            argv+=['--api-key',self.llama_key]
             from draft_models import arguments as draft_arguments
             argv+=draft_arguments(model.get('preferences',{}).get('draft') or {})
         if self.kind=='rust':argv=[str(exe),'serve','--model',model['path'],'--addr','127.0.0.1:19383','--gpu','--ctx',str(context),'--kv',{'fp16':'f16','q8_0':'q8','q4_0':'q4'}.get(kv,kv)]
@@ -254,13 +260,14 @@ class EngineManager:
         if self.kind=='llama' and saved.get('template'):argv+=['--chat-template-file',saved['template']]
         preparation.begin(model['id']);preparation.update(stage='loading',message='Cargando con llama.cpp…')
         try:
-            with (LOG_ROOT/'llama-server.log').open('a',encoding='utf8') as log:
+            from runtime_paths import log_for_append,log_tail
+            with log_for_append(LOG_ROOT/'llama-server.log').open('a',encoding='utf8') as log:
                 self.process=subprocess.Popen(argv,cwd=exe.parent,stdin=subprocess.DEVNULL,stdout=log,stderr=log,creationflags=subprocess.CREATE_NO_WINDOW)
             deadline=time.monotonic()+600
             while time.monotonic()<deadline:
                 preparation.check_cancelled()
                 if self.process.poll() is not None:
-                    text=(LOG_ROOT/'llama-server.log').read_text(encoding='utf8',errors='replace')[-2200:]
+                    text=log_tail(LOG_ROOT/'llama-server.log')
                     raise ValueError('llama.cpp no pudo cargar el GGUF. '+text)
                 try:
                     result=self.get('/models',timeout=1)
@@ -329,7 +336,7 @@ class EngineManager:
         limit=(self.selected_remote() or {}).get('context') if self.kind=='api' else None;prompt=self.last_usage.get('prompt_tokens');generated=self.last_usage.get('completion_tokens')
         if self.kind=='llama' and self.loaded:
             try:
-                with urllib.request.urlopen('http://127.0.0.1:19383/slots',timeout=1) as response:slots=json.load(response)
+                with urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:19383/slots',headers={'Authorization':'Bearer '+self.llama_key}),timeout=1) as response:slots=json.load(response)
                 slots=slots.get('slots') if isinstance(slots,dict) else slots
                 slot=slots[0] if isinstance(slots,list) and slots else {}
                 if not isinstance(slot,dict):slot={}

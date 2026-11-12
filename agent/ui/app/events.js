@@ -117,8 +117,15 @@ syncComposerLabels();
 loadModels();
 renderConvs();
 renderChat();
+// The translator skips the chat list and the engine name (user titles, model names): their own
+// fixed texts ("Sin chats", "sin instalar") are painted again in the new language.
+window.VALI18n?.onChange?.(()=>{renderConvs();try{syncSettingsSummary();}catch{}});
 syncServerSwitches();
-async function pollLoop() { await pollStats(); setTimeout(pollLoop,2500); }
+// Hidden or minimised, nobody reads the meters: poll every 20 s instead of 2.5 s (each poll also
+// samples the GPU), and refresh at once when the window comes back.
+let statsTimer=0;
+async function pollLoop() { clearTimeout(statsTimer); await pollStats(); statsTimer=setTimeout(pollLoop,document.hidden?20000:2500); }
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)pollLoop();});
 pollLoop();
 function finishBoot(force=false){
   document.body.classList.add("app-ready");

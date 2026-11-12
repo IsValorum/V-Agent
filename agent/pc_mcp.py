@@ -689,10 +689,16 @@ def fs_copy(args, full_access, policy=None):
     return salida + recibo + comprueba_ejecucion(destino) + syntax_report(destino)
 
 
+
+# The date note V-Agent appends to the user's last message (agent.date_line). It is never file content:
+# a model that copies it to the end of a file gets it removed (current and earlier wording).
+DATE_NOTE = re.compile(r"\s*\[(?:System note, not part of the user's message: current date and time|Fecha y hora actual:) "
+                       r"\d{4}-\d{2}-\d{2} \d{2}:\d{2} \([^)]*\)\]\s*$")
+
 def syntax_report(path):
     # Every format verify.py can parse is reported on write, not only on an explicit code_check.
-    if pathlib.Path(path).suffix.lower() not in ('.py','.json','.js','.mjs','.cjs','.yaml','.yml','.toml','.xml','.svg','.java'):return ''
     import verify
+    if pathlib.Path(path).suffix.lower() not in verify.COMPROBABLES:return ''
     report=verify.verificar_archivo(str(path))
     if report.get('ok') is True:return '\nSyntax checked; program behavior was not tested.'
     if report.get('ok') is None:return '\nSyntax not checked: '+ ' | '.join(report.get('avisos') or [])[:600]
@@ -918,6 +924,7 @@ def call(name, args, *, full_access=False, policy=None):
             raise ValueError("path debe contener una ruta")
         if not isinstance(args.get("content"), str):
             raise ValueError("content debe ser texto")
+        args = {**args, "content": DATE_NOTE.sub("", args["content"])}
         path = policy.path(args["path"], full_access)
         existia = os.path.exists(path)
         VERSIONS.capture(path,policy.root)

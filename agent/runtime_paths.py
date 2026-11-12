@@ -12,6 +12,26 @@ UI_DIST=SOURCE_ROOT/'agent'/'ui'/'dist'
 SETTINGS_ROOT=DATA_ROOT/'settings'
 LOG_ROOT=DATA_ROOT/'logs'
 
+
+def log_for_append(path,limit=8*2**20):
+    """Engine logs are appended to on every start and every request: past `limit` the old part
+    moves to <name>.1 (replacing the previous one), so a log never grows without bound."""
+    path=Path(path)
+    try:
+        if path.stat().st_size>limit:os.replace(path,path.with_name(path.name+'.1'))
+    except OSError:pass  # Missing, or still open by a running engine: try again on the next start.
+    path.parent.mkdir(parents=True,exist_ok=True)
+    return path
+
+
+def log_tail(path,size=2200):
+    """The last `size` characters without reading a large log into memory."""
+    try:
+        with open(path,'rb') as stream:
+            stream.seek(0,2);stream.seek(max(0,stream.tell()-size*4))
+            return stream.read().decode('utf-8','replace')[-size:]
+    except OSError:return ''
+
 def command(role,*args):
     if getattr(sys,'frozen',False):return [sys.executable,'--role',role,'--',*map(str,args)]
     files={'agent':SOURCE_ROOT/'backend.py','strata-server':SOURCE_ROOT/'serve/server.py','pc':SOURCE_ROOT/'agent/pc_mcp.py',
@@ -44,7 +64,8 @@ def _managed_vision_encoder(saved):
     path=Path(saved) if saved else None
     bundled=RUNTIME_ROOT/'strata/strata-vision.exe'
     updates=DATA_ROOT/'engine-updates'/'strata'
-    if not path or path==bundled or path.is_relative_to(updates):
+    # A path that no longer exists (program moved or reinstalled elsewhere) is not a choice to keep.
+    if not path or path==bundled or path.is_relative_to(updates) or not path.is_file():
         return str(strata_vision_executable())
     return str(path)  # An explicitly selected encoder is not overwritten.
 
