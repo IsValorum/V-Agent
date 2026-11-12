@@ -4,6 +4,13 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.0.5 C1 (minor update)
+
+- **Windows no longer flicker.** Large windows (model & generation, tools, settings, models) had a live
+  26 px blur again: the glass rule listed them together with a more specific selector, which beat the
+  no-blur rule meant for windows, so every repaint behind a window recomputed the blur. Windows now get
+  the frosted, nearly opaque surface; menus, notices and the composer keep the blur.
+
 ## 1.0.5
 
 - **Strata Rust: a model counts as loaded only once it really is.** Strata Rust lists the model it is still
