@@ -6737,11 +6737,11 @@
     "fr": "Vous êtes à jour.",
     "de": "Du bist auf dem neuesten Stand."
   },
-  "Abriendo el instalador…": {
-    "en": "Opening the installer…",
-    "pt": "Abrindo o instalador…",
-    "fr": "Ouverture du programme d’installation…",
-    "de": "Installationsprogramm wird geöffnet…"
+  "Cerrando V-Agent para instalar la actualización…": {
+    "en": "Closing V-Agent to install the update…",
+    "pt": "Fechando o V-Agent para instalar a atualização…",
+    "fr": "Fermeture de V-Agent pour installer la mise à jour…",
+    "de": "V-Agent wird geschlossen, um das Update zu installieren…"
   },
   "Consola": {
     "en": "Console",

@@ -4,6 +4,10 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.0.3
+
+- Fix installing and restarting after a signed update. The updater waits for the app to close, installs silently, verifies the installed version and restarts it.
+
 ## 1.0.2
 
 - Fix model registration and startup with downloaded Strata engines on clean installations.

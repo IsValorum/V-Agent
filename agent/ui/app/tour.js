@@ -160,7 +160,7 @@ const VAL_TOUR=(()=>{
     box.querySelector('#appUpdateCheck').onclick=async()=>{status.textContent=uiText('Comprobando…');try{paint(await post('check'));paintComponents(await cPost('check'));}catch(e){status.textContent=e.message;}};
     go.onclick=async()=>{
       try{
-        if(go.dataset.action==='launch'){const r=await post('launch');if(r.launched){status.textContent=uiText('Abriendo el instalador…');setTimeout(()=>window.__TAURI__?.window?.getCurrentWindow?.().close(),1200);}return;}
+        if(go.dataset.action==='launch'){const r=await post('launch');if(r.launched){status.textContent=uiText('Cerrando V-Agent para instalar la actualización…');setTimeout(()=>window.__TAURI__?.window?.getCurrentWindow?.().close(),1200);}return;}
         paint(await post('download'));
         const timer=setInterval(async()=>{const s=await requestJSON('/api/harness/app-update');paint(s);if(!s.busy)clearInterval(timer);},800);
       }catch(e){status.textContent=e.message;}

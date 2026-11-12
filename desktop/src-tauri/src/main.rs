@@ -470,7 +470,7 @@ fn main(){
    let port=19380u16;
    if status(port).is_none(){
     let result=if let Some(core)=core_path(){
-     Command::new(core).args(["--port",&port.to_string()]).arg("--data-dir").arg(user_data()).creation_flags(0x08000000).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn()
+     Command::new(core).args(["--port",&port.to_string()]).arg("--data-dir").arg(user_data()).env("V_AGENT_DESKTOP_PID",std::process::id().to_string()).env("V_AGENT_DESKTOP_EXE",std::env::current_exe().unwrap_or_default()).creation_flags(0x08000000).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn()
     }else if cfg!(debug_assertions){
      let root=PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap().to_path_buf();
      Command::new(root.join(".venv/Scripts/python.exe")).arg(root.join("backend.py")).args(["--port",&port.to_string()]).current_dir(&root).creation_flags(0x08000000).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn()
