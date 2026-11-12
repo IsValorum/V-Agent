@@ -56,7 +56,13 @@ def _sample_gpu():
     global _gpu, _gpu_at, _gpu_running
     result = {}
     try:
-        command = _nvidia_command()
+        import nvml
+        result = nvml.sample()  # microseconds, no process; None when NVML is unavailable
+    except Exception:
+        result = None
+    try:
+        command = None if result is not None else _nvidia_command()
+        result = result or {}
         if command:
             proc = subprocess.run([command, '--query-gpu=name,utilization.gpu,memory.used,memory.total,temperature.gpu,power.draw', '--format=csv,noheader,nounits'], capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=5, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
             if proc.returncode == 0:
@@ -112,8 +118,11 @@ def _windows_build():
     try:
         import winreg
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\Windows NT\CurrentVersion') as key:
-            return {'product':str(winreg.QueryValueEx(key,'ProductName')[0]), 'build':str(winreg.QueryValueEx(key,'CurrentBuild')[0]),
-                    'display':str(winreg.QueryValueEx(key,'DisplayVersion')[0])}
+            product, build = str(winreg.QueryValueEx(key,'ProductName')[0]), str(winreg.QueryValueEx(key,'CurrentBuild')[0])
+            # Windows 11 still writes "Windows 10" in ProductName; build 22000 and later is Windows 11.
+            if product.startswith('Windows 10') and build.isdigit() and int(build) >= 22000:
+                product = 'Windows 11' + product[len('Windows 10'):]
+            return {'product':product, 'build':build, 'display':str(winreg.QueryValueEx(key,'DisplayVersion')[0])}
     except (ImportError, OSError, ValueError):
         return {}
 

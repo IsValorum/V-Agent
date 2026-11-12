@@ -12,7 +12,7 @@ datas+=[(str(data_root/'agent'/name),'agent') for name in ('model-profiles.json'
 datas+=[(str(data_root/'runtime'),'runtime')]
 if not RELEASE:datas.append((str(root/'seeds'),'seeds'))
 datas.append((str(root/'agent/assets/branding'),'agent/assets/branding'))
-binaries=[];hidden=['components','app_updates','model_hub','external_models','hardware_stats','engine_recommendations','sandbox_exec','load_settings','memory_estimate','plugins','draft_models','verification_evidence','output_paths','local_console','extensions','agent_profiles','engine_updates','thinking_policy','tool_approvals','mcp_options','agent','desktop_runtime','engine_manager','runtime_paths','pc_mcp','hf_mcp','buscador_mcp','busqueda_local','http_tools_mcp','browser_mcp','admin_mcp','admin_helper','computer_mcp','gguf_reader','gguf_catalog','strata_tokenizer','tkinter','tkinter.filedialog']
+binaries=[];hidden=['nvml','render_check','verify','components','app_updates','model_hub','external_models','hardware_stats','engine_recommendations','sandbox_exec','load_settings','memory_estimate','plugins','draft_models','verification_evidence','output_paths','local_console','extensions','agent_profiles','engine_updates','thinking_policy','tool_approvals','mcp_options','agent','desktop_runtime','engine_manager','runtime_paths','pc_mcp','hf_mcp','buscador_mcp','busqueda_local','http_tools_mcp','browser_mcp','admin_mcp','admin_helper','computer_mcp','gguf_reader','gguf_catalog','strata_tokenizer','tkinter','tkinter.filedialog']
 datas+=collect_data_files('justext')
 datas+=collect_data_files('mcp');hidden+=collect_submodules('mcp',filter=lambda name:not name.startswith('mcp.cli'))
 for package in ('huggingface_hub','ddgs','trafilatura','websockets'):

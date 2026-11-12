@@ -1,7 +1,7 @@
 /* Floating, non-modal panels: automatic tiling, persisted sizes and motion. */
 (()=>{
   const MIN_WIDTH=220,MIN_HEIGHT=160,EDGE=12,GAP=12,TOP=64;
-  const DEFAULTS={settings:{width:780,height:640},model:{width:400,height:640},tools:{width:400,height:560},project:{width:360,height:480},import:{width:430,height:520},console:{width:620,height:420},browser:{width:520,height:700},models:{width:1040,height:700}};
+  const DEFAULTS={settings:{width:780,height:640},model:{width:400,height:640},tools:{width:400,height:560},project:{width:360,height:380},import:{width:430,height:520},console:{width:620,height:420},browser:{width:520,height:700},models:{width:1040,height:700}};
   const entries=new Map(),sizes={},dirtySizes=new Set(),animationsMap=new WeakMap(),layoutAnims=new WeakMap(),reduce=matchMedia('(prefers-reduced-motion: reduce)');
   let layer=null,stack=75,saveTimer=0,saving=false,saveAgain=false,prefsLoaded=false,needsSave=false,retried=false,orderCounter=0,layoutTimer=0;
   let animateWindows=true;

@@ -36,7 +36,7 @@ V-Agent downloads them from their official sources only when the user asks, unde
 | dateparser | 1.5.0 | BSD-3-Clause |
 | ddgs | 9.14.4 | MIT |
 | fake-useragent | 2.2.0 | Apache-2.0 |
-| filelock | 4.2.9 | MIT |
+| filelock | 4.2.10 | MIT |
 | fsspec | 2026.9.0 | BSD-3-Clause |
 | h11 | 0.16.0 | MIT License |
 | h2 | 4.4.1 | MIT |
@@ -75,11 +75,11 @@ V-Agent downloads them from their official sources only when the user asks, unde
 | pywin32 | 312 | Python Software Foundation License |
 | PyYAML | 6.0.3 | MIT License |
 | referencing | 0.37.0 | MIT |
-| regex | 2026.11.7 | Apache-2.0 AND CNRI-Python |
+| regex | 2026.11.9 | Apache-2.0 AND CNRI-Python |
 | requests | 2.34.2 | Apache Software License |
 | rpds-py | 2026.9.1 | MIT |
 | socksio | 1.0.0 | MIT License |
-| soupsieve | 4.0.1 | MIT |
+| soupsieve | 4.1 | MIT |
 | sse-starlette | 3.7.0 | BSD-3-Clause |
 | starlette | 1.10.0 | BSD-3-Clause |
 | tld | 0.13.2 | MPL-1.1 OR GPL-2.0-only OR LGPL-2.1-or-later |

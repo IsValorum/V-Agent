@@ -78,7 +78,7 @@ const VAL_TOUR=(()=>{
     let hardware={};try{hardware=await requestJSON('/api/harness/hardware');}catch{}
     const variant=snapshot?.recommended_variant||'cpu',key='llama-'+variant;
     const label={cuda:'llama.cpp · CUDA (NVIDIA)',vulkan:'llama.cpp · Vulkan (AMD, Intel Arc, NVIDIA)',cpu:'llama.cpp · CPU'}[variant];
-    p.textContent=uiText('V-Agent no incluye motores: descarga la versión oficial más reciente que mejor encaja con tu equipo.')+' '+(hardware.hardware_summary||hardware.summary||'');
+    p.textContent=uiText('V-Agent no incluye motores: descarga la versión oficial más reciente que mejor encaja con tu equipo.')+' '+uiParts(hardware.hardware_summary||hardware.summary||'');
     const install=document.createElement('button');install.type='button';install.className='soft-btn primary';install.textContent=uiText('Descargar e instalar')+' · '+label;
     const api=document.createElement('button');api.type='button';api.className='soft-btn';api.textContent=uiText('Prefiero conectar una API');
     api.onclick=()=>{close(false);document.querySelector('#modelBtn')?.click();setTimeout(()=>document.querySelector('#modelSourceTabs [data-source=api]')?.click(),400);};
@@ -162,7 +162,10 @@ const VAL_TOUR=(()=>{
       try{
         if(go.dataset.action==='launch'){const r=await post('launch');if(r.launched){status.textContent=uiText('Cerrando V-Agent para instalar la actualización…');setTimeout(()=>window.__TAURI__?.window?.getCurrentWindow?.().close(),1200);}return;}
         paint(await post('download'));
-        const timer=setInterval(async()=>{const s=await requestJSON('/api/harness/app-update');paint(s);if(!s.busy)clearInterval(timer);},800);
+        // One poll at a time; a failed request ends it instead of leaving the bar frozen forever.
+        clearTimeout(go._poll);
+        const poll=async()=>{try{const s=await requestJSON('/api/harness/app-update');paint(s);if(s.busy)go._poll=setTimeout(poll,800);}catch(e){status.textContent=e.message;}};
+        go._poll=setTimeout(poll,800);
       }catch(e){status.textContent=e.message;}
     };
     box.querySelector('#tourAgain').onclick=()=>{window.setDrawer?.(false);document.querySelector('#gear')?.getAttribute('aria-expanded')==='true'&&document.querySelector('#gear').click();setTimeout(start,350);};

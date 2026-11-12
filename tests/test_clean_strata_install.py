@@ -62,7 +62,10 @@ class CleanStrataInstall(unittest.TestCase):
             with patch.object(runtime_paths,'DATA_ROOT',root),patch.object(runtime_paths,'RUNTIME_ROOT',root/'runtime'),patch.object(runtime_paths,'strata_vision_executable',return_value=active):
                 self.assertEqual(runtime_paths._managed_vision_encoder(str(root/'runtime'/'strata'/'strata-vision.exe')),str(active))
                 self.assertEqual(runtime_paths._managed_vision_encoder(str(root/'engine-updates'/'strata'/'old'/'strata-vision.exe')),str(active))
-                self.assertEqual(runtime_paths._managed_vision_encoder(str(root/'custom'/'strata-vision.exe')),str(root/'custom'/'strata-vision.exe'))
+                custom=root/'custom'/'strata-vision.exe';custom.parent.mkdir();custom.write_bytes(b'')
+                self.assertEqual(runtime_paths._managed_vision_encoder(str(custom)),str(custom))
+                # A chosen encoder that no longer exists falls back to the active engine's.
+                self.assertEqual(runtime_paths._managed_vision_encoder(str(root/'moved'/'strata-vision.exe')),str(active))
 
 
 if __name__=='__main__':unittest.main()

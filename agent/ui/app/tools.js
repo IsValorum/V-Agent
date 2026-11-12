@@ -112,11 +112,17 @@
       if(innerWidth<=760)return innerWidth-2;
       const sidebar=document.getElementById('sidebar');
       const sidebarWidth=sidebar?Math.round(sidebar.getBoundingClientRect().width)||246:246;
-      return Math.max(360,innerWidth-sidebarWidth-360-12);
+      return Math.max(360,innerWidth-sidebarWidth-CHAT_MIN-12);
     }
+    // Below this the composer's controls fall apart into a column (seen at 800 px: the chat was 194 px).
+    const CHAT_MIN=520;
+    function sidebarSpace(){const sidebar=document.getElementById('sidebar');return sidebar&&sidebar.offsetParent?Math.round(sidebar.getBoundingClientRect().width):0;}
     function currentWidth(){return Math.min(maxWidth(),Math.max(360,Number(localStorage.getItem(WIDTH_KEY)||520)||520));}
     function applyWidth(){
       const width=currentWidth();
+      // Not enough room for a usable chat beside the browser: the browser floats over the chat
+      // instead of squeezing it (the chat keeps its full width underneath).
+      document.body.classList.toggle('browser-overlay',innerWidth>760&&innerWidth-sidebarSpace()-width<CHAT_MIN);
       document.documentElement.style.setProperty('--browser-width',width+'px');
       dock.style.width=width+'px';
     }

@@ -5,7 +5,7 @@
   const api=(url,body)=>requestJSON(url,body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const bytes=n=>{n=Number(n)||0;if(n<2**20)return Math.max(1,Math.round(n/1024))+' KB';if(n<2**30)return (n/2**20).toFixed(0)+' MB';return (n/2**30).toFixed(n<10*2**30?2:1)+' GB';};
-  const count=n=>{n=Number(n)||0;return n>=1e6?(n/1e6).toFixed(n>=1e7?0:1)+' M':n>=1e3?(n/1e3).toFixed(n>=1e4?0:1)+' k':String(n);};
+  const count=n=>{n=Number(n)||0;return n>=1e9?(n/1e9).toFixed(n>=1e10?0:1)+' B':n>=1e6?(n/1e6).toFixed(n>=1e7?0:1)+' M':n>=1e3?(n/1e3).toFixed(n>=1e4?0:1)+' k':String(n);};
   const date=value=>{if(!value)return '';const d=new Date(value);return isNaN(d)?'':d.toLocaleDateString(window.VALI18n?.language||undefined,{year:'numeric',month:'short',day:'numeric'});};
   const icon=path=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+path+'</svg>';
   const ICONS={models:'<path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3Z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/>',down:'<path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/>',heart:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/>',

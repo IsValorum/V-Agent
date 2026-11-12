@@ -236,10 +236,14 @@ def _cierre_bucle(control, previo, guardado_en_turno):
         cierre = ("Lo guardado en este turno sigue en %s. Revisa el último error en la lista de "
                   "herramientas o pide un cambio concreto." % guardado_en_turno)
     else:
-        cierre = ("No se guardó nada: la respuesta se repetía en versiones sucesivas. "
-                  "Di una ruta concreta para la herramienta, o pulsa Guardar en el bloque que sirva. "
-                  "Si ya lo guardaste, comprueba con pc__web_render y edita solo lo que falle.")
-    recado = "\n\n(Se corto la respuesta: " + (control.bucle or "un bucle") + ". " + cierre + ")"
+        # Said for every kind of cut: it must not claim a rewritten page when the model only
+        # repeated a read (seen 2026-11-12: "pulsa Guardar" after three identical fs_read calls).
+        cierre = ("No se guardó nada en este turno. Revisa el último resultado en la lista de "
+                  "herramientas o pide el siguiente paso de forma concreta (qué archivo y qué cambio).")
+    motivo = control.bucle or "un bucle"
+    if motivo == "repeated empty output":
+        motivo = "el modelo devolvió respuestas vacías varias veces seguidas"
+    recado = "\n\n(Se cortó la respuesta: " + motivo + ". " + cierre + ")"
     return (previo + recado) if previo else recado.strip()
 
 
@@ -711,7 +715,8 @@ def start_server(cfg, lazy=False):
     env = os.environ.copy()
     env.setdefault("POLY_DATE_INJECT", "1")
     flags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
-    with SERVER_LOG.open("a", encoding="utf-8") as log:
+    from runtime_paths import log_for_append
+    with log_for_append(SERVER_LOG).open("a", encoding="utf-8") as log:
         _SERVER_PROCESS = subprocess.Popen(argv, cwd=str(ROOT), creationflags=flags, env=env,
                                            stdin=subprocess.DEVNULL, stdout=log, stderr=log)
     return _SERVER_PROCESS
@@ -894,7 +899,9 @@ def language_rule(messages):
 
 def date_line():
     now = datetime.datetime.now()
-    return f"[Fecha y hora actual: {now.strftime('%Y-%m-%d %H:%M')} ({DIAS[now.weekday()]})]"
+    # Labelled as a system note: right after "…with the text: X" a small model copied the bare
+    # "[Fecha y hora actual: …]" into the file it was asked to write (seen 2026-11-12).
+    return f"[System note, not part of the user's message: current date and time {now.strftime('%Y-%m-%d %H:%M')} ({DIAS[now.weekday()]})]"
 
 
 def with_date(messages):
@@ -1948,6 +1955,21 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):
         pass
 
+    def parse_request(self):
+        """DNS rebinding protection for every method. A page on any site can make its own domain
+        resolve to 127.0.0.1 and then read this server as "same origin" (GET requests carry no
+        Origin header), e.g. every saved conversation. Such a request still names that domain in
+        Host, so only the loopback names this server really answers to are accepted."""
+        if not super().parse_request():
+            return False
+        host = (self.headers.get('Host') or '').strip().lower()
+        name = host.rsplit(':', 1)[0] if host.count(':') == 1 or host.startswith('[') and ']:' in host else host
+        if name in ('127.0.0.1', 'localhost', '[::1]'):
+            return True
+        self.close_connection = True
+        self._json(421, {'error': 'Host no permitido (protección contra DNS rebinding).'})
+        return False
+
     def end_headers(self):
         origin = self.headers.get('Origin')
         if ui_origin_allowed(origin):
@@ -2513,7 +2535,9 @@ class Handler(BaseHTTPRequestHandler):
             self._json(400, {"error": str(error)})
             return
         if not ENGINE_LOCK.acquire(blocking=False):
-            self._json(409, {"error": "El motor está cambiando de estado. Espera a que termine."})
+            # The engine answers one request at a time: usually another chat is still replying.
+            self._json(409, {"error": "Ya hay una respuesta en curso (puede ser en otra conversación) o el motor "
+                                      "está cargando. Espera a que termine o detenla."})
             return
         try:
             body["model"] = require_loaded_model(body.get("model"))
@@ -2607,7 +2631,8 @@ def main():
     if '--background' in sys.argv:
         # Sign-in startup serves the UI only; the engine remains a manual action.
         os.environ['STRATA_AGENT_NO_OPEN'] = '1'
-        log = open(LOG_ROOT/'agent-launch.log','a',encoding='utf-8',buffering=1)
+        from runtime_paths import log_for_append
+        log = open(log_for_append(LOG_ROOT/'agent-launch.log'),'a',encoding='utf-8',buffering=1)
         sys.stdout = sys.stderr = log
     for attempt in range(60):
         srv = None

@@ -131,6 +131,61 @@ def _atomic_json(path, data):
             temporary.unlink()
 
 
+_REJECTIONS = {}
+
+
+def strata_rejection(exe, model):
+    """Ask the installed Strata engine itself whether it runs this GGUF's architecture.
+
+    Since 1.0.2 a model is registered without V-Agent's own (soon outdated) list of families, but an
+    unsupported one then failed only at load, after the server's three restarts (~45 s), with an
+    English message. The engine refuses an unknown architecture in ~0.1 s before reading weights;
+    a supported model starts loading instead, and is stopped after a short wait. Cached per
+    engine build and model file.
+    """
+    exe, model = Path(exe), Path(model)
+    try:
+        key = (str(exe), exe.stat().st_mtime_ns, str(model), model.stat().st_mtime_ns)
+    except OSError:
+        return None
+    cache = LOG_ROOT.parent / 'cache' / 'strata-support.json'
+    if not _REJECTIONS:
+        try:
+            _REJECTIONS.update({tuple(json.loads(k)): v for k, v in json.loads(cache.read_text(encoding='utf-8')).items()})
+        except (OSError, ValueError, TypeError):
+            pass
+    if key in _REJECTIONS:
+        return _REJECTIONS[key]
+    reason = None
+    try:
+        process = subprocess.Popen([str(exe), '--model', str(model), '--tokens', '1', '--max-new', '1', '--max-context', '64'],
+                                   cwd=str(exe.parent), stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                   stderr=subprocess.STDOUT, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+        try:
+            output, _ = process.communicate(timeout=2)
+        except subprocess.TimeoutExpired:
+            process.kill(); process.communicate()
+            output = b''
+        text = output.decode('utf-8', 'replace')
+        match = re.search(r"is a '([^']+)' model, which this engine does not run", text)
+        if match:
+            reason = match[1]
+    except OSError:
+        return None
+    _REJECTIONS[key] = reason
+    try:  # a supported model costs a 2 s probe: once per engine build and model file, not per start
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        cache.write_text(json.dumps({json.dumps(list(k)): v for k, v in list(_REJECTIONS.items())[-200:]}), encoding='utf-8')
+    except OSError:
+        pass
+    return reason
+
+
+def unsupported_message(architecture):
+    return ('Strata no ejecuta modelos de arquitectura «%s». Usa llama.cpp para este modelo '
+            '(Ajustes → Modelo → Motor) o busca una versión de Strata que la admita.' % architecture)
+
+
 def register_local_model(value, name=None, template_path=None):
     if not IMPORT_LOCK.acquire(blocking=False):
         raise ValueError('Ya se está añadiendo otro modelo. Espera a que termine.')
@@ -141,6 +196,10 @@ def register_local_model(value, name=None, template_path=None):
         info = inspect_local_model(value,template_path)
         if info.get('already_registered'):
             return {'status':'already_registered','model':info['model']}
+        from engine_updates import executable
+        rejected = strata_rejection(executable('strata', RUNTIME_ROOT/'strata/strata-poly.exe'), info['path'])
+        if rejected:
+            raise ValueError(unsupported_message(rejected))
         path = Path(info['path'])
         display = str(name or info['name']).strip()[:120]
         if not display:

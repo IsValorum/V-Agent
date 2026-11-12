@@ -13,11 +13,15 @@ def needs_approval(mode,name,args,agent_profile=None,full_access=False):
     if agent_profile=="light" and name=="pc__console" and args.get("action","run")=="run":return True
     if agent_profile=="light" and name=="pc__shell_run":return True
     if agent_profile=="light" and name=="pc__code_check" and args.get("run") and args.get("check") not in (None,"","syntax"):return True
-    sensitive=bool(SENSITIVE.search(str(args.get('path','')))) if isinstance(args,dict) else False
+    args=args if isinstance(args,dict) else {}
+    # Every argument that names a file: copy/move use desde/destino/destination, not only path.
+    sensitive=any(SENSITIVE.search(str(args.get(key) or '')) for key in ('path','desde','destino','destination'))
+    # file_history restores with `revision` and then overwrites the file: a write, never a read.
+    restore=name=='pc__file_history' and bool(args.get('revision'))
     if mode=='ask':
+        if restore:return True
         if not full_access and not sensitive and name in LOCAL_READS:return False
         if not full_access and name=='pc__code_check' and not args.get('run'):return False
-        if name=='pc__file_history' and args.get('restore'):return True
         return True
     if mode!='auto':return False
     if name=='pc__fs_read' and sensitive:return True

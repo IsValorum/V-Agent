@@ -53,7 +53,7 @@ async function watchAutomaticUpdates({requestJSON,uiText,note,setDrawer,selectSe
       document.dispatchEvent(new CustomEvent('v-agent-app-update',{detail:u}));
       const version=u.available?.version||'';
       notice.hidden=!version||dismissed===version;notice.dataset.version=version;
-      detail.textContent=version+(u.ready?' · '+uiText('Actualización descargada y verificada.'):u.busy&&u.progress?' · '+uiText('Descargando')+' '+Math.round(u.progress.received/u.progress.total*100)+' %':'');
+      detail.textContent=version+(u.ready?' · '+uiText('Actualización descargada y verificada.'):u.busy&&u.progress?.total?' · '+uiText('Descargando')+' '+Math.min(100,Math.round(u.progress.received/u.progress.total*100))+' %':'');
       delay=(c?.busy||u.busy||(c&&!c.checked_at)||!u.checked_at)?3000:60000;
     }catch{delay=60000;}
   }

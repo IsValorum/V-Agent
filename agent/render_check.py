@@ -256,6 +256,46 @@ _CANDADO = threading.RLock()
 atexit.register(_SESION.cierra)
 
 
+# La vista previa de V-Agent abre el HTML en un iframe con sandbox="allow-scripts allow-modals" y
+# origen opaco (blob:). Ahi localStorage, sessionStorage, cookies, IndexedDB y Cache Storage lanzan
+# SecurityError y window.open devuelve null. Abierta como file:// todo eso funciona, asi que el
+# detector decia "0 errores" mientras la vista previa fallaba. Se reproducen las mismas reglas antes
+# de que corra el primer script de la pagina: un acceso protegido con try/catch sigue sin error,
+# igual que en la vista previa; uno sin proteger sale como error con el mismo texto del navegador.
+SANDBOX_VISTA_PREVIA = r"""(() => {
+  const texto = (prop, dueno) => "Failed to read the '" + prop + "' property from '" + dueno +
+    "': The document is sandboxed and lacks the 'allow-same-origin' flag.";
+  const niega = (obj, prop, dueno, setter) => {
+    try {
+      const fallo = () => { throw new DOMException(texto(prop, dueno), 'SecurityError'); };
+      Object.defineProperty(obj, prop, setter ? {configurable: true, get: fallo, set: fallo} : {configurable: true, get: fallo});
+    } catch (e) {}
+  };
+  niega(window, 'localStorage', 'Window');
+  niega(window, 'sessionStorage', 'Window');
+  niega(Document.prototype, 'cookie', 'Document', true);
+  try {
+    IDBFactory.prototype.open = function () {
+      throw new DOMException("Failed to execute 'open' on 'IDBFactory': access to the IndexedDB API is denied in this context.", 'SecurityError');
+    };
+  } catch (e) {}
+  try {
+    for (const m of ['open', 'has', 'keys', 'match', 'delete']) {
+      CacheStorage.prototype[m] = function () {
+        return Promise.reject(new DOMException('An attempt was made to break through the security policy of the user agent.', 'SecurityError'));
+      };
+    }
+  } catch (e) {}
+  window.open = function (url) {
+    console.warn("Blocked opening '" + (url || '') + "' in a new window because the request was made in a sandboxed frame whose 'allow-popups' permission is not set.");
+    return null;
+  };
+})();"""
+PISTA_VISTA_PREVIA = ("la vista previa de V-Agent aisla la pagina (iframe sandbox sin allow-same-origin): "
+                      "localStorage, sessionStorage, cookies e IndexedDB lanzan SecurityError. "
+                      "Envuelve su uso en try/catch y usa un respaldo en memoria.")
+
+
 def _evento(msg, consola, errores):
     m = msg.get("method")
     if m == "Runtime.consoleAPICalled":
@@ -266,7 +306,11 @@ def _evento(msg, consola, errores):
     elif m == "Runtime.exceptionThrown":
         d = msg.get("params", {}).get("exceptionDetails", {})
         des = (d.get("exception") or {}).get("description") or d.get("text") or ""
-        errores.append("%s: %s" % (((d.get("url") or "").split("/")[-1] or "pagina")[:34], str(des)[:230]))
+        # La linea (CDP la da desde 0) deja al modelo ir con fs_read(linea=...) al punto exacto.
+        donde = ((d.get("url") or "").split("/")[-1] or "pagina")[:34]
+        if isinstance(d.get("lineNumber"), int):
+            donde += ":%d" % (d["lineNumber"] + 1)
+        errores.append("%s: %s" % (donde, str(des)[:230]))
     elif m == "Log.entryAdded":
         e = msg.get("params", {}).get("entry", {})
         if e.get("level") == "error":
@@ -277,7 +321,7 @@ def _evento(msg, consola, errores):
                                          ' ('+url[:160]+')' if url else ''))
 
 
-def _navega(url, espera_ms, captura, pintura=False, segundos=TECHO_S, diagnostics=False):
+def _navega(url, espera_ms, captura, pintura=False, segundos=TECHO_S, diagnostics=False, vista_previa=False):
     """Una pasada CDP: navegar, esperar, sondear y capturar. El navegador sigue vivo despues."""
     import asyncio
     import websockets
@@ -322,6 +366,10 @@ def _navega(url, espera_ms, captura, pintura=False, segundos=TECHO_S, diagnostic
 
             for dominio in ("Runtime.enable", "Log.enable", "Page.enable"):
                 await llama(dominio, escucha=escucha)
+            inyectado = None
+            if vista_previa:
+                inyectado = (await llama("Page.addScriptToEvaluateOnNewDocument",
+                                         {"source": SANDBOX_VISTA_PREVIA}, escucha=escucha)).get("identifier")
             await llama("Page.navigate", {"url": url}, escucha=escucha)
             # Se espera al loadEventFired real, no un numero fijo de segundos: con el navegador
             # todavia ocupado por la captura anterior, el sondeo caia en un documento vacio
@@ -379,6 +427,9 @@ def _navega(url, espera_ms, captura, pintura=False, segundos=TECHO_S, diagnostic
                 valor['scene_diagnostics']=(extra.get('result') or {}).get('value') or {'available':False,'reason':'Probe could not complete.'}
             shot = await llama("Page.captureScreenshot", {"format": "jpeg", "quality": 55}) \
                 if captura else {}
+            if inyectado:
+                # La sesion del navegador puede seguir viva: la siguiente URL no debe heredarlo.
+                await llama("Page.removeScriptToEvaluateOnNewDocument", {"identifier": inyectado}, escucha=escucha)
             return {"info": (probe.get("result") or {}).get("value") or {},
                     "consola": consola[-16:], "errores": errores[:12], "captura": shot.get("data")}
 
@@ -415,7 +466,7 @@ def _con_plazo(trabajo, segundos):
     return caja.get("r") or {"_error": "sin resultado"}
 
 
-def render(url, espera_ms=TIEMPO_CARGA_MS, captura=False, pintura=False, mantener=None, diagnostics=False):
+def render(url, espera_ms=TIEMPO_CARGA_MS, captura=False, pintura=False, mantener=None, diagnostics=False, vista_previa=None):
     """Abrir `url` (file:// o http) y devolver la evidencia de la pagina, reusando el navegador.
 
     `captura` cuesta ~7 s en SwiftShader (leer todo el lenzo) y `pintura` otros 2-3 s de
@@ -434,7 +485,11 @@ def render(url, espera_ms=TIEMPO_CARGA_MS, captura=False, pintura=False, mantene
         # Scene checks can observe another animation frame and inspect up to
         # 40k instances. This is a deadline, not a mandatory delay on fast pages.
         overhead = 11 if diagnostics else 7
-        resultado = _navega(url, espera_ms, captura, pintura, min(TECHO_S, espera_ms / 1000.0 + overhead),diagnostics=diagnostics)
+        if vista_previa is None:
+            # Los archivos locales son los que el usuario abre en la vista previa aislada.
+            vista_previa = url.lower().startswith("file:")
+        resultado = _navega(url, espera_ms, captura, pintura, min(TECHO_S, espera_ms / 1000.0 + overhead),
+                            diagnostics=diagnostics, vista_previa=vista_previa)
         _SESION.usado = time.time()
         if mantener is None:
             mantener = MANTENER
@@ -455,7 +510,9 @@ def render(url, espera_ms=TIEMPO_CARGA_MS, captura=False, pintura=False, mantene
               "texto_visible": info.get("cuerpo"), "errores": reales,
               "consola": resultado.get("consola") or [],
               "ruido_del_navegador": len(resultado.get("errores") or []) - len(reales),
-              "sesion_abierta": _SESION.vivo()}
+              "sesion_abierta": _SESION.vivo(), "vista_previa_aislada": bool(vista_previa)}
+    if any("sandboxed" in e or "IndexedDB API is denied" in e for e in reales):
+        salida["pista"] = PISTA_VISTA_PREVIA
     if diagnostics:
         salida['scene_diagnostics']=info.get('scene_diagnostics') or {'available':False,'reason':'Not observed.'}
         if any(issue.get('severity')=='error' for issue in salida['scene_diagnostics'].get('issues',[])):salida['ok']=False
@@ -480,6 +537,76 @@ def render(url, espera_ms=TIEMPO_CARGA_MS, captura=False, pintura=False, mantene
             except Exception as error:
                 salida["aviso_captura"] = "no se guardo la captura: %s" % str(error)[:70]
     return salida
+
+
+def sintaxis_js(codigo, module=False, mantener=False):
+    """Compilar JavaScript sin ejecutarlo, en el navegador incluido (para PCs sin Node.js).
+
+    Clasico: Runtime.compileScript. Modulo: V8 no compila modulos por CDP, asi que se compila el
+    cuerpo como funcion asincrona tras quitar import/export (await de nivel superior incluido);
+    eso detecta los errores de sintaxis normales, no los de las propias lineas import/export.
+    Devuelve {"comprobado": bool, "error": texto o None}.
+    """
+    import asyncio
+    import re as _re
+    fuente = codigo
+    if module:
+        conserva = lambda m: '\n' * m.group(0).count('\n')  # mismas lineas: el numero de error cuadra
+        fuente = _re.sub(r'''^[ \t]*import\s*(?:[\w$*{][\s\S]*?\bfrom\s*)?(['"])[^'"\n]*\1[ \t]*;?''', conserva, fuente, flags=_re.M)
+        fuente = _re.sub(r'''^[ \t]*export\s*(?:\*[^'"\n]*|\{[^}]*\})\s*(?:from\s*(['"])[^'"\n]*\1)?[ \t]*;?''', conserva, fuente, flags=_re.M)
+        fuente = _re.sub(r'^([ \t]*)export\s+default\s+', r'\1void ', fuente, flags=_re.M)
+        fuente = _re.sub(r'^([ \t]*)export\s+(?=(?:async\s+)?(?:function|class|const|let|var)\b)', r'\1', fuente, flags=_re.M)
+        fuente = _re.sub(r'\bimport\.meta\b', '({url:""})', fuente)
+        fuente = '(async function(){\n' + fuente + '\n})'
+
+    async def correr(puerto):
+        import websockets
+        destino = None
+        for _ in range(60):
+            try:
+                destino = next((t for t in _json(puerto, "/json/list", espera=.4)
+                                if t.get("type") == "page" and t.get("webSocketDebuggerUrl")), None)
+            except (urllib.error.URLError, OSError, ValueError):
+                destino = None
+            if destino:
+                break
+            await asyncio.sleep(.1)
+        if not destino:
+            return {"comprobado": False, "error": "la pestana del navegador no responde"}
+        async with websockets.connect(destino["webSocketDebuggerUrl"], max_size=None, close_timeout=2,
+                                      open_timeout=12) as ws:
+            await ws.send(json.dumps({"id": 0, "method": "Runtime.enable"}))
+            await ws.send(json.dumps({"id": 1, "method": "Runtime.compileScript",
+                                      "params": {"expression": fuente, "sourceURL": "code.js",
+                                                 "persistScript": False}}))
+            while True:
+                msg = json.loads(await asyncio.wait_for(ws.recv(), 20))
+                if msg.get("id") == 1:
+                    break
+        if "error" in msg:
+            return {"comprobado": False, "error": str(msg["error"].get("message"))[:200]}
+        detalle = (msg.get("result") or {}).get("exceptionDetails")
+        if not detalle:
+            return {"comprobado": True, "error": None}
+        texto = ((detalle.get("exception") or {}).get("description") or detalle.get("text") or "SyntaxError").split("\n")[0]
+        linea = (detalle.get("lineNumber") or 0) + (0 if module else 1)
+        return {"comprobado": True, "error": "line %d: %s" % (max(1, linea), texto[:300])}
+
+    with _CANDADO:
+        if not _SESION.vivo() or (time.time() - _SESION.usado > INACTIVO_S):
+            _SESION.cierra()
+            if not _SESION.abre():
+                return {"comprobado": False, "error": _SESION.fallo or "no se pudo abrir el navegador"}
+        try:
+            resultado = _con_plazo(lambda: asyncio.run(correr(_SESION.puerto)), 30)
+        except Exception as error:
+            resultado = {"comprobado": False, "error": str(error)[:200]}
+        _SESION.usado = time.time()
+        if not (MANTENER or mantener):
+            _SESION.cierra()
+    if not isinstance(resultado, dict) or "_error" in resultado:
+        return {"comprobado": False, "error": (resultado or {}).get("_error", "sin respuesta") if isinstance(resultado, dict) else "sin respuesta"}
+    return resultado
 
 
 def render_de_archivo(ruta, espera_ms=TIEMPO_CARGA_MS, captura=False, pintura=False, mantener=None, diagnostics=False):
@@ -520,6 +647,8 @@ def resumen(ruta, espera_ms=TIEMPO_CARGA_MS, captura=False, pintura=False, mante
             lineas.append('  source locations to inspect (not an automatic diagnosis): '+json.dumps(hints,ensure_ascii=False,separators=(',',':')))
     if r.get("errores"):
         lineas.append("  ERRORES de la pagina (%d): %s" % (len(r["errores"]), " | ".join(r["errores"][:4])))
+        if r.get("pista"):
+            lineas.append("  causa: " + r["pista"])
     else:
         lineas.append("  errores de consola: ninguno")
     if r.get("texto_visible"):
