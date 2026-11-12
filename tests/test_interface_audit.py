@@ -89,5 +89,50 @@ class LayoutTests(unittest.TestCase):
         self.assertIn(':where(.settings-page,section.fw,dialog,#updateStack) :is(button:not(.icon-btn),select,input,textarea) { font-size:11px; }', css)
 
 
+class ModelPanelTests(unittest.TestCase):
+    def test_the_panel_has_one_card_and_the_old_footer_is_hidden(self):
+        panel = (UI / 'app/model-panel.js').read_text(encoding='utf-8')
+        marked = panel.index("base.classList.add('model-footer-static')")
+        self.assertGreater(panel.index('simplifyModelPanel();', marked), marked)  # after the footer exists
+        self.assertIn("setModelSection('generation')", (UI / 'app/controls.js').read_text(encoding='utf-8'))
+
+    def test_switching_engine_keeps_the_same_model_file(self):
+        controls = (UI / 'app/model-controls.js').read_text(encoding='utf-8')
+        self.assertIn("models.find(m=>path&&String(m.path||'').toLowerCase()===path)", controls)
+
+    def test_apply_appears_only_for_a_changed_loaded_model(self):
+        composer = (UI / 'app/composer.js').read_text(encoding='utf-8')
+        self.assertIn("$('#ctxApply').hidden=!(loadedModel&&loadedModel===$('#model').value&&pendingModelContexts.has(loadedModel));", composer)
+
+    def test_reading_from_cache_is_said_not_hidden(self):
+        chat = (UI / 'app/chat.js').read_text(encoding='utf-8')
+        self.assertIn('prefillCached', chat)
+        self.assertIn("uiText('desde caché')", chat)
+
+
+class StateConsistencyTests(unittest.TestCase):
+    def test_settings_changes_keep_the_composer_switches_in_step(self):
+        startup = (UI / 'app/startup.js').read_text(encoding='utf-8')
+        self.assertIn("document.getElementById('searchToggle')?.setAttribute('aria-pressed', String(!!S.functions.search));", startup)
+
+    def test_a_stopped_reply_keeps_its_last_measure(self):
+        self.assertIn('const finalUsage=lastUsage||', (UI / 'app/composer.js').read_text(encoding='utf-8'))
+
+    def test_api_mode_hides_the_local_context_block(self):
+        self.assertIn("$('#contextBlock').hidden=remote", (UI / 'app/engine-controls.js').read_text(encoding='utf-8'))
+        self.assertIn('#contextBlock){display:none!important;}', (UI / 'styles/panels.css').read_text(encoding='utf-8'))
+
+    def test_a_refused_engine_change_resets_the_selector(self):
+        engine = (UI / 'app/engine-controls.js').read_text(encoding='utf-8')
+        self.assertIn("$('#engineKind').value=activeEngine", engine)
+        self.assertIn('Descarga el modelo actual antes de cambiar de motor.', engine)
+
+    def test_the_memory_warning_is_shown_under_the_context(self):
+        self.assertIn('contextMemoryWarning', (UI / 'app/load-settings.js').read_text(encoding='utf-8'))
+
+    def test_api_connection_errors_are_plain_words(self):
+        self.assertIn("'No se pudo conectar con '", Path('agent/desktop_runtime.py').read_text(encoding='utf-8'))
+
+
 if __name__ == '__main__':
     unittest.main()

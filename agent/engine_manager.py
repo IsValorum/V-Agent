@@ -2,6 +2,7 @@
 import ctypes
 import http.client
 import json
+import os
 import re
 from pathlib import Path
 import ssl
@@ -27,6 +28,49 @@ def protect(value,decrypt=False):
     try:return ctypes.string_at(target.data,target.size)
     finally:
         free=ctypes.windll.kernel32.LocalFree;free.argtypes=[ctypes.c_void_p];free.restype=ctypes.c_void_p;free(target.data)
+
+
+def load_failure(engine, log):
+    """A clear reason instead of the engine's last log lines, when the engine says what it was."""
+    import re
+    match = re.search(r"unsupported architecture '([^']+)' \(supported: ([^)]*)\)", log)
+    if match:
+        return ('%s no ejecuta modelos de arquitectura «%s» (admite: %s). Usa llama.cpp para este modelo.'
+                % (engine, match[1], match[2]))
+    match = re.search(r"unknown model architecture: '([^']+)'", log)
+    if match:
+        return ('Esta compilación de %s no reconoce la arquitectura «%s». Actualiza el motor o usa otro.'
+                % (engine, match[1]))
+    lower = log.lower()
+    if re.search(r'out of memory|failed to allocate|cudamalloc failed|unable to allocate|not enough memory', lower):
+        return ('%s se quedó sin memoria al cargar el modelo. Baja el contexto o elige una cuantización más '
+                'pequeña.' % engine)
+    match = re.search(r'error loading model: (?:error loading model[^:]*: )?(.+)', log)
+    if match:
+        return ('%s no pudo cargar el GGUF: %s. Puede que el archivo esté incompleto o dañado, o que esta '
+                'versión del motor no lo admita.' % (engine, match[1].strip()[:240]))
+    # Otherwise only the engine's error lines, not the whole start-up chatter.
+    errors = [line.strip() for line in log.splitlines() if re.search(r'\b(E|ERROR|error|Error)\b', line)]
+    detail = ' · '.join(dict.fromkeys(errors))[-500:] if errors else log.strip()[-300:]
+    return '%s no pudo cargar el GGUF: %s' % (engine, detail)
+
+
+def measured_timings(usage, sent, first, end):
+    """llama-server's `timings` for engines that only report token counts (Strata Rust, APIs)."""
+    details = usage.get('prompt_tokens_details') or {}
+    cached = details.get('cached_tokens') if isinstance(details, dict) else 0
+    cached = cached if isinstance(cached, int) and cached >= 0 else 0
+    prompt = usage.get('prompt_tokens') or 0
+    completion = usage.get('completion_tokens') or 0
+    new = max(0, prompt - cached)
+    reading, writing = max(0.0, first - sent), max(0.0, end - first)
+    timing = {'prompt_n': new, 'cache_n': cached, 'predicted_n': completion}
+    # A handful of new tokens gives a meaningless rate; the interface then says "from cache".
+    if new >= 8 and reading > 0:
+        timing['prompt_per_second'] = round(new / reading, 1)
+    if completion > 1 and writing > 0:
+        timing['predicted_per_second'] = round((completion - 1) / writing, 1)
+    return timing
 
 class EngineManager:
     def __init__(self):
@@ -140,7 +184,7 @@ class EngineManager:
         if self.kind=='api' and urllib.parse.urlsplit(base).path in ('','/'):base+='/v1'
         return base+path
     def headers(self):
-        key=self.key() if self.kind=='api' else self.llama_key if self.kind=='llama' else ''
+        key=self.key() if self.kind=='api' else self.llama_key if self.kind in ('llama','rust') else ''
         cfg=self.settings.get('api',{});headers={'Content-Type':'application/json'}
         if self.kind=='api' and cfg.get('protocol')=='anthropic':
             headers['anthropic-version']=cfg.get('api_version','2026-10-21')
@@ -258,28 +302,49 @@ class EngineManager:
         saved=model.get('llama_settings',{})
         if self.kind=='llama' and saved.get('mmproj'):argv+=['--mmproj',saved['mmproj']]
         if self.kind=='llama' and saved.get('template'):argv+=['--chat-template-file',saved['template']]
-        preparation.begin(model['id']);preparation.update(stage='loading',message='Cargando con llama.cpp…')
+        engine='Strata Rust' if self.kind=='rust' else 'llama.cpp'
+        preparation.begin(model['id']);preparation.update(stage='loading',message='Cargando con '+engine+'…')
+        env=None
+        if self.kind=='rust':
+            # Same private key as llama-server; through the environment, so it stays out of the process list.
+            env={**os.environ,'STRATA_API_KEY':self.llama_key}
         try:
             from runtime_paths import log_for_append,log_tail
-            with log_for_append(LOG_ROOT/'llama-server.log').open('a',encoding='utf8') as log:
-                self.process=subprocess.Popen(argv,cwd=exe.parent,stdin=subprocess.DEVNULL,stdout=log,stderr=log,creationflags=subprocess.CREATE_NO_WINDOW)
+            log_path=log_for_append(LOG_ROOT/'llama-server.log')
+            start=log_path.stat().st_size if log_path.exists() else 0
+            with log_path.open('a',encoding='utf8') as log:
+                self.process=subprocess.Popen(argv,cwd=exe.parent,stdin=subprocess.DEVNULL,stdout=log,stderr=log,env=env,creationflags=subprocess.CREATE_NO_WINDOW)
             deadline=time.monotonic()+600
             while time.monotonic()<deadline:
                 preparation.check_cancelled()
                 if self.process.poll() is not None:
-                    text=log_tail(LOG_ROOT/'llama-server.log')
-                    raise ValueError('llama.cpp no pudo cargar el GGUF. '+text)
-                try:
-                    result=self.get('/models',timeout=1)
-                    if result.get('data'):self.loaded=model['id'];self.online=True;preparation.finish();return
-                except (OSError,ValueError):pass
+                    raise ValueError(load_failure(engine,log_tail(log_path)))
+                if self._ready(log_path,start):
+                    self.loaded=model['id'];self.loaded_context=context;self.online=True;preparation.finish();return
                 time.sleep(.3)
-            raise TimeoutError('llama.cpp no terminó de cargar en diez minutos.')
+            raise TimeoutError(engine+' no terminó de cargar en diez minutos.')
         except Exception:
             self.stop()
             if preparation.cancelled.is_set():preparation.finish_cancelled()
-            else:preparation.fail('No se pudo cargar con llama.cpp; revisa el diagnóstico de carga.')
+            else:preparation.fail('No se pudo cargar con '+engine+'; revisa el diagnóstico de carga.')
             raise
+
+    def _ready(self,log_path,start):
+        """The model is really loaded, not only the server listening.
+
+        Strata Rust answers /v1/models with the model it is still loading (seen: listed, then
+        "unsupported architecture" and exit), so its list said "ready" for a model that never ran
+        and the next chat hit a closed port (WinError 10061). It writes "loaded <name>" once the
+        weights are in; llama-server lists a model only after loading it.
+        """
+        if self.kind=='rust':
+            try:
+                with open(log_path,'rb') as stream:
+                    stream.seek(start);text=stream.read().decode('utf-8','replace')
+            except OSError:return False
+            return any(line.startswith('loaded ') for line in text.splitlines())
+        try:return bool(self.get('/models',timeout=1).get('data'))
+        except (OSError,ValueError):return False
 
     def stream(self,payload,control):
         allowed={'model','messages','stream','temperature','top_p','max_tokens','seed','tools','tool_choice','presence_penalty','frequency_penalty'}
@@ -294,7 +359,7 @@ class EngineManager:
         if self.kind=='api' and not cfg.get('vision') and any(isinstance(m.get('content'),list) and any(p.get('type')=='image_url' for p in m['content'] if isinstance(p,dict)) for m in payload.get('messages',[])):
             raise ValueError('Activa imágenes en esta conexión API antes de enviarlas al proveedor.')
         if claude:body=claude_payload(body,cfg.get('api_version','2026-10-21'),(self.selected_remote() or {}).get('max_output_tokens'))
-        elif self.kind=='api' and cfg.get('include_usage',True):body['stream_options']={'include_usage':True}
+        elif self.kind=='rust' or self.kind=='api' and cfg.get('include_usage',True):body['stream_options']={'include_usage':True}
         target=urllib.parse.urlsplit(self.url('/messages' if claude else '/chat/completions'));decoder=ClaudeStream() if claude else None
         timeout=cfg.get('timeout',180) if self.kind=='api' else 1800
         connection=(http.client.HTTPSConnection(target.hostname,target.port or 443,timeout=timeout,context=ssl.create_default_context())
@@ -302,14 +367,28 @@ class EngineManager:
         self.live=True;self.last_usage={}
         try:
             if control.cancelled.is_set():return
-            connection.connect();control.attach(connection)
+            try:connection.connect()
+            except ConnectionRefusedError:
+                if self.kind in ('llama','rust') and (not self.process or self.process.poll() is not None):
+                    self.stop()  # the engine closed after loading: the model is not loaded any more
+                    raise ValueError('El motor se cerró y el modelo ya no está cargado. Vuelve a cargarlo; '
+                                     'si vuelve a pasar, revisa el diagnóstico de carga.') from None
+                raise
+            control.attach(connection)
             connection.request('POST',target.path,json.dumps(body,ensure_ascii=False).encode(),self.headers());response=connection.getresponse()
             if connection.sock is None and response.fp is not None:connection.sock=response.fp.raw._sock
             if response.status!=200:
                 text=response.read(4096).decode('utf8',errors='replace');key=self.key() if self.kind=='api' else ''
                 raise ValueError(f'Error del proveedor ({response.status}): '+(text.replace(key,'[oculta]') if key else text))
+            # Only llama-server reports its own speeds and live counts. For the others they are measured
+            # here: each streamed delta is about one token, and reading lasts until the first one arrives.
+            sent=time.monotonic();first=None;chunks=0
+            self.live_prompt=(self.last_usage.get('prompt_tokens') or 0)+(self.last_usage.get('completion_tokens') or 0)
+            self.live_generated=0
             for line in response:
                 if control.cancelled.is_set():return
+                if self.kind!='llama' and line.startswith(b'data: {') and b'"delta"' in line:
+                    chunks+=1;first=first or time.monotonic();self.live_generated=chunks
                 if decoder:
                     if not line.startswith(b'data:'):continue
                     try:packet=decoder.packet(json.loads(line[5:].strip()))
@@ -322,6 +401,9 @@ class EngineManager:
                     try:
                         packet=json.loads(line[6:]);usage=packet.get('usage');timing=packet.get('timings')
                         if usage:self.last_usage=usage
+                        if usage and not timing and self.kind!='llama' and first:
+                            timing=measured_timings(usage,sent,first,time.monotonic())
+                            packet['timings']=timing;line=('data: '+json.dumps(packet,ensure_ascii=False)+'\n').encode()
                         if timing:
                             self.last_timing=timing
                             if not usage and self.kind=='llama':
@@ -333,7 +415,11 @@ class EngineManager:
         finally:self.live=False;control.detach(connection);connection.close()
 
     def metrics(self):
-        limit=(self.selected_remote() or {}).get('context') if self.kind=='api' else None;prompt=self.last_usage.get('prompt_tokens');generated=self.last_usage.get('completion_tokens')
+        limit=(self.selected_remote() or {}).get('context') if self.kind=='api' else getattr(self,'loaded_context',None) if self.kind=='rust' and self.loaded else None
+        prompt=self.last_usage.get('prompt_tokens');generated=self.last_usage.get('completion_tokens')
+        if self.kind!='llama' and self.live:
+            # The previous reply's numbers were reported as "live" and the meter stood still.
+            prompt=getattr(self,'live_prompt',prompt);generated=getattr(self,'live_generated',0)
         if self.kind=='llama' and self.loaded:
             try:
                 with urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:19383/slots',headers={'Authorization':'Bearer '+self.llama_key}),timeout=1) as response:slots=json.load(response)

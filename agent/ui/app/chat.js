@@ -374,6 +374,8 @@ function showResponseModel(row,message){
 }
 function updateResponsePerformance(generation,timings,live=false){
   if(!timings||typeof timings!=='object')return;
+  // Almost everything came from the prompt cache: there is no reading speed to show, say so instead.
+  if(!live&&Number.isFinite(timings.cache_n)&&timings.cache_n>0&&Number.isFinite(timings.prompt_n)&&timings.prompt_n<8)(generation.performance??={}).prefillCached=true;
   for(const [key,source] of [['decode','predicted_per_second'],['prefill','prompt_per_second']]){
     const value=timings[source];if(typeof value==='number'&&Number.isFinite(value)&&value>0&&value<1e9&&(!live||!generation.exactPerformance?.[key])){(generation.performance??={})[key]=value;if(!live)(generation.exactPerformance??={})[key]=true;}
   }
@@ -381,12 +383,16 @@ function updateResponsePerformance(generation,timings,live=false){
 function showResponseMetrics(row,performance){
   const valid=value=>typeof value==='number'&&Number.isFinite(value)&&value>0&&value<1e9;
   let el=row.querySelector(':scope > .response-metrics');
-  if(!valid(performance?.decode)&&!valid(performance?.prefill)){el?.remove();return;}
+  if(!valid(performance?.decode)&&!valid(performance?.prefill)&&!performance?.prefillCached){el?.remove();return;}
   if(!el){el=document.createElement('div');el.className='response-metrics';row.append(el);}
   el.hidden=false;el.replaceChildren();
   for(const [key,label] of [['decode','Generación'],['prefill','Lectura']])if(valid(performance[key])){
     const group=document.createElement('span'),small=document.createElement('small'),value=document.createElement('strong'),unit=document.createElement('em');
     small.textContent=uiText(label);value.textContent=key==='decode'?performance[key].toFixed(1):Math.round(performance[key]).toLocaleString(window.VALI18n?.locale||'es-ES');unit.textContent='tok/s';group.append(small,value,unit);el.append(group);
+  }
+  if(!valid(performance?.prefill)&&performance?.prefillCached){
+    const group=document.createElement('span'),small=document.createElement('small'),value=document.createElement('strong');
+    small.textContent=uiText('Lectura');value.textContent=uiText('desde caché');group.append(small,value);el.append(group);
   }
 }
 function messageFileList(message) {

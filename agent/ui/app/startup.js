@@ -98,7 +98,13 @@ convs = convs.filter(c => c && typeof c.id === "string" && Array.isArray(c.messa
 let currentId = null, messages = [], attachments = [], busy = false, engineBusy = false, engineOnline = null;
 let preparationState=null,loadingModelId=null,preparationTimer=null,preparationPending=false;
 let toastTimer;
-function saveSettings() { writeStorage(LS.set, S); updateToolCount(); }
+function saveSettings() {
+  writeStorage(LS.set, S); updateToolCount();
+  // Every place that changes a setting saves it: keep the composer's own switches in step here
+  // (turning web search off in the Tools window left the composer's search button lit).
+  document.getElementById('searchToggle')?.setAttribute('aria-pressed', String(!!S.functions.search));
+  if (typeof syncComposerMenu === 'function') syncComposerMenu();
+}
 function saveConvsLS() { if(!sessionsReady)writeStorage(LS.convs, convs); queueSessionSaves(); }
 /* Bake ambient effects on theme/viewport changes. Hover only repaints controls,
    never live SVG filters, backdrop filters or a transformed full-screen blur. */

@@ -7338,5 +7338,13 @@
   "Strata Rust es el motor para Qwen3.5/3.6; instálalo si usas esas familias de modelos": {"en":"Strata Rust is the Qwen3.5/3.6 engine; install it if you use those model families","pt":"Strata Rust é o motor para Qwen3.5/3.6; instale-o se usar essas famílias de modelos","fr":"Strata Rust est le moteur pour Qwen3.5/3.6 ; installez-le si vous utilisez ces familles de modèles","de":"Strata Rust ist die Engine für Qwen3.5/3.6; installiere sie, wenn du diese Modellfamilien nutzt"},
   "llama.cpp CUDA recomendado": {"en":"llama.cpp CUDA recommended","pt":"llama.cpp CUDA recomendado","fr":"llama.cpp CUDA recommandé","de":"llama.cpp CUDA empfohlen"},
   "llama.cpp Vulkan recomendado": {"en":"llama.cpp Vulkan recommended","pt":"llama.cpp Vulkan recomendado","fr":"llama.cpp Vulkan recommandé","de":"llama.cpp Vulkan empfohlen"},
-  "llama.cpp CPU recomendado": {"en":"llama.cpp CPU recommended","pt":"llama.cpp CPU recomendado","fr":"llama.cpp CPU recommandé","de":"llama.cpp CPU empfohlen"}
+  "llama.cpp CPU recomendado": {"en":"llama.cpp CPU recommended","pt":"llama.cpp CPU recomendado","fr":"llama.cpp CPU recommandé","de":"llama.cpp CPU empfohlen"},
+  "Elegir modelo": {"en":"Choose model","pt":"Escolher modelo","fr":"Choisir le modèle","de":"Modell wählen"},
+  "Avanzado": {"en":"Advanced","pt":"Avançado","fr":"Avancé","de":"Erweitert"},
+  "En uso": {"en":"In use","pt":"Em uso","fr":"En cours d’utilisation","de":"In Verwendung"},
+  "Sin cargar": {"en":"Not loaded","pt":"Não carregado","fr":"Non chargé","de":"Nicht geladen"},
+  "En memoria:": {"en":"In memory:","pt":"Na memória:","fr":"En mémoire :","de":"Im Speicher:"},
+  "Cambiar a este modelo": {"en":"Switch to this model","pt":"Mudar para este modelo","fr":"Passer à ce modèle","de":"Zu diesem Modell wechseln"},
+  "Pulsa Aplicar y recargar para usarlo ahora.": {"en":"Press Apply and reload to use it now.","pt":"Clique em Aplicar e recarregar para usá-lo agora.","fr":"Appuyez sur Appliquer et recharger pour l’utiliser maintenant.","de":"Klicke auf Übernehmen und neu laden, um ihn jetzt zu verwenden."},
+  "desde caché": {"en":"from cache","pt":"do cache","fr":"depuis le cache","de":"aus dem Cache"}
 }

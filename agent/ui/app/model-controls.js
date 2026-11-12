@@ -35,12 +35,17 @@ function renderModelList(selected){
 }
 function syncModelSelectionSummary(){
   const model=modelCatalog.find(item=>item.id===$('#model')?.value);
-  const name=$('#modelSelectedName'),meta=$('#modelSelectedMeta'),state=$('#modelSelectedState');
+  const name=$('#modelSelectedName'),meta=$('#modelSelectedMeta'),state=$('#modelLoadState')||$('#modelSelectedState');
   if(name)name.textContent=model?modelFileName(model):uiText('Ningún modelo seleccionado');
   if(meta)meta.textContent=model?[model.backend||'',model.context?uiNumber(model.context)+' '+uiText('tokens de contexto'):model.remote?uiText('Contexto no informado por la API'):'',model.quantization||''].filter(Boolean).join(' · '):uiText('Elige un modelo de la lista para continuar.');
-  if(state)state.textContent='';
+  if(state){
+    const loading=!!model&&loadingModelId===model.id,inMemory=!!model&&model.id===loadedModel;
+    state.dataset.state=loading?'loading':inMemory?'loaded':'idle';
+    state.textContent=!model?'':loading?uiText('Cargando…'):inMemory?uiText(model.remote?'En uso':'En memoria'):uiText('Sin cargar');
+    state.title=loadedModel&&!inMemory?uiText('En memoria:')+' '+(modelNames[loadedModel]||loadedModel):'';
+  }
   if($('#remoteContextValue')){$('#remoteContextValue').textContent=model?.context?model.context.toLocaleString()+' tokens':uiText('No informado');$('#remoteContextOrigin').textContent=model?.context_source==='manual'?uiText('Límite indicado por ti'):model?.context_source==='provider'?uiText('Declarado por la API'):uiText('La API no publica este dato');if(document.activeElement!==$('#remoteContextInput'))$('#remoteContextInput').value=model?.context||'';}
-  const action=$('#modelSummaryAction');if(action){const loaded=!!model&&model.id===loadedModel;action.hidden=!model;action.textContent=model?.remote?(loaded?uiText('Dejar de usar'):uiText('Usar modelo')):(loaded?uiText('Descargar'):uiText('Cargar'));action.disabled=!model||model.status==='unavailable'||busy||engineBusy||engineFormDirty()||!!loadedModel&&!loaded;action.title=model?.remote?uiText('Seleccionar o dejar de usar este modelo de la API'):loaded?uiText('Descargar el modelo de memoria'):uiText('Cargar el modelo seleccionado');action.onclick=()=>{const button=document.getElementById(loaded?'unload':'load');button?.click();};}
+  const action=$('#modelSummaryAction');if(action){const loaded=!!model&&model.id===loadedModel;action.hidden=!model;action.textContent=model?.remote?(loaded?uiText('Dejar de usar'):uiText('Usar modelo')):(loaded?uiText('Descargar'):uiText('Cargar'));const switching=!!model&&!model.remote&&!!loadedModel&&!loaded;if(switching)action.textContent=uiText('Cambiar a este modelo');action.dataset.primary=String(!loaded);action.disabled=!model||model.status==='unavailable'||busy||engineBusy||engineFormDirty()||!!loadedModel&&!loaded&&model.remote;action.title=model?.remote?uiText('Seleccionar o dejar de usar este modelo de la API'):loaded?uiText('Descargar el modelo de memoria'):uiText('Cargar el modelo seleccionado');action.onclick=async()=>{if(switching){await unloadModel();if(!loadedModel)await loadModel();return;}const button=document.getElementById(loaded?'unload':'load');button?.click();};}
 }
 
 async function loadModels() {
@@ -60,7 +65,14 @@ async function loadModels() {
     modelNames=Object.fromEntries(models.map(model=>[model.id,modelFileName(model)]));
     updatePreparation(d.preparation);
     const available = models.filter(m => m.status !== "unavailable");
-    const selected = $("#model").value || S.model || models.find(m=>m.current)?.id || d.default_model;
+    let selected = $("#model").value || S.model || models.find(m=>m.current)?.id || d.default_model;
+    // Each engine names the same GGUF differently (llama--local-…, rust--local-…): after switching
+    // engine, keep the same file instead of falling back to the first model of the new list.
+    if(selected&&!models.some(m=>m.id===selected)){
+      const before=modelCatalog.find(m=>m.id===selected),path=String(before?.path||'').toLowerCase(),tail=selected.split('--').pop();
+      const same=models.find(m=>path&&String(m.path||'').toLowerCase()===path)||models.find(m=>m.id.split('--').pop()===tail);
+      if(same){selected=same.id;S.model=same.id;saveSettings();}
+    }
     modelCatalog=models;$('#modelFilter').disabled=busy||engineBusy||!models.length;
     const preferred=available.some(m=>m.id===selected)?selected:(available.find(m=>m.id===d.default_model)||available[0])?.id||'';
     renderModelOptions(preferred);$('#modelStatus').textContent='';
@@ -117,7 +129,7 @@ async function loadModel() {
   const selected=$('#model').value,name=modelNames[selected]||selected;
   await flushModelPreferences();
   const context=pendingModelContexts.get(selected)??modelPreferences[selected]?.context;
-  S.model=selected;saveSettings();modelStateRevision++;loadingModelId=selected;setEngineBusy(true);schedulePreparationPoll();
+  S.model=selected;saveSettings();modelStateRevision++;loadingModelId=selected;setEngineBusy(true);schedulePreparationPoll();syncModelSelectionSummary();
   const button=$('#load');button.textContent=uiText('Cargando…');const started=Date.now();
   $('#modelStatus').textContent=uiText('Cargando')+' '+name+'…';
   const timer=setInterval(()=>{syncPreparationView();$('#modelStatus').textContent=preparationState?.cancel_requested?uiText('Cancelando la carga…'):uiText('Preparando')+' '+name+' · '+Math.floor((Date.now()-started)/1000)+' s';},1000);
@@ -134,7 +146,7 @@ async function loadModel() {
     if(result.warning)note('Plantilla jinja: '+result.warning);
     else if(result.template&&result.template.reaplicacion)note('Plantilla jinja: '+result.template.reaplicacion);
   }catch(error){await loadModels();$('#modelStatus').textContent=uiText('No se pudo cargar:')+' '+error.message;note($('#modelStatus').textContent);}
-  finally{clearInterval(timer);loadingModelId=null;clearTimeout(preparationTimer);preparationTimer=null;modelStateRevision++;syncModelPicker();setEngineBusy(false);button.textContent=uiText('Cargar modelo');pollStats();}
+  finally{clearInterval(timer);loadingModelId=null;syncModelSelectionSummary();clearTimeout(preparationTimer);preparationTimer=null;modelStateRevision++;syncModelPicker();setEngineBusy(false);button.textContent=uiText('Cargar modelo');pollStats();}
 }
 
 /* ---------- plantilla jinja del modelo cargado ---------- */
@@ -241,6 +253,7 @@ $('#ctxInput').addEventListener('input', () => {
   if(model){pendingModelContexts.set(model,$('#ctxInput').valueAsNumber);queueModelPreferences();}
   if(model&&loadedModel!==model)$('#ctxStatus').textContent='Se aplicará al cargar este modelo.';
   updateContextSlider();
+  if(model&&loadedModel===model)$('#ctxStatus').textContent=uiText('Pulsa Aplicar y recargar para usarlo ahora.');updateControls();
 });
 $('#ctxApply').onclick = async () => {
   const model = $('#model').value;
@@ -288,10 +301,14 @@ function syncContextMeter() {
   const limit=loadedModel?(contextCapacity||modelContexts[loadedModel]||null):null;
   const previous=messages.findLast(message=>message.role==='assistant');
   const live=activeGeneration?.provenance.model===loadedModel&&activeGeneration;
-  const usage=live?live.usage:previous?.model===loadedModel?previous.usage:null;
-  const measured=usage&&(!usage.limit||usage.limit===limit)&&
-    Number.isFinite(usage.prompt_tokens)&&Number.isFinite(usage.completion_tokens);
-  updateContextMeter({limit,used:measured?usage.prompt_tokens+usage.completion_tokens:loadedModel&&!messages.length?0:null,
+  // Until the first live sample arrives, keep showing the last measure instead of "—".
+  const earlier=previous?.model===loadedModel?previous.usage:null;
+  const usage=live&&live.usage?live.usage:earlier;
+  // The engine's own limit wins: llama.cpp --fit may size the context to the VRAM, and after
+  // "Apply and reload" the chat's last measure was taken with the old limit (it was then hidden).
+  const reloaded=usage&&usage.limit&&limit&&usage.limit!==limit&&!(live&&live.usage);
+  const measured=usage&&!reloaded&&Number.isFinite(usage.prompt_tokens)&&Number.isFinite(usage.completion_tokens);
+  updateContextMeter({limit:(live&&live.usage?.limit)||limit,used:measured?usage.prompt_tokens+usage.completion_tokens:loadedModel&&(!messages.length||reloaded)?0:null,
     prompt_tokens:measured?usage.prompt_tokens:0,completion_tokens:measured?usage.completion_tokens:0,
     source:measured?(live?'live':'last'):null});
 }
@@ -346,6 +363,8 @@ function renderHardwareStats(s) {
   $('#st-hit').title=uiText('Disponible solo si el motor informa de la caché de expertos.');
   $('#st-cache').textContent=number(ex.slots)===null?uiText('No disponible'):ex.slots+' exp'+(number(ex.mib)===null?'':' · '+(ex.mib/1024).toFixed(1)+' GB');
   $('#st-hit').textContent=number(last.hit)===null?uiText('No disponible'):Math.round(Math.min(1,last.hit)*100)+'%';
+  // Expert cache rows only mean something on engines that report them (Strata): hide them otherwise.
+  for(const id of ['st-cache','st-hit']){const row=$('#'+id).closest('div');if(row)row.hidden=$('#'+id).textContent===uiText('No disponible');}
   document.title=(active&&dec!==null?Math.round(dec)+' t/s · ':'')+'V-Agent';
 }
 

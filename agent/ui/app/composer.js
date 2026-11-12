@@ -75,6 +75,8 @@ function updateControls() {
   $('#draftReload').disabled=busy||blocked;
   $('#draftReload').hidden=!loadedModel||loadedModel!==$('#model').value;
   $('#ctxInput').disabled=$('#ctxApply').disabled=busy||blocked||accessChanging||!$('#model').value;
+  // Moving the slider already saves it; the button is only needed to reload a loaded model with a new value.
+  $('#ctxApply').hidden=!(loadedModel&&loadedModel===$('#model').value&&pendingModelContexts.has(loadedModel));
   $('#ctxApply').textContent=loadedModel===$('#model').value?uiText('Aplicar y recargar'):uiText('Guardar contexto');$('#ctxApply').title=loadedModel===$('#model').value?uiText('Recarga el modelo actual con el contexto elegido.'):uiText('Se aplicará en la próxima carga manual del modelo.');
   $('#f_shell').disabled=(pcAccess.mode!=='full_pc'&&!pcAccess.isolation?.available)||busy||blocked||accessChanging;
   $('#f_console').disabled=pcAccess.mode!=='full_pc'||busy||blocked||accessChanging;
@@ -294,7 +296,9 @@ async function generateResponse(replaceIndex=null) {
     const response={role:'assistant',content:finalText,reasoning_content:finalReasoning,run_id:generation.runId,...(generation.modelConfirmed?generation.provenance:{})};
     for(const call of toolTrace)if(['drafting','validating','running'].includes(call.status))call.status=generation.stopped?'interrupted':'missing';
     if(toolTrace.length)response.tool_trace=toolTrace;
-    if(lastUsage)response.usage={...lastUsage,limit:contextCapacity||modelContexts[requestModel]||null};
+    // A stopped reply gets no final count; keep the last live measure so the meter does not go blank.
+    const finalUsage=lastUsage||(generation.usage&&Number.isFinite(generation.usage.prompt_tokens)?generation.usage:null);
+    if(finalUsage)response.usage={...finalUsage,limit:contextCapacity||modelContexts[requestModel]||null};
     if(generation.performance)response.performance={...generation.performance};
     if(generation.stopped)response.status='stopped';else if(errorText){response.status='error';response.error=errorText;}
     if(previous&&!finalText&&!finalReasoning&&!toolTrace.length){messages[replaceIndex]=previous;note(errorText||'Generación detenida. Se conserva la respuesta anterior.');}

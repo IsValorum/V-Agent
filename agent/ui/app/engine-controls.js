@@ -40,7 +40,7 @@ function setupEngineControls(){
     $('#engineKind').closest('.engine-field').hidden=kind==='api';$('#engineFileActions').hidden=kind==='api';
     syncEngineVersions();$('#applyEngine').disabled=busy||engineBusy||!engineFormDirty();
     $('#load').disabled=busy||engineBusy||!modelStateKnown||!$('#model').value||!!loadedModel||engineFormDirty();
-    $('#engineHint').textContent=engineFormDirty()?(loadedModel?'Deja de usar el modelo actual antes de cambiar la conexión.':'Pendiente de aplicar.'):(kind==='rust'?'Strata Rust: modelos Qwen3.5/3.6. Para otras familias, elige llama.cpp.':'');
+    $('#engineHint').textContent=engineFormDirty()?(loadedModel?(activeEngine==='api'?'Deja de usar el modelo actual antes de cambiar la conexión.':'Descarga el modelo actual antes de cambiar de motor.'):'Pendiente de aplicar.'):(kind==='rust'?'Strata Rust: modelos Qwen3.5/3.6. Para otras familias, elige llama.cpp.':'');
     const power=$('#engineToggle').closest('.power-row');if(power)power.hidden=['llama','rust'].includes(activeEngine)||engineFormDirty();
     $('#composerControls').dataset.source=kind==='api'?'api':'local';
   };
@@ -60,7 +60,11 @@ function setupEngineControls(){
       let failure=null;try{if(connect)engineSnapshot=await requestJSON('/api/harness/connect',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(120000)});}catch(error){failure=error;}
       $('#apiKey').value='';syncApiConnections();modelStateRevision++;loadedModel=null;$('#model').replaceChildren();modelCatalog=[];if($('#modelFilter'))$('#modelFilter').value='';Object.keys(modelPreferences).forEach(key=>delete modelPreferences[key]);await loadModels();syncEngineCapabilities();form();
       if(failure)throw failure;$('#engineHint').textContent=connect?'Conectado · '+engineSnapshot.models.length+' modelos disponibles':'';
-    }catch(error){$('#engineHint').textContent=error.message;}finally{setEngineBusy(false);pollStats();}
+    }catch(error){
+      // Refused (e.g. a model is loaded): the selector goes back to the engine that is really active.
+      if(!connect&&$('#engineKind').value!==activeEngine){$('#engineKind').value=activeEngine;$('#engineKind').onchange?.();}
+      $('#engineHint').textContent=error.message;
+    }finally{setEngineBusy(false);pollStats();}
   }
   $('#applyEngine').onclick=()=>apply();$('#connectApi').onclick=()=>apply(true);
   const remote=document.createElement('section');remote.id='remoteModelInfo';remote.hidden=true;remote.innerHTML='<div class="remote-context-stats"><span>Contexto permitido</span><strong id="remoteContextValue">No informado</strong><small id="remoteContextOrigin"></small></div><details><summary>Configurar límite de contexto</summary><p class="mini">Solo informa al agente del límite. No amplía el contexto del proveedor.</p><label>Tokens<input id="remoteContextInput" type="number" min="1" max="100000000" placeholder="No informado"></label><button type="button" id="saveRemoteContext">Guardar límite</button><button type="button" id="resetRemoteContext">Usar dato de la API</button></details>';
@@ -77,7 +81,7 @@ function syncEngineCapabilities(){
   if(!$('#engineSettings'))return;
   syncLoadSettings();
   const remote=activeEngine==='api',strata=activeEngine==='strata';
-  $('#controls-context').hidden=remote;if($('#loadAdvanced'))$('#loadAdvanced').hidden=remote;if($('#modelSectionTabs'))$('#modelSectionTabs').hidden=remote;if(remote)setModelSection('generation');$('#effort').closest('.row').hidden=remote;$('#kvSettings').hidden=remote;$('#draftSettings').hidden=!strata;$('#visionSettings').hidden=remote||activeEngine==='rust';
+  $('#controls-context').hidden=remote;if($('#contextBlock'))$('#contextBlock').hidden=remote;if($('#loadAdvanced'))$('#loadAdvanced').hidden=remote;if($('#modelSectionTabs'))$('#modelSectionTabs').hidden=remote;if(remote)setModelSection('generation');$('#effort').closest('.row').hidden=remote;$('#kvSettings').hidden=remote;$('#draftSettings').hidden=!strata;$('#visionSettings').hidden=remote||activeEngine==='rust';
   $('#templateRow').hidden=!strata;if($('#templateSettings'))$('#templateSettings').hidden=!strata;
   const power=$('#engineToggle').closest('.power-row');if(power)power.hidden=['llama','rust'].includes(activeEngine)||engineFormDirty();
   for(const id of ['p_topk','p_minp','p_rep','p_presence','p_frequency','p_seed'])if($('#'+id)?.closest('.row'))$('#'+id).closest('.row').hidden=remote;

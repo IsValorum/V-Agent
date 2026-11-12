@@ -83,8 +83,50 @@ function setupModelWindow(){
   const template=document.createElement('details');template.className='settings-group';template.innerHTML='<summary>Plantilla del modelo</summary>';template.append($('#templateRow'));load.append(template);template.id='templateSettings';
   setupEngineControls();setModelSection('load');
   base.classList.add('model-footer-static');base.querySelector('.row').classList.add('loaded-row');
+  simplifyModelPanel();  // after the footer is marked: it holds the old duplicate load buttons
   $('#responseBtn').removeAttribute('title');$('#ctxBtn').removeAttribute('title');
   $('#controls-response #profileNote').hidden=true;
+}
+// One clear model card on top (the name opens the list; one main button), the context right under
+// it, and the technical settings folded away. Before, the selection was confirmed in a box below a
+// long list, there were two pairs of load buttons and the context sat ~1,100 px down the panel.
+function simplifyModelPanel(){
+  const root=$('#controls-model'),top=root.querySelector('.model-top'),picker=root.querySelector('.model-picker'),library=$('#modelLibrary'),summary=root.querySelector('.model-selected-summary');
+  if(!top||!picker||!library||!summary||$('#modelCard'))return;
+  const card=document.createElement('section');card.id='modelCard';card.className='model-card';
+  const chooser=document.createElement('button');chooser.type='button';chooser.id='modelChooser';chooser.className='model-chooser';
+  chooser.setAttribute('aria-haspopup','listbox');chooser.setAttribute('aria-expanded','false');chooser.setAttribute('aria-controls','modelResults');chooser.title=uiText('Elegir modelo');
+  const chevron=document.createElement('span');chevron.className='model-chooser-chevron';chevron.setAttribute('aria-hidden','true');chevron.innerHTML='<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>';
+  chooser.append(summary.querySelector('.model-selected-text'),chevron);
+  const actions=document.createElement('div');actions.className='model-card-actions';
+  const state=document.createElement('span');state.id='modelLoadState';state.className='model-load-state';
+  actions.append(state,$('#modelSummaryAction'));
+  library.querySelector(':scope>summary').hidden=true;
+  card.append(chooser,library,actions,$('#modelStatus'));
+  summary.hidden=true;picker.prepend(card);
+  chooser.onclick=()=>{library.open=!library.open;};
+  library.addEventListener('toggle',()=>{chooser.setAttribute('aria-expanded',String(library.open));card.classList.toggle('choosing',library.open);if(library.open){const filter=$('#modelFilter');if(filter&&!filter.disabled)filter.focus({preventScroll:true});}});
+  // Choosing closes the list and the card confirms it at once.
+  $('#modelResults').addEventListener('click',event=>{if(!event.target.closest('.model-option:not(:disabled)'))return;library.open=false;card.classList.remove('picked');void card.offsetWidth;card.classList.add('picked');chooser.focus({preventScroll:true});});
+  const context=$('#controls-context'),block=document.createElement('section');block.id='contextBlock';block.className='context-block';
+  const head=document.createElement('div');head.className='context-block-head';
+  const title=document.createElement('span');title.className='context-block-title';title.textContent=uiText('Contexto');
+  const memory=document.createElement('span');memory.id='contextMemory';memory.className='context-memory';
+  head.append(title,memory);block.append(head,context);top.after(block);
+  const headline=$('#memoryHeadline'),copy=()=>{const text=(headline?.textContent||'').trim();memory.textContent=text?uiText('Memoria')+' '+text:'';};
+  if(headline){copy();new MutationObserver(copy).observe(headline,{childList:true,characterData:true,subtree:true});}
+  const tabs=$('#modelSectionTabs'),loadTab=$('#tab-load'),genTab=$('#tab-generation');
+  if(loadTab)loadTab.textContent=uiText('Avanzado');
+  if(tabs&&loadTab&&genTab)tabs.insertBefore(genTab,loadTab);
+  const loadSettings=$('#modelLoadSettings');
+  if(loadSettings&&!loadSettings.closest('details')){
+    const group=document.createElement('details');group.className='settings-group';group.id='engineLoadGroup';
+    const label=document.createElement('summary');label.textContent=uiText('Carga del motor');group.append(label);
+    loadSettings.before(group);group.append(loadSettings);loadSettings.querySelector('h4')?.setAttribute('hidden','');
+  }
+  if($('#modelMemoryEstimate'))$('#modelMemoryEstimate').open=false;
+  root.querySelector('.model-footer-static')?.classList.add('model-footer-hidden');
+  setModelSection('generation');syncModelSelectionSummary();
 }
 function updateCreatorNotice(){
   const notice=$('#creatorNotice'),pref=modelPreferences[$('#model').value];if(!notice||!pref)return;
