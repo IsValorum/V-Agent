@@ -1,5 +1,8 @@
 import base64
 import json
+import hashlib
+import tempfile
+from pathlib import Path
 import sys
 import unittest
 from unittest.mock import patch
@@ -23,6 +26,35 @@ def manifest(version='1.2.0', **installer):
 
 
 class AppUpdateTests(unittest.TestCase):
+    def test_launch_rechecks_and_hands_off_to_detached_helper(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); installer = root / 'setup.exe'; installer.write_bytes(b'verified')
+            exe = root / 'V-Agent.exe'; exe.write_bytes(b'desktop')
+            updater = app_updates.AppUpdates('owner/V-Agent')
+            updater.state.update(ready=str(installer), available={'version':'9.0.0', 'installer':{'sha256':hashlib.sha256(b'verified').hexdigest()}})
+            with patch.object(app_updates, 'DATA_ROOT', root), patch.dict('os.environ', {'V_AGENT_DESKTOP_PID':'123', 'V_AGENT_DESKTOP_EXE':str(exe)}), patch('subprocess.run') as run:
+                run.return_value.returncode = 0
+                self.assertTrue(updater.launch()['launched'])
+                env = run.call_args.kwargs['env']
+                helper = base64.b64decode(env['V_AGENT_UPDATE_HELPER']).decode('utf-16le')
+                self.assertEqual(env['V_AGENT_UPDATE_VERSION'], '9.0.0')
+                self.assertIn("'/S','/UPDATE'", helper)
+                self.assertIn('WaitForExit', helper)
+                installer.write_bytes(b'tampered')
+                with self.assertRaises(ValueError): updater.launch()
+                self.assertEqual(run.call_count, 1)
+
+    def test_launch_requires_desktop_and_newer_version(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); installer=root/'setup.exe'; installer.write_bytes(b'ok')
+            exe=root/'V-Agent.exe'; exe.write_bytes(b'desktop')
+            updater=app_updates.AppUpdates('owner/V-Agent')
+            updater.state.update(ready=str(installer),available={'version':'0.0.1','installer':{'sha256':hashlib.sha256(b'ok').hexdigest()}})
+            with patch.dict('os.environ', {'V_AGENT_DESKTOP_PID':'123','V_AGENT_DESKTOP_EXE':str(exe)}):
+                with self.assertRaisesRegex(ValueError, 'not newer'): updater.launch()
+            with patch.dict('os.environ', {'V_AGENT_DESKTOP_PID':'','V_AGENT_DESKTOP_EXE':''}):
+                with self.assertRaisesRegex(ValueError, 'desktop application'): updater.launch()
+
     def test_new_release_clears_previous_download(self):
         updater=app_updates.AppUpdates('owner/V-Agent')
         updater.state.update(available={'installer':{'sha256':'a'*64}},ready='old.exe',progress={'received':1})
