@@ -107,6 +107,8 @@ def unit_tests(run):
 def interface(run, small_model):
     if small_model:
         run.tool(5, 'ui-consistency', ['tests/smoke/ui_consistency.py', '--model', small_model])
+        run.plain(5, 'interface', 'the context meter moves on screen while the model thinks and uses tools',
+                  [PY, 'tests/smoke/live_context_screen.py', '--engine', 'llama', '--model', small_model])
     from isolated_core import IsolatedCore
     with IsolatedCore(19392) as core:
         url = core.base + '/'
@@ -208,6 +210,8 @@ def main():
             if model:
                 extra = ['--unsupported', args.small_model] if engine != 'llama' and args.small_model else []
                 run.tool(6, f'real-{engine}', ['tests/smoke/real_models.py', f'--{engine}', model, *extra], timeout=7200)
+                run.plain(6, engine, 'live context count moves during thinking and tool rounds',
+                          [PY, 'tests/smoke/live_context_probe.py', '--engine', engine, '--model', model], timeout=3600)
     if 7 not in args.skip:
         run.tool(7, 'release', ['scripts/quality/verify_release.py', '--installer'])
     counts = {s: sum(r['status'] == s for r in run.rows) for s in ('pass', 'fail', 'skip')} if args.no_report \

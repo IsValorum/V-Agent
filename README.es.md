@@ -41,7 +41,7 @@ checksum y una prueba antes de activarse, conservando la versión anterior para 
 solo cuenta como cargado cuando el motor lo sirve de verdad; las velocidades se miden, no se estiman;
 los ajustes se conservan al cambiar de motor; y un motor que no puede ejecutar la arquitectura de un
 modelo lo dice al momento y te indica uno que sí. Antes de cada versión se ejecutan modelos reales en
-los tres ([resultados](docs/test-reports/1.0.6.md)).
+los tres ([resultados](docs/test-reports/1.0.7.md)).
 
 ## Qué hace
 
@@ -77,7 +77,7 @@ los tres ([resultados](docs/test-reports/1.0.6.md)).
   se verifica la actualización firmada tal como la verificará la versión anterior.
 
 Resultados de cada comprobación de esta versión, con capturas de su interfaz real:
-[docs/test-reports/1.0.6.md](docs/test-reports/1.0.6.md). Métodos, herramientas y lo que aún no se cubre:
+[docs/test-reports/1.0.7.md](docs/test-reports/1.0.7.md). Métodos, herramientas y lo que aún no se cubre:
 [docs/QUALITY.md](docs/QUALITY.md) (en inglés).
 
 ## Instalar

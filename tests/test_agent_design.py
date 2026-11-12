@@ -10,8 +10,11 @@ class AgentDesignTests(unittest.TestCase):
  def test_light_console_requires_scope_and_approval(self):
   self.assertIn('console',filter_enabled({'console'},'light',True))
   self.assertNotIn('console',filter_enabled({'console'},'light',False))
-  for mode in ('full','run','auto','ask'):
+  for mode in ('full','auto','ask'):
    self.assertTrue(needs_approval(mode,'pc__console',{'action':'run','command':'echo test'},'light'))
+  # "Automatic" is honoured in every profile (it used to prompt anyway in Light).
+  self.assertFalse(needs_approval('run','pc__console',{'action':'run','command':'echo test'},'light'))
+  self.assertFalse(needs_approval('run','pc__code_check',{'run':True,'check':'test'},'light'))
   self.assertFalse(needs_approval('auto','pc__console',{'action':'status'},'light'))
   self.assertFalse(needs_approval('auto','pc__code_check',{'run':True,'check':'syntax'},'light'))
   self.assertTrue(needs_approval('full','pc__code_check',{'run':True,'check':'test'},'light'))

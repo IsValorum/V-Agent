@@ -4,6 +4,22 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.0.7
+
+- **"Automatic" never asks.** In the Light profile, console commands, shell commands and code runs still
+  asked for approval with "Automatic" selected, without saying why.
+- **"Confirm changes" lets reads through, as it says.** It asked before searching files and listing a
+  file's versions (which "Ask every time" allowed), before reading the status of approved background
+  jobs and before reading the page the agent's own browser has open.
+- **The context meter moves live with Strata Rust.** Its count started from zero, showed only the
+  generated tokens and jumped back and forth between rounds; it now starts from the prompt (estimated
+  when the request is sent, corrected with the exact count after each round). With every engine the meter
+  no longer steps backwards between tool rounds.
+- **No more files piling up in a chat's folder.** Every tool call, even a listing or a read, left a JSON
+  file in `drafts/`, and every written file a full copy. Only an unfinished file write is kept now, the
+  only thing that can be recovered; old leftovers are removed when the chat is opened.
+- The tool and market windows no longer show tool servers as "starting" right after V-Agent opens.
+
 ## 1.0.6
 
 - **"Install and restart" is much faster.** Measured on a laptop, the ~25 s restart went into three

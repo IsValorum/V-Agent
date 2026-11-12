@@ -365,6 +365,11 @@ class EngineManager:
         connection=(http.client.HTTPSConnection(target.hostname,target.port or 443,timeout=timeout,context=ssl.create_default_context())
                     if target.scheme=='https' else http.client.HTTPConnection(target.hostname,target.port or 80,timeout=timeout))
         self.live=True;self.last_usage={}
+        # Engines without live counters (Strata Rust, APIs) report the prompt only when a round ends:
+        # estimate it now from the request, calibrated on the last exact count, so the meter moves
+        # while the engine reads the prompt and generates (reasoning and tool rounds included).
+        chars=len(json.dumps(body.get('messages') or [],ensure_ascii=False))+len(json.dumps(body.get('tools') or [],ensure_ascii=False))
+        self._live_chars=chars;self.live_prompt=self.estimate_prompt(chars);self.live_generated=0;self.live_reading=True
         try:
             if control.cancelled.is_set():return
             try:connection.connect()
@@ -383,12 +388,10 @@ class EngineManager:
             # Only llama-server reports its own speeds and live counts. For the others they are measured
             # here: each streamed delta is about one token, and reading lasts until the first one arrives.
             sent=time.monotonic();first=None;chunks=0
-            self.live_prompt=(self.last_usage.get('prompt_tokens') or 0)+(self.last_usage.get('completion_tokens') or 0)
-            self.live_generated=0
             for line in response:
                 if control.cancelled.is_set():return
                 if self.kind!='llama' and line.startswith(b'data: {') and b'"delta"' in line:
-                    chunks+=1;first=first or time.monotonic();self.live_generated=chunks
+                    chunks+=1;first=first or time.monotonic();self.live_generated=chunks;self.live_reading=False
                 if decoder:
                     if not line.startswith(b'data:'):continue
                     try:packet=decoder.packet(json.loads(line[5:].strip()))
@@ -400,7 +403,10 @@ class EngineManager:
                 if line.startswith(b'data: ') and (b'"usage"' in line or b'"timings"' in line):
                     try:
                         packet=json.loads(line[6:]);usage=packet.get('usage');timing=packet.get('timings')
-                        if usage:self.last_usage=usage
+                        if usage:
+                            self.last_usage=usage
+                            if isinstance(usage.get('prompt_tokens'),int) and usage['prompt_tokens']>0:
+                                self._calibration=(self._live_chars,usage['prompt_tokens'],self.loaded)
                         if usage and not timing and self.kind!='llama' and first:
                             timing=measured_timings(usage,sent,first,time.monotonic())
                             packet['timings']=timing;line=('data: '+json.dumps(packet,ensure_ascii=False)+'\n').encode()
@@ -412,7 +418,16 @@ class EngineManager:
                                 line=('data: '+json.dumps(packet,ensure_ascii=False)+'\n').encode()
                     except ValueError:pass
                 yield line
-        finally:self.live=False;control.detach(connection);connection.close()
+        finally:self.live=False;self.live_reading=False;control.detach(connection);connection.close()
+    def estimate_prompt(self,chars):
+        """Prompt tokens of a request, from its size: the last exact count for this model plus the
+        new characters at that model's measured characters-per-token (3.5 before any measure)."""
+        calibration=getattr(self,'_calibration',None)
+        if calibration and calibration[2]==self.loaded and calibration[0]>0 and calibration[1]>0:
+            ratio=min(6.0,max(1.5,calibration[0]/calibration[1]))
+            if chars>=calibration[0]:return int(calibration[1]+(chars-calibration[0])/ratio)
+            return int(chars/ratio)
+        return int(chars/3.5)
 
     def metrics(self):
         limit=(self.selected_remote() or {}).get('context') if self.kind=='api' else getattr(self,'loaded_context',None) if self.kind=='rust' and self.loaded else None
@@ -444,4 +459,5 @@ class EngineManager:
             if mark is None or generated<mark[1]:self._decode_mark=mark=(now,generated)
             elif generated>mark[1] and now-mark[0]>=0.5:tok_s=round((generated-mark[1])/(now-mark[0]),1)
         else:self._decode_mark=None
-        return {'engine':{'max_context':limit},'live':{'state':'decoding' if self.live else 'idle','prompt_tokens':prompt,'generated':generated,'tok_s':tok_s},'requests':last}
+        state='reading' if self.live and self.kind!='llama' and getattr(self,'live_reading',False) else 'decoding' if self.live else 'idle'
+        return {'engine':{'max_context':limit},'live':{'state':state,'prompt_tokens':prompt,'generated':generated,'tok_s':tok_s},'requests':last}

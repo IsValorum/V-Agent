@@ -17,11 +17,11 @@ which areas are reviewed for security, and what is still not covered.
 
 `scripts/quality/run_all.py` runs every level and writes a report per version in
 [docs/test-reports/](test-reports/), with screenshots of that version's real interface. Latest:
-[1.0.6](test-reports/1.0.6.md).
+[1.0.7](test-reports/1.0.7.md).
 
 ## Automatic tests
 
-211 Python tests and 7 Node suites, none of which need a model, a GPU or the internet (see
+214 Python tests and 7 Node suites, none of which need a model, a GPU or the internet (see
 [tests/README.md](../tests/README.md)). Besides the core features, dedicated suites cover the areas of the
 security and interface reviews:
 
