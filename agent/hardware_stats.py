@@ -128,6 +128,12 @@ def _windows_build():
 
 
 def _nvidia_profile():
+    try:
+        import nvml
+        found=nvml.profile()  # the driver's library: no extra process
+        if found:return found
+    except Exception:
+        pass
     command=_nvidia_command()
     if not command:
         return []

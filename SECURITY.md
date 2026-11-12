@@ -26,6 +26,14 @@ repository; update when it offers a new version.
   digest GitHub publishes, then tested before activation; the previous version can be restored.
 - **Isolated access** runs commands in a Windows process container with no network and write access
   limited to the chat or project folder. **Full PC** access is an explicit choice.
-- **Approvals**: tools that change files, run commands or use the network ask first (depending on
-  the selected mode). Denied actions stop the turn and their content is not kept.
-- The local API listens on 127.0.0.1 only and checks the request origin.
+- **Approvals**: tools that change files, restore earlier versions, run commands or use the network
+  ask first (depending on the selected mode). Approvals are enforced by the core for every tool,
+  MCP servers included. Denied actions stop the turn and their content is not kept.
+- **Local servers**: the local API listens on 127.0.0.1 only, answers only to loopback host names
+  (protection against DNS rebinding) and checks the request origin. The engine servers it starts
+  (llama.cpp, Strata Rust) require a private key generated for each session.
+- **Untrusted content**: model cards and release notes are sanitised before display, chat output is
+  escaped, chat templates render in a sandboxed environment, and pages are checked under the same
+  isolation as the preview.
+
+How each part is tested and reviewed: [docs/QUALITY.md](docs/QUALITY.md).

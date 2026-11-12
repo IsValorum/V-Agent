@@ -243,7 +243,10 @@ function updateContextSlider() {
 }
 function syncContextSelection() {
   const model = $('#model').value;
-  $('#ctxInput').value = pendingModelContexts.get(model) ?? modelPreferences[model]?.context ?? (modelContexts[model] || 16384);
+  // A loaded model shows the context the engine really has (it may have been loaded from the API or
+  // another window), unless the user is changing it right now.
+  const running = model && model === loadedModel && contextCapacity ? contextCapacity : null;
+  $('#ctxInput').value = pendingModelContexts.get(model) ?? running ?? modelPreferences[model]?.context ?? (modelContexts[model] || 16384);
   $('#ctxTarget').textContent = model ? modelNames[model] || model : 'Selecciona un modelo.';
   $('#ctxStatus').textContent = pendingModelContexts.has(model) && loadedModel!==model?'Se aplicará al cargar este modelo.':'';
   updateContextSlider();

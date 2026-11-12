@@ -1,0 +1,21 @@
+[
+ ["01-home", "return document.getElementById('modelBtn').innerText.replace(/\\s+/g,' ')+' | '+document.getElementById('ctxLabel').textContent;", 0.5],
+ ["02-model-window", "document.getElementById('modelBtn').click(); await new Promise(r=>setTimeout(r,900)); return 'model: '+document.getElementById('modelSelectedName').textContent+' · '+document.getElementById('modelLoadState').textContent+' · button: '+document.getElementById('modelSummaryAction').textContent;", 0.6],
+ ["03-model-list", "document.getElementById('modelChooser').click(); await new Promise(r=>setTimeout(r,400)); return document.querySelectorAll('#modelResults .model-option').length+' models listed';", 0.5],
+ ["04-model-advanced", "document.getElementById('modelChooser').click(); await new Promise(r=>setTimeout(r,300)); document.getElementById('tab-load').click();", 0.5],
+ ["05-tools-window", "document.getElementById('closeControls')?.click(); await new Promise(r=>setTimeout(r,400)); document.getElementById('mcpBtn').click(); await new Promise(r=>setTimeout(r,700)); return document.getElementById('mcpBtn').innerText.replace(/\\s+/g,' ');", 0.6],
+ ["06-settings-general", "document.querySelector('#toolsWindow [data-fw-close]')?.click(); await new Promise(r=>setTimeout(r,400)); document.getElementById('gear').click(); await new Promise(r=>setTimeout(r,600)); document.querySelector('[data-settings-category=\"general\"],[data-category=\"general\"]').click();", 0.7],
+ ["07-settings-appearance", "document.querySelector('[data-settings-category=\"appearance\"],[data-category=\"appearance\"]').click();", 0.6],
+ ["08-settings-message-box", "document.querySelector('[data-settings-category=\"chat\"],[data-category=\"chat\"]').click();", 0.6],
+ ["09-settings-tools", "document.querySelector('[data-settings-category=\"tools\"],[data-category=\"tools\"]').click();", 0.6],
+ ["10-settings-market", "document.querySelector('[data-settings-category=\"market\"],[data-category=\"market\"]').click();", 1.5],
+ ["11-settings-plugins", "document.querySelector('[data-settings-category=\"plugins\"],[data-category=\"plugins\"]').click();", 0.6],
+ ["12-settings-system", "document.querySelector('[data-settings-category=\"system\"],[data-category=\"system\"]').click(); await new Promise(r=>setTimeout(r,700)); document.getElementById('engineHardware')?.scrollIntoView({block:'start'});", 1.0],
+ ["13-settings-history", "document.querySelector('[data-settings-category=\"history\"],[data-category=\"history\"]').click();", 0.6],
+ ["14-models-window", "document.getElementById('gear').click(); await new Promise(r=>setTimeout(r,400)); document.getElementById('sidebarModels').click(); await new Promise(r=>setTimeout(r,2500)); document.querySelector('#hubResults .hub-item')?.click(); return document.querySelectorAll('#hubResults .hub-item').length+' Hugging Face results';", 3.5],
+ ["15-console", "document.querySelector('#modelsWindow [data-fw-close]')?.click(); await new Promise(r=>setTimeout(r,400)); document.getElementById('openConsole').click();", 0.8],
+ ["16-project", "document.querySelector('#consoleWindow [data-fw-close]')?.click(); await new Promise(r=>setTimeout(r,400)); document.getElementById('projectBtn').click();", 0.8],
+ ["17-browser-dock", "document.getElementById('closeProject')?.click(); await new Promise(r=>setTimeout(r,400)); document.getElementById('openBrowser').click();", 1.0],
+ ["18-reload", "@reload", 0.5],
+ ["19-after-reload", "document.getElementById('openBrowser').click(); await new Promise(r=>setTimeout(r,500)); return document.getElementById('modelBtn').innerText.replace(/\\s+/g,' ')+' | language '+document.documentElement.lang;", 0.6]
+]

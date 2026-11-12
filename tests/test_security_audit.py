@@ -38,6 +38,19 @@ class DnsRebindingTests(unittest.TestCase):
         for host in ('evil.example:%d' % port, 'evil.example', '127.0.0.1.evil.example', '', None):
             self.assertEqual(status(host), 421, host)
 
+    def test_malformed_chat_requests_get_a_clear_400(self):
+        import json
+        import agent
+        server = ThreadingHTTPServer(('127.0.0.1', 0), agent.Handler)
+        port = server.server_address[1]
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.shutdown)
+        for body in (b'{', b'[]', json.dumps({'messages': 'x'}).encode(), json.dumps({'messages': ['x']}).encode()):
+            connection = http.client.HTTPConnection('127.0.0.1', port, timeout=10)
+            connection.request('POST', '/api/chat', body, {'Content-Type': 'application/json'})
+            response = connection.getresponse(); response.read(); connection.close()
+            self.assertEqual(response.status, 400, body)
+
 
 class ApprovalTests(unittest.TestCase):
     def test_restoring_a_version_is_a_write_that_asks(self):

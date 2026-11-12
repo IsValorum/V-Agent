@@ -77,6 +77,11 @@ class ControlsTests(unittest.TestCase):
         self.assertIn('Spanish',rule('Visita la web y resúmeme su contenido, por favor.'))
         self.assertIn('English',rule('Please visit the page and tell me what it says'))
         self.assertEqual(rule('Hola'),agent.LANGUAGE_RULE)
+        # The English article "a" must not make an English request look Portuguese (reply came in Spanish).
+        self.assertIn('English',rule('Create a small landing page for a coffee shop in cafe.html, with a button that '
+                                     'switches between a light and a dark theme and remembers the choice. Then check it for errors.'))
+        self.assertIn('Portuguese',rule('Você pode criar uma página para a minha loja? Não sei como fazer isso.'))
+        self.assertIn('Spanish',rule('Crea una página para una cafetería con un botón de tema claro y oscuro.'))
     def test_tool_rule_names_only_offered_tools(self):
         import agent
         tool = lambda name: {'type': 'function', 'function': {'name': 'pc__' + name}}

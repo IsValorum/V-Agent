@@ -1,0 +1,22 @@
+{
+  "about": "Bandit findings (medium and high) reviewed by hand. The count per file and test is fixed: a new finding, or one more of the same kind in a file, fails static_analysis.py until it is reviewed and listed here.",
+  "reviewed": [
+    {"test": "B310", "file": "agent/agent.py", "count": 3, "reason": "Fixed http://127.0.0.1 addresses of the local engines and the core itself."},
+    {"test": "B310", "file": "agent/app_updates.py", "count": 2, "reason": "Fixed https URLs of the official GitHub releases; the manifest is then checked with Ed25519."},
+    {"test": "B310", "file": "agent/browser_mcp.py", "count": 2, "reason": "DevTools endpoints of the bundled browser on 127.0.0.1."},
+    {"test": "B310", "file": "agent/engine_manager.py", "count": 1, "reason": "The engine's own server on 127.0.0.1:19383, with its private key."},
+    {"test": "B310", "file": "agent/engine_updates.py", "count": 2, "reason": "Fixed https URLs of the engines' official GitHub releases, checked against published digests."},
+    {"test": "B310", "file": "agent/extensions.py", "count": 3, "reason": "Fixed https registry URLs, and raw.githubusercontent.com URLs built only from validated owner/repo/path."},
+    {"test": "B310", "file": "agent/pc_mcp.py", "count": 1, "reason": "The core's own API on http://127.0.0.1."},
+    {"test": "B310", "file": "agent/render_check.py", "count": 1, "reason": "DevTools endpoint of the bundled browser on 127.0.0.1."},
+    {"test": "B310", "file": "agent/templates.py", "count": 2, "reason": "Fixed https://huggingface.co API URLs."},
+    {"test": "B310", "file": "agent/vram_policy.py", "count": 2, "reason": "The engine's own server on 127.0.0.1."},
+    {"test": "B310", "file": "web_mcp/busqueda_local.py", "count": 1, "reason": "Fixed http://127.0.0.1 address of the local engine."},
+    {"test": "B608", "file": "agent/file_versions.py", "count": 1, "reason": "Only a fixed clause is concatenated; every value is a bound SQL parameter."},
+    {"test": "B615", "file": "agent/hf_mcp.py", "count": 2, "reason": "Downloads the repository and file the user chose; integrity comes from Hugging Face's published hashes."},
+    {"test": "B324", "file": "agent/plugins.py", "count": 1, "reason": "SHA-1 used as a short folder name, not for security."},
+    {"test": "B324", "file": "agent/tool_budget.py", "count": 2, "reason": "SHA-1 used to detect repeated tool calls, not for security."},
+    {"test": "B701", "file": "agent/thinking_policy.py", "count": 1, "reason": "The Jinja environment only parses a template to list its variables; nothing is rendered into HTML."},
+    {"test": "B314", "file": "agent/verify.py", "count": 1, "reason": "Syntax check of the user's own XML/SVG; DTD and entity declarations are refused before parsing."}
+  ]
+}

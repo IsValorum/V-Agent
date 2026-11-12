@@ -56,6 +56,7 @@ $("#input").addEventListener("paste", event => {
 let loadedModel=null,modelStateKnown=false,modelStateRevision=0,modelNames={};
 function setLoadedModel(id,known=true,capacity=null){
   const changed=loadedModel!==(id||null)||modelStateKnown!==known;
+  const previousCapacity=contextCapacity;
   if(changed || capacity!==null) contextCapacity=id?capacity:null;
   loadedModel=id||null;
   modelStateKnown=known;
@@ -63,6 +64,8 @@ function setLoadedModel(id,known=true,capacity=null){
   $('#loadedTxt').textContent=known?(loadedModel?(modelNames[loadedModel]||loadedModel):'Ninguno'):'Comprobando…';
   updateControls();
   syncContextMeter();
+  // The model window then shows the context the engine really runs with.
+  if((changed||contextCapacity!==previousCapacity)&&typeof syncContextSelection==='function')syncContextSelection();
 }
 function modelIsReady(){return !preparationState?.active&&modelStateKnown&&engineOnline===true&&loadedModel&&loadedModel===$('#model').value;}
 function requireModelForChat(){if(modelIsReady())return true;note(loadedModel?'Descarga el modelo en memoria y carga el seleccionado en Motor.':'Selecciona un modelo y pulsa Cargar modelo en Motor.');if(!document.querySelector('dialog[open]'))setChatControls('model');return false;}
