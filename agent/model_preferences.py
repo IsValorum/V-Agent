@@ -41,9 +41,24 @@ class ModelPreferences:
             default['effort'] = creator.get('effort',default['effort'])
             # Existing explicit user preference: protect repeated code syntax.
             default['sampling']['repetition_penalty'] = 1.0
-            saved = copy.deepcopy(self.records.get(model, {}))
+            saved = copy.deepcopy(self.records.get(model, {})) or self._from_other_engine(model)
             result = {**default, **saved, 'sampling':{**default['sampling'],**saved.get('sampling',{})}}
             return {**result, 'creator':copy.deepcopy(creator), 'saved':bool(saved), 'storage_warning':self.load_error}
+
+    PORTABLE = ('sampling', 'effort', 'rounds', 'context')
+
+    def _from_other_engine(self, model):
+        """The same GGUF under another engine's name (llama--local-H, rust--local-H, rust--X / X):
+        switching engine started it from the defaults, so the chosen context and sampling were lost.
+        Only settings that mean the same on every engine are carried over."""
+        base = str(model).split('--', 1)[1] if str(model).startswith(('llama--', 'rust--')) else str(model)
+        for other, entry in self.records.items():
+            if other == model or not entry:
+                continue
+            other_base = other.split('--', 1)[1] if other.startswith(('llama--', 'rust--')) else other
+            if other_base == base:
+                return {key: copy.deepcopy(entry[key]) for key in self.PORTABLE if key in entry}
+        return {}
 
     def save(self, model, settings):
         if not isinstance(settings,dict):raise ValueError('Ajustes no válidos.')

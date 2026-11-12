@@ -658,7 +658,18 @@ def install(a):
                 if self.path=='/api/harness/configure':
                     if (health() or {}).get('loaded'):raise ValueError('Descarga el modelo actual antes de cambiar de motor.')
                     a.stop_engine();state=manager.configure(body);a.VRAM_AUTO=strata_auto and manager.kind=='strata';self._json(200,state)
-                elif self.path=='/api/harness/connect':self._json(200,manager.connect())
+                elif self.path=='/api/harness/connect':
+                    import urllib.error,socket
+                    try:self._json(200,manager.connect())
+                    except (urllib.error.URLError,socket.timeout,ConnectionError) as error:
+                        # Said in plain words instead of "<urlopen error [WinError 10061] …>".
+                        reason=getattr(error,'reason',error);base=manager.settings.get('api',{}).get('base_url','')
+                        why=('no responde (¿está en marcha y es correcta la dirección?)' if isinstance(reason,ConnectionRefusedError) or '10061' in str(reason)
+                             else 'tardó demasiado en responder' if isinstance(reason,(socket.timeout,TimeoutError)) or 'timed out' in str(reason)
+                             else 'no se encontró el servidor (revisa la dirección)' if 'getaddrinfo' in str(reason) or '11001' in str(reason)
+                             else 'falló la conexión segura (certificado)' if 'CERTIFICATE' in str(reason).upper()
+                             else str(reason)[:160])
+                        raise ValueError('No se pudo conectar con '+(base or 'la API')+': '+why+'.') from None
                 elif self.path=='/api/harness/model-context':self._json(200,manager.remote_context(body.get('model'),body.get('context')))
                 elif self.path=='/api/models/vision':
                     model=selected(body['model']);path=Path(model['config']);cfg=json.loads(path.read_text())

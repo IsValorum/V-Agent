@@ -21,7 +21,9 @@ function setChatControls(pane,toggle=false){
     return;
   }
   restoreInspectorContent();
-  setModelSection(requested==='response'?'generation':'load');
+  // The technical tab is never the landing page; the context block is always visible above the tabs.
+  setModelSection('generation');
+  if(requested==='context')requestAnimationFrame(()=>document.getElementById('contextBlock')?.scrollIntoView({block:'nearest'}));
   const origin=document.querySelector('[data-controls="'+requested+'"]');
   if(toggle&&window.VALWindows?.isOpen('model')&&chatControlsFocus===origin){window.VALWindows?.close('model');syncControlButtons();return;}
   chatControlsFocus=origin;hideHelp();

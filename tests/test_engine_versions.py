@@ -39,10 +39,15 @@ class _Inline:
 
 class EngineVersionTests(unittest.TestCase):
     def setUp(self):
-        # Another test module may have imported runtime_paths first with its own data folder.
-        for patcher in (patch.object(engine_updates, 'DATA_ROOT', Path(TMP)), patch.object(engine_updates.threading, 'Thread', _Inline)):
+        # A folder of its own per test (no history left by the other test), and threads run inline
+        # only inside engine_updates: patching threading.Thread itself changed every module's threads.
+        import shutil, threading, types
+        folder = Path(tempfile.mkdtemp(prefix='case-', dir=TMP))
+        self.addCleanup(shutil.rmtree, folder, True)
+        inline = types.SimpleNamespace(Thread=_Inline, RLock=threading.RLock, Lock=threading.Lock)
+        for patcher in (patch.object(engine_updates, 'DATA_ROOT', folder), patch.object(engine_updates, 'threading', inline)):
             patcher.start(); self.addCleanup(patcher.stop)
-        self.root = Path(TMP) / 'engine-updates'
+        self.root = folder / 'engine-updates'
         self.downloads = []
         self.updates = engine_updates.Updates(lambda: {})
         self.wait()

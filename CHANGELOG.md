@@ -4,6 +4,37 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.0.5
+
+- **Strata Rust: a model counts as loaded only once it really is.** Strata Rust lists the model it is still
+  loading, so V-Agent marked a model as ready that the engine then refused (for example a Gemma 4 model,
+  which Strata Rust does not run) and the next message failed with "WinError 10061". V-Agent now waits for
+  the engine's own "loaded" line, says in plain words which architectures the engine runs, and if an engine
+  closes after loading, the chat says so instead of showing a Windows error.
+- Strata Rust gets the same private per-session key as llama.cpp (kept out of the process list).
+- **Simpler model window.** One model card on top: the name opens the list, choosing closes it and the card
+  confirms the choice at once, its state reads "In memory / Not loaded / Loading…" and a single main button
+  loads, unloads or switches to the chosen model. The context sits right under it with the estimated memory
+  (it was about 1,100 px down the panel), "Apply and reload" appears only when it is needed, and the
+  technical settings are folded under "Advanced". The old second pair of load buttons is gone.
+- **Switching engine keeps the chosen model** (the same file under the new engine's name) instead of
+  loading the first one in the list.
+- **The context meter follows the engine:** it no longer blanks out when a message is sent, it shows the
+  new limit right after "Apply and reload", it trusts the limit the engine reports, and it moves during
+  replies with Strata Rust and APIs too (it showed the previous reply's numbers).
+- **Settings follow the model file across engines:** context, sampling, reasoning and rounds chosen for a
+  model under llama.cpp are used under Strata Rust too (engine-specific KV and load settings are not copied).
+- **Clear messages instead of raw logs:** a GGUF that does not load says why in one line (a damaged tensor,
+  out of memory…); an API that cannot be reached says so in plain words instead of "<urlopen error …>".
+- **The memory warning is visible:** "the full model does not fit in free VRAM" now appears under the
+  context control instead of only inside the folded estimate.
+- **Consistent state everywhere:** turning web search off in the Tools window also turns the composer's
+  search button off; a refused engine change puts the selector back on the active engine and says to
+  unload the model first; a stopped reply keeps its last context measure; API mode no longer shows the
+  local model's context block; expert-cache rows are hidden for engines that do not report them.
+- **Reading speed is always explained:** Strata Rust and APIs get measured speeds, and a reply read almost
+  entirely from the prompt cache says "Reading: from cache" instead of showing nothing.
+
 ## 1.0.4
 
 - **Error detection matches the preview.** Pages are checked under the same isolation as V-Agent's

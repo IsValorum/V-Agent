@@ -470,7 +470,7 @@ body[data-theme-mode=day]{--outside-surface:rgba(255,255,255,.82);--outside-text
 .welcome h2{display:inline-block;padding:9px 16px;border-radius:12px;width:fit-content;max-width:calc(100% - 28px);font-size:clamp(18px,2.1vw,29px);}
 .project-strip{gap:8px;flex-wrap:wrap;}@media(max-width:520px){.api-form-grid{grid-template-columns:1fr;}.api-form-grid .api-wide{grid-column:1;}#agentModeSegments button{padding-inline:7px;font-size:10px;}}
 #composerControls[data-source=api][data-active-source=local] .model-top{display:none;}
-#composerControls[data-source=api][data-active-source=local] :is(.model-grid,.model-footer-static,#modelSectionTabs),#composerControls[data-source=local][data-active-source=api] :is(.model-top,.model-grid,.model-footer-static,#remoteModelInfo){display:none!important;}
+#composerControls[data-source=api][data-active-source=local] :is(.model-grid,.model-footer-static,#modelSectionTabs,#contextBlock),#composerControls[data-source=local][data-active-source=api] :is(.model-top,.model-grid,.model-footer-static,#remoteModelInfo,#contextBlock){display:none!important;}
 
 /* One roundness scale for every application surface. Native switches/indicators stay circular. */
 :root{--control-radius:clamp(2px,calc(var(--radius) * .65),18px);--panel-radius:max(2px,var(--radius));}
@@ -1122,3 +1122,44 @@ body.desktop-frame #chatwrap .topbar{pointer-events:auto;}
 .model-transfer .transfer-list{max-height:240px;}
 .model-transfer [data-error="1"]{color:color-mix(in srgb,#e5484d 80%,var(--text));}
 @media(max-width:760px){.models-pane[data-pane=discover]{flex-direction:column;}.hub-list{width:auto;flex:0 0 auto;max-height:45%;border-right:0;border-bottom:1px solid var(--soft-line,var(--border));}}
+
+/* ---- Model window, simplified (model card + context on top, technical settings folded) ---- */
+#composerControls .model-selected-summary[hidden],#composerControls .model-footer-hidden{display:none!important;}
+#composerControls .model-top{margin:8px 0 0;}
+#composerControls .model-picker{border:0!important;padding:0;background:none;}
+#composerControls .model-card{border:1px solid var(--border);border-radius:calc(var(--radius,10px) + 2px);background:color-mix(in srgb,var(--panel) 92%,var(--text) 3%);padding:4px;display:grid;gap:4px;transition:border-color .25s,box-shadow .25s;}
+#composerControls .model-card.choosing{border-color:color-mix(in srgb,var(--accent) 55%,var(--border));}
+#composerControls .model-card.picked{animation:model-picked .9s ease-out;}
+@keyframes model-picked{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 55%,transparent);border-color:var(--accent);}100%{box-shadow:0 0 0 8px transparent;}}
+#composerControls .model-chooser{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 10px;border:0!important;background:transparent;border-radius:var(--radius,10px);cursor:pointer;}
+#composerControls .model-chooser:hover{background:color-mix(in srgb,var(--text) 5%,transparent);}
+#composerControls .model-chooser .model-selected-text{flex:1;min-width:0;display:grid;gap:2px;}
+#composerControls .model-chooser strong{font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#composerControls .model-chooser small{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#composerControls .model-chooser-chevron svg{width:16px;height:16px;fill:none;stroke:var(--muted);stroke-width:2;transition:transform .2s;}
+#composerControls .model-card.choosing .model-chooser-chevron svg{transform:rotate(180deg);}
+#composerControls .model-card #modelLibrary{border:0;margin:0;padding:0 4px;}
+#composerControls .model-card #modelLibrary:not([open]){display:none;}
+#composerControls .model-card #modelLibrary .model-results{max-height:min(260px,40vh);overflow:auto;}
+#composerControls .model-card-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 6px 4px 10px;}
+#composerControls .model-load-state{font-size:11px;color:var(--muted);display:inline-flex;align-items:center;gap:6px;}
+#composerControls .model-load-state:not(:empty)::before{content:"";width:7px;height:7px;border-radius:50%;background:color-mix(in srgb,var(--muted) 60%,transparent);}
+#composerControls .model-load-state[data-state=loaded]{color:var(--text);}
+#composerControls .model-load-state[data-state=loaded]::before{background:#4fbf7a;box-shadow:0 0 0 3px color-mix(in srgb,#4fbf7a 22%,transparent);}
+#composerControls .model-load-state[data-state=loading]::before{background:var(--accent);animation:model-pulse 1s ease-in-out infinite;}
+@keyframes model-pulse{50%{opacity:.35;}}
+#composerControls #modelSummaryAction{font-size:12px;font-weight:600;padding:6px 14px;border-radius:var(--radius,10px);}
+#composerControls #modelSummaryAction[data-primary=true]:enabled{background:var(--accent)!important;color:var(--accent-ink,#111)!important;border-color:transparent!important;}
+#composerControls .model-card #modelStatus{margin:0 10px 6px;font-size:11px;color:var(--muted);}
+#composerControls .context-block{margin:12px 0 4px;padding:10px 12px 8px;border:1px solid var(--border);border-radius:calc(var(--radius,10px) + 2px);}
+#composerControls .context-block-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:2px;}
+#composerControls .context-block-title{font-size:12px;font-weight:600;color:var(--text);}
+#composerControls .context-memory{font-size:11px;color:var(--muted);}
+#composerControls .context-block #contextUsage,#composerControls .context-block #ctxTarget,#composerControls .context-block .context-setting label{display:none;}
+#composerControls .context-block .context-setting #ctxValue{margin-left:0;font-size:15px;}
+#composerControls .context-block .context-setting .row .help-trigger{display:none;}
+#composerControls .context-block #ctxApply:disabled{display:none;}
+#composerControls #modelSectionTabs{margin-top:12px;}
+#composerControls .context-memory-warning{margin:6px 0 0;font-size:11px;line-height:1.4;color:#e0a458;}
+#composerControls .context-memory-warning[hidden]{display:none;}
+#composerControls #controls-response label[for=workProfile]{font-size:11px;color:var(--muted);} /* was 14 px beside 11 px labels */
