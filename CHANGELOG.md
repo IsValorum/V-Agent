@@ -4,6 +4,29 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.0.6
+
+- **"Install and restart" is much faster.** Measured on a laptop, the ~25 s restart went into three
+  things: unpacking the 540 MB program from a solid LZMA installer (~12 s), the core waiting for every
+  tool server and an engine probe before answering the window (~5 s), and fixed pauses. Now the installer
+  uses zlib (unpacks in ~2 s; the download is somewhat larger), the core answers the window in ~1.7 s
+  and starts the tool servers in the background (the first reply waits for any still starting), the
+  NVIDIA hardware profile is read from the driver library instead of a separate process, and the window
+  closes for the update after 0.3 s instead of 1.2 s. The installer change applies already when updating
+  to 1.0.6; the shorter close applies from 1.0.6 on.
+- Includes the 1.0.5 C1 fix (windows without a live blur).
+- **Replies come in the language you wrote in.** The English article "a" was counted as Portuguese, so a
+  plain English request could look ambiguous and the model answered in the language of the tool results.
+- **The model window shows the context the engine really runs with** when the model was loaded or resized
+  from outside the window (the API or another client); it showed the saved preference instead.
+- **Adding a model with Strata Rust active** used Strata's importer: it answered with an id Strata Rust
+  does not list (so the model could not be loaded by that id) and refused architectures that only Strata
+  cannot run. Adding a GGUF now follows the active engine.
+- A chat request whose `messages` is not a list of messages gets a clear 400 instead of a 503.
+- Quality tools in the repository: real-model runs on the three engines, screen-versus-core checks, XSS
+  attacks on model cards, per-language checker battery, static analysis and release verification, with
+  a results report per version in `docs/test-reports/`.
+
 ## 1.0.5 C1 (minor update)
 
 - **Windows no longer flicker.** Large windows (model & generation, tools, settings, models) had a live

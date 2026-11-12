@@ -816,10 +816,12 @@ def set_vram_reserve(reserve_mib):
 LANGUAGE_RULE = "Reply in the language of the user's latest message, even when tool results use another language."
 _LANGUAGE_HINTS = {
     "Spanish": (set("áéíóúñ¿¡"), {"el", "la", "los", "las", "que", "de", "y", "en", "por", "para", "es", "una", "un", "con", "dime", "cómo", "qué"}),
-    "Portuguese": (set("ãõç"), {"não", "você", "de", "que", "e", "o", "a", "em", "para", "uma", "com", "como", "isso"}),
+    # No "a": it is also the English article and made plain English requests look ambiguous.
+    "Portuguese": (set("ãõç"), {"não", "você", "de", "que", "e", "o", "em", "para", "uma", "com", "como", "isso"}),
     "French": (set("èêàùç"), {"le", "la", "les", "et", "est", "une", "des", "pour", "avec", "dans", "que", "vous"}),
     "German": (set("äöüß"), {"der", "die", "das", "und", "ist", "nicht", "mit", "ein", "eine", "für", "wie", "bitte"}),
-    "English": (set(), {"the", "and", "is", "to", "of", "what", "please", "with", "for", "this", "how", "you"}),
+    "English": (set(), {"the", "and", "is", "to", "of", "what", "please", "with", "for", "this", "how", "you",
+                        "that", "it", "in", "an", "my", "are"}),
 }
 
 
@@ -1078,6 +1080,9 @@ def tools_for(fn, tpath=None, agent_profile="balanced"):
         return []
     if not HUB:
         return []
+    # The tool servers start in the background while the window opens; the first reply waits for
+    # those still starting (each has its own start timeout), as the whole start-up used to.
+    HUB.wait(None)
     tools = compact_tools([t for t in HUB.openai_tools() if (t["function"]["name"].split("__")[-1] in enabled and t["function"]["name"].split("__")[0] in ("pc","hf","duckduckgo","web","autobrowser","admin","computer")) or t["function"]["name"].split("__")[0] in external])
     if not full_access:
         descriptions = {'pc__fs_list': 'List sandbox files; use relative paths.',
@@ -2527,6 +2532,9 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if not isinstance(body, dict):
                 raise ValueError("Solicitud no válida.")
+            messages = body.get("messages")
+            if messages is not None and not (isinstance(messages, list) and all(isinstance(m, dict) for m in messages)):
+                raise ValueError("«messages» debe ser una lista de mensajes.")
             if "conversation_id" not in body:
                 # API clients that do not supply a conversation get a fresh scope.
                 body["conversation_id"] = "api-" + secrets.token_hex(16)
@@ -2638,7 +2646,6 @@ def main():
         srv = None
         try:
             srv = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
-            legacy = None
             break
         except OSError:
             if srv:
@@ -2650,14 +2657,18 @@ def main():
     try:
         HUB = create_agent_hub()
         if HUB:
-            HUB.start(wait=True)
+            # Not waited for here: the window answers at once and a reply waits for the tools it needs.
+            HUB.start(wait=False)
     except Exception as e:
         print("MCP no disponible:", e)
-    try:
-        http_json(STRATA + "/v1/models", timeout=10)
-        print("Strata OK en", STRATA)
-    except Exception:
-        print("AVISO: Strata no responde en", STRATA, "- puedes encenderlo desde Ajustes → Modelo.")
+
+    def probe_engine():
+        try:
+            http_json(STRATA + "/v1/models", timeout=10)
+            print("Strata OK en", STRATA)
+        except Exception:
+            print("AVISO: Strata no responde en", STRATA, "- puedes encenderlo desde Ajustes → Modelo.")
+    threading.Thread(target=probe_engine, daemon=True, name="engine-probe").start()
     print(f"V-Agent en http://127.0.0.1:{PORT}")
     if not os.environ.get("STRATA_AGENT_NO_OPEN"):
         threading.Timer(1.0, lambda: webbrowser.open(f"http://127.0.0.1:{PORT}")).start()

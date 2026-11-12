@@ -60,6 +60,33 @@ def _load():
     return _lib
 
 
+def profile():
+    """Every NVIDIA device as nvidia-smi's profile query reports it (name, driver, total VRAM in MiB,
+    CUDA capability), or None when NVML is not available. Microseconds instead of a ~1.5 s process,
+    which matters at start-up: the engine recommendation needs it before the window can be served."""
+    with _lock:
+        lib = _load()
+        if not lib:
+            return None
+        driver = ctypes.create_string_buffer(96)
+        driver_text = driver.value.decode('ascii', 'replace') if lib.nvmlSystemGetDriverVersion(driver, 96) == 0 else ''
+        result = []
+        for handle in _handles:
+            name, memory = ctypes.create_string_buffer(96), _Memory()
+            major, minor = ctypes.c_int(), ctypes.c_int()
+            if lib.nvmlDeviceGetName(handle, name, 96) != 0 or not name.value:
+                continue
+            vram = int(memory.total // 2**20) if lib.nvmlDeviceGetMemoryInfo(handle, ctypes.byref(memory)) == 0 else 0
+            try:
+                capability = float(f'{major.value}.{minor.value}') if lib.nvmlDeviceGetCudaComputeCapability(
+                    handle, ctypes.byref(major), ctypes.byref(minor)) == 0 else None
+            except AttributeError:
+                capability = None
+            result.append({'name': name.value.decode('utf-8', 'replace'), 'vendor': 'NVIDIA', 'driver': driver_text,
+                           'vram_mib': vram or None, 'cuda_capability': capability, 'source': 'nvml'})
+        return result or None
+
+
 def sample():
     """The most-used NVIDIA device as {'name','util','vram_mib','vram_total_mib','temp','power'},
     or None when NVML is not available (use nvidia-smi then)."""

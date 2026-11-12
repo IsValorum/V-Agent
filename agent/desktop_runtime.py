@@ -432,7 +432,10 @@ def install(a):
                 self._json(200,{'model':manager.loaded,'vision':{'enabled':enabled}});return
             super().do_GET()
         def do_POST(self):
-            handled=self.path.startswith('/api/harness/') or (manager.kind=='llama' and self.path in ('/api/models/inspect','/api/models/register','/api/models/vision'))
+            # Adding a GGUF follows the active engine: Strata's importer only for Strata (it refuses
+            # architectures Strata cannot run, which Strata Rust or llama.cpp may run fine).
+            handled=self.path.startswith('/api/harness/') or (manager.kind=='llama' and self.path=='/api/models/vision') \
+                or (manager.kind in ('llama','rust') and self.path in ('/api/models/inspect','/api/models/register'))
             if not handled:return super().do_POST()
             if not a.ui_origin_allowed(self.headers.get('Origin'),a.PORT):
                 self._json(403,{'error':'Esta acción requiere los controles locales de V-Agent.'});return
@@ -681,6 +684,10 @@ def install(a):
                 elif self.path in ('/api/models/inspect','/api/models/register'):
                     info=inspect_llama_import(body.get('path',''),body.get('template_path'))
                     if self.path.endswith('/inspect'):self._json(200,info)
+                    elif manager.kind=='rust':
+                        # Strata Rust lists GGUFs added this way as rust--<id> and applies its own template.
+                        result=register_llama_import({**info,'template':''},body.get('name'))
+                        result['model']['id']='rust--'+info['identifier'];self._json(200,result)
                     else:self._json(200,register_llama_import(info,body.get('name')))
                 else:self._json(404,{'error':'Acción desconocida.'})
             except (ValueError,OSError,KeyError) as error:self._json(400,{'error':str(error)})
