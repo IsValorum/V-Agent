@@ -872,8 +872,13 @@ body.desktop-frame.browser-open .topbar{padding-right:32px;}
   --glass-edge:color-mix(in srgb,var(--text) 14%,transparent);
   --glass-shine:inset 0 1px 0 color-mix(in srgb,#fff 9%,transparent);
 }
-:root[data-ui-style=glass] :is(.fw,#drawer,#composerControls,.agent-small-menu,#composerAddMenu,#helpCard,#updateStack .update-card,.update-more-row,.val-confirm,.tool-approval,#toast){
+/* The live blur is for small layers only. Windows used to be in this same :is() list, and
+   "#updateStack .update-card" raised the whole list's specificity above the no-blur rule for
+   windows below, so windows kept a 26 px live blur and flickered again. They are kept apart now. */
+:root[data-ui-style=glass] :is(.agent-small-menu,#composerAddMenu,#helpCard,#updateStack .update-card,.update-more-row,.val-confirm,.tool-approval,#toast){
   background:var(--glass-fill)!important;-webkit-backdrop-filter:var(--glass-filter)!important;backdrop-filter:var(--glass-filter)!important;
+  border:1px solid var(--glass-edge)!important;box-shadow:var(--glass-shine),0 22px 56px rgb(0 0 0 / .28),0 2px 8px rgb(0 0 0 / .10);}
+:root[data-ui-style=glass] :is(.fw,#drawer,#composerControls){
   border:1px solid var(--glass-edge)!important;box-shadow:var(--glass-shine),0 22px 56px rgb(0 0 0 / .28),0 2px 8px rgb(0 0 0 / .10);}
 :root[data-ui-style=glass] :is(.fw,#drawer,#composerControls) :is(.drawer-head,.controls-head,.fw-head,.dlg-head,.settings-navigation,.drawer-body,.controls-body){background:transparent!important;}
 /* Windows (settings, models, tools, console, model controls) are large and their content keeps
