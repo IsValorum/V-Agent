@@ -40,7 +40,7 @@ verification and a test run before activation, keeping the previous version for 
 counts as loaded only when the engine really serves it; speeds are measured, not estimated; settings
 carry over when you switch engine; and an engine that cannot run a model's architecture says so at
 once and points you to one that can. Real models are run on all three before each release
-([test results](docs/test-reports/1.0.6.md)).
+([test results](docs/test-reports/1.0.7.md)).
 
 ## What it does
 
@@ -74,7 +74,7 @@ once and points you to one that can. Real models are run on all three before eac
   signed update is verified exactly as the previous version will verify it.
 
 Full results of every check for this version, with screenshots of its real interface:
-[docs/test-reports/1.0.6.md](docs/test-reports/1.0.6.md). Methods, tools and what is not covered yet:
+[docs/test-reports/1.0.7.md](docs/test-reports/1.0.7.md). Methods, tools and what is not covered yet:
 [docs/QUALITY.md](docs/QUALITY.md).
 
 ## Install

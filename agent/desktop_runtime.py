@@ -362,7 +362,7 @@ def install(a):
         def do_GET(self):
             if self.path=='/api/harness/console':self._json(200,console.snapshot());return
             if self.path=='/api/harness/browser/pending':self._json(200,{'items':browser.take()});return
-            if self.path=='/api/harness/market':self._json(200,{'catalog':catalog.refresh(),'installed':extensions.public(),'health':a.HUB.status() if a.HUB else {}});return
+            if self.path=='/api/harness/market':self._json(200,{'catalog':catalog.refresh(),'installed':extensions.public(),'health':(a.HUB.wait(None) or a.HUB.status()) if a.HUB else {}});return
             if self.path=='/api/harness/plugins':self._json(200,{'plugins':plugins.public(),'root':str(plugins.ROOT)});return
             if self.path.startswith('/assets/branding/'):
                 from runtime_paths import SOURCE_ROOT

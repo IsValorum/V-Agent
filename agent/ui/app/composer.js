@@ -260,7 +260,7 @@ async function generateResponse(replaceIndex=null) {
         const choice=event.choices[0]||{},delta=choice.delta||{};
         if(delta.reasoning_content){finalReasoning+=delta.reasoning_content;if(!finalText)streamNote='Razonando…';}
         if(delta.content)finalText+=delta.content;
-        if(event.usage){lastUsage=generation.usage=event.usage;syncContextMeter();}
+        if(event.usage){lastUsage=event.usage;raiseGenerationUsage(generation,event.usage);}
         if(choice.finish_reason)ended=true;
         queuePaint();return;
       }
@@ -275,8 +275,8 @@ async function generateResponse(replaceIndex=null) {
         if(!finalText)streamNote=uiText(event.type==='tool_draft'?'Redactando llamada…':event.type==='tool_result'?'Preparando respuesta…':'Consultando herramienta…');
       }
       else if(event.type==='usage'){
-        lastUsage=generation.usage=event.usage;
-        syncContextMeter();
+        lastUsage=event.usage;
+        raiseGenerationUsage(generation,event.usage);
       }
       else if(event.type==='done'){ended=true;if(!finalText&&event.content)finalText=event.content;if(!finalReasoning&&event.reasoning_content)finalReasoning=event.reasoning_content;}
       else if(event.type==='error')throw new Error(event.text?uiText(event.text):uiText('El agente encontró un error.'));queuePaint();

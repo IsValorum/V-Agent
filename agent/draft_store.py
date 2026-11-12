@@ -10,11 +10,44 @@ def _target(record):
     return Path(str(path).replace("\\", "/")).name.lower() if path else ""
 
 
+# Only an unfinished file write can be recovered (draft_recovery.pending_draft); "mcp__draft" is a
+# call still being streamed whose tool is not known yet.
+RECOVERABLE = {"pc__fs_write", "mcp__draft"}
+
+
+def prune_finished(workspace):
+    """Remove snapshots that can never be recovered: finished calls and non-write tools.
+
+    Earlier versions saved every tool call (a read, a listing...) and a full copy of every written
+    file, so a chat folder filled with dozens of files without the user doing anything.
+    """
+    if workspace is None:
+        return
+    try:
+        folder = workspace.path("drafts")
+        snapshots = list(folder.glob("*.json")) if folder.is_dir() else []
+    except (OSError, ValueError):
+        return
+    for path in snapshots:
+        if not re.fullmatch(r"[0-9a-f]{32}", path.stem):
+            continue
+        try:
+            snapshot = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        finished = snapshot.get("status") == "completed" and snapshot.get("ok") is not False
+        if finished or snapshot.get("name") not in RECOVERABLE:
+            for copy in folder.glob(path.stem + "-*"):
+                copy.unlink(missing_ok=True)
+            path.unlink(missing_ok=True)
+
+
 class DraftStore:
     def __init__(self, workspace, write_text):
         self.workspace = workspace
         self.write_text = write_text
         self.records = {}
+        prune_finished(workspace)
 
     def observe(self, event):
         trace = event.get("id")
@@ -44,6 +77,19 @@ class DraftStore:
             for key, other in list(self.records.items()):
                 if key == trace or (other["name"] == record["name"] and other["status"] != "completed"
                                     and target and _target(other) == target):
+                    self._discard(other)
+                    self.records.pop(key, None)
+            return
+        if record["name"] and record["name"] not in RECOVERABLE:
+            # Nothing to recover from a read, a listing or a command: keep no file for it.
+            if event["type"] == "tool_result":
+                self.records.pop(trace, None)
+            return
+        if event["type"] == "tool_result" and event.get("ok") is not False and record["status"] == "completed":
+            # The file is written: its draft and earlier unfinished attempts at the same file are spent.
+            target = _target(record)
+            for key, other in list(self.records.items()):
+                if key == trace or (other["name"] == record["name"] and target and _target(other) == target):
                     self._discard(other)
                     self.records.pop(key, None)
             return

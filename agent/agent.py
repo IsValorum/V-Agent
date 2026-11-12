@@ -2099,6 +2099,7 @@ class Handler(BaseHTTPRequestHandler):
         elif urllib.parse.urlsplit(self.path).path == "/api/mcp":
             from sandbox_exec import status as isolation_status
             access = ACCESS.snapshot();isolation=isolation_status()
+            if HUB:HUB.wait(None)  # servers start in the background at launch: report them once settled
             info = {**(HUB.status() if HUB else {"servers": [], "tools": 0}), 'access': {**access,'isolation':isolation,'shell_available':access['mode']=='full_pc' or isolation['available']}}
             q = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query, keep_blank_values=True)
             activas = (q.get("on", [None])[0])

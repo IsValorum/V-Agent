@@ -32,9 +32,10 @@ class IsolatedCommandTests(unittest.TestCase):
             result=pc_mcp.call('shell_run',{'command':'python calc.py'},policy=AccessPolicy(Path(folder)))
             self.assertIn('2432902008176640000',result)
 
-    def test_light_profile_always_approves_commands(self):
-        for mode in ('ask','auto','run'):
+    def test_light_profile_approves_commands_unless_automatic(self):
+        for mode in ('ask','auto'):
             self.assertTrue(needs_approval(mode,'pc__shell_run',{'command':'echo test'},'light'))
+        self.assertFalse(needs_approval('run','pc__shell_run',{'command':'echo test'},'light'))
 
     @unittest.skipUnless(os.name=='nt' and sandbox_exec._BINARY.is_file(),'Windows MXC runtime required')
     def test_real_isolation_blocks_outside_read_and_write(self):

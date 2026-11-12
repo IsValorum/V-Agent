@@ -8,8 +8,14 @@ SAFE={'pc__fs_list','pc__fs_read','pc__project_map','pc__sys_info','duckduckgo__
 # Read-only and confined to the isolated conversation folder: asking for each one only trains
 # users to click "allow" without reading. Network reads are excluded: they send data out.
 LOCAL_READS={'pc__fs_list','pc__fs_read','pc__fs_search','pc__project_map','pc__file_history','pc__sys_info'}
+# Also read-only in "Confirm changes": the status of jobs already approved, and what the agent's own
+# browser shows (not its cookies or network log). Opening pages, clicking and typing still ask.
+AUTO_READS=LOCAL_READS|{'pc__job_list','pc__job_status','pc__job_wait','autobrowser__text','autobrowser__snapshot',
+                        'autobrowser__tabs','autobrowser__screenshot','autobrowser__wait'}
 SENSITIVE=re.compile(r'(?i)(?:\.env|credential|secret|token|id_rsa|password|\.pem|\.key\b)')
 def needs_approval(mode,name,args,agent_profile=None,full_access=False):
+    # "Automatic" (run) is the user's explicit choice: no profile adds prompts behind it.
+    if mode=='run':return False
     if agent_profile=="light" and name=="pc__console" and args.get("action","run")=="run":return True
     if agent_profile=="light" and name=="pc__shell_run":return True
     if agent_profile=="light" and name=="pc__code_check" and args.get("run") and args.get("check") not in (None,"","syntax"):return True
@@ -24,8 +30,11 @@ def needs_approval(mode,name,args,agent_profile=None,full_access=False):
         if not full_access and name=='pc__code_check' and not args.get('run'):return False
         return True
     if mode!='auto':return False
-    if name=='pc__fs_read' and sensitive:return True
-    if name in SAFE:return False
+    # "Confirm changes": reads run, changes ask. It used to ask for searching files and listing
+    # versions, which "Ask every time" allows: the looser mode was stricter for those reads.
+    if restore:return True
+    if sensitive and name in LOCAL_READS:return True
+    if name in SAFE or name in AUTO_READS:return False
     if name=='pc__code_check' and (not args.get('run') or args.get('check') in (None,'','syntax')):return False
     if name=='pc__console' and args.get('action')=='status':return False
     return True

@@ -109,6 +109,36 @@ class EditingTests(unittest.TestCase):
             self.assertEqual(policy.path(recovered['path']).read_text(encoding='utf8'),'print("hola")\nvalue = ')
             self.assertEqual(extract_file({'raw':raw})[1],'print("hola")\nvalue = ')
 
+    def test_finished_calls_leave_no_files_in_the_chat_folder(self):
+        with tempfile.TemporaryDirectory() as directory:
+            policy=AccessPolicy(Path(directory));write=lambda path,text:(path.parent.mkdir(parents=True,exist_ok=True),path.write_text(text,encoding='utf8'))
+            store=DraftStore(policy,write)
+            # Reads and listings: nothing to recover, nothing on disk (they used to leave one JSON each).
+            for n,name in enumerate(('pc__fs_list','pc__fs_read','pc__code_check','pc__shell_run')):
+                store.observe({'id':f'r{n}','name':name,'type':'tool','args':{'path':'.'},'status':'running'})
+                store.observe({'id':f'r{n}','name':name,'type':'tool_result','status':'completed','ok':True,'executed':True,'result':'x'})
+            # A failed write, then the same file written correctly: both drafts are spent.
+            args={'path':'page.html','content':'<p>hola</p>'}
+            store.observe({'id':'w1','name':'pc__fs_write','type':'tool','args':args,'status':'running'})
+            store.observe({'id':'w1','name':'pc__fs_write','type':'tool_result','status':'error','ok':False,'executed':True})
+            self.assertTrue(list(Path(directory).rglob('drafts/*.json')))
+            store.observe({'id':'w2','name':'pc__fs_write','type':'tool','args':args,'status':'running'})
+            event={'id':'w2','name':'pc__fs_write','type':'tool_result','status':'completed','ok':True,'executed':True}
+            store.observe(event);store.flush()
+            self.assertNotIn('draft_id',event)
+            self.assertEqual([p.name for p in Path(directory).rglob('*') if p.is_file()],[])
+
+    def test_old_finished_snapshots_are_pruned_when_the_chat_opens(self):
+        with tempfile.TemporaryDirectory() as directory:
+            policy=AccessPolicy(Path(directory));drafts=Path(directory)/'drafts';drafts.mkdir()
+            write=lambda path,text:(path.parent.mkdir(parents=True,exist_ok=True),path.write_text(text,encoding='utf8'))
+            done,kept='a'*32,'b'*32
+            (drafts/(done+'.json')).write_text(json.dumps({'id':done,'name':'pc__fs_list','status':'completed','ok':True}),encoding='utf8')
+            (drafts/(done+'-copy.txt')).write_text('x',encoding='utf8')
+            (drafts/(kept+'.json')).write_text(json.dumps({'id':kept,'name':'pc__fs_write','status':'interrupted','raw':'{"path":"a.txt","content":"hi'}),encoding='utf8')
+            DraftStore(policy,write)
+            self.assertEqual(sorted(p.name for p in drafts.iterdir()),[kept+'.json'])
+
     def test_denied_write_leaves_no_draft_on_disk(self):
         with tempfile.TemporaryDirectory() as directory:
             policy=AccessPolicy(Path(directory));write=lambda path,text:(path.parent.mkdir(parents=True,exist_ok=True),path.write_text(text,encoding='utf8'))

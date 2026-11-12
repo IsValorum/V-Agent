@@ -287,6 +287,14 @@ $('#ctxApply').onclick = async () => {
 
 /* ---------- estadísticas ---------- */
 let contextCapacity=null;
+// Within one reply the context only grows; a sample or round count a few tokens below what is already
+// shown (llama.cpp counts its live tokens slightly differently) must not move the meter backwards.
+// The exact final count is shown when the reply ends.
+function raiseGenerationUsage(generation,usage){
+  const total=value=>value?(value.prompt_tokens||0)+(value.completion_tokens||0):0;
+  if(generation.usage&&total(usage)<total(generation.usage))return;
+  generation.usage={...usage,limit:usage.limit??generation.usage?.limit};syncContextMeter();
+}
 async function pollLiveContext(generation){
   if(activeGeneration!==generation||generation.stopped||generation.contextDone)return;
   try{
@@ -294,7 +302,7 @@ async function pollLiveContext(generation){
     const usage=data.usage;
     if(activeGeneration===generation&&!generation.contextDone&&data.run_id===generation.runId&&data.conversation_id===currentId&&data.model===generation.provenance.model&&usage&&Number.isFinite(usage.used)){
       if(usage.source==='live')generation.contextSeen=true;
-      if(generation.contextSeen){generation.usage={prompt_tokens:usage.prompt_tokens,completion_tokens:usage.completion_tokens,limit:usage.limit};syncContextMeter();}
+      if(generation.contextSeen)raiseGenerationUsage(generation,{prompt_tokens:usage.prompt_tokens,completion_tokens:usage.completion_tokens,limit:usage.limit});
     }
   }catch{}
   finally{if(activeGeneration===generation&&!generation.stopped&&!generation.contextDone)generation.contextTimer=setTimeout(()=>pollLiveContext(generation),700);}

@@ -53,6 +53,19 @@ class DnsRebindingTests(unittest.TestCase):
 
 
 class ApprovalTests(unittest.TestCase):
+    def test_confirm_changes_is_never_stricter_than_ask_every_time(self):
+        from tool_approvals import needs_approval
+        for name in ('pc__fs_search', 'pc__file_history', 'pc__fs_list', 'pc__fs_read', 'pc__project_map', 'pc__sys_info'):
+            self.assertFalse(needs_approval('auto', name, {'path': 'notas'}), name)
+        for name in ('pc__job_status', 'pc__job_list', 'pc__job_wait', 'autobrowser__text', 'autobrowser__snapshot'):
+            self.assertFalse(needs_approval('auto', name, {}), name)
+        # Changes, execution, restores, sensitive files and unknown tools still ask.
+        for name, args in (('pc__fs_write', {'path': 'a'}), ('pc__shell_run', {'command': 'dir'}), ('pc__web_render', {}),
+                           ('pc__file_history', {'path': 'a', 'revision': 3}), ('pc__fs_search', {'path': '.env'}),
+                           ('autobrowser__cookies', {}), ('autobrowser__navigate', {'url': 'https://x'}), ('extra__tool', {})):
+            self.assertTrue(needs_approval('auto', name, args), name)
+
+
     def test_restoring_a_version_is_a_write_that_asks(self):
         from tool_approvals import needs_approval
         self.assertTrue(needs_approval('ask', 'pc__file_history', {'path': 'a.txt', 'revision': 'r1'}))
