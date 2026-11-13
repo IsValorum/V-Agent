@@ -401,9 +401,6 @@ body.browser-open #updateStack{right:calc(var(--browser-width) + 16px);}
 .model-selected-label{font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap;}
 #searchToggle.icon-only{width:28px;min-width:28px;justify-content:center;padding:5px;}
 #searchToggle.icon-only svg{width:14px;height:14px;}
-.model-selected-label{font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap;}
-#searchToggle.icon-only{width:28px;min-width:28px;justify-content:center;padding:5px;}
-#searchToggle.icon-only svg{width:14px;height:14px;}
 /* Form controls keep their own borders: never decorate chat textareas, toggles or navigation globally. */
 .model-footer-static{position:static!important;z-index:auto!important;border-top:1px solid var(--border);margin-top:6px;}
 .model-summary-action{font-size:9px;padding:3px 6px;border-style:double!important;border-width:2px!important;border-color:var(--double-line)!important;background:transparent;color:var(--accent);white-space:nowrap;}
@@ -470,7 +467,7 @@ body[data-theme-mode=day]{--outside-surface:rgba(255,255,255,.82);--outside-text
 .welcome h2{display:inline-block;padding:9px 16px;border-radius:12px;width:fit-content;max-width:calc(100% - 28px);font-size:clamp(18px,2.1vw,29px);}
 .project-strip{gap:8px;flex-wrap:wrap;}@media(max-width:520px){.api-form-grid{grid-template-columns:1fr;}.api-form-grid .api-wide{grid-column:1;}#agentModeSegments button{padding-inline:7px;font-size:10px;}}
 #composerControls[data-source=api][data-active-source=local] .model-top{display:none;}
-#composerControls[data-source=api][data-active-source=local] :is(.model-grid,.model-footer-static,#modelSectionTabs,#contextBlock),#composerControls[data-source=local][data-active-source=api] :is(.model-top,.model-grid,.model-footer-static,#remoteModelInfo,#contextBlock){display:none!important;}
+#composerControls[data-source=api][data-active-source=local] :is(.model-grid,.model-footer-static,#modelSectionTabs,#contextCompactBox,#contextBlock),#composerControls[data-source=local][data-active-source=api] :is(.model-top,.model-grid,.model-footer-static,#remoteModelInfo,#contextCompactBox,#contextBlock){display:none!important;}
 
 /* One roundness scale for every application surface. Native switches/indicators stay circular. */
 :root{--control-radius:clamp(2px,calc(var(--radius) * .65),18px);--panel-radius:max(2px,var(--radius));}
@@ -1168,3 +1165,16 @@ body.desktop-frame #chatwrap .topbar{pointer-events:auto;}
 #composerControls .context-memory-warning{margin:6px 0 0;font-size:11px;line-height:1.4;color:#e0a458;}
 #composerControls .context-memory-warning[hidden]{display:none;}
 #composerControls #controls-response label[for=workProfile]{font-size:11px;color:var(--muted);} /* was 14 px beside 11 px labels */
+.context-compact-box{margin:8px 0 4px;padding:9px 11px;border:1px solid var(--border);border-radius:calc(var(--radius,10px) + 2px);background:color-mix(in srgb,var(--accent) 4%,transparent);}
+.context-compact-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.context-compact-meta{display:grid;gap:2px;min-width:0;flex:1;}
+.context-compact-meta strong{font-size:11px;font-weight:600;color:var(--text);}
+.context-compact-meta small{font-size:10px;color:var(--muted);overflow-wrap:anywhere;}
+#ctxCompact{padding:6px 11px;font-size:11px;font-weight:600;border-radius:var(--radius,10px);background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--text);border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border));}
+#ctxCompact:hover:enabled{background:var(--accent);color:var(--accent-ink,#111);}
+.msg.compacted{max-width:100%;}
+.compact-card{width:100%;border:1px dashed color-mix(in srgb,var(--accent) 45%,var(--border));border-radius:10px;padding:8px 12px;background:color-mix(in srgb,var(--accent) 5%,transparent);}
+.compact-card>summary{cursor:pointer;font-size:11px;color:var(--muted);font-weight:600;list-style:none;}
+.compact-card>summary::-webkit-details-marker{display:none;}
+.compact-card[open]>summary{margin-bottom:8px;color:var(--text);}
+.compact-body{font-size:12px;}

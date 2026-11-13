@@ -149,7 +149,8 @@ def current(port: int, timeout: float = 8.0) -> dict:
     out = {}
     for path in ("/v1/status", "/metrics"):
         try:
-            st = json.load(urllib.request.urlopen(f"http://127.0.0.1:{port}{path}", timeout=timeout))
+            with urllib.request.urlopen(f"http://127.0.0.1:{port}{path}", timeout=timeout) as r:
+                st = json.load(r)
         except Exception:
             continue
         eng = st.get("engine") or {}

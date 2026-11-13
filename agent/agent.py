@@ -61,6 +61,7 @@ PC_ACCESS_KEY = secrets.token_urlsafe(32)
 APPEARANCE = AppearanceStore(SETTINGS_ROOT / "ui-preferences.json")
 PREPARATION = ModelPreparation()
 ACTIVE_CONTEXT_RUN = {}
+ACTIVE_CONTEXT_LOCK = threading.Lock()
 
 ENGINE_PORT = 19382
 STRATA = f"http://127.0.0.1:{ENGINE_PORT}"
@@ -310,7 +311,7 @@ def installed_models():
         default = json.loads(Path(DEFAULT_CONFIG).read_text(encoding="utf-8-sig")).get("model_name")
     except (OSError, ValueError):
         default = None
-    profile_data = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
+    profile_data = json.loads(PROFILE_PATH.read_text(encoding="utf-8-sig"))
     ignored = set(profile_data.get("ignored_models", []))
     models = [model for model in models if model["id"] not in ignored]
     for model in models:
@@ -436,6 +437,11 @@ def plantilla_en_carga(target):
         est = {"modelo": modelo, "estado": "error", "linea": linea, "detalle": str(error)[:200]}
         print("[plantilla] " + linea, flush=True)
         return est
+
+
+def REMOTE_ENGINE():
+    """True when the active engine is a remote API (replaced by desktop_runtime.install)."""
+    return False
 
 
 def load_agent_model(name, context=None):
@@ -690,7 +696,8 @@ def set_context_for(cfg_path, tokens):
     """
     kv = kv_of(cfg_path)
     try:
-        a = json.load(open(str(cfg_path), encoding="utf-8")).get("args") or []
+        with open(str(cfg_path), encoding="utf-8-sig") as f:
+            a = json.load(f).get("args") or []
         cur = int(a[a.index("--vram-reserve-mib") + 1]) if "--vram-reserve-mib" in a else None
     except Exception:
         cur = None
@@ -700,7 +707,8 @@ def set_context_for(cfg_path, tokens):
 
 def kv_of(cfg_path):
     try:
-        a = json.load(open(str(cfg_path), encoding="utf-8")).get("args") or []
+        with open(str(cfg_path), encoding="utf-8-sig") as f:
+            a = json.load(f).get("args") or []
         return a[a.index("--kv") + 1] if "--kv" in a else "fp16"
     except Exception:
         return "fp16"
@@ -745,6 +753,45 @@ def kill_server_tree():
         return False
     subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)], capture_output=True, encoding="utf-8", errors="replace", timeout=30, creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
     return True
+
+
+def compact_local_context(model_id, messages, instructions=None, engine_port=ENGINE_PORT):
+    from remote_protocols import COMPACT_INSTRUCTIONS, compact_transcript
+    transcript = compact_transcript(messages)
+    if not transcript.strip():
+        raise ValueError("No hay historial suficiente para comprimir.")
+    prompt = instructions or COMPACT_INSTRUCTIONS
+    payload = {
+        "model": model_id,
+        "stream": False,
+        "chat_template_kwargs": {"no_date": True, "enable_thinking": False},
+        "messages": [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": "Historial a comprimir:\n\n" + transcript},
+        ],
+    }
+    connection = http.client.HTTPConnection("127.0.0.1", engine_port, timeout=600)
+    try:
+        connection.request("POST", "/v1/chat/completions", json.dumps(payload, ensure_ascii=False).encode(),
+                           {"Content-Type": "application/json"})
+        response = connection.getresponse()
+        raw = response.read(4 * 1024 * 1024).decode("utf-8", "replace")
+        if response.status != 200:
+            raise ValueError(f"Error del motor ({response.status}): {raw[:400]}")
+        data = json.loads(raw)
+        choice = (data.get("choices") or [None])[0] or {}
+        summary = str(((choice.get("message") or {}).get("content")) or "").strip()
+        if not summary:
+            raise ValueError("El modelo no devolvió texto al comprimir el contexto.")
+        raw_usage = data.get("usage") if isinstance(data.get("usage"), dict) else None
+        usage = None
+        if raw_usage and isinstance(raw_usage.get("prompt_tokens"), int):
+            usage = {"prompt_tokens": raw_usage["prompt_tokens"],
+                     "completion_tokens": int(raw_usage.get("completion_tokens") or 0)}
+        return {"ok": True, "method": "local_chat_completions", "method_label": "Resumen con modelo local",
+                "summary": summary, **({"usage": usage} if usage else {})}
+    finally:
+        connection.close()
 
 
 def change_context(tokens, name=None):
@@ -813,19 +860,10 @@ def set_vram_reserve(reserve_mib):
         {"context": t, "reserve_mib": vram_policy.reserve_for(t)} for t in (16384, 32768, 65536, 98304, 131072)]}
 
 
-LANGUAGE_RULE = "Reply in the language of the user's latest message, even when tool results use another language."
-_LANGUAGE_HINTS = {
-    "Spanish": (set("áéíóúñ¿¡"), {"el", "la", "los", "las", "que", "de", "y", "en", "por", "para", "es", "una", "un", "con", "dime", "cómo", "qué"}),
-    # No "a": it is also the English article and made plain English requests look ambiguous.
-    "Portuguese": (set("ãõç"), {"não", "você", "de", "que", "e", "o", "em", "para", "uma", "com", "como", "isso"}),
-    "French": (set("èêàùç"), {"le", "la", "les", "et", "est", "une", "des", "pour", "avec", "dans", "que", "vous"}),
-    "German": (set("äöüß"), {"der", "die", "das", "und", "ist", "nicht", "mit", "ein", "eine", "für", "wie", "bitte"}),
-    "English": (set(), {"the", "and", "is", "to", "of", "what", "please", "with", "for", "this", "how", "you",
-                        "that", "it", "in", "an", "my", "are"}),
-}
+LANGUAGE_RULE = "Reply in the language of the user's latest message, even when tool results or web pages use another language."
 
 
-def tool_rule(tools):
+def tool_rule(tools, full_access=False):
     """Say where the model works and that files are made with tools, not printed in the reply.
 
     Without it, capable models (e.g. a 35B MoE with a template that says "if no function call is
@@ -835,11 +873,17 @@ def tool_rule(tools):
     names = {t["function"]["name"].split("__")[-1] for t in tools or []}
     if not names:
         return ""
+    scope = (
+        "You have full-PC access on the user's computer through the tools listed above: file tools accept both "
+        "relative paths (in the working folder) and absolute paths anywhere on the PC (e.g. C:\\Users\\...)."
+        if full_access else
+        "You work inside a folder on the user's computer through the tools listed above."
+    )
     if "fs_write" not in names:
-        return ("You can act through the tools listed above. When the user's request needs one of them, "
+        return (scope + " When the user's request needs one of them, "
                 "call it instead of describing what you would do.")
     verify = [n for n in ("code_check", "web_render") if n in names]
-    rule = ("You work inside a folder on the user's computer through the tools listed above. When the user asks you to "
+    rule = (scope + " When the user asks you to "
             "create, save or change a file, do it with the tools (fs_write creates or replaces a file"
             + (", fs_edit changes part of one" if "fs_edit" in names else "")
             + ") instead of only showing the code in your reply.")
@@ -874,29 +918,8 @@ def archivo_no_creado(messages, tools, reply):
     return match.group(1) if match else None
 
 
-def language_rule(messages):
-    """Name the language: small models follow "Reply in Spanish" far better than "the user's language".
-
-    Falls back to the generic rule when the latest user text is too short or ambiguous to tell.
-    """
-    text = ""
-    for message in reversed(messages or []):
-        if isinstance(message, dict) and message.get("role") == "user":
-            content = message.get("content")
-            text = content if isinstance(content, str) else " ".join(
-                str(p.get("text", "")) for p in content or [] if isinstance(p, dict))
-            break
-    text = text.split("\n\n[Adjuntos]\n")[0][:2000].lower()
-    words = re.findall(r"[a-záéíóúñãõçèêàùäöüß]+", text)
-    if len(words) < 3:
-        return LANGUAGE_RULE
-    scores = {name: sum(w in vocab for w in words) + 2 * sum(ch in marks for ch in text)
-              for name, (marks, vocab) in _LANGUAGE_HINTS.items()}
-    best = max(scores, key=scores.get)
-    ranked = sorted(scores.values(), reverse=True)
-    if ranked[0] < 2 or ranked[0] < ranked[1] * 1.5:
-        return LANGUAGE_RULE
-    return "Reply in %s, even when tool results or web pages use another language." % best
+def language_rule(messages=None):
+    return LANGUAGE_RULE
 
 
 def date_line():
@@ -1053,7 +1076,7 @@ def tools_for(fn, tpath=None, agent_profile="balanced"):
     if fn.get("web"):
         enabled.update({"http_request","download"})
     if fn.get("autobrowser"):
-        enabled.update({"open","navigate","snapshot","text","click","fill","press","eval","wait","screenshot","cookies","network","browser_console","browser_download","tabs","close"})
+        enabled.update({"open","navigate","snapshot","text","click","fill","press","evaluate","wait","screenshot","cookies","network","browser_console","browser_download","tabs","close"})
     full_access = ACCESS.snapshot()['mode'] == 'full_pc'
     if fn.get("shell"):
         enabled.add('shell_run')
@@ -1092,10 +1115,15 @@ def tools_for(fn, tpath=None, agent_profile="balanced"):
                         'pc__fs_copy': 'Copy or move text between sandbox files by line number, without the model retyping it.',
                         'pc__web_render': 'Render sandbox HTML; report console errors and scene/camera/instance diagnostics. Not a visual quality guarantee.',
                         'pc__shell_run': 'Run CMD in the isolated workspace. No network, PowerShell or background jobs. If unavailable, the command is not run.'}
+        path_notes = {'pc__fs_list', 'pc__fs_read', 'pc__fs_write', 'pc__fs_edit', 'pc__web_render'}
         for tool in tools:
             fn = tool['function']
             if fn['name'] in descriptions:
                 fn['description'] = descriptions[fn['name']]
+            if fn['name'] in path_notes:
+                prop = (fn.get('parameters', {}).get('properties') or {}).get('path')
+                if isinstance(prop, dict):
+                    prop['description'] = 'Relative to the sandbox working folder, e.g. notes.txt or src/app.py.'
     from agent_profiles import tools_for_profile,distinct_tools
     tools=distinct_tools(tools_for_profile(tools,agent_profile))
     # Presupuesto duro del bloque de tools (ver agent/tool_budget.py): mientras quede lejos del
@@ -1142,6 +1170,43 @@ def unknown_tool_text(name, allowed=None):
     routes = allowed if allowed is not None else {}
     names = ", ".join(sorted(routes)) or "(ninguna)"
     return f"error: tool unavailable: {name!r}. Enabled tools: {names}"
+
+
+def _filter_server_gate_result(name, text, allowed, blocked_tools=None):
+    """Strip disabled or server-blocked tools from server gate alternatives."""
+    if not isinstance(text, str) or not text.lstrip().startswith("{") or '"server_blocked"' not in text:
+        return text
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return text
+    if not isinstance(data, dict) or not data.get("server_blocked"):
+        return text
+    blocked_set = set(blocked_tools or ())
+    alts = []
+    for item in (data.get("alternatives") if isinstance(data.get("alternatives"), list) else []):
+        entry = str(item)
+        refs = re.findall(r"\b(?:pc|hf|duckduckgo|web|autobrowser|admin|computer)__[a-z0-9_]+\b", entry)
+        if any(ref not in allowed or ref in blocked_set or ref == name for ref in refs):
+            continue
+        alts.append(entry)
+    is_interstitial = data.get("gate_kind") == "interstitial"
+    if "pc__browser" in allowed and name != "pc__browser":
+        data["user_suggestion"] = (
+            "Site returned a temporary wait/JS interstitial instead of results; use pc__browser or suggest the user open/verify this URL in the visible browser."
+            if is_interstitial
+            else "Server-side block detected. Do not retry this blocked endpoint here; use pc__browser only if appropriate, or suggest to the user to open/verify this URL in the visible browser."
+        )
+    else:
+        data["user_suggestion"] = (
+            "Site returned a temporary wait/JS interstitial instead of results; inform the user and suggest opening this URL directly in a browser."
+            if is_interstitial
+            else "Server-side block detected. Do not retry this blocked endpoint; inform the user and suggest opening this URL directly in a browser."
+        )
+        if not alts:
+            alts.append("Suggest the user open this URL directly in a browser.")
+    data["alternatives"] = alts
+    return json.dumps(data, ensure_ascii=False)
 
 
 class GenerationControl:
@@ -1256,10 +1321,10 @@ def _responde_huerfanas(mensajes):
             cid = c.get("id") or ""
             if cid in contestadas:
                 continue
-            nombre = ((c.get("function") or {}).get("name") or "la herramienta").split("__")[-1]
+            nombre = ((c.get("function") or {}).get("name") or "the tool").split("__")[-1]
             salida.append({"role": "tool", "tool_call_id": cid, "content":
-                           "no ejecutada: la respuesta anterior se corto antes de llamar a %s. "
-                           "No la des por hecha; decide si hace falta ahora." % nombre})
+                           "not executed: the previous reply was interrupted before calling %s. "
+                           "Do not assume it ran; decide whether it is still needed." % nombre})
     return salida
 
 
@@ -1309,7 +1374,7 @@ def _run_chat_stream(body, control=None):
     if (body.get("functions") or {}).get("date"):
         messages = with_date(messages)
     model = body.get("model") or "any"
-    profiles = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
+    profiles = json.loads(PROFILE_PATH.read_text(encoding="utf-8-sig"))
     model_profiles = profiles["models"].get(model, {}).get("profiles", profiles["profiles"])
     preset = model_profiles.get(body.get("profile") or "code", model_profiles["code"])
     effort = body.get("effort") or preset["effort"]
@@ -1318,7 +1383,7 @@ def _run_chat_stream(body, control=None):
     from agent_profiles import normalize,PROFILES
     agent_profile=normalize(body.get("agent_profile"))
     tools = tools_for(body.get("functions") or {}, plantilla_del_modelo,agent_profile)
-    rule = tool_rule(tools)
+    rule = tool_rule(tools, ACCESS.snapshot()["mode"] == "full_pc")
     if rule:
         if messages and messages[0].get('role') == 'system':
             messages[0] = {**messages[0], 'content': rule + '\n\n' + messages[0].get('content', '')}
@@ -1381,7 +1446,9 @@ def _run_chat_stream(body, control=None):
     fallos_forma = 0              # fallos de FORMA seguidos (no se ejecuto nada): tope 3
     fallos_contenido = 0          # fallos de CONTENIDO seguidos (ejecuto y devolvio la prueba): tope 5
     guardados_previos = {}        # ruta -> ultimo contenido guardado: para la "otra version" igual
+    blocked_search_tools = set()
     wrap_up = False
+    reasoning = ""
     for rnd in range(rounds):
         final_round = bool(tools) and (wrap_up or rnd == rounds - 1)
         if control.cancelled.is_set():
@@ -1586,7 +1653,7 @@ def _run_chat_stream(body, control=None):
             final = "".join(full) + content
             if content != raw_content:
                 yield {"type": "content_fixed", "text": final}
-            yield {"type": "done", "content": final}
+            yield {"type": "done", "content": final, "reasoning_content": reasoning}
             return
 
         full.append(content)
@@ -1718,15 +1785,15 @@ def _run_chat_stream(body, control=None):
                     text = "error: tool is not enabled for this conversation. Do not retry it unless the user enables it."
                     status = "blocked"
                 elif not c["args_valid"]:
-                    text = "error: los argumentos de la herramienta deben ser un objeto JSON válido."
+                    text = "error: tool arguments must be a valid JSON object."
                 elif firma in llamadas_hechas:
                     # La misma llamada exacta, otra vez: es el bucle observado (versiones del
                     # mismo fichero) y cada vuelta cuesta prefill y contexto.
-                    text = ("error: esa llamada exacta ya se ejecuto en esta conversacion y devolvio: %s. "
-                            "No la repitas igual: usa el resultado anterior, cambia los argumentos o termina."
+                    text = ("error: that exact tool call already ran in this conversation and returned: %s. "
+                            "Do not repeat the same call; use the earlier result, change the arguments, or finish."
                             % str(llamadas_hechas[firma])[:160])
                     status, ok = "blocked", False
-                elif name == "pc__fs_write" and args.get("path") in guardados_previos and \
+                elif name == "pc__fs_write" and isinstance(args.get("path"), str) and args["path"] in guardados_previos and \
                         _parecido(args.get("content"), guardados_previos[args["path"]]):
                     # No es la llamada exacta, pero el contenido es la misma version con retoques:
                     # SWE-agent directamente no deja crear sobre un fichero que ya existe.
@@ -1737,7 +1804,7 @@ def _run_chat_stream(body, control=None):
                             % (args["path"], int(PARECIDO_MIN * 100)))
                     status, ok = "blocked", False
                 elif HUB and name in HUB.routes():
-                    validate_tool_arguments(allowed[name], args, strict=name.startswith(("pc__","hf__","duckduckgo__")))
+                    validate_tool_arguments(allowed[name], args, strict=name.startswith(("pc__","hf__","duckduckgo__","web__","autobrowser__","admin__","computer__")))
                     check_search_arguments(name, args)
                     from output_paths import prepare_output_paths
                     call_args = prepare_output_paths(name,args,workspace,ACCESS.snapshot()['mode']=='full_pc')
@@ -1772,8 +1839,11 @@ def _run_chat_stream(body, control=None):
                         source_chars = res.get("chars")
                     else:
                         text, ok = str(res), True
+                    if name == "duckduckgo__web_search" and not ok:
+                        blocked_search_tools.add(name)
+                    text = _filter_server_gate_result(name, text, allowed, blocked_search_tools)
                     if not ok and not text.lower().startswith("error:"):
-                        text = "error: " + (text or "La herramienta devolvió un error.")
+                        text = "error: " + (text or "Tool returned an error.")
                     status = "completed" if ok else "error"
                 else:
                     text = unknown_tool_text(c["name"], allowed)
@@ -1796,16 +1866,16 @@ def _run_chat_stream(body, control=None):
                 # por partes con fs_read en vez de quedarse con la cabecera truncada.
                 destino = volcar_salida(trace_id, text, workspace)
                 if destino:
-                    limit_note += ("\n[La salida completa esta en %s: leela por partes con fs_read "
-                                   "(offset) en vez de pedirla otra vez.]" % destino)
+                    limit_note += ("\n[Full output saved at %s: read it in chunks with fs_read "
+                                   "(offset) instead of calling the tool again.]" % destino)
             result_limit = max(0, limite - len(limit_note))
             if source_truncated and "outputs/" not in limit_note and name != "pc__fs_read":
                 # El propio servidor MCP recorto la salida (pc_mcp CAP / web_visit por paginas): lo que
                 # falta no esta en ningun lado, asi que se le dice como se continua en vez de dejarle
                 # releer el mismo trozo.
-                limit_note += ("\n[El servidor recorto esta salida: continua donde se corto (fs_read con "
-                               "offset, o web_visit con el mismo page_id y offset=next_offset) en lugar de "
-                               "repetir la llamada igual.]")
+                limit_note += ("\n[Output truncated by the tool server: continue from the cutoff (fs_read with "
+                               "offset, or web_visit with the same page_id and offset=next_offset) instead of "
+                               "repeating the same call.]")
                 result_limit = max(0, limite - len(limit_note))
             model_text = text[:result_limit] + limit_note
             yield {"type": "tool_result", "id": trace_id, "name": name,
@@ -1869,7 +1939,7 @@ def _run_chat_stream(body, control=None):
             full.append("\n\n")
             yield {"type": "content", "text": "\n\n"}
 
-    yield {"type": "done", "content": "".join(full)}
+    yield {"type": "done", "content": "".join(full), "reasoning_content": reasoning}
 
 
 def con_ejecucion(veredicto, ruta):
@@ -2070,7 +2140,11 @@ class Handler(BaseHTTPRequestHandler):
             self.proxy_engine()
             return
         if self.path in ("/guide.html", "/guide"):
-            raw = (UI_DIST / "guide.html").read_bytes()
+            guide = UI_DIST / "guide.html"
+            if not guide.is_file():
+                self._json(404, {"error": "La guía no está disponible."})
+                return
+            raw = guide.read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
@@ -2129,14 +2203,17 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == "/api/chat/status":
             self._json(200, {"busy": ENGINE_LOCK.locked()})
         elif self.path == '/api/context/usage':
-            run = dict(ACTIVE_CONTEXT_RUN)
+            with ACTIVE_CONTEXT_LOCK:
+                run = dict(ACTIVE_CONTEXT_RUN)
             if not run:
                 self._json(200, {'run_id':None,'usage':None})
                 return
             try:
                 metrics=http_json(STRATA+'/metrics',timeout=2)
                 usage=context_usage(metrics,True)
-                self._json(200,{**run,'usage':usage} if run==ACTIVE_CONTEXT_RUN else {'run_id':None,'usage':None})
+                with ACTIVE_CONTEXT_LOCK:
+                    same = (run == ACTIVE_CONTEXT_RUN)
+                self._json(200,{**run,'usage':usage} if same else {'run_id':None,'usage':None})
             except (OSError,ValueError):
                 self._json(200,{**run,'usage':None})
         elif self.path == "/api/load/status":
@@ -2494,6 +2571,8 @@ class Handler(BaseHTTPRequestHandler):
                         self._json(400, {"error": "falta model"})
                         return
                     context = (body or {}).get("context")
+                    if context is not None and REMOTE_ENGINE():
+                        context = None  # a provider's model: its context is the API's, nothing is loaded here
                     if context is not None and (type(context) is not int or not 2048 <= context <= 262144):
                         self._json(400, {"error": "contexto fuera de rango (2048-262144)"})
                         return
@@ -2517,6 +2596,33 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(400, {"error": str(e)})
             except Exception as e:
                 self._json(500, {"error": str(e)})
+            finally:
+                ENGINE_LOCK.release()
+            return
+        if self.path == "/api/context/compact":
+            try:
+                n = int(self.headers.get("Content-Length") or 0)
+                if not 0 < n <= 32 * 1024 * 1024:
+                    raise ValueError("Solicitud vacía o demasiado grande.")
+                body = json.loads(self.rfile.read(n) or b"{}")
+            except Exception as error:
+                self._json(400, {"error": str(error)})
+                return
+            if not ENGINE_LOCK.acquire(blocking=False):
+                self._json(409, {"error": "Otra operación del motor está en curso. Espera a que termine."})
+                return
+            try:
+                model_id = require_loaded_model((body or {}).get("model"))
+                msgs = (body or {}).get("messages")
+                if not isinstance(msgs, list) or not msgs:
+                    raise ValueError("No hay mensajes suficientes para comprimir.")
+                self._json(200, compact_local_context(model_id, msgs, (body or {}).get("instructions")))
+            except ModelStateError as error:
+                self._json(error.status, {"error": str(error)})
+            except ValueError as error:
+                self._json(400, {"error": str(error)})
+            except Exception as error:
+                self._json(500, {"error": str(error)})
             finally:
                 ENGINE_LOCK.release()
             return
@@ -2552,7 +2658,7 @@ class Handler(BaseHTTPRequestHandler):
             body["model"] = require_loaded_model(body.get("model"))
             if self.path=='/api/v1/turn':
                 from conversation_codec import model_history
-                profiles=json.loads(PROFILE_PATH.read_text(encoding='utf-8'))
+                profiles=json.loads(PROFILE_PATH.read_text(encoding='utf-8-sig'))
                 profile=profiles['models'].get(body['model'],{}).get('profiles',profiles['profiles'])['code']
                 preferences=MODEL_PREFERENCES.get(body['model'],{'sampling':profile['sampling'],'effort':profile['effort'],'rounds':profile['rounds']})
                 body['sampling']={**preferences['sampling'],**(body.get('sampling') or {})}
@@ -2592,7 +2698,9 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as error:
             watch_done.set();control.cancel();stream.close()
             ENGINE_LOCK.release();self._json(503,{'error':'No se pudo guardar la ejecución local: '+str(error)});return
-        ACTIVE_CONTEXT_RUN.update(run_id=run_journal.id,model=body['model'],conversation_id=body['conversation_id'])
+        with ACTIVE_CONTEXT_LOCK:
+            ACTIVE_CONTEXT_RUN.clear()
+            ACTIVE_CONTEXT_RUN.update(run_id=run_journal.id,model=body['model'],conversation_id=body['conversation_id'])
         try:
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream; charset=utf-8")
@@ -2622,7 +2730,8 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 pass
         finally:
-            ACTIVE_CONTEXT_RUN.clear()
+            with ACTIVE_CONTEXT_LOCK:
+                ACTIVE_CONTEXT_RUN.clear()
             watch_done.set()
             control.cancel()
             stream.close()

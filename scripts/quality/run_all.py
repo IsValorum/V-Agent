@@ -8,7 +8,8 @@ Runs, in order, and records each check as passed, failed or skipped:
  1. the automatic tests (Python and Node);
  2. static analysis (scripts/quality/static_analysis.py);
  3. the code checker in every language (tests/smoke/language_checks.py);
- 4. XSS attacks on the model-card renderer (tests/smoke/xss_model_card.py);
+ 4. XSS attacks on the model-card renderer and remote APIs at their edges (xss_model_card.py,
+    api_edge_cases.py, against local fake providers);
  5. the interface: screen-versus-core consistency, a walk through every window and settings page
     in both themes and at the smallest window, and the repaint probe;
  6. real models on llama.cpp, Strata and Strata Rust (tests/smoke/real_models.py);
@@ -37,7 +38,7 @@ sys.path[:0] = [str(ROOT / 'agent'), str(ROOT / 'tests' / 'smoke')]
 for stream in (sys.stdout, sys.stderr):
     stream.reconfigure(encoding='utf-8', errors='replace')
 
-LEVELS = {1: 'Automatic tests', 2: 'Static analysis', 3: 'Code checker', 4: 'Untrusted content',
+LEVELS = {1: 'Automatic tests', 2: 'Static analysis', 3: 'Code checker', 4: 'Untrusted content and remote APIs',
           5: 'Interface', 6: 'Real models', 7: 'Published release'}
 
 
@@ -203,6 +204,7 @@ def main():
         run.tool(3, 'languages', ['tests/smoke/language_checks.py'])
     if 4 not in args.skip:
         run.tool(4, 'xss', ['tests/smoke/xss_model_card.py'])
+        run.tool(4, 'api', ['tests/smoke/api_edge_cases.py'])
     if 5 not in args.skip:
         interface(run, args.small_model)
     if 6 not in args.skip:

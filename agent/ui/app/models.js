@@ -202,7 +202,7 @@
     jobs=data.jobs||[];folder=data.folder||folder;
     win.querySelector('#hubFolder').textContent=folder;win.querySelector('#hubFolder').title=folder;
     const active=jobs.filter(job=>['queued','downloading','verifying'].includes(job.state));
-    win.querySelector('#hubJobs').innerHTML=active.map(job=>{const pct=job.total?Math.floor(job.received*100/job.total):0;return '<span class="hub-job" title="'+esc(job.repo+' · '+job.name)+'"><span>'+esc(job.name.split('/').pop())+'</span><progress max="100" value="'+pct+'"></progress><b>'+pct+'%</b></span>';}).join('');
+    win.querySelector('#hubJobs').innerHTML=active.map(job=>{const pct=job.total?Math.floor(job.received*100/job.total):0;return '<span class="hub-job" title="'+esc(job.repo+' · '+job.name)+'"><span>'+esc(job.name.split('/').pop())+'</span><progress max="100" value="'+pct+'"></progress><b>'+(job.state==='verifying'?esc(T('Verificando…')):pct+'%')+'</b></span>';}).join('');
     if(current)for(const row of win.querySelectorAll('#hubDetail tr[data-file]')){
       const job=jobs.find(j=>j.repo===current.id&&j.name===row.dataset.file);const cell=row.querySelector('.act');const html=downloadCell(job);
       if(cell.dataset.html!==html){cell.dataset.html=html;cell.innerHTML=html;cell.querySelector('[data-download]')?.addEventListener('click',()=>download(current.id,row.dataset.file));cell.querySelector('[data-cancel]')?.addEventListener('click',event=>cancel(event.currentTarget.dataset.cancel));}
@@ -278,7 +278,7 @@
       const data=await api('/api/harness/external/export',{model,target});
       if(target==='file'){
         const blob=new Blob([JSON.stringify(data.file,null,2)],{type:'application/json'}),link=document.createElement('a');
-        link.href=URL.createObjectURL(blob);link.download='v-agent-'+(data.file.models[0].name||'modelo').replace(/[^\p{L}\p{N}_.-]+/gu,'-').slice(0,60)+'.json';link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);
+        link.href=URL.createObjectURL(blob);link.download='v-agent-'+(data.file.models?.[0]?.name||'modelo').replace(/[^\p{L}\p{N}_.-]+/gu,'-').slice(0,60)+'.json';link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);
         status.textContent=T('Archivo de ajustes guardado.');
       }else status.textContent=T('Ajustes escritos en')+' '+data.written;
     }catch(error){status.textContent=error.message;}

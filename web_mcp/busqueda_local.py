@@ -128,7 +128,7 @@ def search(query, count=5, region=None, timelimit=None, filter_list=None, thread
             continue
 
     if strict_errors and not completed:
-        raise RuntimeError('No respondio ningun buscador. ' + '; '.join(failures[-2:]))
+        raise RuntimeError('Server-side search backends did not respond (' + '; '.join(failures[-2:]) + '). Use another enabled web/browser tool or suggest the user search directly in the browser.')
 
     if filter_list and raw:
         try:

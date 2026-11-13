@@ -31,10 +31,17 @@ TOOLS=[
 def redact(value):
     text=str(value);token=get_token()
     if token:text=text.replace(token,'[REDACTED]')
-    return re.sub(r'hf_[A-Za-z0-9]{8,}','[REDACTED]',text)
+    # Preserve bundled tool identifiers like hf_transfer while masking real HF tokens.
+    return re.sub(r'hf_(?!transfer\b|account\b|cli\b)[A-Za-z0-9]{8,}','[REDACTED]',text)
+
+def _normalize_cli_args(args):
+    if isinstance(args,list) and args and isinstance(args[0],str) and args[0].strip().lower() in ('hf','hf.exe'):
+        return args[1:]
+    return args
 
 def validate_cli(args, full_access=False):
-    if not isinstance(args,list) or not args or len(args)>100 or any(not isinstance(x,str) or '\x00' in x for x in args):raise ValueError('args must be a nonempty string array, without hf.')
+    args=_normalize_cli_args(args)
+    if not isinstance(args,list) or not args or len(args)>100 or any(not isinstance(x,str) or '\x00' in x for x in args):raise ValueError("args must be a nonempty string array (subcommand only, e.g. ['models','ls'] or ['--help']).")
     if any(x.split('=')[0] in ('--token','--hf-token','--access-token','--explore') for x in args):raise AccessDenied('Use cached local authentication; token arguments are blocked.')
     if args==['--help']:return
     group=args[0]
@@ -48,29 +55,50 @@ def validate_cli(args, full_access=False):
 def call(name,args,policy=POLICY,full_access=False):
     if name=='hf_account':
         if not get_token():return {'authenticated':False,'note':'Run the dedicated HF CLI auth login outside the model.'}
-        data=HfApi().whoami()
+        try:data=HfApi().whoami()
+        except Exception as error:
+            if 'Invalid user token' in str(error) or '401' in str(error):
+                return {'authenticated':False,'token_invalid':True,'note':'The local HF_TOKEN environment variable or cached token is invalid or expired. Public queries and downloads still work without authentication; for private access or uploads, update HF_TOKEN or run hf auth login outside the model.'}
+            raise
         return {'authenticated':True,'username':data.get('name'),'organizations':[org['name'] for org in data.get('orgs',[])],
                 'token_role':(data.get('auth') or {}).get('accessToken',{}).get('role')}
     if name=='hf_cli':
-        argv=args.get('args');validate_cli(argv,full_access)
+        argv=_normalize_cli_args(args.get('args'));validate_cli(argv,full_access)
         timeout=max(5,min(300,int(args.get('timeout') or options('hf')['command_timeout'])))
-        process=subprocess.run(__import__('runtime_paths').command('hf-cli',*argv),cwd=policy.root,stdin=subprocess.DEVNULL,capture_output=True,text=True,
-                               encoding='utf-8',errors='replace',timeout=timeout,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
+        cmd=__import__('runtime_paths').command('hf-cli',*argv)
+        flags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0
+        process=subprocess.run(cmd,cwd=policy.root,stdin=subprocess.DEVNULL,capture_output=True,text=True,
+                               encoding='utf-8',errors='replace',timeout=timeout,creationflags=flags)
         output=redact(process.stdout+process.stderr)
+        if process.returncode and 'Invalid user token' in output and argv[:1]!=['auth']:
+            anon_env={k:v for k,v in os.environ.items() if k not in ('HF_TOKEN','HUGGING_FACE_HUB_TOKEN')}
+            anon_env['HF_HUB_DISABLE_IMPLICIT_TOKEN']='1'
+            process=subprocess.run(cmd,cwd=policy.root,stdin=subprocess.DEVNULL,capture_output=True,text=True,
+                                   encoding='utf-8',errors='replace',timeout=timeout,env=anon_env,creationflags=flags)
+            output=redact(process.stdout+process.stderr)
         cap=options('hf')['max_result_chars']
         if process.returncode:raise ValueError('HF CLI exit '+str(process.returncode)+': '+output[:cap])
         return output[:cap]+('\n[Output truncated; narrow the query.]' if len(output)>cap else '')
     if name=='hf_transfer':
         path=policy.path(args.get('path'),full_access);kind=args.get('repo_type') or 'model'
         if kind not in ('model','dataset','space'):raise ValueError('Invalid repo_type.')
-        common={'repo_id':args['repo_id'],'repo_type':kind,'revision':args.get('revision') or 'main'}
+        repo_id=str(args.get('repo_id') or '').strip()
+        if not repo_id or repo_id.startswith(('http://','https://')) or ' ' in repo_id:
+            raise ValueError("repo_id must be 'owner/name' (not a full URL), e.g. 'org/model'.")
+        common={'repo_id':repo_id,'repo_type':kind,'revision':args.get('revision') or 'main'}
         if args['action']=='download':
             path.mkdir(parents=True,exist_ok=True)
             # Refuse existing links/junctions before the SDK writes into a directory.
             for parent,dirs,files in os.walk(path,followlinks=False):
                 for item in dirs+files:policy._check_links(Path(parent)/item)
-            result=hf_hub_download(**common,filename=args['filename'],local_dir=path) if args.get('filename') else snapshot_download(**common,local_dir=path)
-            return {'downloaded':str(result)}
+            for token in (None,False):
+                call_args={**common,**({'token':False} if token is False else {})}
+                try:
+                    result=hf_hub_download(**call_args,filename=args['filename'],local_dir=path) if args.get('filename') else snapshot_download(**call_args,local_dir=path)
+                    return {'downloaded':str(result)}
+                except Exception as error:
+                    if token is None and ('Invalid user token' in str(error) or '401' in str(error)):continue
+                    raise
         if args['action']!='upload':raise ValueError('Invalid action.')
         if not path.exists():raise ValueError('Local source does not exist.')
         api=HfApi();common['commit_message']=args.get('message') or 'Upload from V-Agent'

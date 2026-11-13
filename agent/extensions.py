@@ -144,7 +144,7 @@ class Catalog:
                         item={'name':record.get('name',''),'description':str(record.get('description',''))[:500],'source':kind,'version':record.get('version',''),'manifest':None,'packages':record.get('packages',[])}
                         if kind=='mcp':
                             remote=next((r for r in record.get('remotes',[]) if r.get('type')=='streamable-http' and r.get('url')),None)
-                            if remote and '{' not in remote['url']:item['manifest']={'mcpServers':{re.sub('[^a-zA-Z0-9_-]','_',record['name'])[:34]:{'url':remote['url']}}}
+                            if remote and '{' not in remote['url']:item['manifest']={'mcpServers':{re.sub('[^a-zA-Z0-9_-]','_',str(record.get('name') or 'mcp'))[:34]:{'url':remote['url']}}}
                             item['compatibility']='Streamable HTTP' if item['manifest'] else 'Requires local configuration / dependencies'
                         else:
                             if isinstance(record.get('mcpServers'),dict):item['manifest']={'mcpServers':record['mcpServers']}
@@ -189,7 +189,8 @@ def prepare_plugin(item):
         try:
             with urllib.request.urlopen(base+suffix,timeout=10) as response:raw=response.read(131073)
             if len(raw)>131072:continue
-            data=json.loads(raw);block=data.get('mcpServers') or (data if suffix=='/.mcp.json' else None)
+            data=json.loads(raw)
+            block=(data.get('mcpServers') or (data if suffix=='/.mcp.json' else None)) if isinstance(data,dict) else None
             if isinstance(block,dict) and block:return {'manifest':{'mcpServers':block},'message':'Imported MCP component only. Local scripts need a local installation path; replace placeholders. Hooks and skills are not installed.'}
         except (OSError,ValueError):continue
     raise ValueError('This plugin has no portable MCP component. Its host-specific functions cannot run in V-Agent.')
@@ -202,6 +203,6 @@ def search_registry(query):
     items=[]
     for entry in json.loads(raw).get('servers',[]):
         record=entry.get('server',{});remote=next((r for r in record.get('remotes',[]) if r.get('type')=='streamable-http' and r.get('url') and '{' not in r['url']),None)
-        manifest={'mcpServers':{re.sub('[^a-zA-Z0-9_-]','_',record['name'])[:34]:{'url':remote['url']}}} if remote else None
+        manifest={'mcpServers':{re.sub('[^a-zA-Z0-9_-]','_',str(record.get('name') or 'mcp'))[:34]:{'url':remote['url']}}} if remote else None
         items.append({'name':record.get('name',''),'description':str(record.get('description',''))[:500],'source':'mcp','version':record.get('version',''),'manifest':manifest,'compatibility':'Streamable HTTP' if manifest else 'Requires local configuration / dependencies','packages':record.get('packages',[])})
     return items

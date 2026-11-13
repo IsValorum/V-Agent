@@ -75,6 +75,22 @@ class FileToolTests(unittest.TestCase):
         self.assertIn('did not exist', oldest['state'])
         self.assertIn('created', versions.history(target, self.root)[0])  # the interface still gets its list
 
+    def test_file_tools_report_clear_english_error_when_given_a_directory(self):
+        (self.root / 'sub').mkdir()
+        (self.root / 'a.txt').write_text('hola', encoding='utf-8')
+        with self.assertRaises(ValueError) as read_err:
+            self.call('fs_read', path='sub')
+        self.assertIn('is a directory, not a file; use fs_list', str(read_err.exception))
+        with self.assertRaises(ValueError) as write_err:
+            self.call('fs_write', path='sub', content='x')
+        self.assertIn('is an existing directory, not a file', str(write_err.exception))
+        with self.assertRaises(ValueError) as edit_err:
+            self.call('fs_edit', path='sub', old_text='a', new_text='b')
+        self.assertIn('is a directory, not a file', str(edit_err.exception))
+        with self.assertRaises(ValueError) as list_err:
+            self.call('fs_list', path='a.txt')
+        self.assertIn('is a file, not a directory; use fs_read', str(list_err.exception))
+
 
 class UnwrittenFileTests(unittest.TestCase):
     def test_detects_code_shown_instead_of_the_requested_file(self):

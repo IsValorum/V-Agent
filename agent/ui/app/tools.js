@@ -90,7 +90,7 @@
     const recent=document.getElementById('browserRecentList');
     const agentUse=document.getElementById('browserAgentUse');
     const HISTORY_KEY='valBrowserHistoryV1',BOOKMARKS_KEY='valBrowserBookmarksV1',COUNTER_KEY='valBrowserCounterV1',WIDTH_KEY='valBrowserWidthV1';
-    const tabs=[];let activeId=null,nextId=1,listMode='',open=false,boundsTimer=0,pollTimer=0;
+    const tabs=[];let activeId=null,nextId=1,listMode='',open=false,boundsTimer=0,pollTimer=0,refreshing=false,bridgeActive=false;
     function read(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback}catch{return fallback}}
     function write(key,value){try{localStorage.setItem(key,JSON.stringify(value))}catch{}}
     let history=read(HISTORY_KEY,[]);let bookmarks=read(BOOKMARKS_KEY,[]);
@@ -244,7 +244,8 @@
       return false;
     }
     async function refreshTab(tab){
-      if(!tab||!tab.view)return;
+      if(!tab||!tab.view||refreshing)return;
+      refreshing=true;
       try{
         const value=await tauri('browser_tab_dom',{label:tab.label,action:'eval',script:'({title:document.title,url:location.href})',selector:null,text:null,key:null,max_chars:null});
         if(value&&value.ok&&value.value){
@@ -253,7 +254,7 @@
           if(tab.id===activeId)renderInput();
           renderTabs();record(url,title);
         }
-      }catch{}
+      }catch{}finally{refreshing=false;}
     }
     function record(url,title){
       if(!url||!/^https?:/i.test(url))return;
@@ -295,7 +296,7 @@
       open=true;dock.hidden=false;document.body.classList.add('browser-open');applyWidth();setState('Abierta');
       if(!tabs.length)newTab();else activateTab(activeId||tabs[0].id);
       setTimeout(()=>{syncBounds();window.VALWindows?.arrange();},30);
-      clearInterval(pollTimer);pollTimer=setInterval(()=>{const tab=active();if(tab&&tab.view&&listView.hidden)refreshTab(tab);},1400);
+      clearInterval(pollTimer);pollTimer=setInterval(()=>{const tab=active();if(tab&&tab.view&&listView.hidden&&!bridgeActive)refreshTab(tab);},1400);
     }
     function closeDock(){
       if(!open)return;
@@ -307,6 +308,7 @@
     function toggleDock(){open?closeDock():openDock();}
     window.VALBrowser={open:url=>{openDock();navigateActive(url);},navigate:navigateActive,toggle:toggleDock,close:closeDock};
     document.addEventListener('click',event=>{
+      if(!hasTauri())return;
       const link=event.target.closest('a[href]');if(!link||link.hasAttribute('download'))return;
       const href=link.getAttribute('href')||'';if(!/^https?:\/\//i.test(href))return;
       event.preventDefault();window.VALBrowser.open(href);
@@ -324,7 +326,7 @@
     document.getElementById('browserDownloadsCard').onclick=()=>showList('downloads');
     document.getElementById('browserListClose').onclick=hideList;
     urlInput.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();navigateActive(urlInput.value);}});
-    agentUse.checked=!!S.functions.browser;
+    agentUse.checked=typeof S!=='undefined'&&!!S.functions?.browser;
     agentUse.onchange=()=>{
       S.functions.browser=agentUse.checked;
       const checkbox=document.getElementById('f_browser');if(checkbox)checkbox.checked=agentUse.checked;
@@ -349,6 +351,7 @@
     window.__VAL_BRIDGE.tauri=hasTauri();
     async function bridgeCommand(item){
       let result=null,error=null;const action=item.action,args=item.args||{};
+      bridgeActive=true;
       try{
         if(!S.functions.browser)throw new Error('El uso del navegador por el agente está desactivado.');
         if(!hasTauri())throw new Error('La ventana de escritorio no está disponible.');
@@ -367,15 +370,22 @@
           if(!tab||!tab.view)throw new Error('No hay una página abierta en el navegador integrado.');
           setState('Agente');
           if(action==='snapshot'||action==='text'||action==='click'||action==='fill'||action==='press'||action==='eval'){
-            result=await tauri('browser_tab_dom',{label:tab.label,action,selector:args.selector||null,text:args.text||null,key:args.key||null,script:args.script||null,max_chars:args.max_chars||null});
-            if(action==='click'){await new Promise(resolve=>setTimeout(resolve,350));await waitReady(tab);await refreshTab(tab);}
+            const prevUrl=tab.url||'';
+            result=await tauri('browser_tab_dom',{label:tab.label,action,selector:args.selector??null,text:args.text??null,key:args.key??null,script:args.script??null,max_chars:args.max_chars??null});
+            if(action==='click'||(action==='press'&&(!args.key||args.key==='Enter'))){
+              await new Promise(resolve=>setTimeout(resolve,350));await waitReady(tab);await refreshTab(tab);
+              if(result&&typeof result==='object'&&tab.url&&tab.url!==prevUrl){
+                result.navigated=true;result.url=tab.url;
+                if(action==='press')result.submitted=true;
+              }
+            }
           }else if(action==='back'||action==='forward'||action==='reload'){
             await tauri('browser_tab_'+action,{label:tab.label});await new Promise(resolve=>setTimeout(resolve,350));await waitReady(tab);await refreshTab(tab);syncBounds();
             result={open:true,url:tab.url};
           }else throw new Error('Acción de navegador no admitida.');
           setState('Abierta');
         }
-      }catch(caught){error=String(caught&&caught.message||caught);setState('Abierta');}
+      }catch(caught){error=String(caught&&caught.message||caught);setState('Abierta');}finally{bridgeActive=false;}
       try{await fetch('/api/harness/browser/result',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:item.id,result,error})});}catch{}
       if(error)setStatus(error);
     }

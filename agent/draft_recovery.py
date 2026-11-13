@@ -53,7 +53,7 @@ def extract_file(snapshot):
         if closed and text.endswith('\n'):
             text = text[:-1]
         path = re.search(r'<parameter=path>\s*(.*?)\s*</parameter>', raw, re.S)
-        return path[1] if path else 'archivo.html', text, closed
+        return (path[1].strip() if path else '') or 'archivo.html', text, closed
     return None
 
 

@@ -159,9 +159,7 @@ def _extract_json(text: str) -> str:
     if s.startswith("```"):
         first = s.find("\n")
         if first != -1:
-            end = s.find("```", first + 1)
-            if end != -1:
-                s = s[first + 1:end].strip()
+            s = s[first + 1:].strip()
     start = s.find("{")
     if start == -1:
         return s

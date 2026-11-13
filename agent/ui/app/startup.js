@@ -77,6 +77,8 @@ if(S.functionsVersion!==2){S.functions={...DEF_FUNCS};S.functionsVersion=2;}
 // limite, el hueco que quede en el contexto. Un valor elegido a mano se respeta.
 if(S.samplingVersion!==1){if((S.sampling.max_tokens|0)===8192)S.sampling.max_tokens=0;S.samplingVersion=1;}
 S.functions=Object.fromEntries(Object.keys(DEF_FUNCS).map(key=>[key,!!S.functions[key]]));
+if (!S.pcAccessMode && (S.functions.console || S.functions.admin || S.functions.computer)) S.pcAccessMode = "full_pc";
+if (S.pcAccessMode === "full_pc" || S.pcAccessMode === "sandbox") pcAccess.mode = S.pcAccessMode;
 if (!["default","none","think","minimal","low","medium","high","xhigh"].includes(S.effort)) S.effort = "high";
 let modelProfiles={},baseProfiles={},profilesReady=false;
 const modelPreferences={},pendingPreferences=new Map();let preferencesTimer=null,preferencesSaving=null;

@@ -74,7 +74,8 @@ class Sessions:
                     record['acknowledged']=True;atomic_json(meta,record);continue
                 reply={'role':'assistant','content':'','reasoning_content':'','run_id':record['id'],'status':'stopped'}
                 traces={}
-                for line in (meta.parent/'events.sse').read_text(encoding='utf-8',errors='replace').splitlines():
+                sse=meta.parent/'events.sse'
+                for line in (sse.read_text(encoding='utf-8',errors='replace').splitlines() if sse.exists() else ()):
                     if not line.startswith('data:'):continue
                     try:event=json.loads(line[5:])
                     except ValueError:continue

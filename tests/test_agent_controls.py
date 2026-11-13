@@ -3,7 +3,7 @@ from unittest.mock import patch
 from contextlib import ExitStack
 from pathlib import Path
 sys.path[:0]=[str(Path(__file__).resolve().parents[1]/'agent')]
-from thinking_policy import inspect_template,apply
+from thinking_policy import inspect_template,apply,capability
 from tool_approvals import Approvals,needs_approval
 
 class ControlsTests(unittest.TestCase):
@@ -18,6 +18,11 @@ class ControlsTests(unittest.TestCase):
         fixed=inspect_template("{% set enable_thinking = true %}{{ enable_thinking }}")
         self.assertEqual(fixed['choices'],[]);apply(payload,'high',fixed)
         self.assertNotIn('enable_thinking',payload['chat_template_kwargs']);self.assertNotIn('reasoning_effort',payload)
+        api_info=capability({},'api')
+        self.assertEqual(api_info['choices'],['default','none','low','medium','high','xhigh'])
+        apply(payload,'default',api_info);self.assertNotIn('reasoning_effort',payload)
+        apply(payload,'medium',api_info);self.assertEqual(payload['reasoning_effort'],'medium')
+        apply(payload,'none',api_info);self.assertEqual(payload['reasoning_effort'],'none')
     def test_permission_classification(self):
         self.assertTrue(needs_approval('ask','duckduckgo__web_search',{}))
         # Ask mode: isolated local reads pass, writes, sensitive names and full-PC reads still ask.
@@ -71,17 +76,29 @@ class ControlsTests(unittest.TestCase):
             final=[e for e in events if e.get('type')=='done'][-1]['content']
             self.assertEqual(hub.calls,2)
             self.assertEqual('No se pudo guardar el archivo' in final,expect_stop)
-    def test_language_rule_names_the_language(self):
+    def test_language_rule_is_fixed_without_vocabulary_guessing(self):
         import agent
-        rule=lambda text:agent.language_rule([{'role':'user','content':text}])
-        self.assertIn('Spanish',rule('Visita la web y resúmeme su contenido, por favor.'))
-        self.assertIn('English',rule('Please visit the page and tell me what it says'))
-        self.assertEqual(rule('Hola'),agent.LANGUAGE_RULE)
-        # The English article "a" must not make an English request look Portuguese (reply came in Spanish).
-        self.assertIn('English',rule('Create a small landing page for a coffee shop in cafe.html, with a button that '
-                                     'switches between a light and a dark theme and remembers the choice. Then check it for errors.'))
-        self.assertIn('Portuguese',rule('Você pode criar uma página para a minha loja? Não sei como fazer isso.'))
-        self.assertIn('Spanish',rule('Crea una página para una cafetería con un botón de tema claro y oscuro.'))
+        self.assertFalse(hasattr(agent,'_LANGUAGE_HINTS'))
+        for text in ('Hola','Pudiste ver mi pantalla como imagen y no como OCR?','Please visit the page'):
+            self.assertEqual(agent.language_rule([{'role':'user','content':text}]),agent.LANGUAGE_RULE)
+    def test_admin_helper_connects_to_listener_and_executes_command(self):
+        import os, admin_mcp
+        with patch.dict(os.environ, {'VAL_ADMIN_NO_ELEVATE': '1'}):
+            try:
+                out = json.loads(admin_mcp.run("Write-Output 'admin-pipe-ok'", shell="powershell", timeout=15))
+                self.assertTrue(out.get('ok'))
+                self.assertIn('admin-pipe-ok', out.get('stdout', ''))
+            finally:
+                admin_mcp.stop()
+    def test_hf_mcp_graceful_fallback_on_invalid_token(self):
+        import hf_mcp
+        class BadApi:
+            def whoami(self):
+                raise RuntimeError('401 Client Error: Invalid user token.')
+        with patch.object(hf_mcp, 'get_token', lambda: 'hf_expired'), patch.object(hf_mcp, 'HfApi', BadApi):
+            info = hf_mcp.call('hf_account', {})
+            self.assertFalse(info['authenticated'])
+            self.assertTrue(info['token_invalid'])
     def test_tool_rule_names_only_offered_tools(self):
         import agent
         tool = lambda name: {'type': 'function', 'function': {'name': 'pc__' + name}}
@@ -92,6 +109,9 @@ class ControlsTests(unittest.TestCase):
         only_write = agent.tool_rule([tool('fs_write')])
         self.assertNotIn('fs_edit', only_write); self.assertNotIn('check it with', only_write)
         self.assertIn('call it instead of describing', agent.tool_rule([tool('sys_info')]))
+        full_rule = agent.tool_rule([tool('fs_write'), tool('fs_edit')], full_access=True)
+        self.assertIn('You have full-PC access', full_rule)
+        self.assertIn('absolute paths anywhere on the PC', full_rule)
 
     def test_linux_rooted_path_maps_into_isolated_folder(self):
         from access_policy import AccessPolicy,AccessDenied

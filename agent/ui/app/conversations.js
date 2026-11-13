@@ -168,7 +168,7 @@ function showProjectMenu(anchor,project){
 }
 async function openConv(id,remember=true) {
   if (busy) { note(uiText("Espera a que termine la respuesta para cambiar de conversación.")); return; }
-  if(conflictedSessions.has(id)){try{const data=await requestJSON('/api/v1/sessions');const saved=data.sessions.find(c=>c.id===id);if(!saved)throw new Error('El chat ya no está disponible.');convs[convs.findIndex(c=>c.id===id)]=saved;savedSessionBodies.set(id,JSON.stringify(sessionBody(saved)));conflictedSessions.delete(id);}catch(error){note(error.message);return;}}
+  if(conflictedSessions.has(id)){try{const data=await requestJSON('/api/v1/sessions');const saved=data.sessions.find(c=>c.id===id);if(!saved)throw new Error('El chat ya no está disponible.');const idx=convs.findIndex(c=>c.id===id);if(idx>=0)convs[idx]=saved;else convs.unshift(saved);savedSessionBodies.set(id,JSON.stringify(sessionBody(saved)));conflictedSessions.delete(id);}catch(error){note(error.message);return;}}
   setSidebar(false); attachments = []; renderAttachments();
   const c = convs.find((x) => x.id === id); if (!c) return;
   if(remember&&chatTrail[chatTrailCursor]!==id){chatTrail=chatTrail.slice(0,chatTrailCursor+1);chatTrail.push(id);chatTrailCursor=chatTrail.length-1;syncChatTrail();}
@@ -178,7 +178,7 @@ async function openConv(id,remember=true) {
 async function delConv(id) {
   if (busy) { note(uiText("Espera a que termine la respuesta para borrar una conversación.")); return; }
   if (!await valConfirm({title:'¿Borrar esta conversación?',message:'Se eliminará de este equipo y no se puede deshacer. Si solo quieres ocultarla, usa Archivar.',confirm:'Borrar',danger:true})) return;
-  if(sessionsReady){try{await flushSessionSaves();const chat=convs.find(c=>c.id===id);await requestJSON('/api/v1/sessions/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,revision:chat.revision})});}catch(error){note(error.message);return;}}
+  if(sessionsReady){try{await flushSessionSaves();const chat=convs.find(c=>c.id===id);if(chat)await requestJSON('/api/v1/sessions/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,revision:chat.revision??0})});}catch(error){note(error.message);return;}}
   pendingSessionSaves.delete(id);savedSessionBodies.delete(id);
   convs = convs.filter((c) => c.id !== id);delete projectAssignments[id];
   if(currentId===id){chatTrail=[];chatTrailCursor=-1;syncChatTrail();}
@@ -224,7 +224,7 @@ function bodyClassCollapsed(){return document.body.classList.contains('sidebar-c
 function persistConv() {
   if (!messages.length) return;
   const firstUser = messages.find((m) => m.role === "user");
-  const title = (firstUser ? firstUser.content : "Conversación").replace(/\[Adjuntos\][\s\S]*/, "").slice(0, 48) || "Conversación";
+  const title = (firstUser ? userMessageRawText(firstUser) : "Conversación").replace(/\[Adjuntos\][\s\S]*/, "").slice(0, 48) || "Conversación";
   if (!currentId) { currentId = crypto.randomUUID(); convs.push({ id: currentId, title, ts: Date.now(), messages: [] }); }
   const c = convs.find((x) => x.id === currentId);
   if (c) { if(c.title==='Nuevo chat')c.title=title; c.messages = JSON.parse(JSON.stringify(messages)); c.ts = Date.now();if(messages.at(-1)?.run_id)c.last_run=messages.at(-1).run_id; }

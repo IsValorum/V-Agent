@@ -414,23 +414,22 @@ def _navega(url, espera_ms, captura, pintura=False, segundos=TECHO_S, diagnostic
                 await asyncio.sleep(.9)
                 probe = await llama("Runtime.evaluate", {"expression": SONDA, "returnByValue": True,
                                                           "awaitPromise": True}, escucha=escucha)
+            info_val = dict((probe.get("result") or {}).get("value") or {})
             if pintura:
                 extra = await llama("Runtime.evaluate", {"expression": SONDA_PINTURA, "returnByValue": True,
                                                          "awaitPromise": True}, escucha=escucha)
-                valor = (probe.get("result") or {}).get("value") or {}
-                valor.update((extra.get("result") or {}).get("value") or {})
+                info_val.update((extra.get("result") or {}).get("value") or {})
             if diagnostics:
                 import components
                 expression=components.resource('scene_probe.js',RAIZ/'scene_probe.js').read_text(encoding='utf-8')
                 extra=await llama('Runtime.evaluate',{'expression':expression,'returnByValue':True,'awaitPromise':True},escucha=escucha)
-                valor=(probe.get('result') or {}).get('value') or {}
-                valor['scene_diagnostics']=(extra.get('result') or {}).get('value') or {'available':False,'reason':'Probe could not complete.'}
+                info_val['scene_diagnostics']=(extra.get('result') or {}).get('value') or {'available':False,'reason':'Probe could not complete.'}
             shot = await llama("Page.captureScreenshot", {"format": "jpeg", "quality": 55}) \
                 if captura else {}
             if inyectado:
                 # La sesion del navegador puede seguir viva: la siguiente URL no debe heredarlo.
                 await llama("Page.removeScriptToEvaluateOnNewDocument", {"identifier": inyectado}, escucha=escucha)
-            return {"info": (probe.get("result") or {}).get("value") or {},
+            return {"info": info_val,
                     "consola": consola[-16:], "errores": errores[:12], "captura": shot.get("data")}
 
     return _con_plazo(lambda: asyncio.run(correr()), max(8, segundos))
@@ -623,15 +622,15 @@ def resumen(ruta, espera_ms=TIEMPO_CARGA_MS, captura=False, pintura=False, mante
     from verification_evidence import evidence
     if r.get("error"):
         return evidence({"ok": False, "error": r["error"], "resumen": "Runtime verification inconclusive: %s. This does not prove the page is broken." % r["error"]},"runtime")
-    lineas = ["comprobado en %s sin cabeza (%s)" % (r["navegador"], (r.get("url") or "").split("/")[-1]),
-              "  documento: %s nodos, %s canvas %s, WebGL %s%s"
-              % (r.get("nodos"), r.get("canvas"), r.get("dimensiones_canvas") or "",
-                 (r.get("webgl") or "sin abrir").split(" | ")[0],
+    lineas = ["checked in headless %s (%s)" % (r["navegador"], (r.get("url") or "").split("/")[-1]),
+              "  document: %s nodes, %s canvas%s, WebGL %s%s"
+              % (r.get("nodos"), r.get("canvas"), (" " + r["dimensiones_canvas"]) if r.get("dimensiones_canvas") else "",
+                 (r.get("webgl") or "not opened").split(" | ")[0],
                  (", three.js r%s" % r["three"]) if r.get("three") else ""),
-              "  lienzo: %s" % ("pinta (muestreados %d puntos con color)" % r["pixeles_pintados"]
+              "  canvas: %s" % ("painted (%d colored sample points)" % r["pixeles_pintados"]
                                 if (r.get("pixeles_pintados") or 0) > 0
                                 else (r.get("aviso") if r.get("pixeles_pintados") is not None
-                                      else "%s, contexto %s" % (r.get("dimensiones_canvas") or "sin canvas",
+                                      else "%s, context %s" % (r.get("dimensiones_canvas") or "no canvas",
                                                                 r.get("contexto_webgl"))))]
     if diagnostics:
         diag=r.get('scene_diagnostics') or {}
@@ -646,17 +645,17 @@ def resumen(ruta, espera_ms=TIEMPO_CARGA_MS, captura=False, pintura=False, mante
             hints=[{'line':i,'text':line.strip()[:180]} for i,line in enumerate(source,1) if any(token in line for token in ('InstancedMesh','setMatrixAt','.count'))][:18]
             lineas.append('  source locations to inspect (not an automatic diagnosis): '+json.dumps(hints,ensure_ascii=False,separators=(',',':')))
     if r.get("errores"):
-        lineas.append("  ERRORES de la pagina (%d): %s" % (len(r["errores"]), " | ".join(r["errores"][:4])))
+        lineas.append("  PAGE ERRORS (%d): %s" % (len(r["errores"]), " | ".join(r["errores"][:4])))
         if r.get("pista"):
-            lineas.append("  causa: " + r["pista"])
+            lineas.append("  cause: " + r["pista"])
     else:
-        lineas.append("  errores de consola: ninguno")
+        lineas.append("  console errors: none")
     if r.get("texto_visible"):
-        lineas.append("  texto visible: %r" % r["texto_visible"][:80])
+        lineas.append("  visible text: %r" % r["texto_visible"][:80])
     if r.get("captura"):
-        lineas.append("  captura jpeg: %s (%d KB)" % (r["captura"], max(1, r.get("captura_bytes", 0) // 1024)))
+        lineas.append("  jpeg screenshot: %s (%d KB)" % (r["captura"], max(1, r.get("captura_bytes", 0) // 1024)))
     if r.get("ruido_del_navegador"):
-        lineas.append("  (%d avisos del driver WebGL, no de la pagina)" % r["ruido_del_navegador"])
+        lineas.append("  (%d WebGL driver warnings, not from the page)" % r["ruido_del_navegador"])
     r=evidence(r,"runtime")
     lineas.append("Verification scope: "+r["verification"]["scope"])
     r["resumen"] = "\n".join(lineas)

@@ -73,9 +73,10 @@ function syncWelcomeHint(){
 }
 
 
-function displayUserText(message) {return String(message.content||'').split('\n\n[Adjuntos]\n')[0];}
+function userMessageRawText(message) {const c=message?.content;return Array.isArray(c)?c.map(p=>(p&&typeof p==='object'?p.text||'':String(p||''))).join('\n'):String(c||'');}
+function displayUserText(message) {return userMessageRawText(message).split('\n\n[Adjuntos]\n')[0];}
 function attachmentSummary(message) {
-  const files=String(message.content||'').split('\n\n[Adjuntos]\n')[1];
+  const files=userMessageRawText(message).split('\n\n[Adjuntos]\n')[1];
   return [...(files?[...files.matchAll(/^--- (.+) ---$/gm)].map(match=>match[1]):[]),...(message.images||[]).map(image=>image.name)].join(', ');
 }
 function responseVersion(message) {
@@ -318,7 +319,8 @@ function updateToolTrace(section,trace) {
     const meta=document.createElement('div');meta.className='tool-meta';meta.textContent=String(call.name||'')+(call.round?' · '+uiText('Ronda')+' '+call.round:'');body.append(meta);
     const block=(title,text)=>{const heading=document.createElement('div');heading.className='tool-block-head';const label=document.createElement('span');label.textContent=title;heading.append(label);const pre=document.createElement('pre');pre.tabIndex=0;pre.textContent=text;body.append(heading,pre);return heading;};
     const failed=call.ok===false||['error','blocked','interrupted','missing'].includes(call.status);
-    if (call.draftText && failed) {
+    const hasParsedArgs=args&&typeof args==='object'&&Object.keys(args).length>0;
+    if (call.draftText && failed && !hasParsedArgs) {
       const title = uiText(call.draftChars > call.draftText.length ? 'Borrador antiguo · tramo disponible' : 'Borrador recibido');
       const heading=block(title,call.draftText);
       draftActions(heading,call,call.draftText);
@@ -474,8 +476,17 @@ function renderChat(skipIndex=-1) {
     if(index===skipIndex)return;
     const row=renderedMessages.get(message)||document.createElement('div');
     const cached=renderedMessages.has(message);
-    row.className='msg '+(message.role==='user'?'user':'assistant');row.dataset.index=index;
+    row.className='msg '+(message.compacted?'compacted':message.role==='user'?'user':'assistant');row.dataset.index=index;
     if(!cached){
+    if(message.compacted){
+      const card=document.createElement('details');card.className='compact-card';
+      const summary=document.createElement('summary');
+      const info=message.compacted;
+      summary.textContent=uiText('Contexto comprimido')+' · '+(info.compressed_count||0)+' '+uiText('mensajes')+' · '+(info.method_label||info.method||'API');
+      const body=document.createElement('div');body.className='compact-body bubble';
+      renderRich(body,String(message.content||''));
+      card.append(summary,body);row.append(card);
+    }else{
     if(message.role==='assistant') {
       if(message.reasoning_content){const think=document.createElement('details');think.className='think';const summary=document.createElement('summary');summary.textContent=uiText('Pensamiento');const content=document.createElement('div');content.className='think-body';renderRich(content,message.reasoning_content);think.append(summary,content);row.append(think);}
     }
@@ -487,12 +498,13 @@ function renderChat(skipIndex=-1) {
       if(trace)bubble.before(trace);
     }
     if(message.status){const state=document.createElement('div');state.className='response-state'+(message.status==='error'?' err':'');state.textContent=message.status==='stopped'?uiText('Respuesta detenida.'):message.error||uiText('No se pudo completar la respuesta.');row.append(state);}
+    }
     renderedMessages.set(message,row);
     }
-    if(message.role==='assistant')renderMessageFiles(row,message);
+    if(message.role==='assistant'&&!message.compacted)renderMessageFiles(row,message);
     row.querySelector(':scope > .message-actions')?.remove();
-    if(message.role==='assistant'){showResponseMetrics(row,message.performance);showResponseModel(row,message);}
-    messageActions(row,message,index);
+    if(message.role==='assistant'&&!message.compacted){showResponseMetrics(row,message.performance);showResponseModel(row,message);}
+    if(!message.compacted)messageActions(row,message,index);
     const current = chat.childNodes[position++];
     if (current !== row) chat.insertBefore(row, current || null);
     for(const card of row.querySelectorAll('details.tool')){const view=views.get(index+':'+card.dataset.traceId);if(view){card.open=true;const sent=card.querySelector('.model-result');if(sent)sent.open=view.sent;card.querySelectorAll('pre').forEach((pre,i)=>pre.scrollTop=view.scroll[i]||0);}}
@@ -515,7 +527,7 @@ $('#saveMessageEdit').onclick=()=>{
   const index=editingMessageIndex,text=$('#editMessageInput').value.trim();
   if(busy||engineBusy||index===null||!text)return;
   if(!requireModelForChat())return;
-  const original=messages[index],suffix=String(original.content||'').includes('\n\n[Adjuntos]\n')?'\n\n[Adjuntos]\n'+String(original.content).split('\n\n[Adjuntos]\n').slice(1).join('\n\n[Adjuntos]\n'):'';
+  const original=messages[index],rawOriginal=userMessageRawText(original),suffix=rawOriginal.includes('\n\n[Adjuntos]\n')?'\n\n[Adjuntos]\n'+rawOriginal.split('\n\n[Adjuntos]\n').slice(1).join('\n\n[Adjuntos]\n'):'';
   messages=JSON.parse(JSON.stringify(messages.slice(0,index)));messages.push({role:'user',content:text+suffix,...(original.images?{images:structuredClone(original.images)}:{})});currentId=null;
   $('#editMessageDialog').close();persistConv();const branch=convs.find(c=>c.id===currentId);if(branch){branch.title+=' · edición';saveConvsLS();renderConvs();}
   setFollow(true);generateResponse();
@@ -527,7 +539,7 @@ function dismissToast() {
 }
 $("#dismissToast").onclick = dismissToast;
 document.addEventListener("keydown", event => {
-  if (event.key === "Escape" && !$("#toast").hidden && !chatControlsOpen() && !helpAnchor && $('#drawer').classList.contains('closed') && !document.querySelector('dialog[open]')) {
+  if (event.key === "Escape" && !$("#toast").hidden && !chatControlsOpen() && !helpAnchor && !window.VALWindows?.isOpen('settings') && !document.querySelector('dialog[open]')) {
     event.preventDefault(); event.stopImmediatePropagation(); dismissToast();
   }
 }, true);

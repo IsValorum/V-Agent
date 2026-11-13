@@ -182,7 +182,7 @@ def run(root,command,shell='cmd',timeout=60,background=False):
     from access_policy import AccessPolicy
     AccessPolicy._check_links(Path(root))
     _scan(root)
-    code,out,err=_launch(root,command,max(5,min(int(timeout),300)))
+    code,out,err=_launch(root,command,max(5,min(int(timeout or 60),300)))
     result=f'exit={code}\nshell={shell}\nisolation=Windows process container (preview); network blocked\n[stdout]\n'+(out.strip() or '(empty)')
     if err.strip():result+='\n[stderr]\n'+err.strip()
     if code:raise RuntimeError(result+_hint(code,err))

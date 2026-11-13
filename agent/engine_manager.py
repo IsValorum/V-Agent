@@ -12,7 +12,10 @@ import time
 import urllib.request
 import urllib.parse
 import uuid
-from remote_protocols import model_info,positive_int,claude_payload,ClaudeStream,openai_payload
+from remote_protocols import (
+    model_info,positive_int,claude_payload,ClaudeStream,openai_payload,
+    COMPACT_INSTRUCTIONS,compact_transcript,openai_responses_compact_payload,extract_responses_compact_summary,
+)
 from runtime_paths import DATA_ROOT,RUNTIME_ROOT,LOG_ROOT
 from ui_preferences import atomic_json
 from engine_updates import executable as updated_executable,active_installations
@@ -66,11 +69,45 @@ def measured_timings(usage, sent, first, end):
     reading, writing = max(0.0, first - sent), max(0.0, end - first)
     timing = {'prompt_n': new, 'cache_n': cached, 'predicted_n': completion}
     # A handful of new tokens gives a meaningless rate; the interface then says "from cache".
-    if new >= 8 and reading > 0:
+    # A reply delivered in one burst (short answers, providers that buffer) has no measurable speed:
+    # dividing by a few milliseconds showed tens of thousands of tokens per second.
+    if new >= 8 and reading >= 0.05:
         timing['prompt_per_second'] = round(new / reading, 1)
-    if completion > 1 and writing > 0:
+    if completion > 3 and writing >= 0.1:
         timing['predicted_per_second'] = round((completion - 1) / writing, 1)
     return timing
+
+def stream_finished(line):
+    """True for the line that ends a streamed reply: [DONE] or a choice with a finish_reason."""
+    if not line.startswith(b'data: '):return False
+    if line[6:].strip()==b'[DONE]':return True
+    if b'"finish_reason"' not in line:return False
+    try:return any(c.get('finish_reason') for c in json.loads(line[6:]).get('choices') or [])
+    except (ValueError,AttributeError):return False
+
+
+PROVIDER_HINTS={401:'la clave de la API no es válida o caducó',403:'la clave no tiene permiso para este modelo',
+                404:'la URL o el modelo no existen en este proveedor',408:'el proveedor tardó demasiado',
+                413:'la conversación es demasiado larga para este proveedor',
+                429:'se alcanzó el límite de uso o de velocidad del proveedor; espera un poco',
+                500:'el proveedor tuvo un error interno',502:'el proveedor no está disponible ahora mismo',
+                503:'el proveedor no está disponible ahora mismo',504:'el proveedor tardó demasiado'}
+
+
+def provider_error(status,text,key=''):
+    """A provider's error in plain words: its own message (never its HTML), what the code means, key hidden."""
+    detail=''
+    try:
+        data=json.loads(text)
+        error=data.get('error',data) if isinstance(data,dict) else data
+        detail=error.get('message') or error.get('detail') or '' if isinstance(error,dict) else str(error)
+    except ValueError:
+        if not text.lstrip().startswith('<'):detail=text.strip()
+    detail=' '.join(str(detail).split())[:300]
+    if key:detail=detail.replace(key,'[oculta]')
+    hint=PROVIDER_HINTS.get(status) or ('el proveedor tuvo un error' if status>=500 else 'el proveedor rechazó la petición')
+    return f'Error del proveedor ({status}): {hint}.'+(f' Detalle: {detail}' if detail else '')
+
 
 class EngineManager:
     def __init__(self):
@@ -82,7 +119,10 @@ class EngineManager:
         self.llama_key=secrets.token_urlsafe(24)
         # A fresh install starts on llama.cpp with the build this hardware should use (CUDA / Vulkan /
         # CPU); nothing is downloaded until the user accepts it in the first-run guide.
-        self.settings=json.loads(self.file.read_text(encoding='utf8')) if self.file.exists() else {'active':'llama','llama':{'variant':self.recommended_variant(),'gpu_layers':'auto'},'api':{}}
+        try:
+            self.settings=json.loads(self.file.read_text(encoding='utf-8-sig')) if self.file.exists() else {'active':'llama','llama':{'variant':self.recommended_variant(),'gpu_layers':'auto'},'api':{}}
+        except (OSError, ValueError):
+            self.settings={'active':'llama','llama':{'variant':self.recommended_variant(),'gpu_layers':'auto'},'api':{}}
         self.kind=self.settings.get('active','strata');self.process=None;self.loaded=None;self.online=False
         self.last_usage={};self.live=False;self.last_timing={};self.lock=threading.RLock();self.remote_models=[]
         self.last_gpu={};self.gpu_at=0;self.gpu_pending=False
@@ -91,6 +131,10 @@ class EngineManager:
             self.settings['api'].setdefault('id','legacy')
             self.settings['connections']={'legacy':dict(self.settings['api'])}
         self.remote_models=list(self.settings.get('api',{}).get('models',[]))
+        if self.kind=='api' and self.remote_models and self.settings.get('api',{}).get('base_url'):
+            self.online=True
+            selected=self.settings.get('api',{}).get('selected_model')
+            if selected in {self.remote_identifier(m) for m in self.remote_models}:self.loaded=selected
 
     def save(self):atomic_json(self.file,self.settings)
     def credential_file(self,identifier=None):
@@ -170,9 +214,12 @@ class EngineManager:
             cfg={**previous,'id':identifier,'name':name,'protocol':protocol,'base_url':url,'vision':bool(body.get('vision',previous.get('vision',False))),
                  'api_version':version,'timeout':timeout,'include_usage':bool(body.get('include_usage',previous.get('include_usage',True))),
                  'send_sampling':bool(body.get('send_sampling',previous.get('send_sampling',False))),**extra}
-            if changed:cfg['models']=[];cfg['model_overrides']={}
+            if changed:cfg['models']=[];cfg['model_overrides']={};cfg.pop('selected_model',None)
             self.settings.setdefault('connections',{})[identifier]=cfg;self.settings['api']=dict(cfg)
-            self.remote_models=list(cfg.get('models',[]));self.online=False;self.loaded=None
+            self.remote_models=list(cfg.get('models',[]))
+            self.online=bool(self.remote_models and cfg.get('base_url'))
+            selected=cfg.get('selected_model')
+            self.loaded=selected if self.online and selected in {self.remote_identifier(m) for m in self.remote_models} else None
         self.settings['active']=kind;self.kind=kind;self.save();return self.snapshot()
 
     def base(self):
@@ -197,10 +244,12 @@ class EngineManager:
     def get(self,path,timeout=8):
         request=urllib.request.Request(self.url(path),headers=self.headers())
         try:
-            with urllib.request.build_opener(NoRedirect).open(request,timeout=timeout) as response:return json.load(response)
+            with urllib.request.build_opener(NoRedirect).open(request,timeout=timeout) as response:
+                try:return json.load(response)
+                except ValueError:raise ValueError('La API no devolvió una respuesta JSON válida.') from None
         except urllib.error.HTTPError as error:
             text=error.read(2048).decode('utf8',errors='replace');key=self.key() if self.kind=='api' else ''
-            raise ValueError(f'API HTTP {error.code}: '+(text.replace(key,'[oculta]') if key else text)) from None
+            raise ValueError(provider_error(error.code,text,key)) from None
     def connect(self):
         cfg=self.settings.get('api',{});items=[];cursor=None;seen=set()
         self.online=False;deadline=time.monotonic()+60
@@ -236,7 +285,9 @@ class EngineManager:
         else:overrides.pop(model['id'],None)
         # Refresh metadata on next connection; a manual override is immediately effective.
         model['context']=value or model.get('reported_context');model['context_source']='manual' if value else 'unknown'
-        cfg['models']=self.remote_models;self.settings['connections'][cfg['id']]=dict(cfg);self.save()
+        cfg['models']=self.remote_models
+        if cfg.get('id'):self.settings.setdefault('connections',{})[cfg['id']]=dict(cfg)
+        self.save()
         return model
 
     def executable(self):
@@ -271,13 +322,21 @@ class EngineManager:
         return {'status':'unloaded','loaded':False,'loaded_model':None,'engine_online':False}
     def release_remote(self):
         self.loaded=None;self.live=False;self.last_usage={}
+        cfg=self.settings.get('api',{})
+        if 'selected_model' in cfg:
+            cfg.pop('selected_model',None)
+            if cfg.get('id'):self.settings.setdefault('connections',{})[cfg['id']]=dict(cfg)
+            self.save()
         return {'status':'unloaded','loaded':False,'loaded_model':None,'engine_online':self.online}
     def load(self,model,context,preparation):
-        if self.loaded and self.loaded!=model['id']:raise ValueError('Descarga primero el modelo actual.')
+        # A provider model is only a selection: choosing another one simply switches to it.
+        if self.loaded and self.loaded!=model['id'] and self.kind!='api':raise ValueError('Descarga primero el modelo actual.')
         if self.kind=='api':
             if not self.online:raise ValueError('Conecta la API antes de elegir un modelo.')
             if model['id'] not in {self.remote_identifier(m) for m in self.remote_models}:raise ValueError('Ese modelo no aparece en la API conectada.')
-            self.loaded=model['id'];return
+            self.loaded=model['id'];cfg=self.settings.setdefault('api',{});cfg['selected_model']=model['id']
+            if cfg.get('id'):self.settings.setdefault('connections',{})[cfg['id']]=dict(cfg)
+            self.save();return
         self.stop();exe=self.executable()
         if not exe.is_file():raise ValueError('No se encuentra la compilación de llama.cpp seleccionada.')
         # Never accidentally attach to or stop somebody else's server.
@@ -349,6 +408,7 @@ class EngineManager:
     def stream(self,payload,control):
         allowed={'model','messages','stream','temperature','top_p','max_tokens','seed','tools','tool_choice','presence_penalty','frequency_penalty'}
         if self.kind in ('llama','rust'):allowed|={'min_p','top_k','reasoning_effort','chat_template_kwargs'}
+        if self.kind=='api':allowed.add('reasoning_effort')
         body={k:v for k,v in payload.items() if k in allowed}
         if body.get('max_tokens')==0:body.pop('max_tokens')
         if self.kind=='api':body=openai_payload(body,self.base(),self.settings.get('api',{}).get('send_sampling',False))
@@ -356,7 +416,7 @@ class EngineManager:
             body['repeat_penalty']=payload.get('repetition_penalty',1.0)
             body['chat_template_kwargs']=dict(payload.get('chat_template_kwargs') or {})
         cfg=self.settings.get('api',{});claude=self.kind=='api' and cfg.get('protocol')=='anthropic'
-        if self.kind=='api' and not cfg.get('vision') and any(isinstance(m.get('content'),list) and any(p.get('type')=='image_url' for p in m['content'] if isinstance(p,dict)) for m in payload.get('messages',[])):
+        if self.kind=='api' and not cfg.get('vision') and any(isinstance(m,dict) and isinstance(m.get('content'),list) and any(p.get('type')=='image_url' for p in m['content'] if isinstance(p,dict)) for m in payload.get('messages',[])):
             raise ValueError('Activa imágenes en esta conexión API antes de enviarlas al proveedor.')
         if claude:body=claude_payload(body,cfg.get('api_version','2026-10-21'),(self.selected_remote() or {}).get('max_output_tokens'))
         elif self.kind=='rust' or self.kind=='api' and cfg.get('include_usage',True):body['stream_options']={'include_usage':True}
@@ -380,25 +440,30 @@ class EngineManager:
                                      'si vuelve a pasar, revisa el diagnóstico de carga.') from None
                 raise
             control.attach(connection)
-            connection.request('POST',target.path,json.dumps(body,ensure_ascii=False).encode(),self.headers());response=connection.getresponse()
-            if connection.sock is None and response.fp is not None:connection.sock=response.fp.raw._sock
+            req_path=(target.path or '/')+('?'+target.query if target.query else '')
+            connection.request('POST',req_path,json.dumps(body,ensure_ascii=False).encode(),self.headers());response=connection.getresponse()
+            if connection.sock is None and response.fp is not None:connection.sock=getattr(getattr(response.fp,'raw',None),'_sock',None)
             if response.status!=200:
                 text=response.read(4096).decode('utf8',errors='replace');key=self.key() if self.kind=='api' else ''
-                raise ValueError(f'Error del proveedor ({response.status}): '+(text.replace(key,'[oculta]') if key else text))
+                raise ValueError(provider_error(response.status,text,key))
             # Only llama-server reports its own speeds and live counts. For the others they are measured
             # here: each streamed delta is about one token, and reading lasts until the first one arrives.
-            sent=time.monotonic();first=None;chunks=0
+            sent=time.monotonic();first=None;chunks=0;ended=False
             for line in response:
                 if control.cancelled.is_set():return
                 if self.kind!='llama' and line.startswith(b'data: {') and b'"delta"' in line:
                     chunks+=1;first=first or time.monotonic();self.live_generated=chunks;self.live_reading=False
                 if decoder:
                     if not line.startswith(b'data:'):continue
-                    try:packet=decoder.packet(json.loads(line[5:].strip()))
+                    raw_data=line[5:].strip()
+                    if not raw_data or raw_data==b'[DONE]':continue
+                    try:packet=decoder.packet(json.loads(raw_data))
                     except ValueError as error:
                         key=self.key();raise ValueError(str(error).replace(key,'[oculta]') if key else str(error)) from None
                     self.last_usage=dict(decoder.usage)
-                    if packet:yield packet
+                    if packet:
+                        ended=ended or stream_finished(packet)
+                        yield packet
                     continue
                 if line.startswith(b'data: ') and (b'"usage"' in line or b'"timings"' in line):
                     try:
@@ -417,7 +482,13 @@ class EngineManager:
                                 packet['usage']=self.last_usage
                                 line=('data: '+json.dumps(packet,ensure_ascii=False)+'\n').encode()
                     except ValueError:pass
+                ended=ended or stream_finished(line)
                 yield line
+            if self.kind=='api' and not ended and not control.cancelled.is_set():
+                # The provider closed the connection without its end-of-reply mark: what arrived is a
+                # fragment, not an answer, and must not be shown as complete.
+                raise ValueError('La respuesta del proveedor se cortó antes de terminar (la conexión se cerró a mitad). '
+                                 'Vuelve a intentarlo; si se repite, revisa la conexión o el estado del proveedor.')
         finally:self.live=False;self.live_reading=False;control.detach(connection);connection.close()
     def estimate_prompt(self,chars):
         """Prompt tokens of a request, from its size: the last exact count for this model plus the
@@ -461,3 +532,112 @@ class EngineManager:
         else:self._decode_mark=None
         state='reading' if self.live and self.kind!='llama' and getattr(self,'live_reading',False) else 'decoding' if self.live else 'idle'
         return {'engine':{'max_context':limit},'live':{'state':state,'prompt_tokens':prompt,'generated':generated,'tok_s':tok_s},'requests':last}
+
+    def _post_json(self,path,payload,extra_headers=None,timeout=120):
+        target=urllib.parse.urlsplit(self.url(path))
+        headers={**self.headers(),**(extra_headers or {})}
+        connection=(http.client.HTTPSConnection(target.hostname,target.port or 443,timeout=timeout,context=ssl.create_default_context())
+                    if target.scheme=='https' else http.client.HTTPConnection(target.hostname,target.port or 80,timeout=timeout))
+        try:
+            req_path=(target.path or '/')+('?'+target.query if target.query else '')
+            connection.request('POST',req_path,json.dumps(payload,ensure_ascii=False).encode(),headers)
+            response=connection.getresponse()
+            raw=response.read(4*1024*1024).decode('utf8',errors='replace')
+            return response.status,raw
+        finally:
+            connection.close()
+
+    def compact_context(self,model_id,messages,instructions=None):
+        transcript=compact_transcript(messages)
+        if not transcript.strip():
+            raise ValueError('No hay historial suficiente para comprimir.')
+        cfg=self.settings.get('api',{}) if self.kind=='api' else {}
+        protocol=cfg.get('protocol','openai')
+        if self.kind=='api':
+            remote=self.selected_remote()
+            if remote and model_id in (None,'','any','default',self.loaded,remote.get('id')):
+                raw_model=remote['id']
+            else:
+                candidate=str(model_id or '')
+                match=next((m for m in self.remote_models if self.remote_identifier(m)==candidate or m.get('id')==candidate),None)
+                if match:
+                    raw_model=match['id']
+                elif candidate.startswith('api--'):
+                    parts=candidate.split('--',2)
+                    raw_model=parts[2] if len(parts)==3 else parts[1]
+                else:
+                    raw_model=candidate
+        else:
+            raw_model=str(model_id or self.loaded or '')
+        if not raw_model:
+            raise ValueError('Selecciona y carga un modelo antes de comprimir el contexto.')
+        timeout=min(int(cfg.get('timeout',180) or 180),180) if self.kind=='api' else 600
+        key=self.key() if self.kind=='api' else ''
+        prompt=instructions or COMPACT_INSTRUCTIONS
+
+        if self.kind=='api' and protocol=='anthropic':
+            req={'model':raw_model,'system':[{'type':'text','text':prompt}],
+                 'messages':[{'role':'user','content':'Historial a comprimir:\n\n'+transcript}],
+                 'max_tokens':min(positive_int((self.selected_remote() or {}).get('max_output_tokens')) or 4096,4096),
+                 'stream':False}
+            extra={}
+            if len(transcript)>=160000:
+                extra['anthropic-beta']='compact-2026-01-12'
+                req['context_management']={'edits':[{'type':'compact_20260112'}]}
+            status,raw=self._post_json('/messages',req,extra_headers=extra,timeout=timeout)
+            if status!=200:
+                raise ValueError(provider_error(status,raw[:2048],key))
+            try:data=json.loads(raw)
+            except ValueError:raise ValueError('La API no devolvió una respuesta JSON válida al comprimir.') from None
+            blocks=[str(b.get('text') or b.get('content') or '') for b in (data.get('content') or []) if isinstance(b,dict) and (b.get('text') or b.get('content'))]
+            summary='\n\n'.join(blocks).strip()
+            if not summary:
+                raise ValueError('La API no devolvió un resumen de compactación.')
+            raw_usage=data.get('usage') if isinstance(data.get('usage'),dict) else {}
+            usage={'prompt_tokens':sum(raw_usage.get(k,0) or 0 for k in ('input_tokens','cache_creation_input_tokens','cache_read_input_tokens')),
+                   'completion_tokens':raw_usage.get('output_tokens',0)}
+            return {'ok':True,'method':'anthropic_messages','method_label':'API nativa (Anthropic /messages)','summary':summary,'usage':usage}
+
+        if self.kind=='api' and protocol!='anthropic':
+            resp_payload=openai_responses_compact_payload(raw_model,messages,prompt)
+            try:
+                status,raw=self._post_json('/responses/compact',resp_payload,timeout=min(timeout,90))
+            except OSError:
+                status,raw=404,''
+            if status==200:
+                try:
+                    data=json.loads(raw)
+                    summary,comp_item,usage=extract_responses_compact_summary(data)
+                    if summary or comp_item:
+                        return {'ok':True,'method':'openai_responses_compact','method_label':'API nativa (/responses/compact)',
+                                'summary':summary or 'Estado de contexto compactado nativamente por la API.',
+                                **({'compacted_item':comp_item} if comp_item else {}),
+                                **({'usage':usage} if usage else {})}
+                except ValueError:
+                    pass
+            elif status not in (400,404,405,422,501):
+                raise ValueError(provider_error(status,raw[:2048],key))
+
+        chat_body={'model':raw_model,'stream':False,'messages':[{'role':'system','content':prompt},{'role':'user','content':'Historial a comprimir:\n\n'+transcript}]}
+        if self.kind in ('llama','rust'):
+            chat_body['chat_template_kwargs']={'no_date':True,'enable_thinking':False}
+        if self.kind=='api':
+            chat_body=openai_payload(chat_body,self.base(),False)
+            if 'thinking' in chat_body and 'reasoning_effort' not in chat_body:
+                chat_body['thinking']={'type':'disabled'}
+        status,raw=self._post_json('/chat/completions',chat_body,timeout=timeout)
+        if status!=200:
+            raise ValueError(provider_error(status,raw[:2048],key))
+        try:data=json.loads(raw)
+        except ValueError:raise ValueError('El servidor no devolvió una respuesta JSON válida al comprimir.') from None
+        choice=(data.get('choices') or [None])[0] or {}
+        summary=str(((choice.get('message') or {}).get('content')) or '').strip()
+        if not summary:
+            raise ValueError('El modelo no devolvió texto al comprimir el contexto.')
+        raw_usage=data.get('usage') if isinstance(data.get('usage'),dict) else None
+        usage=None
+        if raw_usage and isinstance(raw_usage.get('prompt_tokens'),int):
+            usage={'prompt_tokens':raw_usage['prompt_tokens'],'completion_tokens':int(raw_usage.get('completion_tokens') or 0)}
+        method='api_chat_completions' if self.kind=='api' else 'local_chat_completions'
+        label='API nativa (/chat/completions)' if self.kind=='api' else 'Resumen con modelo local'
+        return {'ok':True,'method':method,'method_label':label,'summary':summary,**({'usage':usage} if usage else {})}

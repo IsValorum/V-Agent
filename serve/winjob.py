@@ -91,7 +91,11 @@ def contain(proc) -> bool:
         if not _job:
             return False
     try:
-        no_throttle(int(proc._handle))
-        return bool(_k32.AssignProcessToJobObject(_job, int(proc._handle)))
-    except (AttributeError, OSError, ValueError):
+        handle = getattr(proc, "_handle", None)
+        if not handle:
+            return False
+        handle = int(handle)
+        no_throttle(handle)
+        return bool(_k32.AssignProcessToJobObject(_job, handle))
+    except (AttributeError, OSError, ValueError, TypeError):
         return False

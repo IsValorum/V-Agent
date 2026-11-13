@@ -18,5 +18,18 @@ vm.createContext(context);vm.runInContext(source.slice(begin,end),context);
  await context.setAgentMode('light',{silent:true});
  assert.equal(context.pcAccess.mode,'full_pc');assert.equal(context.S.permissionMode,'auto');
  assert.equal(JSON.stringify(context.S.functions),original);
+ const settingsSource=fs.readFileSync('agent/ui/app/settings.js','utf8');
+ const uBegin=settingsSource.indexOf('function updateToolCount()'),uEnd=settingsSource.indexOf('function pintarPresupuesto(',uBegin);
+ assert(uBegin>=0&&uEnd>uBegin);
+ let displayedCount='';
+ const sCtx={S:{agentProfile:'advanced',functions:{files:true,search:true,visit:true,sys:true,shell:true,hf:false,browser:true,console:true,web:true,autobrowser:true,computer:true,admin:true}},
+  pcAccess:{mode:'full_pc',isolation:{available:true}},presupuestoFirmado:'',lastToolBudget:null,presupuestoTimer:null,
+  $:sel=>({set textContent(v){if(sel==='#toolCount')displayedCount=String(v);}}),uiText:s=>s,clearTimeout(){},setTimeout(){}};
+ vm.createContext(sCtx);vm.runInContext(settingsSource.slice(uBegin,uEnd),sCtx);
+ sCtx.updateToolCount();
+ assert.equal(displayedCount,'52');
+ sCtx.lastToolBudget={tools:52};
+ sCtx.updateToolCount();
+ assert.equal(displayedCount,'52');
  console.log('Profiles preserve access, approvals and tool selection.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

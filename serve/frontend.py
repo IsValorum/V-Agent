@@ -676,7 +676,10 @@ def openai_to_messages(req: dict) -> tuple[list[dict], list[dict] | None, dict]:
     # `false` is a level (thinking off, effort_kwargs): an `or` between the two fields dropped it
     kwargs.update(effort_kwargs(given if given is not None and given != "" else reasoning.get("effort")))
     # the vLLM / llama.cpp convention: {"chat_template_kwargs": {"enable_thinking": false, "reasoning_effort": "low"}}
-    ctk = req.get("chat_template_kwargs") or {}
+    raw_ctk = req.get("chat_template_kwargs")
+    if raw_ctk is not None and not isinstance(raw_ctk, dict):
+        raise ValueError("chat_template_kwargs must be an object")
+    ctk = raw_ctk or {}
     for k, v in ctk.items():
         if k == "enable_thinking" and not v:
             kwargs = {"enable_thinking": False}

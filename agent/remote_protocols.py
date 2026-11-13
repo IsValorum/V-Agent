@@ -9,7 +9,21 @@ def openai_payload(body,base_url,send_sampling=False):
     for field in ('seed','frequency_penalty','presence_penalty'):body.pop(field,None)
     if not send_sampling:
         body.pop('temperature',None);body.pop('top_p',None)
-    if urlsplit(base_url).hostname=='api.openai.com' and 'max_tokens' in body:body['max_completion_tokens']=body.pop('max_tokens')
+    host=(urlsplit(base_url).hostname or '').lower()
+    if host=='api.openai.com' and 'max_tokens' in body:body['max_completion_tokens']=body.pop('max_tokens')
+    effort=body.pop('reasoning_effort',None)
+    if effort and effort!='default':
+        if 'deepseek' in host or 'deepseek' in str(body.get('model','')).lower():
+            if effort=='none':body['thinking']={'type':'disabled'}
+            else:
+                body['thinking']={'type':'enabled'}
+                body['reasoning_effort']='max' if effort=='xhigh' else 'low' if effort=='minimal' else effort
+                if isinstance(body.get('messages'),list):
+                    body['messages']=[{**m,'reasoning_content':m.get('reasoning_content') or ''} if isinstance(m,dict) and m.get('role')=='assistant' and m.get('tool_calls') and 'reasoning_content' not in m else m for m in body['messages']]
+        elif effort!='none':
+            body['reasoning_effort']='high' if effort=='xhigh' else 'low' if effort=='minimal' else effort
+        elif host=='api.openai.com':
+            body['reasoning_effort']='none'
     return body
 
 
@@ -38,10 +52,13 @@ def claude_content(content):
     if isinstance(content,str):return [{'type':'text','text':content}] if content else []
     blocks=[]
     for part in content or []:
+        if not isinstance(part,dict):continue
         if part.get('type')=='text' and part.get('text'):blocks.append({'type':'text','text':part['text']})
         elif part.get('type')=='image_url':
-            url=part.get('image_url',{}).get('url','');match=re.fullmatch(r'data:(image/(?:png|jpeg|gif|webp));base64,(.+)',url,re.S)
-            blocks.append({'type':'image','source':({'type':'base64','media_type':match[1],'data':match[2]} if match else {'type':'url','url':url})})
+            url=part.get('image_url',{}).get('url','') if isinstance(part.get('image_url'),dict) else ''
+            if not url:continue
+            match=re.fullmatch(r'data:(image/(?:png|jpeg|gif|webp));base64,(.+)',url,re.S|re.I)
+            blocks.append({'type':'image','source':({'type':'base64','media_type':match[1].lower(),'data':match[2]} if match else {'type':'url','url':url})})
     return blocks
 
 
@@ -54,10 +71,12 @@ def claude_payload(payload,version,output_limit=None):
             content=[{'type':'tool_result','tool_use_id':message['tool_call_id'],'content':content}];role='user'
         elif role=='assistant':
             for call in message.get('tool_calls') or []:
-                function=call['function'];args=function.get('arguments') or '{}'
-                if isinstance(args,str):args=json.loads(args)
+                function=call.get('function') or {};args=function.get('arguments') or '{}'
+                if isinstance(args,str):
+                    try:args=json.loads(args)
+                    except ValueError:args={}
                 if not isinstance(args,dict):raise ValueError('Los argumentos de la herramienta deben ser un objeto JSON.')
-                content.append({'type':'tool_use','id':call['id'],'name':function['name'],'input':args})
+                content.append({'type':'tool_use','id':call.get('id',''),'name':function.get('name',''),'input':args})
         if not content:continue
         role='assistant' if role=='assistant' else 'user'
         if messages and messages[-1]['role']==role:messages[-1]['content'].extend(content)
@@ -101,3 +120,112 @@ class ClaudeStream:
         elif kind=='message_stop':return b'data: [DONE]\n\n'
         else:return None
         return ('data: '+json.dumps({'choices':[{'index':0,'delta':delta,'finish_reason':finish}],**({'usage':self.usage} if self.usage else {})},ensure_ascii=False)+'\n\n').encode()
+
+
+COMPACT_INSTRUCTIONS = (
+    'Compress the conversation history into a concise, self-contained technical handoff summary '
+    'in the same language as the user. Preserve every concrete fact needed to continue without loss: '
+    'user goals and constraints, decisions made, exact file paths, symbol names, commands run, '
+    'verified tool outputs, remaining errors/blockers, and pending tasks. Omit filler or repetition.'
+)
+
+
+def _content_text(content):
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, dict):
+                if item.get('type') in ('text', 'output_text', 'input_text') and item.get('text'):
+                    parts.append(str(item['text']))
+                elif item.get('type') == 'image_url':
+                    parts.append('[imagen adjunta]')
+        return '\n'.join(parts)
+    return str(content or '')
+
+
+def compact_transcript(messages, max_chars=240000):
+    lines = []
+    for item in messages or []:
+        if not isinstance(item, dict):
+            continue
+        role = item.get('role') or 'user'
+        text = _content_text(item.get('content')).strip()
+        if role == 'assistant' and item.get('tool_calls'):
+            calls = []
+            for call in item.get('tool_calls') or []:
+                fn = (call.get('function') or {})
+                calls.append(f"{fn.get('name', 'tool')}({str(fn.get('arguments') or '')[:1200]})")
+            block = '[Assistant tool calls]\n' + '\n'.join(calls)
+            if text:
+                block = f'[Assistant]\n{text}\n' + block
+            lines.append(block)
+        elif role == 'tool':
+            lines.append(f"[Tool output ({item.get('tool_call_id', '')})]\n{text[:4000]}")
+        elif text:
+            lines.append(f'[{role.capitalize()}]\n{text}')
+    joined = '\n\n'.join(lines)
+    if len(joined) > max_chars:
+        joined = joined[-max_chars:]
+    return joined
+
+
+def openai_responses_compact_payload(model_id, messages, instructions=None):
+    items = []
+    for item in messages or []:
+        if not isinstance(item, dict):
+            continue
+        role = item.get('role')
+        if role == 'tool':
+            text = _content_text(item.get('content')).strip()
+            if text:
+                items.append({'role': 'developer', 'content': f"Tool output: {text[:8000]}"})
+            continue
+        if role == 'assistant' and item.get('tool_calls'):
+            summary = _content_text(item.get('content')).strip()
+            calls = []
+            for call in item.get('tool_calls') or []:
+                fn = (call.get('function') or {})
+                calls.append(f"{fn.get('name', 'tool')}({str(fn.get('arguments') or '')[:1500]})")
+            text = ((summary + '\n') if summary else '') + 'Called tools: ' + '; '.join(calls)
+            items.append({'role': 'assistant', 'content': text})
+            continue
+        if role in ('user', 'assistant', 'system', 'developer'):
+            text = _content_text(item.get('content')).strip()
+            if text:
+                items.append({'role': 'user' if role not in ('user', 'assistant', 'developer') else role, 'content': text})
+    payload = {'model': model_id, 'input': items}
+    if instructions or COMPACT_INSTRUCTIONS:
+        payload['instructions'] = instructions or COMPACT_INSTRUCTIONS
+    return payload
+
+
+def extract_responses_compact_summary(data):
+    if not isinstance(data, dict):
+        return '', None, None
+    output = data.get('output')
+    texts = []
+    compaction_item = None
+    if isinstance(output, list):
+        for item in output:
+            if not isinstance(item, dict):
+                continue
+            itype = item.get('type')
+            if itype == 'compaction':
+                compaction_item = item
+            elif itype == 'message':
+                for part in item.get('content') or []:
+                    if isinstance(part, dict) and part.get('text'):
+                        texts.append(str(part['text']))
+            elif item.get('text'):
+                texts.append(str(item['text']))
+    raw_usage = data.get('usage') if isinstance(data.get('usage'), dict) else None
+    usage = None
+    if raw_usage:
+        inp = raw_usage.get('input_tokens', raw_usage.get('prompt_tokens'))
+        out = raw_usage.get('output_tokens', raw_usage.get('completion_tokens'))
+        if isinstance(inp, int) and isinstance(out, int):
+            usage = {'prompt_tokens': inp, 'completion_tokens': out}
+    return '\n\n'.join(t for t in texts if t.strip()), compaction_item, usage
+

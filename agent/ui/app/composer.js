@@ -91,6 +91,8 @@ function updateControls() {
   $('#unload').disabled=blocked||!modelStateKnown||!loadedModel||engineOnline===false;
   $('#unload').title=busy?uiText('Detener la respuesta y descargar el modelo'):uiText('Descargar el modelo y liberar su memoria');
   for(const id of ['engineToggle'])$('#'+id).disabled=busy||blocked||engineOnline===null;
+  const compactBtn=$('#ctxCompact');
+  if(compactBtn)compactBtn.disabled=busy||blocked||accessChanging||!modelIsReady()||messages.length<2;
   syncComposerLabels();syncPreparationView();
   syncEngineCapabilities();if($('#modelFilter'))$('#modelFilter').disabled=busy||blocked||!modelCatalog.length;
 }
@@ -152,6 +154,12 @@ let activeGeneration=null;
 function conversationForModel(history) {
   const result=[];
   history.forEach((message,messageIndex)=>{
+    if(message.compacted){
+      const label=message.compacted.method_label||message.compacted.method||'API';
+      result.push({role:'user',content:'Contexto previo comprimido ('+label+'):\n\n'+(message.content||'')});
+      result.push({role:'assistant',content:'Entendido. Continúo usando este contexto comprimido.'});
+      return;
+    }
     if(message.role==='assistant'){
       const groups=new Map();
       for(const [index,call] of (message.tool_trace||[]).entries()){
@@ -179,6 +187,61 @@ function conversationForModel(history) {
   });
   return result;
 }
+async function compactConversationContext() {
+  if(busy||engineBusy||!modelIsReady()||messages.length<2)return;
+  const btn=$('#ctxCompact'),status=$('#contextCompactStatus');
+  let splitIndex=messages.length;
+  if(messages.length>=4){
+    for(let i=messages.length-1;i>=2;i--){
+      if(messages[i]?.role==='user'){splitIndex=i;break;}
+    }
+  }
+  const toCompact=conversationForModel(messages.slice(0,splitIndex));
+  if(!toCompact.length){note(uiText('No hay mensajes suficientes para comprimir.'));return;}
+  const originalCount=splitIndex;
+  setEngineBusy(true);
+  if(btn)btn.textContent=uiText('Comprimiendo…');
+  if(status)status.textContent=uiText('Comprimiendo historial con el método nativo…');
+  try{
+    await flushSessionSaves();
+    const result=await requestJSON('/api/harness/context/compact',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({conversation_id:currentId,model:loadedModel,messages:toCompact})
+    });
+    const checkpoint={
+      role:'assistant',
+      content:result.summary||'',
+      compacted:{
+        method:result.method||'api',
+        method_label:result.method_label||result.method||'API',
+        compressed_count:originalCount,
+        kept_count:messages.length-splitIndex,
+        created_at:new Date().toISOString()
+      },
+      model:loadedModel,
+      model_name:modelNames[loadedModel]||loadedModel,
+      ...(result.usage?{usage:{...result.usage,limit:contextCapacity||modelContexts[loadedModel]||null}}:{})
+    };
+    const kept=messages.slice(splitIndex).map(m=>m&&typeof m==='object'&&m.usage?{...m,pre_compaction:true}:m);
+    messages=[checkpoint,...kept];
+    persistConv();
+    renderChat();
+    syncContextMeter();
+    const label=result.method_label||result.method||'API';
+    if(status)status.textContent=uiText('Comprimido · ')+originalCount+' msg · '+label;
+    note(uiText('Contexto comprimido.')+' ('+label+')');
+  }catch(error){
+    if(status)status.textContent=uiText('Error: ')+(error?.message||String(error));
+    note(error?.message||String(error));
+  }finally{
+    if(btn)btn.textContent=uiText('Comprimir contexto');
+    setEngineBusy(false);
+    updateControls();
+  }
+}
+window.compactConversationContext=compactConversationContext;
+
 function stopGeneration() {
   if(!activeGeneration||activeGeneration.stopped)return;
   activeGeneration.stopped=true;activeGeneration.controller.abort();$('#send').disabled=true;$('#modeNote').textContent='Deteniendo…';

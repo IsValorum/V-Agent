@@ -4,6 +4,33 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.0.8
+
+- **Provider models with very long context can be used.** "Use model" on an API model that declares more
+  than 262,144 tokens (for example DeepSeek V4.1 Flash, 1,048,576) failed with "context out of range":
+  the local engines' limit was applied to remote models, and their preferences could not be saved either.
+- **Switching between provider models works.** With one API model in use, "Use model" on another stayed
+  disabled without a word; it now switches at once (a provider model is only a selection). Changing API
+  connection or engine no longer asks to "unload" a provider model first.
+- **A provider reply cut half way is reported** instead of being shown as a complete answer.
+- **Provider errors in plain words:** what the code means (invalid key, usage limit, provider down…) and
+  the provider's own message, never its HTML page or raw JSON; the key stays hidden.
+- No more absurd speeds (tens of thousands of tokens per second) for replies a provider delivers in one burst.
+- **Native context compaction button & endpoints.** Added a "Compact context" control in the model panel
+  backed by `/api/harness/context/compact` and `/api/context/compact`, using OpenAI `/responses/compact`
+  with `/chat/completions` fallback, Anthropic `/messages`, or the loaded local engine, and preserving
+  compacted checkpoints across follow-up turns.
+- **Reliability fixes across all 7 bundled MCP servers** (`pc`, `autobrowser`, `computer`, `admin`, `hf`,
+  `duckduckgo`, `web`): prevents `job_status` deadlocks, captures Shadow DOM and nested iframe text, uses
+  CDP `DOM.setFileInputFiles` for file inputs, reports failed network requests and navigation errors,
+  validates HTTP redirects while preserving existing files on failed downloads, returns structured syntax
+  diagnostics in `code_check`, avoids elevation prompts in `admin` `status`, and normalizes schemas for
+  small (4B–8B) and frontier models.
+- **Engine, `serve/` and interface fixes:** strips `api--` prefixes reliably during context compaction,
+  emits mid-stream SSE errors on HTTP 200 instead of broken 503 responses, synchronizes `ReplicaPool`
+  health recovery and telemetry counters, enforces strict JSON object validation, and keeps UI panel rules
+  and 1,265 translated phrases consistent.
+
 ## 1.0.7
 
 - **"Automatic" never asks.** In the Light profile, console commands, shell commands and code runs still

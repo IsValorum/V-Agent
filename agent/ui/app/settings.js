@@ -41,7 +41,7 @@ $("#s_ddg").onchange = () => {
 };
 $("#s_pc").onchange = () => {
   const on = $("#s_pc").checked;
-  S.functions.files = S.functions.sys = on;S.functions.shell = on&&pcAccess.mode==='full_pc';
+  S.functions.files = S.functions.sys = on;S.functions.shell = on&&(pcAccess.mode==='full_pc'||!!pcAccess.isolation?.available);
   $("#f_files").checked = $("#f_sys").checked = on;$("#f_shell").checked=S.functions.shell;
   syncServerSwitches();saveSettings();
 };
@@ -75,9 +75,11 @@ async function pollMCP() {
   try {
     const selection=herramientasActivas(),profile=S.agentProfile||'balanced';const data = await requestJSON('/api/mcp?on=' + encodeURIComponent(selection)+'&agent_profile='+encodeURIComponent(profile));
     if(selection!==herramientasActivas()||profile!==(S.agentProfile||'balanced'))return;
-    if (data.access && !accessChanging) {
+    if (data.access && !accessChanging && (!S.pcAccessMode || data.access.mode === S.pcAccessMode)) {
       pcAccess = {...data.access,isolation:data.access.isolation||pcAccess.isolation};
       syncAccessControls();
+    } else if (data.access?.isolation) {
+      pcAccess.isolation = data.access.isolation;
     }
     health.replaceChildren(...(data.servers || []).map(server => {
       const row = document.createElement('div');
@@ -123,9 +125,9 @@ function syncAccessControls(){
 $('#pcAccess').onchange=async()=>{
   const mode=$('#pcAccess').value;if(busy||engineBusy||accessChanging){syncAccessControls();return;}
   accessChanging=true;updateControls();
-  try{pcAccess=await requestJSON('/api/access',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode})});}
+  try{pcAccess=await requestJSON('/api/access',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode})});S.pcAccessMode=pcAccess.mode;saveSettings();}
   catch(error){note(error.message);}
-  finally{accessChanging=false;syncAccessControls();}
+  finally{accessChanging=false;syncAccessControls();pollMCP();}
 };
 syncAccessControls();
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pollMCP();});
@@ -134,14 +136,21 @@ function updateToolCount() {
   // El numero tiene que ser el de verdad: el grupo "Archivos" son 6 (listar, leer, escribir,
   // editar por bloque, copiar/pegar por linea y comprobar en navegador). Si la cuenta no cuadra
   // con la linea de presupuesto de abajo, esta de mas y confunde.
-  const CUENTA = {files:12, search:1, visit:1, sys:1, shell:1,hf:3,browser:1,console:1,web:2,autobrowser:10,computer:9,admin:4};
-  $("#toolCount").textContent = Object.entries(S.functions).filter(([k,v]) => k !== "date" && v&&(k!=='shell'||pcAccess.mode==='full_pc'||pcAccess.isolation?.available)&&(k!=='console'||pcAccess.mode==='full_pc')).reduce((n,[k]) => n + (CUENTA[k]||1),0);
+  const CUENTA = {files:11, search:1, visit:1, sys:1, shell:pcAccess.mode==='full_pc'?5:1,hf:3,browser:1,console:1,web:2,autobrowser:16,computer:9,admin:4};
+  const profile = S.agentProfile || 'balanced';
+  $("#toolCount").textContent = Object.entries(S.functions).filter(([k,v]) =>
+    k !== "date" && v &&
+    (k!=='shell'||pcAccess.mode==='full_pc'||pcAccess.isolation?.available) &&
+    (k!=='console'||pcAccess.mode==='full_pc') &&
+    ((k!=='web'&&k!=='autobrowser')||profile!=='light') &&
+    ((k!=='computer'&&k!=='admin')||(profile==='advanced'&&pcAccess.mode==='full_pc'))
+  ).reduce((n,[k]) => n + (CUENTA[k]||1),0);
   consultarPresupuesto();
 }
 function herramientasActivas(){return Object.entries(S.functions).filter(([k,v])=>k!=='date'&&v&&(k!=='shell'||pcAccess.mode==='full_pc'||pcAccess.isolation?.available)&&(k!=='console'||pcAccess.mode==='full_pc')).map(([k])=>k).sort().join(',');}
 async function consultarPresupuesto(){
-  const activo=herramientasActivas(),profile=S.agentProfile||'balanced',signature=activo+'|'+profile;
-  if(signature===presupuestoFirmado)return;            // same set: no volver a medir por cada ajuste de muestreo
+  const activo=herramientasActivas(),profile=S.agentProfile||'balanced',signature=activo+'|'+profile+'|'+pcAccess.mode;
+  if(signature===presupuestoFirmado){if(lastToolBudget&&typeof lastToolBudget.tools==='number')$('#toolCount').textContent=String(lastToolBudget.tools);return;}            // same set: no volver a medir por cada ajuste de muestreo
   presupuestoFirmado=signature;lastToolBudget=null;$('#mcpTokens').textContent=uiText(activo?'Calculando herramientas…':'Sin herramientas activas: no se inyecta bloque de tools.');
   clearTimeout(presupuestoTimer);presupuestoTimer=setTimeout(async()=>{
     try{const d=await requestJSON('/api/mcp?on='+encodeURIComponent(activo)+'&agent_profile='+encodeURIComponent(profile),{cache:'no-store',signal:AbortSignal.timeout(60000)});if(activo===herramientasActivas()&&profile===(S.agentProfile||'balanced'))pintarPresupuesto(d.presupuesto);}catch{}},500);
@@ -166,7 +175,7 @@ function applyComposerLayout(){
   const layout=TH.composerLayout;
   for(const side of ['left','right']){
     const group=$(side==='left'?'#composerLeft':'#composerRight');
-    layout[side].forEach((id,index)=>{const button=$('#'+id);if(group.children[index]!==button)group.insertBefore(button,group.children[index]||null);});
+    layout[side].forEach((id,index)=>{const button=$('#'+id);if(button&&group.children[index]!==button)group.insertBefore(button,group.children[index]||null);});
   }
   if($('#searchToggle'))$('#mcpBtn').before($('#searchToggle'));
   $('#chatwrap').dataset.raised=String(layout.emptyRaised);

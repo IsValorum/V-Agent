@@ -15,6 +15,14 @@ import plugins
 from engine_updates import Updates,executable as updated_executable
 
 
+def _read_json(path, default):
+    try:
+        file=Path(path)
+        return json.loads(file.read_text(encoding='utf-8-sig')) if file.exists() else default
+    except (OSError, ValueError):
+        return default
+
+
 def inspect_llama_import(value, template_path=None):
     file=Path(value).expanduser().resolve()
     if not file.is_file() or file.suffix.lower()!='.gguf':raise ValueError('Elige un GGUF instalado.')
@@ -28,7 +36,7 @@ def inspect_llama_import(value, template_path=None):
         _validate_source(selected.read_text(encoding='utf-8-sig'));template=str(selected)
     identifier='local-'+hashlib.sha256(str(file).encode()).hexdigest()[:16]
     record=DATA_ROOT/'llama-added.json'
-    entries=json.loads(record.read_text(encoding='utf8')) if record.exists() else []
+    entries=_read_json(record,[])
     return {'name':file.name,'path':str(file),'family':meta.get('general.architecture'),
             'size_gib':round(file.stat().st_size/2**30,2),'size_bytes':file.stat().st_size,
             'template_name':Path(template).name if template else ('Incluida en el GGUF' if meta.get('tokenizer.chat_template') else 'Predeterminada del motor'),
@@ -42,7 +50,7 @@ def inspect_llama_import(value, template_path=None):
 def register_llama_import(info, name=None):
     from ui_preferences import atomic_json
     record=DATA_ROOT/'llama-added.json'
-    entries=json.loads(record.read_text(encoding='utf8')) if record.exists() else []
+    entries=_read_json(record,[])
     identifier=info['identifier'];existing=next((item for item in entries if item.get('id')==identifier),None)
     if existing is None:
         entries.append({'id':identifier,'path':info['path'],'display_name':str(name or info['name']).strip()[:200] or info['name'],'context':info['context']})
@@ -50,7 +58,7 @@ def register_llama_import(info, name=None):
     if info['template']:
         folder=DATA_ROOT/'llama-configs';folder.mkdir(parents=True,exist_ok=True)
         config=folder/(hashlib.sha256(('llama--'+identifier).encode()).hexdigest()[:24]+'.json')
-        saved=json.loads(config.read_text(encoding='utf8')) if config.exists() else {}
+        saved=_read_json(config,{})
         saved.setdefault('engine_kind','llama');saved.setdefault('model_name','llama--'+identifier)
         saved.setdefault('args',['--model',info['path']]);saved.setdefault('context',info['context'])
         saved['template']=info['template'];atomic_json(config,saved)
@@ -164,21 +172,21 @@ def install(a):
             sources=a.registry.discover(CONFIG_ROOT)
             extra=DATA_ROOT/'llama-added.json'
             if extra.exists():
-                imported=json.loads(extra.read_text(encoding='utf8'))
+                imported=_read_json(extra,[])
                 # A file registered in Strata and the shared local catalogue is one model.
                 # Prefer the explicitly imported entry so its per-engine settings remain visible.
                 imported_paths={os.path.normcase(str(Path(item['path']).resolve())) for item in imported if item.get('path')}
                 sources=imported+[item for item in sources if not item.get('path') or os.path.normcase(str(Path(item['path']).resolve())) not in imported_paths]
         else:sources=[{**item,'id':manager.remote_identifier(item),'remote_id':item['id'],'display_name':item.get('display_name') or item['id'],'path':None,'backend':manager.settings.get('api',{}).get('name','API'),'remote':True} for item in manager.remote_models]
-        ignored=set(json.loads(a.PROFILE_PATH.read_text(encoding='utf8')).get('ignored_models',[]))
+        ignored=set(_read_json(a.PROFILE_PATH,{}).get('ignored_models',[]))
         for source in sources:
             original_id=source['id'];identifier=(('rust--' if manager.kind=='rust' else 'llama--')+original_id) if manager.kind in ('llama','rust') else original_id
             if original_id in ignored or identifier in ignored:continue
-            baseline={'sampling':default_profiles['code']['sampling'],'effort':'high','rounds':50,'context':source.get('context') or 16384,'kv':'fp16'}
+            baseline={'sampling':default_profiles['code']['sampling'],'effort':'default' if manager.kind=='api' else 'high','rounds':50,'context':source.get('context') or 16384,'kv':'fp16'}
             if original_id in a.MODEL_PREFERENCES.creators:a.MODEL_PREFERENCES.creators[identifier]=a.MODEL_PREFERENCES.creators[original_id]
             pref=a.MODEL_PREFERENCES.get(identifier,baseline)
             folder=DATA_ROOT/'llama-configs';folder.mkdir(exist_ok=True);config=folder/(hashlib.sha256(identifier.encode()).hexdigest()[:24]+'.json')
-            saved=json.loads(config.read_text(encoding='utf8')) if config.exists() else {}
+            saved=_read_json(config,{})
             config_data={**saved,'engine_kind':manager.kind,'model_name':identifier,'args':['--model',source.get('path') or ''],'context':pref['context']}
             if not config.exists():config.write_text(json.dumps(config_data),encoding='utf8')
             path=source.get('path');name=source.get('display_name') if original_id.startswith('local-') else (Path(path).name if path else source['display_name'])
@@ -206,7 +214,7 @@ def install(a):
         if updates.installing:raise ValueError('Espera a que termine la comprobación o actualización del motor.')
         if manager.kind=='strata':
             for file in CONFIG_ROOT.glob('strata-*.json'):
-                cfg=json.loads(file.read_text(encoding='utf8'))
+                cfg=_read_json(file,{})
                 if not cfg.get('_val_managed_engine'):continue
                 exe=updated_executable('strata',RUNTIME_ROOT/'strata/strata-poly.exe')
                 if str(exe)!=cfg.get('exe'):
@@ -237,7 +245,9 @@ def install(a):
     def context(tokens,name=None):
         if manager.kind=='strata':return original['change_context'](tokens,name)
         if manager.kind=='api':raise ValueError('El contexto del modelo externo lo administra el proveedor.')
-        name=name or manager.loaded;reloaded=manager.loaded==name
+        name=name or manager.loaded
+        if not name:raise ValueError('Selecciona o carga un modelo para ajustar su contexto.')
+        selected(name);reloaded=manager.loaded==name
         a.MODEL_PREFERENCES.save(name,{'context':tokens})
         if reloaded:manager.stop();load(name,tokens)
         return {'status':'ok','context':tokens,'model':name,'reloaded':reloaded}
@@ -249,11 +259,16 @@ def install(a):
         return manager.loaded
 
     def stream(payload,control):
-        info=thinking_policy.capability(selected(payload.get('model')),manager.kind)
-        thinking_policy.apply(payload,payload.get('reasoning_effort') or ('none' if payload.get('chat_template_kwargs',{}).get('enable_thinking') is False else info['default']),info)
+        model_id=payload.get('model') or (None if manager.kind=='strata' else manager.loaded)
+        info=thinking_policy.capability(selected(model_id),manager.kind)
+        kwargs=payload.get('chat_template_kwargs') if isinstance(payload.get('chat_template_kwargs'),dict) else {}
+        thinking_policy.apply(payload,payload.get('reasoning_effort') or ('none' if kwargs.get('enable_thinking') is False else info['default']),info)
         if manager.kind=='strata':yield from original['engine_chat_stream'](payload,control)
         else:
-            if manager.kind=='api':payload={**payload,'model':manager.selected_remote()['id']}
+            if manager.kind=='api':
+                remote=manager.selected_remote()
+                if not remote:raise a.ModelStateError('Selecciona un modelo de la API antes de chatear.')
+                payload={**payload,'model':remote['id']}
             yield from manager.stream(payload,control)
 
     def stats():
@@ -279,8 +294,8 @@ def install(a):
         result=models()
         for model in result.get('data',[]):model['thinking']=thinking_policy.capability(model,manager.kind)
         return result
-    a.installed_models=annotated_models;a.selected_model=selected;a.engine_health=health;a.load_agent_model=load;a.require_loaded_model=require;a.change_context=context;a.engine_chat_stream=stream;a.stats=stats
-    a.current_model=lambda:original['current_model']() if manager.kind=='strata' else (manager.loaded,selected(manager.loaded)['config'] if manager.loaded else None)
+    a.REMOTE_ENGINE=lambda:manager.kind=='api';a.installed_models=annotated_models;a.selected_model=selected;a.engine_health=health;a.load_agent_model=load;a.require_loaded_model=require;a.change_context=context;a.engine_chat_stream=stream;a.stats=stats
+    a.current_model=lambda:original['current_model']() if manager.kind=='strata' else (manager.loaded,selected(manager.loaded).get('config') if manager.loaded else None)
     a.unload_agent_model=lambda:original['unload_agent_model']() if manager.kind=='strata' else manager.release_remote() if manager.kind=='api' else manager.stop()
     a.stop_engine=lambda *args,**kwargs:original['stop_engine'](*args,**kwargs) if manager.kind=='strata' else manager.stop()
     a.start_engine=lambda name=None:original['start_engine'](name) if manager.kind=='strata' else ({'status':'ready','engine_online':True} if manager.kind=='llama' else manager.connect())
@@ -289,7 +304,7 @@ def install(a):
     old_validate=a.kv_settings.validate
     a.kv_settings.FORMATS['bf16']=('BF16','Formato BF16 de llama.cpp.')
     def validate(config,value):
-        cfg=json.loads(Path(config).read_text(encoding='utf8'))
+        cfg=_read_json(config,{})
         if cfg.get('engine_kind') in ('llama','rust'):
             if value not in (('fp16','q8_0') if cfg.get('engine_kind')=='rust' else ('fp16','bf16','q8_0','q4_0')):raise ValueError('Formato KV no habilitado para esta compilación.')
             return value
@@ -326,7 +341,7 @@ def install(a):
                   'context':pref.get('context'),'kv':pref.get('kv')}
         template=(item.get('llama_settings') or {}).get('template')
         if not template and manager.kind=='strata':
-            cfg=json.loads(Path(item['config']).read_text(encoding='utf-8-sig'))
+            cfg=_read_json(item['config'],{})
             template=str(Path(cfg.get('tokenizer') or '')/'chat_template.jinja')
         if template and Path(template).is_file():settings['template']=Path(template).read_text(encoding='utf-8-sig')
         return settings
@@ -380,11 +395,14 @@ def install(a):
                     '/assets/ui-i18n.js':('ui-i18n.js','text/javascript; charset=utf-8'),
                     '/assets/ui-panels.css':('ui-panels.css','text/css; charset=utf-8'),
                     '/assets/locales.json':('locales.json','application/json; charset=utf-8')}
-            if self.path in assets:
+            if self.path.split('?')[0] in assets:
                 from runtime_paths import UI_DIST
-                name,mime=assets[self.path]
-                raw=(UI_DIST/'assets'/name).read_bytes()
-                self.send_response(200);self.send_header('Content-Type',mime);self.send_header('Content-Length',str(len(raw)));self.send_header('Cache-Control','no-store');self.end_headers();self.wfile.write(raw);return
+                name,mime=assets[self.path.split('?')[0]]
+                asset_path=UI_DIST/'assets'/name
+                if not asset_path.is_file():
+                    self._json(404,{'error':'Recurso no encontrado.'});return
+                raw=asset_path.read_bytes()
+                self.send_response(200);self.send_header('Content-Type',mime);self.send_header('Content-Length',str(len(raw)));self.send_header('Cache-Control','no-store');self.send_header('X-Content-Type-Options','nosniff');self.end_headers();self.wfile.write(raw);return
             if self.path.split('?')[0] in ('/assets/ui-patch.css','/assets/ui-patch.js'):
                 # Interface fixes from the signed components channel (empty when none is applied).
                 import components
@@ -418,32 +436,67 @@ def install(a):
                     elif parts.path=='/api/harness/hub/downloads':self._json(200,hub_downloads.snapshot())
                     elif parts.path=='/api/harness/external/scan':
                         result=external_models.scan();known=registered_paths()
-                        for item in result['models']:item['registered']=os.path.normcase(str(Path(item['path']).resolve())) in known
+                        for item in result['models']:
+                            try:resolved=str(Path(item['path']).resolve())
+                            except OSError:resolved=str(Path(item['path']))
+                            item['registered']=os.path.normcase(resolved) in known
                         self._json(200,result)
                     else:self._json(404,{'error':'Ruta desconocida.'})
                 except Exception as error:self._json(400,{'error':str(error)[:300]})
                 return
             if self.path=='/api/harness/state':self._json(200,manager.snapshot());return
             if manager.kind!='strata' and self.path=='/api/context/usage':
-                run=dict(a.ACTIVE_CONTEXT_RUN);usage=a.context_usage(manager.metrics(),bool(manager.loaded)) if run else None
-                self._json(200,{**run,'usage':usage} if run else {'run_id':None,'usage':None});return
+                with a.ACTIVE_CONTEXT_LOCK:run=dict(a.ACTIVE_CONTEXT_RUN)
+                if not run:
+                    self._json(200,{'run_id':None,'usage':None});return
+                usage=a.context_usage(manager.metrics(),bool(manager.loaded))
+                with a.ACTIVE_CONTEXT_LOCK:same=(run==a.ACTIVE_CONTEXT_RUN)
+                self._json(200,{**run,'usage':usage} if same else {'run_id':None,'usage':None});return
             if manager.kind!='strata' and self.path=='/api/vision/status':
-                enabled=bool(selected(manager.loaded).get('llama_settings',{}).get('mmproj')) if manager.loaded and manager.kind=='llama' else manager.settings.get('api',{}).get('vision',False)
+                if manager.kind=='llama':
+                    enabled=bool(selected(manager.loaded).get('llama_settings',{}).get('mmproj')) if manager.loaded else False
+                elif manager.kind=='api':
+                    enabled=bool(manager.settings.get('api',{}).get('vision',False))
+                else:
+                    enabled=False
                 self._json(200,{'model':manager.loaded,'vision':{'enabled':enabled}});return
             super().do_GET()
+        def _read_json_dict(self,limit,message='Solicitud no válida.'):
+            size=int(self.headers.get('Content-Length') or 0)
+            if not 0<size<=limit:raise ValueError(message)
+            body=json.loads(self.rfile.read(size))
+            if not isinstance(body,dict):raise ValueError(message)
+            return body
         def do_POST(self):
             # Adding a GGUF follows the active engine: Strata's importer only for Strata (it refuses
             # architectures Strata cannot run, which Strata Rust or llama.cpp may run fine).
-            handled=self.path.startswith('/api/harness/') or (manager.kind=='llama' and self.path=='/api/models/vision') \
+            handled=self.path.startswith('/api/harness/') or self.path=='/api/context/compact' or (manager.kind=='llama' and self.path=='/api/models/vision') \
                 or (manager.kind in ('llama','rust') and self.path in ('/api/models/inspect','/api/models/register'))
             if not handled:return super().do_POST()
             if not a.ui_origin_allowed(self.headers.get('Origin'),a.PORT):
                 self._json(403,{'error':'Esta acción requiere los controles locales de V-Agent.'});return
+            if self.path in ('/api/harness/context/compact','/api/context/compact'):
+                try:
+                    body=self._read_json_dict(32*1024*1024,'Solicitud de compactación no válida.')
+                except Exception as error:
+                    self._json(400,{'error':str(error)});return
+                if not a.ENGINE_LOCK.acquire(blocking=False):
+                    self._json(409,{'error':'Espera a que termine la operación actual.'});return
+                try:
+                    model_id=a.require_loaded_model(body.get('model'))
+                    msgs=body.get('messages')
+                    if not isinstance(msgs,list) or not msgs:raise ValueError('No hay mensajes suficientes para comprimir.')
+                    instructions=body.get('instructions')
+                    result=a.compact_local_context(model_id,msgs,instructions) if manager.kind=='strata' else manager.compact_context(model_id,msgs,instructions)
+                    self._json(200,result)
+                except a.ModelStateError as error:self._json(error.status,{'error':str(error)})
+                except (ValueError,OSError,KeyError,TypeError) as error:self._json(400,{'error':str(error)})
+                finally:a.ENGINE_LOCK.release()
+                return
             if self.path=='/api/harness/memory-estimate':
                 try:
-                    size=int(self.headers.get('Content-Length') or 0)
-                    if not 0<size<=16384:raise ValueError('Solicitud de memoria no válida.')
-                    body=json.loads(self.rfile.read(size));model=selected(body.get('model'))
+                    body=self._read_json_dict(16384,'Solicitud de memoria no válida.');model=selected(body.get('model'))
+                    if not isinstance(model,dict):raise ValueError('Elige un modelo válido.')
                     if manager.kind=='api':raise ValueError('La memoria del proveedor no se administra en este equipo.')
                     context=body.get('context',model.get('context') or 16384)
                     if type(context) is not int or not 2048<=context<=262144:raise ValueError('Contexto fuera de rango.')
@@ -455,7 +508,9 @@ def install(a):
                     load=validate(body.get('load',model.get('preferences',{}).get('load',{})))
                     caps=capabilities(manager.executable()) if manager.kind=='llama' else {}
                     if manager.kind=='strata':
-                        config=json.loads(Path(model['config']).read_text(encoding='utf-8-sig'));args=config.get('args',[]);caps['prompt_batch']=int(args[args.index('--prompt-batch')+1]) if '--prompt-batch' in args else 1024
+                        config=_read_json(model['config'],{});args=config.get('args',[])
+                        try:caps['prompt_batch']=int(args[args.index('--prompt-batch')+1]) if '--prompt-batch' in args else 1024
+                        except (ValueError,IndexError):caps['prompt_batch']=1024
                     from load_settings import gpu_layers
                     cfg=manager.settings.get('llama',{});layers='auto' if manager.kind=='strata' else '0' if cfg.get('variant')=='cpu' else gpu_layers(load,cfg.get('gpu_layers','auto'))
                     result=estimate(model,context,kv,load,manager.kind,layers,caps)
@@ -472,9 +527,7 @@ def install(a):
                 return
             if self.path=='/api/harness/console':
                 try:
-                    size=int(self.headers.get('Content-Length') or 0)
-                    if not 0<size<=20000:raise ValueError('Invalid console request.')
-                    body=json.loads(self.rfile.read(size))
+                    body=self._read_json_dict(20000,'Invalid console request.')
                     if body.get('action')=='stop':result=console.stop()
                     elif body.get('action')=='clear':result=console.clear()
                     elif body.get('action')=='run':
@@ -492,10 +545,8 @@ def install(a):
                 return
             if self.path in ('/api/harness/browser','/api/harness/browser/result'):
                 try:
-                    size=int(self.headers.get('Content-Length') or 0)
                     limit=131072 if self.path.endswith('/result') else 65536
-                    if not 0<size<=limit:raise ValueError('Solicitud de navegador no válida.')
-                    body=json.loads(self.rfile.read(size))
+                    body=self._read_json_dict(limit,'Solicitud de navegador no válida.')
                     if self.path.endswith('/result'):
                         ok=browser.resolve(str(body.get('id') or ''),body.get('result'),body.get('error'))
                         self._json(200,{'ok':ok})
@@ -526,9 +577,7 @@ def install(a):
                 return
             if self.path=='/api/harness/plugins':
                 try:
-                    size=int(self.headers.get('Content-Length') or 0)
-                    if not 0<size<=200000:raise ValueError('Solicitud de plugin no válida.')
-                    body=json.loads(self.rfile.read(size));action=body.get('action')
+                    body=self._read_json_dict(200000,'Solicitud de plugin no válida.');action=body.get('action')
                     if action=='install_path':result=plugins.install_path(body.get('path'))
                     elif action=='install_manifest':result=plugins.install_manifest(body.get('manifest'))
                     elif action=='toggle':
@@ -541,14 +590,12 @@ def install(a):
                 return
             if self.path=='/api/harness/market':
                 try:
-                    size=int(self.headers.get('Content-Length') or 0)
-                    if not 0<size<=131072:raise ValueError('Request too large.')
-                    body=json.loads(self.rfile.read(size))
+                    body=self._read_json_dict(131072,'Request too large.')
                     if body.get('action')=='search':
                         found=extensions.search_registry(body.get('query',''))
                         with catalog.lock:
-                            existing={(i['source'],i['name']):i for i in catalog.state.get('items',[])}
-                            existing.update({(i['source'],i['name']):i for i in found});catalog.state['items']=list(existing.values())
+                            existing={(i.get('source'),i.get('name')):i for i in catalog.state.get('items',[]) if isinstance(i,dict) and i.get('name')}
+                            existing.update({(i.get('source'),i.get('name')):i for i in found if isinstance(i,dict) and i.get('name')});catalog.state['items']=list(existing.values())
                             from ui_preferences import atomic_json
                             atomic_json(extensions.ROOT/'catalog.json',catalog.state)
                         result={'items':found}
@@ -565,19 +612,16 @@ def install(a):
                 return
             if self.path in ('/api/harness/preferences','/api/harness/mcp-options'):
                 try:
-                    size=int(self.headers.get('Content-Length') or 0)
-                    if not 0<size<=4096:raise ValueError('Solicitud no válida.')
+                    body=self._read_json_dict(4096)
                     store=OPTIONS if self.path.endswith('/mcp-options') else preferences
-                    self._json(200,store.save(json.loads(self.rfile.read(size))))
+                    self._json(200,store.save(body))
                 except (ValueError,OSError) as error:self._json(400,{'error':str(error)})
                 return
             if self.path=='/api/harness/components':
                 # Signed minor updates (MCP servers, tool descriptions); see components.py.
                 from components import COMPONENTS
                 try:
-                    size=int(self.headers.get('Content-Length') or 0)
-                    if not 0<size<=1024:raise ValueError('Invalid request.')
-                    action=json.loads(self.rfile.read(size)).get('action')
+                    action=self._read_json_dict(1024,'Invalid request.').get('action')
                     if action=='check':result=COMPONENTS.check()
                     elif action=='apply':result=COMPONENTS.apply()
                     elif action=='reset':result=COMPONENTS.reset()
@@ -589,9 +633,7 @@ def install(a):
                 # V-Agent's own signed updates (see app_updates.py): check, download+verify, launch.
                 from app_updates import UPDATES as app_update
                 try:
-                    size=int(self.headers.get('Content-Length') or 0)
-                    if not 0<size<=1024:raise ValueError('Invalid request.')
-                    action=json.loads(self.rfile.read(size)).get('action')
+                    action=self._read_json_dict(1024,'Invalid request.').get('action')
                     if action=='check':result=app_update.check()
                     elif action=='download':
                         if not app_update.snapshot().get('available'):raise ValueError('No hay una actualización verificada.')
@@ -605,9 +647,7 @@ def install(a):
                 return
             if self.path.startswith('/api/harness/updates/'):
                 try:
-                    size=int(self.headers.get('Content-Length') or 0)
-                    if not 0<size<=4096:raise ValueError('Invalid request.')
-                    body=json.loads(self.rfile.read(size));action=self.path.rsplit('/',1)[1]
+                    body=self._read_json_dict(4096,'Invalid request.');action=self.path.rsplit('/',1)[1]
                     if action=='check':result=updates.check(True)
                     elif action=='defer':result=updates.defer()
                     elif action in ('install','rollback'):
@@ -622,9 +662,7 @@ def install(a):
                 return
             if self.path.startswith('/api/harness/hub/') or self.path.startswith('/api/harness/external/'):
                 try:
-                    size=int(self.headers.get('Content-Length') or 0)
-                    if not 0<size<=4*2**20:raise ValueError('Solicitud no válida.')
-                    body=json.loads(self.rfile.read(size))
+                    body=self._read_json_dict(4*2**20)
                     if self.path=='/api/harness/hub/download':result=hub_downloads.start(body.get('repo'),body.get('file'))
                     elif self.path=='/api/harness/hub/cancel':result=hub_downloads.cancel(body.get('id'))
                     elif self.path=='/api/harness/hub/folder':result=hub_downloads.set_folder(body.get('path'))
@@ -633,8 +671,9 @@ def install(a):
                         if not isinstance(items,list) or not 0<len(items)<=200:raise ValueError('Elige al menos un modelo.')
                         done=[]
                         for item in items:
+                            if not isinstance(item,dict):done.append({'path':'','error':'Elemento de modelo no válido.'});continue
                             try:done.append({'path':item.get('path'),**add_gguf(item.get('path',''),item.get('name'),item)})
-                            except (ValueError,OSError,KeyError) as error:done.append({'path':item.get('path'),'error':str(error)[:200]})
+                            except (ValueError,OSError,KeyError,TypeError) as error:done.append({'path':item.get('path'),'error':str(error)[:200]})
                         result={'results':done}
                     elif self.path=='/api/harness/external/export':
                         settings=model_settings(body.get('model'));target=body.get('target')
@@ -648,17 +687,16 @@ def install(a):
                 return
             if self.path=='/api/harness/approval':
                 try:
-                    size=int(self.headers.get('Content-Length') or 0)
-                    if not 0<size<=4096:raise ValueError('Invalid request.')
-                    body=json.loads(self.rfile.read(size));APPROVALS.resolve(body.get('id'),body.get('allowed'),bool(body.get('remember',False)));self._json(200,{'ok':True})
+                    body=self._read_json_dict(4096,'Invalid request.');APPROVALS.resolve(body.get('id'),body.get('allowed'),bool(body.get('remember',False)));self._json(200,{'ok':True})
                 except (ValueError,OSError) as error:self._json(400,{'error':str(error)})
                 return
             if not a.ENGINE_LOCK.acquire(blocking=False):self._json(409,{'error':'Detén la generación antes de cambiar el motor.'});return
             try:
-                size=int(self.headers.get('Content-Length') or 0)
-                if not 0<size<=65536:raise ValueError('Solicitud no válida.')
-                body=json.loads(self.rfile.read(size))
+                body=self._read_json_dict(65536)
                 if self.path=='/api/harness/configure':
+                    # A provider model is only a selection (nothing in memory here): switching connection or
+                    # engine releases it instead of asking the user to "unload" it first.
+                    if manager.kind=='api':manager.release_remote()
                     if (health() or {}).get('loaded'):raise ValueError('Descarga el modelo actual antes de cambiar de motor.')
                     a.stop_engine();state=manager.configure(body);a.VRAM_AUTO=strata_auto and manager.kind=='strata';self._json(200,state)
                 elif self.path=='/api/harness/connect':
@@ -675,7 +713,9 @@ def install(a):
                         raise ValueError('No se pudo conectar con '+(base or 'la API')+': '+why+'.') from None
                 elif self.path=='/api/harness/model-context':self._json(200,manager.remote_context(body.get('model'),body.get('context')))
                 elif self.path=='/api/models/vision':
-                    model=selected(body['model']);path=Path(model['config']);cfg=json.loads(path.read_text())
+                    model=selected(body.get('model'))
+                    if not isinstance(model,dict) or not model.get('config'):raise ValueError('Elige un modelo válido.')
+                    path=Path(model['config']);cfg=_read_json(path,{})
                     mmproj=str(body.get('mmproj','')).strip()
                     if body.get('enabled') and (not Path(mmproj).is_file() or Path(mmproj).suffix.lower()!='.gguf'):raise ValueError('Elige un mmproj GGUF compatible.')
                     cfg['mmproj']=mmproj if body.get('enabled') else '';a.MODEL_PREFERENCES.save(model['id'],{})
@@ -690,6 +730,6 @@ def install(a):
                         result['model']['id']='rust--'+info['identifier'];self._json(200,result)
                     else:self._json(200,register_llama_import(info,body.get('name')))
                 else:self._json(404,{'error':'Acción desconocida.'})
-            except (ValueError,OSError,KeyError) as error:self._json(400,{'error':str(error)})
+            except (ValueError,OSError,KeyError,TypeError) as error:self._json(400,{'error':str(error)})
             finally:a.ENGINE_LOCK.release()
     a.Handler=Handler

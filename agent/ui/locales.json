@@ -7346,5 +7346,22 @@
   "En memoria:": {"en":"In memory:","pt":"Na memória:","fr":"En mémoire :","de":"Im Speicher:"},
   "Cambiar a este modelo": {"en":"Switch to this model","pt":"Mudar para este modelo","fr":"Passer à ce modèle","de":"Zu diesem Modell wechseln"},
   "Pulsa Aplicar y recargar para usarlo ahora.": {"en":"Press Apply and reload to use it now.","pt":"Clique em Aplicar e recarregar para usá-lo agora.","fr":"Appuyez sur Appliquer et recharger pour l’utiliser maintenant.","de":"Klicke auf Übernehmen und neu laden, um ihn jetzt zu verwenden."},
-  "desde caché": {"en":"from cache","pt":"do cache","fr":"depuis le cache","de":"aus dem Cache"}
+  "desde caché": {"en":"from cache","pt":"do cache","fr":"depuis le cache","de":"aus dem Cache"},
+  "Compactar historial": {"en":"Compact history","pt":"Compactar histórico","fr":"Compacter l’historique","de":"Verlauf komprimieren"},
+  "Comprimir contexto": {"en":"Compress context","pt":"Comprimir contexto","fr":"Compresser le contexte","de":"Kontext komprimieren"},
+  "Comprimiendo…": {"en":"Compressing…","pt":"Comprimindo…","fr":"Compression…","de":"Komprimiere…"},
+  "Comprimiendo historial con el método nativo…": {"en":"Compressing history with the native method…","pt":"Comprimindo histórico com o método nativo…","fr":"Compression de l’historique avec la méthode native…","de":"Komprimiere Verlauf mit der nativen Methode…"},
+  "Contexto comprimido": {"en":"Compressed context","pt":"Contexto comprimido","fr":"Contexte compressé","de":"Komprimierter Kontext"},
+  "Contexto comprimido.": {"en":"Context compressed.","pt":"Contexto comprimido.","fr":"Contexte compressé.","de":"Kontext komprimiert."},
+  "Comprimido · ": {"en":"Compressed · ","pt":"Comprimido · ","fr":"Compressé · ","de":"Komprimiert · "},
+  "mensajes": {"en":"messages","pt":"mensagens","fr":"messages","de":"Nachrichten"},
+  "No hay mensajes suficientes para comprimir.": {"en":"Not enough messages to compress.","pt":"Não há mensagens suficientes para comprimir.","fr":"Pas assez de messages à compresser.","de":"Nicht genügend Nachrichten zum Komprimieren."},
+  "Error: ": {"en":"Error: ","pt":"Erro: ","fr":"Erreur : ","de":"Fehler: "},
+  "Copiado": {"en":"Copied","pt":"Copiado","fr":"Copié","de":"Kopiert"},
+  "Copiar resultado de ": {"en":"Copy result from ","pt":"Copiar resultado de ","fr":"Copier le résultat de ","de":"Ergebnis kopieren von "},
+  "Descarga el modelo antes de actualizar.": {"en":"Unload the model before updating.","pt":"Descarregue o modelo antes de atualizar.","fr":"Déchargez le modèle avant de mettre à jour.","de":"Entlade das Modell vor dem Aktualisieren."},
+  "GPU": {"en":"GPU","pt":"GPU","fr":"GPU","de":"GPU"},
+  "Modelo que generó la respuesta: ": {"en":"Model that generated the response: ","pt":"Modelo que gerou a resposta: ","fr":"Modèle ayant généré la réponse : ","de":"Modell, das die Antwort erzeugt hat: "},
+  "No se pudo completar la respuesta: ": {"en":"Could not complete the response: ","pt":"Não foi possível concluir a resposta: ","fr":"Impossible de terminer la réponse : ","de":"Antwort konnte nicht abgeschlossen werden: "},
+  "No se pudo completar la instalación.": {"en":"Could not complete installation.","pt":"Não foi possível concluir a instalação.","fr":"Impossible de terminer l’installation.","de":"Installation konnte nicht abgeschlossen werden."}
 }

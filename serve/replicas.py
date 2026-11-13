@@ -44,12 +44,12 @@ def gpu_groups(cfg: dict) -> list[list[int]]:
     spec = cfg.get("replicas")
     if spec is None or spec is False:
         return []
-    cards = _cards(cfg.get("gpu"))
     if isinstance(spec, bool) or (not isinstance(spec, (int, list))):
         raise ReplicaConfigError(f'"replicas" must be a number or a list of {{"gpus": [...]}}, not {spec!r}')
     if isinstance(spec, int):
         if spec <= 1:
             return []
+        cards = _cards(cfg.get("gpu"))
         if not cards:
             raise ReplicaConfigError(f'"replicas": {spec} needs the "gpu" list to cut into groups (e.g. "gpu": [0, 1, 2, 3])')
         if len(cards) % spec:
@@ -102,7 +102,7 @@ def replica_cfg(cfg: dict, i: int, gpus: list[int]) -> dict:
     if entry.get("env"):
         c["env"] = {**(c.get("env") or {}), **{str(k): str(v) for k, v in entry["env"].items()}}
     if entry.get("args"):
-        c["args"] = list(c["args"]) + [str(x) for x in entry["args"]]
+        c["args"] = list(c.get("args") or []) + [str(x) for x in entry["args"]]
     return c
 
 
@@ -300,7 +300,10 @@ class ReplicaEngine:
 
     def replica_view(self) -> list[dict]:
         """For /metrics: each replica's state, requests running, and requests routed to it so far."""
-        return [{"replica": k, "alive": e.alive(), "running": self.inflight[k], "routed": self.routed[k],
+        with self.lock:
+            inflight = list(self.inflight)
+            routed = list(self.routed)
+        return [{"replica": k, "alive": e.alive(), "running": inflight[k], "routed": routed[k],
                  "batch": int(getattr(e, "batch", 0) or 0)} for k, e in enumerate(self.engines)]
 
     # ---- life cycle
@@ -360,14 +363,17 @@ class ReplicaEngine:
     def heal(self) -> None:
         """Start a replica that died again, in the background (the others keep serving)."""
         now = time.monotonic()
+        to_start: list[int] = []
         for k, e in enumerate(self.engines):
-            if e.alive() or getattr(e, "unloaded", False) or getattr(e, "starting", False) or self.healing.get(k):
+            if e.alive() or getattr(e, "unloaded", False) or getattr(e, "starting", False):
                 continue
-            if now < self.heal_at[k]:
-                continue
-            self.heal_at[k] = now + HEAL_COOLDOWN_S
-            self.healing[k] = True
-
+            with self.lock:
+                if self.healing.get(k) or now < self.heal_at[k]:
+                    continue
+                self.heal_at[k] = now + HEAL_COOLDOWN_S
+                self.healing[k] = True
+                to_start.append(k)
+        for k in to_start:
             def run(k=k):
                 try:
                     print(f"[strata] replica {k} had stopped; starting it again", flush=True)
@@ -377,7 +383,8 @@ class ReplicaEngine:
                 except BaseException as x:       # noqa: BLE001
                     print(f"[strata] replica {k} did not start again: {x}", flush=True)
                 finally:
-                    self.healing[k] = False
+                    with self.lock:
+                        self.healing[k] = False
             threading.Thread(target=run, daemon=True).start()
 
     def generate(self, ids, max_new, sampling, cancel, embeddings=None):

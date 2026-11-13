@@ -130,10 +130,17 @@ function closeComposerMenu(focus=true){const menu=$('#composerAddMenu');if(menu?
 function syncComposerMenu(){if($('#webSearchMenu')){$('#webSearchMenu').setAttribute('aria-checked',String(!!S.functions.search&&!!S.functions.visit));$('#webSearchMenu').disabled=busy||engineBusy;}}
 async function restoreClientPreferences(){
   try{uiPreferences=await requestJSON('/api/harness/preferences');}catch{try{uiPreferences.language=localStorage.getItem('valLanguage')||'es';}catch{}}
-  try{pcAccess=await requestJSON('/api/access');}catch{}
+  try{
+    pcAccess=await requestJSON('/api/access');
+    if((S.pcAccessMode==='full_pc'||S.pcAccessMode==='sandbox')&&pcAccess.mode!==S.pcAccessMode){
+      pcAccess=await requestJSON('/api/access',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:S.pcAccessMode})});
+      presupuestoFirmado='';
+    }
+  }catch{}
   S.agentProfile=uiPreferences.agent_profile||S.agentProfile||'balanced';if($('#agentProfile')){$('#agentProfile').value=S.agentProfile;$('#agentProfile').dispatchEvent(new Event('val-profile-restored'));}syncAgentModeSeat();
   if(!['ask','auto','run'].includes(S.permissionMode)){S.permissionMode='ask';saveSettings();}
   syncFunctionControls();if(typeof syncAccessControls==='function')syncAccessControls();
+  if(typeof pollMCP==='function')pollMCP();
   applyDecoration(uiPreferences.decoration);
   const duration=uiPreferences.animation_ms??620;window.VALMotion?.setDuration(duration);$('#animationSpeed').value=duration;$('#animationSpeedValue').textContent=duration+' ms';
   if(!window.VALI18n){$('#uiLanguage').disabled=true;return;}

@@ -10,6 +10,7 @@ to the model (#37), so a change is used from the next start of, or switch to, th
 from __future__ import annotations
 
 import json
+import math
 import os
 import shutil
 from pathlib import Path
@@ -78,7 +79,7 @@ def view(cfg: dict, path: str | Path) -> dict:
 
 
 def _number(key, v, whole=False, lo=0.0, hi=None, lo_open=False):
-    if isinstance(v, bool) or not isinstance(v, (int, float)) or (whole and v != int(v)) or \
+    if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or (whole and v != int(v)) or \
             (v <= lo if lo_open else v < lo) or (hi is not None and v > hi):
         rng = f"{'more than' if lo_open else 'at least'} {lo:g}" + (f" and at most {hi:g}" if hi is not None else "")
         raise ValueError(f"{key}: expected a {'whole ' if whole else ''}number, {rng}, not {v!r}")

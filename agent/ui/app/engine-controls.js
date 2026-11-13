@@ -54,7 +54,7 @@ function setupEngineControls(){
   async function apply(connect=false){
     if(busy||engineBusy)return;setEngineBusy(true);
     try{
-      const body={engine:$('#engineKind').value,variant:$('#llamaVariant').value,executable:$('#llamaExecutable').value,gpu_layers:$('#llamaLayers').value,connection_id:$('#apiConnection').value,new_connection:!$('#apiConnection').value,name:$('#apiName').value,protocol:$('#apiProtocol').value,base_url:$('#apiBase').value,api_key:$('#apiKey').value,organization:$('#apiOrganization').value,project:$('#apiProject').value,api_version:$('#apiVersion').value,timeout:Number($('#apiTimeout').value),vision:$('#apiVision').checked,include_usage:$('#apiUsage').checked,send_sampling:$('#apiSampling').checked};
+      const body={engine:$('#engineKind').value,variant:$('#llamaVariant').value,executable:$('#llamaExecutable').value,gpu_layers:$('#llamaLayers').value,connection_id:$('#apiConnection').value,new_connection:!$('#apiConnection').value,name:$('#apiName').value,protocol:$('#apiProtocol').value,base_url:$('#apiBase').value,api_key:$('#apiKey').value,organization:$('#apiOrganization').value,project:$('#apiProject').value,api_version:$('#apiVersion').value,timeout:Number($('#apiTimeout').value)||180,vision:$('#apiVision').checked,include_usage:$('#apiUsage').checked,send_sampling:$('#apiSampling').checked};
       engineSnapshot=await requestJSON('/api/harness/configure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});activeEngine=engineSnapshot.active;
       // A failed connection still leaves the UI aligned with the engine state actually saved.
       let failure=null;try{if(connect)engineSnapshot=await requestJSON('/api/harness/connect',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(120000)});}catch(error){failure=error;}
@@ -81,13 +81,13 @@ function syncEngineCapabilities(){
   if(!$('#engineSettings'))return;
   syncLoadSettings();
   const remote=activeEngine==='api',strata=activeEngine==='strata';
-  $('#controls-context').hidden=remote;if($('#contextBlock'))$('#contextBlock').hidden=remote;if($('#loadAdvanced'))$('#loadAdvanced').hidden=remote;if($('#modelSectionTabs'))$('#modelSectionTabs').hidden=remote;if(remote)setModelSection('generation');$('#effort').closest('.row').hidden=remote;$('#kvSettings').hidden=remote;$('#draftSettings').hidden=!strata;$('#visionSettings').hidden=remote||activeEngine==='rust';
+  $('#controls-context').hidden=remote;if($('#contextBlock'))$('#contextBlock').hidden=remote;if($('#loadAdvanced'))$('#loadAdvanced').hidden=remote;if($('#modelSectionTabs'))$('#modelSectionTabs').hidden=remote;if(remote)setModelSection('generation');$('#effort').closest('.row').hidden=false;$('#kvSettings').hidden=remote;$('#draftSettings').hidden=!strata;$('#visionSettings').hidden=remote||activeEngine==='rust';
   $('#templateRow').hidden=!strata;if($('#templateSettings'))$('#templateSettings').hidden=!strata;
   const power=$('#engineToggle').closest('.power-row');if(power)power.hidden=['llama','rust'].includes(activeEngine)||engineFormDirty();
   for(const id of ['p_topk','p_minp','p_rep','p_presence','p_frequency','p_seed'])if($('#'+id)?.closest('.row'))$('#'+id).closest('.row').hidden=remote;
-  const claude=remote&&engineSnapshot?.api?.protocol==='anthropic';for(const id of ['p_temp','p_topp'])if($('#'+id)?.closest('.row'))$('#'+id).closest('.row').hidden=remote&&(!engineSnapshot.api.send_sampling||claude&&engineSnapshot.api.api_version>='2026-10-21');
+  const claude=remote&&engineSnapshot?.api?.protocol==='anthropic',hideSampling=remote&&(!engineSnapshot?.api?.send_sampling||claude&&engineSnapshot?.api?.api_version>='2026-10-21');for(const id of ['p_temp','p_topp'])if($('#'+id)?.closest('.row'))$('#'+id).closest('.row').hidden=hideSampling;
   for(const id of ['creatorNotice','creatorReset','codeProtection'])if($('#'+id))$('#'+id).hidden=remote;
-  if($('#p_temp'))$('#p_temp').closest('details').hidden=remote&&(!engineSnapshot.api.send_sampling||claude&&engineSnapshot.api.api_version>='2026-10-21');
+  if($('#p_temp'))$('#p_temp').closest('details').hidden=hideSampling;
   if(remote){$('#load').textContent='Usar modelo';$('#unload').textContent='Dejar de usar';$('#engineToggle').textContent=engineOnline?'Desconectar API':'Conectar API';}
   else if(!engineBusy){$('#load').textContent='Cargar modelo';$('#unload').textContent='Descargar modelo';}
   $('#engineSettings').querySelectorAll('input,select,button').forEach(el=>el.disabled=busy||engineBusy);$('#modelSourceTabs').querySelectorAll('button').forEach(el=>el.disabled=busy||engineBusy);

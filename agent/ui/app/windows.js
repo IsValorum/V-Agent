@@ -297,7 +297,7 @@
     const map={};
     for(const id of dirtySizes){
       const box=sizes[id];
-      if(!DEFAULTS[id])continue;
+      if(!DEFAULTS[id]||!box)continue;
       if(!Number.isInteger(box.width)||!Number.isInteger(box.height))continue;
       map[id]={width:box.width,height:box.height};
     }

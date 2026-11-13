@@ -57,13 +57,14 @@ def _entry(value, vocab_size):
     global _last
     if not isinstance(value, (dict, list)) or len(value) < _CACHE_MIN:
         return [_normalize(value, vocab_size), None]
-    last = _last
-    if last is not None and last[0] is value and last[1] == len(value):
-        hit = last[2].get(vocab_size)
-        if hit is not None:
-            return hit
-    else:
-        last = None
+    with _lock:
+        last = _last
+        if last is not None and last[0] is value and last[1] == len(value):
+            hit = last[2].get(vocab_size)
+            if hit is not None:
+                return hit
+        else:
+            last = None
     try:
         key = (vocab_size, json.dumps(value, separators=(",", ":")))
     except (TypeError, ValueError):
@@ -82,10 +83,13 @@ def _entry(value, vocab_size):
                 while len(_cache) > _CACHE_MAX:
                     _cache.popitem(last=False)
     if key is not None:
-        if last is None:
-            last = [value, len(value), {}]
-            _last = last
-        last[2][vocab_size] = entry
+        with _lock:
+            if _last is not None and _last[0] is value and _last[1] == len(value):
+                last = _last
+            else:
+                last = [value, len(value), {}]
+                _last = last
+            last[2][vocab_size] = entry
     return entry
 
 
@@ -97,9 +101,10 @@ def engine_key(value):
     entry = _entry(value, None)
     if not entry[0]:
         return ""
-    if entry[1] is None:
-        entry[1] = " logit_bias=" + ",".join(f"{i}:{b:g}" for i, b in sorted(entry[0].items()))
-    return entry[1]
+    with _lock:
+        if entry[1] is None:
+            entry[1] = " logit_bias=" + ",".join(f"{i}:{b:g}" for i, b in sorted(entry[0].items()))
+        return entry[1]
 
 
 def validate_request(req, engine, vocab_size):

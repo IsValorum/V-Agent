@@ -23,7 +23,7 @@ function setChatControls(pane,toggle=false){
   restoreInspectorContent();
   // The technical tab is never the landing page; the context block is always visible above the tabs.
   setModelSection('generation');
-  if(requested==='context')requestAnimationFrame(()=>document.getElementById('contextBlock')?.scrollIntoView({block:'nearest'}));
+  if(requested==='context')requestAnimationFrame(()=>(activeEngine==='api'?document.getElementById('remoteModelInfo'):document.getElementById('contextBlock'))?.scrollIntoView({block:'nearest'}));
   const origin=document.querySelector('[data-controls="'+requested+'"]');
   if(toggle&&window.VALWindows?.isOpen('model')&&chatControlsFocus===origin){window.VALWindows?.close('model');syncControlButtons();return;}
   chatControlsFocus=origin;hideHelp();
@@ -66,7 +66,7 @@ function setDrawer(open) {
   else{window.VALWindows?.close('settings');document.body.classList.remove('appearance-open');drawerFocus?.isConnected&&drawerFocus.focus({preventScroll:true});}
   $('#gear').setAttribute('aria-expanded',String(open));
 }
-$('#gear').onclick=()=>setDrawer($('#drawer').hidden);
+$('#gear').onclick=()=>setDrawer(!window.VALWindows?.isOpen('settings'));
 $('#closeDrawer').onclick=()=>setDrawer(false);
 
 function setSidebar(open) { document.body.classList.toggle("sidebar-open",open); $("#mobileMenu").setAttribute("aria-expanded",String(open)); }

@@ -34,6 +34,11 @@ class RemoteProvidersTests(unittest.TestCase):
   self.assertEqual(safe,{'model':'test','max_completion_tokens':256})
   compatible=openai_payload(payload,'https://compatible.example/v1',True)
   self.assertEqual(compatible['max_tokens'],256);self.assertEqual(compatible['temperature'],.6);self.assertNotIn('seed',compatible)
+  ds_off=openai_payload({'model':'deepseek-flash','reasoning_effort':'none'},'https://api.deepseek.com/v1')
+  self.assertEqual(ds_off,{'model':'deepseek-flash','thinking':{'type':'disabled'}})
+  ds_max=openai_payload({'model':'deepseek-flash','reasoning_effort':'xhigh','messages':[{'role':'assistant','content':'','tool_calls':[{'id':'c1'}]}]},'https://api.deepseek.com/v1')
+  self.assertEqual(ds_max['thinking'],{'type':'enabled'});self.assertEqual(ds_max['reasoning_effort'],'max')
+  self.assertEqual(ds_max['messages'][0]['reasoning_content'],'')
  def test_claude_payload_tool_history_images_and_removed_parameters(self):
   payload={'model':'claude-test','max_tokens':0,'temperature':.4,'top_p':.9,'messages':[{'role':'system','content':'Date only.'},{'role':'user','content':[{'type':'text','text':'inspect'},{'type':'image_url','image_url':{'url':'data:image/png;base64,YQ=='}}]},{'role':'assistant','content':None,'tool_calls':[{'id':'t1','function':{'name':'pc__fs_list','arguments':'{"path":"."}'}}]},{'role':'tool','tool_call_id':'t1','content':'real output'}],'tools':[{'function':{'name':'pc__fs_list','parameters':{'type':'object','properties':{'path':{'type':'string'}}}}}],'tool_choice':'auto'}
   body=claude_payload(payload,'2026-10-21',4096)
@@ -64,9 +69,36 @@ class RemoteProvidersTests(unittest.TestCase):
    identifier=m.remote_identifier(m.remote_models[0]);m.load({'id':identifier},None,None)
    output=b''.join(m.stream({'model':'c1','messages':[{'role':'user','content':'inspect'}],'temperature':.9},Control())).decode()
    self.assertIn('tool_calls',output);self.assertIn('[DONE]',output);self.assertEqual(requests[-1][0],'/v1/messages');self.assertNotIn('temperature',requests[-1][2]);self.assertEqual(m.last_usage['prompt_tokens'],15)
-   m.remote_context(identifier,60000);self.assertEqual(m.metrics()['engine']['max_context'],60000);m.remote_context(identifier,None);self.assertEqual(m.metrics()['engine']['max_context'],120000)
+   m.remote_context(identifier,60000);self.assertEqual(m.metrics()['engine']['max_context'],60000);self.assertEqual(m.loaded,identifier);m.remote_context(identifier,None);self.assertEqual(m.metrics()['engine']['max_context'],120000)
+   restarted=engine_manager.EngineManager()
+   self.assertTrue(restarted.online);self.assertEqual(restarted.loaded,identifier)
    self.assertTrue(m.release_remote()['engine_online'])
+   restarted_after_release=engine_manager.EngineManager()
+   self.assertTrue(restarted_after_release.online);self.assertIsNone(restarted_after_release.loaded)
   finally:server.shutdown();server.server_close()
  def test_stream_errors_are_failures_not_empty_success(self):
   with self.assertRaises(ValueError):ClaudeStream().packet({'type':'error','error':{'message':'overloaded'}})
 if __name__=='__main__':unittest.main()
+
+class ProviderContextTests(unittest.TestCase):
+ """A provider model declares far more context than a local engine runs (here 1,048,576)."""
+ def test_using_a_provider_model_ignores_the_local_context_range(self):
+  import os,http.client
+  os.environ.setdefault('STRATA_AGENT_DATA',tempfile.mkdtemp(prefix='va-test-'))
+  sys.path[:0]=['tools']
+  import agent
+  calls=[]
+  server=ThreadingHTTPServer(('127.0.0.1',0),agent.Handler);port=server.server_address[1]
+  threading.Thread(target=server.serve_forever,daemon=True).start();self.addCleanup(server.shutdown)
+  def post(remote):
+   with patch.object(agent,'REMOTE_ENGINE',lambda:remote),patch.object(agent,'load_agent_model',lambda *a:calls.append(a) or {'loaded':True}):
+    c=http.client.HTTPConnection('127.0.0.1',port,timeout=10)
+    c.request('POST','/api/load',json.dumps({'model':'api--deepseek','context':1048576}),{'Content-Type':'application/json'})
+    r=c.getresponse();r.read();c.close();return r.status
+  self.assertEqual(post(True),200);self.assertEqual(calls[-1],('api--deepseek',))
+  self.assertEqual(post(False),400)  # local engines keep their range
+ def test_provider_context_preference_is_saved(self):
+  from model_preferences import ModelPreferences
+  with tempfile.TemporaryDirectory() as d:
+   store=ModelPreferences(Path(d)/'prefs.json');store.save('api--deepseek',{'context':1048576})
+   self.assertEqual(store.records['api--deepseek']['context'],1048576)

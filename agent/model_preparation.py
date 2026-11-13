@@ -147,7 +147,11 @@ class ModelPreparation:
             return
         executable = os.path.normcase(str((Path(config.get('cwd') or config_path.parent) / executable).resolve()))
         processes = []
-        for process in psutil.Process(server_pid).children(recursive=True):
+        try:
+            children = psutil.Process(server_pid).children(recursive=True)
+        except (psutil.NoSuchProcess, psutil.AccessDenied, OSError):
+            children = []
+        for process in children:
             try:
                 if os.path.normcase(str(Path(process.exe()).resolve())) == executable:
                     processes.append(process)
@@ -158,7 +162,13 @@ class ModelPreparation:
             return
         self.update(stage='settling', message='Terminando la preparación en RAM…')
         def counters():
-            return [(p.io_counters().read_bytes, p.memory_info().rss) for p in processes]
+            values = []
+            for p in processes:
+                try:
+                    values.append((p.io_counters().read_bytes, p.memory_info().rss))
+                except (psutil.NoSuchProcess, psutil.AccessDenied, OSError):
+                    values.append(None)
+            return values
         previous = counters()
         quiet = time.monotonic()
         deadline = quiet + timeout
@@ -166,7 +176,9 @@ class ModelPreparation:
             if self.cancelled.wait(.25):
                 self.check_cancelled()
             current = counters()
-            if any(now[0] - old[0] > 65536 or abs(now[1] - old[1]) > 4 * 1024 ** 2 for old, now in zip(previous, current)):
+            if all(item is None for item in current):
+                return
+            if any(old and now and (now[0] - old[0] > 65536 or abs(now[1] - old[1]) > 4 * 1024 ** 2) for old, now in zip(previous, current)):
                 quiet = time.monotonic()
             elif time.monotonic() - quiet >= 1.25:
                 return
