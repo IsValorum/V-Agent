@@ -4,15 +4,22 @@ import json
 import socket
 import re
 import hashlib
+import pathlib
+import sys
 import threading
 from collections import OrderedDict
 from urllib.parse import urljoin, urlparse
+
+_AGENT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'agent'
+if str(_AGENT_DIR) not in sys.path:
+    sys.path.insert(0, str(_AGENT_DIR))
 
 import requests
 import trafilatura
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from mcp_options import options
+from doc_extractor import SUPPORTED_EXTENSIONS as _DOC_EXTS, extract_bytes as _extract_doc_bytes, infer_extension as _infer_doc_ext
 from busqueda_local import search, relevant_sections
 
 mcp = FastMCP('DuckDuckGo')
@@ -21,16 +28,17 @@ read_only = ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldH
 # Immutable page snapshots keep continuation offsets stable if the site changes.
 PAGE_PART_CHARS = 6000
 MAX_PAGE_BYTES = 8 * 1024 * 1024
+MAX_DOC_BYTES = 24 * 1024 * 1024
 _pages = OrderedDict()
 _pages_lock = threading.Lock()
 
 def validate_public_url(url):
     parsed = urlparse(url)
     if parsed.scheme not in ('http', 'https') or not parsed.hostname or parsed.username or parsed.password:
-        raise ValueError('Se requiere una URL publica http/https sin credenciales.')
+        raise ValueError('A public http/https URL without credentials is required.')
     addresses = socket.getaddrinfo(parsed.hostname, parsed.port or (443 if parsed.scheme == 'https' else 80))
     if not addresses or any(not ipaddress.ip_address(a[4][0]).is_global for a in addresses):
-        raise ValueError('Solo se admiten paginas de internet publicas.')
+        raise ValueError('Only public internet pages are allowed.')
 
 BROWSER_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
@@ -65,7 +73,7 @@ def hf_public_profile(url):
                   'numDatasets': 'datasets', 'numSpaces': 'Spaces'}
         counts = [f'{label}: {data[key]}' for key, label in fields.items()
                   if type(data.get(key)) is int and data[key] >= 0]
-        return f"Perfil público: {data['user']}\n" + '; '.join(counts) + f'\nFuente: {endpoint}' if counts else ''
+        return f"Public profile: {data['user']}\n" + '; '.join(counts) + f'\nSource: {endpoint}' if counts else ''
     except (requests.RequestException, OSError, ValueError):
         return ''
 
@@ -86,19 +94,28 @@ def read_public_page(url, find_in_page=None):
                     continue
                 response.raise_for_status()
                 content_type = response.headers.get('Content-Type', '').lower()
-                if not any(t in content_type for t in ('text/', 'html', 'xml', 'json')):
-                    raise ValueError('Solo se leen paginas de texto/HTML; no binarios ni PDF.')
+                url_path = urlparse(current).path
+                doc_ext = _infer_doc_ext(url_path, content_type)
+                is_binary_doc = doc_ext in ('.pdf', '.docx', '.xlsx', '.xlsm', '.pptx', '.odt', '.ods', '.odp', '.epub', '.rtf')
+                is_text_like = any(t in content_type for t in ('text/', 'html', 'xml', 'json'))
+                if not is_binary_doc and not is_text_like and doc_ext not in _DOC_EXTS:
+                    raise ValueError('Only text/HTML pages or supported documents (PDF, DOCX, XLSX, PPTX, ODF, EPUB, RTF) can be read.')
 
+                max_bytes = MAX_DOC_BYTES if is_binary_doc else MAX_PAGE_BYTES
                 chunks = []
                 received = 0
                 for chunk in response.iter_content(65536):
                     received += len(chunk)
-                    if received > MAX_PAGE_BYTES:
-                        raise ValueError('Page exceeds the 8 MiB reading limit.')
+                    if received > max_bytes:
+                        limit_mib = max_bytes // (1024 * 1024)
+                        raise ValueError(f'Page exceeds the {limit_mib} MiB reading limit.')
                     chunks.append(chunk)
 
                 raw = b''.join(chunks)
-                if 'html' in content_type:
+                if is_binary_doc:
+                    extracted = _extract_doc_bytes(raw, url_path, content_type)
+                    text = extracted.get('text', '')
+                elif 'html' in content_type:
                     text = trafilatura.extract(raw, url=url, output_format='markdown',
                                                include_links=settings['include_links'], include_tables=settings['include_tables'])
                     if not text:
@@ -113,9 +130,9 @@ def read_public_page(url, find_in_page=None):
                 focused = relevant_sections(str(text or ''), find_in_page)
                 profile = hf_public_profile(current)
                 if profile:
-                    return profile if not find_in_page else profile + '\n\nTexto de la página (no son totales del perfil):\n' + focused
+                    return profile if not find_in_page else profile + '\n\nPage text (not profile totals):\n' + focused
                 return focused
-        raise ValueError('Demasiadas redirecciones.')
+        raise ValueError('Too many redirects.')
 
 @mcp.tool(annotations=read_only)
 def web_search(query: str | None = None, url: str | None = None,
@@ -128,9 +145,9 @@ def web_search(query: str | None = None, url: str | None = None,
     if url:
         return web_visit(url, find_in_page, offset, page_id)
     if not isinstance(query, str) or not query.strip():
-        raise ValueError('query debe contener una busqueda.')
+        raise ValueError('query must contain a search string.')
     if timelimit not in (None, '', 'd', 'w', 'm', 'y'):
-        raise ValueError('timelimit: d, w, m, y u omitir.')
+        raise ValueError('timelimit must be d, w, m, y, or omitted.')
     settings=options('duckduckgo')
     target_region=region or settings['region']
     # DDGS uses a combined country-language locale. A chosen language selects
@@ -154,21 +171,21 @@ def web_visit(url: str, find_in_page: str | None = None, offset: int = 0,
     Continue only as needed: same url/page_id, offset=next_offset. find_in_page focuses keywords.
     """
     if offset < 0:
-        raise ValueError('offset debe ser mayor o igual que cero.')
+        raise ValueError('offset must be >= 0.')
     if page_id:
         with _pages_lock:
             snapshot = _pages.get(page_id)
             if snapshot is not None:
                 _pages.move_to_end(page_id)
         if snapshot is None:
-            raise ValueError('page_id no disponible. Reinicia con offset=0 y sin page_id.')
+            raise ValueError('page_id is unavailable or expired. Restart with offset=0 and without page_id.')
         saved_url, saved_focus, text = snapshot
         if saved_url != url or (find_in_page is not None and find_in_page != saved_focus):
-            raise ValueError('page_id pertenece a otra URL o find_in_page. Reinicia sin page_id.')
+            raise ValueError('page_id belongs to another URL or find_in_page filter. Restart without page_id.')
     else:
         text = read_public_page(url, find_in_page)
         if not text.strip():
-            raise ValueError('La pagina no devolvio texto legible.')
+            raise ValueError('The page returned no readable text.')
         page_id = hashlib.sha256(json.dumps([url, find_in_page, text],
                                            ensure_ascii=False).encode('utf-8')).hexdigest()
         with _pages_lock:
@@ -177,10 +194,11 @@ def web_visit(url: str, find_in_page: str | None = None, offset: int = 0,
             while len(_pages) > 8:
                 _pages.popitem(last=False)
     if offset > len(text):
-        raise ValueError(f'offset supera el largo de la pagina: {len(text)} caracteres.')
-    # Keep the complete JSON (including continuation metadata) below the agent's
-    # 12000-character model-result budget, even with heavily escaped text.
-    end = min(offset + options('duckduckgo')['visit_tokens'] * 4, len(text))
+        raise ValueError(f'offset exceeds page length: {len(text)} characters.')
+    visit_cfg = options('duckduckgo')
+    visit_tokens = int(visit_cfg['visit_tokens'])
+    max_result_chars = int(visit_cfg['max_result_chars'])
+    end = len(text) if visit_tokens <= 0 else min(offset + visit_tokens * 4, len(text))
     while True:
         result = json.dumps({
             'url': url, 'page_id': page_id, 'offset': offset,
@@ -188,10 +206,10 @@ def web_visit(url: str, find_in_page: str | None = None, offset: int = 0,
             'has_more': end < len(text), 'total_characters': len(text), 'token_budget_approximate': True,
             'content': text[offset:end],
         }, ensure_ascii=False, separators=(',', ':'))
-        if len(result) <= min(11500,options('duckduckgo')['max_result_chars']):
+        if max_result_chars <= 0 or len(result) <= max_result_chars:
             return result
         if end <= offset:
-            raise ValueError('URL demasiado larga para devolver una parte legible.')
+            raise ValueError('URL is too long to return a readable chunk.')
         end = offset + (end - offset) // 2
 
 if __name__ == '__main__':

@@ -81,10 +81,10 @@ def pending_draft(workspace, draft_id=None):
 
 def resume_draft(workspace, draft_id=None):
     if draft_id is not None and (not isinstance(draft_id, str) or not re.fullmatch(r'[0-9a-f]{32}', draft_id)):
-        raise ValueError('Identificador de borrador no válido.')
+        raise ValueError('Invalid draft identifier.')
     found = pending_draft(workspace, draft_id)
     if not found:
-        raise ValueError('No hay un borrador de archivo recuperable en esta conversación.')
+        raise ValueError('No recoverable file draft found in this conversation.')
     snapshot, (name, content, complete) = found
     filename = re.sub(r'[^\w. -]', '_', Path(str(name).replace('\\', '/')).name)[:100] or 'archivo.txt'
     relative = 'recuperados/' + snapshot['id'] + '-' + filename
@@ -97,5 +97,5 @@ def resume_draft(workspace, draft_id=None):
         pass  # A later resume must preserve edits already made to this copy.
     return {'draft_id': snapshot['id'], 'path': relative, 'complete': complete,
             'chars': len(target.read_text(encoding='utf-8')),
-            'note': 'Continúa sobre este archivo; lee y edita solo lo necesario.' if complete else
-                    'Generación interrumpida: este archivo contiene solo el prefijo recibido. Lee el final y complétalo; no lo reescribas entero.'}
+            'note': 'Continue working on this file; read and edit only what is needed.' if complete else
+                    'Generation interrupted: this file contains only the partial prefix received so far. Read the end and complete it instead of rewriting everything.'}

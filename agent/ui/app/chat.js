@@ -137,7 +137,7 @@ function readableDraft(call) {
 }
 function toolTitle(call) {
   const name=toolName(call);
-  return uiText(({hf_account:'Cuenta de Hugging Face',hf_cli:'Hugging Face CLI',hf_transfer:'Archivos de Hugging Face',web_search:'Web Search',web_visit:'Web Visit',fs_list:'Listar archivos',fs_read:'Leer archivo',fs_write:'Guardar archivo',fs_edit:'Editar archivo',fs_copy:'Copiar texto',draft_resume:'Continuar borrador',file_history:'Versiones del archivo',code_check:'Comprobar código',project_map:'Mapa del proyecto',web_render:'Renderizar HTML',invalid_call:'Llamada inválida',draft:'Herramienta',shell_run:'Comandos',sys_info:'Información del equipo'})[name]||name||'Herramienta');
+  return uiText(({hf_account:'Cuenta de Hugging Face',hf_cli:'Hugging Face CLI',hf_transfer:'Archivos de Hugging Face',web_search:'Web Search',web_visit:'Web Visit',fs_list:'Listar archivos',fs_read:'Leer archivo',doc_read:'Leer documento',fs_write:'Guardar archivo',fs_edit:'Editar archivo',fs_copy:'Copiar texto',draft_resume:'Continuar borrador',file_history:'Versiones del archivo',code_check:'Comprobar código',project_map:'Mapa del proyecto',web_render:'Renderizar HTML',invalid_call:'Llamada inválida',draft:'Herramienta',shell_run:'Comandos',sys_info:'Información del equipo'})[name]||name||'Herramienta');
 }
 function toolState(call) {
   return uiText(({drafting:'Redactando',validating:'Validando',running:'Ejecutando',completed:'Resultado recibido',error:'Error',blocked:'No ejecutada',interrupted:'Interrumpida',missing:'Sin resultado recibido'})[call.status]||(Object.hasOwn(call,'result')?(call.ok===false?'Error':'Resultado recibido'):'Sin resultado guardado'));
@@ -215,7 +215,7 @@ function draftActions(heading,call,text) {
     if(busy||engineBusy){note('Detén la generación antes de continuar un borrador.');return;}
     if(!S.functions.files){note('Activa Archivos en MCPs para continuar el borrador.');return;}
     if($('#input').value.trim()){note('Envía o guarda primero el texto que tienes escrito.');return;}
-    $('#input').value='Continúa desde el borrador recuperado. Conserva el trabajo existente y corrige o completa solo lo necesario.';
+    $('#input').value='Continue from the recovered draft. Preserve the existing work and fix or complete only what is needed.';
     await sendMsg(call.draft_id);
   });
   if(call.draft_id)action('Recuperar del disco',async button=>{
@@ -256,7 +256,7 @@ async function openFileHistory(path){
 
 function renderToolTrace(row,trace) {
   if(!trace?.length)return null;
-  const section=document.createElement('section');section.className='tool-trace';section.setAttribute('aria-label','Actividad de herramientas');row.append(section);
+  const section=document.createElement('section');section.className='tool-trace';section.setAttribute('aria-label',uiText('Actividad de herramientas'));row.append(section);
   updateToolTrace(section,trace);return section;
 }
 function updateToolTrace(section,trace) {
@@ -364,7 +364,9 @@ function recordToolEvent(trace,event) {
   return call;
 }
 
-const renderedMessages=new WeakMap();
+let renderedMessages=new WeakMap();
+function refreshChatTranslations(){if(!busy){renderedMessages=new WeakMap();renderChat();}}
+window.refreshChatTranslations=refreshChatTranslations;
 function showResponseModel(row,message){
   let label=row.querySelector(':scope > .response-model');
   if(!label){label=document.createElement('div');label.className='response-model';row.append(label);}
@@ -482,7 +484,7 @@ function renderChat(skipIndex=-1) {
       const card=document.createElement('details');card.className='compact-card';
       const summary=document.createElement('summary');
       const info=message.compacted;
-      summary.textContent=uiText('Contexto comprimido')+' · '+(info.compressed_count||0)+' '+uiText('mensajes')+' · '+(info.method_label||info.method||'API');
+      summary.textContent=uiText('Contexto comprimido')+' · '+(info.compressed_count||0)+' '+uiText('mensajes')+' · '+uiText(info.method_label||info.method||'API');
       const body=document.createElement('div');body.className='compact-body bubble';
       renderRich(body,String(message.content||''));
       card.append(summary,body);row.append(card);
@@ -529,7 +531,7 @@ $('#saveMessageEdit').onclick=()=>{
   if(!requireModelForChat())return;
   const original=messages[index],rawOriginal=userMessageRawText(original),suffix=rawOriginal.includes('\n\n[Adjuntos]\n')?'\n\n[Adjuntos]\n'+rawOriginal.split('\n\n[Adjuntos]\n').slice(1).join('\n\n[Adjuntos]\n'):'';
   messages=JSON.parse(JSON.stringify(messages.slice(0,index)));messages.push({role:'user',content:text+suffix,...(original.images?{images:structuredClone(original.images)}:{})});currentId=null;
-  $('#editMessageDialog').close();persistConv();const branch=convs.find(c=>c.id===currentId);if(branch){branch.title+=' · edición';saveConvsLS();renderConvs();}
+  $('#editMessageDialog').close();persistConv();const branch=convs.find(c=>c.id===currentId);if(branch){branch.title+=' · '+uiText('edición');saveConvsLS();renderConvs();}
   setFollow(true);generateResponse();
 };
 

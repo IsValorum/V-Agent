@@ -52,6 +52,14 @@
     if((m=text.match(/^Error del servidor \((\d+)\)\.$/)))return ({en:'Server error (',pt:'Erro do servidor (',fr:'Erreur du serveur (',de:'Serverfehler ('})[language]+m[1]+').';
     if((m=text.match(/^Respuesta no válida del servidor \((\d+)\)\.$/)))return ({en:'Invalid server response (',pt:'Resposta inválida do servidor (',fr:'Réponse du serveur invalide (',de:'Ungültige Serverantwort ('})[language]+m[1]+').';
     if((m=text.match(/^El chat cambió en otra ventana\. Conserva esta copia y vuelve a abrirlo\. La copia en conflicto quedó guardada en el disco local\.$/)))return t('El chat cambió en otra ventana. Conserva esta copia y vuelve a abrirlo.')+' '+t('La copia en conflicto quedó guardada en el disco local.');
+    if((m=text.match(/^Comprimido · (\d+) msg · (.+)$/)))return t('Comprimido')+' · '+m[1]+' msg · '+t(m[2]);
+    if((m=text.match(/^No se pudo leer la lista de modelos: (.+)$/)))return t('No se pudo leer la lista de modelos:')+' '+m[1];
+    if((m=text.match(/^No se pudo (encender|apagar) el motor: (.+)$/)))return ({en:'Could not '+(m[1]==='encender'?'start':'stop')+' the engine: ',pt:'Não foi possível '+(m[1]==='encender'?'iniciar':'desligar')+' o motor: ',fr:'Impossible de '+(m[1]==='encender'?'démarrer':'arrêter')+' le moteur : ',de:'Engine konnte nicht '+(m[1]==='encender'?'gestartet':'gestoppt')+' werden: '})[language]+m[2];
+    if((m=text.match(/^No se pudo guardar: (.+)$/)))return ({en:'Could not save: ',pt:'Não foi possível salvar: ',fr:'Impossible d’enregistrer : ',de:'Speichern fehlgeschlagen: '})[language]+m[1];
+    if((m=text.match(/^No se pudo medir el coste de las herramientas: (.+)$/)))return ({en:'Could not measure tool token cost: ',pt:'Não foi possível medir o custo das ferramentas: ',fr:'Impossible de mesurer le coût des outils : ',de:'Werkzeug-Tokenkosten konnten nicht gemessen werden: '})[language]+m[1];
+    if((m=text.match(/^Error: (.+)$/)))return t('Error: ')+m[1];
+    if((m=text.match(/^Ningún modelo coincide con «(.+)»\.$/)))return t('Ningún modelo coincide con')+' «'+m[1]+'».';
+    if((m=text.match(/^Aquí se conserva todo el resultado recibido\. El modelo recibió (.+)$/)))return t('Aquí se conserva todo el resultado recibido. El modelo recibió')+' '+m[1];
     if(text.includes(' · '))return text.split(' · ').map(part=>t(part)).join(' · ');
     return raw;
   }

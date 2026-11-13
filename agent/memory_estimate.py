@@ -18,30 +18,96 @@ def hardware():
         except (OSError,ValueError,IndexError,subprocess.TimeoutExpired):pass
         _hardware=(time.monotonic(),result);return result
 
+_KV_BPE={'fp16':(2,2),'f16':(2,2),'bf16':(2,2),'q8_0':(34/32,34/32),'int8':(1,1),'q4_0':(18/32,18/32),'int8k':(1,2),'k8v4':(1,18/32)}
+
+def _meta_num(meta,arch,key,default=0):
+    val=meta.get(arch+'.'+key,default)
+    return val if isinstance(val,(int,float)) and not isinstance(val,bool) else default
+
+def _layer_kv_heads(meta,arch,layers,kvheads,interval):
+    recurrent=meta.get(arch+'.attention.recurrent_layers')
+    if isinstance(kvheads,list):
+        return [float(h) if isinstance(h,(int,float)) and not isinstance(h,bool) and h>0 else 0.0 for h in kvheads[:layers]]+[0.0]*max(0,layers-len(kvheads))
+    h=float(kvheads)
+    if h<=0:return [0.0]*layers
+    if isinstance(recurrent,list) and len(recurrent)>=layers:
+        return [0.0 if recurrent[i] else h for i in range(layers)]
+    if interval>0:
+        if layers<interval:return [h]+[0.0]*(layers-1)
+        return [h if (i+1)%interval==0 else 0.0 for i in range(layers)]
+    return [h]*layers
+
+def _swa_layer_mask(meta,arch,layers,layer_heads,window):
+    if window<=0:return [False]*layers
+    pattern=meta.get(arch+'.attention.sliding_window_pattern')
+    if isinstance(pattern,list) and pattern:
+        return [bool(pattern[i%len(pattern)]) for i in range(layers)]
+    pos=[h for h in layer_heads if h>0]
+    if len(set(pos))>1:
+        low=min(pos)
+        return [h>low for h in layer_heads]
+    if arch.startswith(('gemma4','gemma3')):
+        return [(i+1)%6!=0 for i in range(layers)]
+    if arch.startswith('gemma2'):
+        return [i%2==0 for i in range(layers)]
+    return [True]*layers
+
+def _recurrent_floats(meta,arch,embed,heads):
+    inner=_meta_num(meta,arch,'ssm.inner_size');size=_meta_num(meta,arch,'ssm.state_size')
+    groups=_meta_num(meta,arch,'ssm.group_count');kernel=_meta_num(meta,arch,'ssm.conv_kernel')
+    if inner and size:
+        return inner*size+max(0,kernel-1)*(inner+2*groups*size)
+    kda=_meta_num(meta,arch,'kda.head_dim')
+    if kda and heads:
+        return heads*kda*kda+3*max(0,kernel-1)*heads*kda
+    l_cache=int(_meta_num(meta,arch,'shortconv.l_cache'))
+    if l_cache>1 and embed:
+        return (l_cache-1)*embed
+    return 0
+
 def estimate_facts(facts,context,kv,settings,kind='llama',gpu_layers='auto',caps=None):
     m=facts['metadata'];a=str(m.get('general.architecture',''));v=effective(settings,caps);slots=v['parallel'] if kind=='llama' else 1
-    def num(key,default=0):
-        x=m.get(a+'.'+key,default)
-        return x if isinstance(x,(int,float)) and not isinstance(x,bool) else default
+    def num(key,default=0):return _meta_num(m,a,key,default)
     layers=int(num('block_count'));embed=int(num('embedding_length'));heads=num('attention.head_count');kvheads=m.get(a+'.attention.head_count_kv',heads)
-    kd=num('attention.key_length',embed/heads if heads else 0);vd=num('attention.value_length',kd)
-    bpe={'fp16':2,'f16':2,'bf16':2,'q8_0':34/32,'int8':1,'q4_0':18/32,'int8k':1.5,'k8v4':.78125}.get(kv,2)
+    lora=num('attention.kv_lora_rank');rope=num('rope.dimension_count')
+    kd=num('attention.key_length') or num('attention.key_length_mla') or ((lora+rope) if lora else (embed/heads if heads else 0))
+    vd=num('attention.value_length') or num('attention.value_length_mla') or kd
+    kd_swa=num('attention.key_length_swa') or kd;vd_swa=num('attention.value_length_swa') or num('attention.key_length_swa') or vd
+    kbpe,vbpe=_KV_BPE.get(kv,(2,2))
+    per_layer_rec=_recurrent_floats(m,a,embed,heads)
+    kv_defined=(a+'.attention.head_count_kv' in m) or bool(heads)
+    interval=int(num('full_attention_interval'))
+    layer_heads=_layer_kv_heads(m,a,layers,kvheads,interval) if (layers and kv_defined) else [0.0]*layers
+    has_attn=any(h>0 for h in layer_heads)
     notes=[];cache=None;state=0
-    if layers and kd and vd and kvheads:
-        if isinstance(kvheads,list):headsum=sum(float(h) for h in kvheads if isinstance(h,(int,float)) and h>0)
+    if layers and ((has_attn and kd and vd) or (not has_attn and per_layer_rec>0)):
+        shared_kv=max(0,int(num('attention.shared_kv_layers')))
+        kv_limit=max(0,layers-shared_kv)
+        window=max(0,int(num('attention.sliding_window')))
+        swa_mask=_swa_layer_mask(m,a,layers,layer_heads,window)
+        full_cells=math.ceil(context/256)*256
+        swa_cells=min(full_cells,math.ceil((window+v['batch'])/256)*256) if window else full_cells
+        used_swa=False;per_slot_bytes=0
+        for i in range(kv_limit):
+            h=layer_heads[i]
+            if h<=0:continue
+            if swa_mask[i]:
+                per_slot_bytes+=swa_cells*h*(kd_swa*kbpe+vd_swa*vbpe);used_swa=True
+            else:
+                per_slot_bytes+=full_cells*h*(kd*kbpe+vd*vbpe)
+        cache=slots*per_slot_bytes
+        rec_list=m.get(a+'.attention.recurrent_layers')
+        if isinstance(rec_list,list) and len(rec_list)>=layers:
+            recurrent=sum(1 for flag in rec_list[:layers] if flag)
+        elif layer_heads:
+            recurrent=sum(1 for h in layer_heads if h<=0)
         else:
-            interval=int(num('full_attention_interval'))
-            attention_layers=max(1,layers//interval) if interval else layers
-            headsum=attention_layers*float(kvheads)
-            if interval:notes.append('Arquitectura híbrida: KV solo para las capas de atención completa.')
-        cache=math.ceil(context/256)*256*slots*headsum*(kd+vd)*bpe
-        interval=int(num('full_attention_interval'));inner=num('ssm.inner_size');size=num('ssm.state_size');groups=num('ssm.group_count');kernel=num('ssm.conv_kernel')
-        if inner and size:
-            recurrent=max(0,layers-(layers//interval if interval else layers))
-            # Gated delta recurrent matrix plus convolution history; checkpoints copy recurrent state.
-            matrix=inner*size;conv=max(0,kernel-1)*(inner+2*groups*size)
-            state=recurrent*(matrix+conv)*4*slots*(1+v['checkpoints'])
-        if num('attention.sliding_window'):notes.append('KV de ventana estimada a contexto completo: cota conservadora.')
+            recurrent=layers
+        if recurrent>0 and (has_attn or interval>0):
+            notes.append('Arquitectura híbrida: KV solo para las capas de atención completa.')
+        if recurrent>0 and per_layer_rec>0:
+            state=recurrent*per_layer_rec*4*slots*(1+v['checkpoints'])
+        if used_swa:notes.append('Caché SWA acotada a la ventana deslizante del modelo.')
     else:notes.append('No hay metadatos suficientes para estimar la caché KV.')
     weights=int(facts.get('dense_bytes',0)+facts.get('expert_bytes',0))
     buffers=max(96*2**20,96*2**20+v['ubatch']*max(embed,1024)*32+v['batch']*max(embed,1024)*4)

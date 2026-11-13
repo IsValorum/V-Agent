@@ -61,6 +61,14 @@ TOOLS = [
          "linea": {"type": "integer", "minimum": 1, "description": "First line, 1-based."},
          "ventana": {"type": "integer", "minimum": 1, "maximum": 240, "description": "Number of lines; default 100."}},
          "required": ["path"]}},
+    {"name": "doc_read", "description": "Extract text, tables and metadata from PDF, Word (.docx), Excel (.xlsx), PowerPoint (.pptx), OpenDocument, EPUB, RTF, HTML, XML and CSV.",
+     "inputSchema": {"type": "object", "properties": {
+         "path": {"type": "string", "description": "Relative to the working folder (e.g. report.pdf), or an absolute PC path when Full-PC access is enabled."},
+         "pages": {"type": "string", "description": "Optional 1-based page/slide/sheet range, e.g. '1-5' or '1,3,6'."},
+         "mode": {"type": "string", "enum": ["auto", "markdown", "text", "tables"], "description": "Optional extraction format override."},
+         "offset": {"type": "integer", "minimum": 0, "description": "Starting character offset; default 0."},
+         "max_chars": {"type": "integer", "minimum": 0, "description": "Max characters to return (0 = unlimited; omit to use MCP Options)."}},
+         "required": ["path"]}},
     {"name": "fs_write", "description": "Write UTF-8 text; creates parent directories and replaces existing files.",
      "inputSchema": {"type": "object", "properties": {
          "path": {"type": "string", "description": "Relative to the working folder (e.g. notes.txt), or an absolute PC path when Full-PC access is enabled."},
@@ -178,16 +186,16 @@ def _background_argv(command: str, mode: str):
         encoded = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
         argv = [executable, "-NoLogo", "-NoProfile", "-NonInteractive", "-OutputFormat", "Text", "-EncodedCommand", encoded]
     else:
-        raise ValueError("shell debe ser cmd o powershell")
+        raise ValueError("shell must be cmd or powershell")
     return argv, environment
 
 def _start_background(args, policy):
     command = args.get("command")
     if not isinstance(command, str) or not command.strip():
-        raise ValueError("command debe contener un comando")
+        raise ValueError("command must contain a non-empty command string")
     with JOBS_LOCK:
         if len([job for job in JOBS.values() if job["process"].poll() is None]) >= 12:
-            raise ValueError("Hay demasiados trabajos en segundo plano; espera o detén uno.")
+            raise ValueError("Too many background jobs running; wait for or stop one first.")
     argv, environment = _background_argv(command, args.get("shell", "cmd"))
     startup = subprocess.STARTUPINFO()
     startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
@@ -324,7 +332,7 @@ def shell_run(args, policy=None):
         encoded = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
         argv = [executable, "-NoLogo", "-NoProfile", "-NonInteractive", "-OutputFormat", "Text", "-EncodedCommand", encoded]
     else:
-        raise ValueError("shell debe ser cmd o powershell")
+        raise ValueError("shell must be cmd or powershell")
     # A hidden console lets chcp take effect for cmd and its children. Without a
     # console Windows falls back to OEM encoding and loses non-ASCII characters.
     startup = subprocess.STARTUPINFO()
@@ -380,11 +388,11 @@ def _busca(texto, viejo):
         spans.append((i, i + len(viejo)))
         i = texto.find(viejo, i + 1)
     if spans:
-        return spans, "exacto"
+        return spans, "exact"
     lineas = texto.splitlines(keepends=True)
     objetivo = [l.strip() for l in viejo.splitlines()]
     if not objetivo:
-        return [], "vacio"
+        return [], "empty"
     # Se comparan lineas completas sin su sangrado (ni el fin de linea: el modelo casi nunca
     # deja el salto de linea donde lo deja el fichero).
     despojadas = [l.strip() for l in lineas]
@@ -397,7 +405,7 @@ def _busca(texto, viejo):
             # un old_text de una linea se comeria el salto y juntaria la linea siguiente.
             fin = a + len(cubierto) - (len(cubierto) - len(cubierto.rstrip("\r\n")))
             spans.append((a, fin))
-    return spans, "sangrado"
+    return spans, "indent-tolerant"
 
 
 def _cercanas(texto, viejo):
@@ -615,9 +623,9 @@ def fs_copy(args, full_access, policy=None):
     """
     destino_s, origen_s = args.get("destino"), args.get("desde")
     if not isinstance(destino_s, str) or not destino_s.strip():
-        raise ValueError("destino debe contener una ruta")
+        raise ValueError("destino must contain a file path")
     if not isinstance(origen_s, str) or not origen_s.strip():
-        raise ValueError("desde debe contener la ruta de donde copiar")
+        raise ValueError("desde must contain a source file path")
     destino = policy.path(destino_s, full_access)
     origen = policy.path(origen_s, full_access)
     if not os.path.exists(origen):
@@ -634,46 +642,43 @@ def fs_copy(args, full_access, policy=None):
     if args.get("hasta") is not None and args.get("hasta") != "":
         b = int(args["hasta"])
     if not (1 <= a <= total_o) or not (a <= b <= total_o):
-        raise ValueError("el rango %d-%d no cabe en %s (%d lineas)" % (a, b, os.path.basename(origen), total_o))
+        raise ValueError("line range %d-%d is out of bounds for %s (%d lines)" % (a, b, os.path.basename(origen), total_o))
     trozo = "".join(lineas_origen[a - 1:b])
     si_mismo = os.path.abspath(str(origen)) == os.path.abspath(str(destino))
     if not os.path.exists(destino) and modo not in (None, "nuevo"):
-        raise ValueError("no existe %s; para crearlo usa modo=nuevo (o fs_write)" % destino)
+        raise ValueError("%s does not exist; use modo='nuevo' (or fs_write) to create it." % destino)
     texto = "" if not os.path.exists(destino) else open(destino, encoding="utf-8-sig", errors="strict").read()
     lineas_destino = texto.splitlines(keepends=True) if texto else []
     if modo in (None, "nuevo"):
         if texto.strip() and modo is None and not si_mismo and len(lineas_destino) > 3:
-            raise ValueError("%s ya existe con %d lineas; di que hacer: reemplazar, pegar_antes o "
-                             "pegar_despues (con ancla), o nuevo para crearlo" % (os.path.basename(destino),
+            raise ValueError("%s already exists with %d lines; specify modo: reemplazar, pegar_antes, or "
+                             "pegar_despues (with ancla), or nuevo to overwrite it." % (os.path.basename(destino),
                                                                                   len(lineas_destino)))
         candidato = trozo if modo == "nuevo" or not texto else "".join(lineas_destino) + trozo
     elif modo in ("pegar_antes", "pegar_despues"):
         if args.get("ancla") in (None, ""):
-            raise ValueError("falta ancla: la linea del destino donde pegar (ej. 24)")
+            raise ValueError("ancla is required: destination line number to paste at (e.g. 24)")
         c = int(_rango(args.get("ancla"))[0])
         if not (1 <= c <= max(1, len(lineas_destino))):
-            raise ValueError("ancla %d fuera del destino (%d lineas)" % (c, len(lineas_destino)))
+            raise ValueError("ancla %d is out of bounds for destination (%d lines)" % (c, len(lineas_destino)))
         i = c - 1 if modo == "pegar_antes" else c
         candidato = "".join(lineas_destino[:i]) + trozo + "".join(lineas_destino[i:])
     elif modo == "reemplazar":
         if args.get("ancla") in (None, ""):
-            raise ValueError("falta ancla: linea o rango del destino a sustituir (ej. 24 o 24-31)")
+            raise ValueError("ancla is required: destination line or range to replace (e.g. 24 or 24-31)")
         c, d = _rango(args.get("ancla"))
         if not (1 <= c <= len(lineas_destino)) or not (c <= d <= len(lineas_destino)):
-            raise ValueError("ancla %s fuera del destino (%d lineas)" % (args.get("ancla"), len(lineas_destino)))
+            raise ValueError("ancla %s is out of bounds for destination (%d lines)" % (args.get("ancla"), len(lineas_destino)))
         candidato = "".join(lineas_destino[:c - 1]) + trozo + "".join(lineas_destino[d:])
     else:
-        raise ValueError("modo no vale; usa nuevo, pegar_antes, pegar_despues o reemplazar")
+        raise ValueError("invalid modo; use nuevo, pegar_antes, pegar_despues, or reemplazar")
     if args.get("cortar"):
-        # Mover = pegar y quitar del origen. Hecho en una sola pasada sobre las lineas originales:
-        # si se hiciera en dos, la segunda escritura pisaria la primera y los numeros de linea del
-        # destino ya no valrian (por eso el ancla se ajusta cuando el bloque cortado va arriba).
         if si_mismo:
             resto = lineas_origen[:a - 1] + lineas_origen[b:]
             c = int(_rango(args.get("ancla"))[0]) if args.get("ancla") not in (None, "") else len(resto)
             if modo == "reemplazar":
-                raise ValueError("dentro del mismo fichero no se puede reemplazar y cortar a la vez; "
-                                 "hazlo en dos llamadas o sin cortar")
+                raise ValueError("cannot replace and cut within the same file at the same time; "
+                                 "do it in two calls or without cortar=true")
             desplazado = c - (b - a + 1) if c > b else c
             i = desplazado - 1 if modo == "pegar_antes" else desplazado
             i = max(0, min(i, len(resto)))
@@ -686,20 +691,20 @@ def fs_copy(args, full_access, policy=None):
         raise
     delta = candidato.count("\n") - texto.count("\n")
     n = b - a + 1
-    accion = ("movida" if n == 1 else "movidas") if args.get("cortar") else ("copiada" if n == 1 else "copiadas")
-    informe = ("%d %s %s por copiado desde %s (%s) a %s: %+d linea%s, %d caracteres"
-               % (n, "linea" if n == 1 else "lineas", accion,
+    accion = ("moved" if args.get("cortar") else "copied")
+    informe = ("%d %s %s from %s (%s) to %s: %+d line%s, %d chars"
+               % (n, "line" if n == 1 else "lines", accion,
                   os.path.basename(str(origen)),
                   "%d-%d" % (a, b), os.path.basename(str(destino)), delta,
                   "" if delta in (-1, 1) else "s", len(candidato)))
-    salida = "%s%s" % ("pegado: " if modo != "reemplazar" else "reemplazo: ", informe)
+    salida = "%s%s" % ("pasted: " if modo != "reemplazar" else "replaced: ", informe)
     if args.get("cortar"):
-        salida += " (recortado del origen%s)" % (", y quitadas %d lineas de %s" % (b - a + 1,
+        salida += " (cut from source%s)" % (", removed %d lines from %s" % (b - a + 1,
                                                                                   os.path.basename(str(origen)))
                                                  if not si_mismo else "")
     if not texto:
-        salida += "\nEl destino se creo nuevo."
-    recibo = recibo_diff(texto, candidato) if texto else "\nrecibo: fichero nuevo (%d lineas)." % (
+        salida += "\nDestination file created."
+    recibo = recibo_diff(texto, candidato) if texto else "\nreceipt: new file (%d lines)." % (
         candidato.count(chr(10)) + 1)
     return salida + recibo + comprueba_ejecucion(destino) + syntax_report(destino)
 
@@ -845,13 +850,13 @@ def _console_tool(args, full_access, policy):
     action = args.get('action') or 'run'
     if action == 'run':
         if not full_access:
-            raise ValueError('La consola compartida requiere Acceso completo.')
+            raise ValueError('Shared console requires Full-PC access.')
         command = args.get('command')
         if not isinstance(command, str) or not command.strip():
-            raise ValueError('command debe contener un comando')
+            raise ValueError('command must contain a non-empty command string')
         shell = args.get('shell') or 'powershell'
         if shell not in ('powershell', 'cmd'):
-            raise ValueError('shell debe ser powershell o cmd')
+            raise ValueError('shell must be powershell or cmd')
         timeout = max(5, min(int(args.get('timeout') or 90), 300))
         state = _local_json('/api/harness/console',
                             {'action': 'run', 'command': command, 'shell': shell, 'cwd': str(policy.root)},
@@ -878,7 +883,7 @@ def _console_tool(args, full_access, policy):
     if action in ('stop', 'clear'):
         state = _local_json('/api/harness/console', {'action': action}, timeout=15)
         return json.dumps({key: state.get(key) for key in ('id','running','exit_code','shell','cwd')}, ensure_ascii=False)
-    raise ValueError('Acción de consola no admitida.')
+    raise ValueError('Unsupported console action.')
 
 
 def call(name, args, *, full_access=False, policy=None):
@@ -937,6 +942,9 @@ def call(name, args, *, full_access=False, policy=None):
             with open(path, "r", encoding="utf-8-sig", errors="strict") as f:
                 texto_completo = f.read()
         except UnicodeDecodeError:
+            from doc_extractor import is_document_path
+            if is_document_path(str(path)):
+                raise ValueError(f"{path} is a formatted/binary document ({os.path.getsize(path)} bytes); use doc_read instead of fs_read.")
             raise ValueError(f"{path} is a binary or non-UTF-8 file ({os.path.getsize(path)} bytes); inspect it with python/shell instead of fs_read.")
         if args.get("linea") is not None or args.get("ventana") is not None:
             if args.get("linea") is not None and int(args["linea"]) < 1:
@@ -983,6 +991,16 @@ def call(name, args, *, full_access=False, policy=None):
         content = texto_completo[offset:offset + n]
         more = offset + len(content) < len(texto_completo)
         return content + (f"\n[Continue: fs_read offset={offset + len(content)} max_chars={n}]" if more else "")
+    if name == "doc_read":
+        path = policy.path(args["path"], full_access)
+        from doc_extractor import extract_file
+        return extract_file(
+            path,
+            pages=args.get("pages"),
+            mode=args.get("mode"),
+            offset=args.get("offset") or 0,
+            max_chars=args.get("max_chars"),
+        )
     if name == "fs_write":
         # Validate before opening the destination: a malformed model call must
         # never truncate an existing file. Replace only after a complete write.
@@ -1048,27 +1066,27 @@ def call(name, args, *, full_access=False, policy=None):
         # en una, no se queda con el fichero a medias.
         candidato, detalles = texto, []
         for i, e in enumerate(lote, 1):
-            etiqueta = "edit %d de %d" % (i, len(lote)) if len(lote) > 1 else "old_text"
+            etiqueta = "edit %d of %d" % (i, len(lote)) if len(lote) > 1 else "old_text"
             if not isinstance(e, dict):
-                raise ValueError("%s: cada edit es un objeto con old_text y new_text" % etiqueta)
+                raise ValueError("%s: each edit must be an object with old_text and new_text" % etiqueta)
             viejo, nuevo = e.get("old_text"), e.get("new_text")
             if not isinstance(viejo, str) or not viejo.strip():
-                raise ValueError("%s: old_text debe traer el fragmento exacto que quieres cambiar" % etiqueta)
+                raise ValueError("%s: old_text must contain the exact text block to replace" % etiqueta)
             if not isinstance(nuevo, str):
-                raise ValueError("%s: new_text debe ser texto (vacio para borrar el fragmento)" % etiqueta)
+                raise ValueError("%s: new_text must be a string (use empty string to delete)" % etiqueta)
             spans, modo = _busca(candidato, viejo)
             if not spans:
-                raise ValueError("NO APLICADO (%s): old_text no aparece en %s (%d lineas).%s"
+                raise ValueError("NOT APPLIED (%s): old_text was not found in %s (%d lines).%s"
                                  % (etiqueta, os.path.basename(path), candidato.count(chr(10)) + 1,
                                     _cercanas(candidato, viejo)))
             if len(spans) > 1 and not e.get("all"):
                 rayas = ", ".join(str(_raya(candidato, x)) for x, _ in spans[:8])
-                raise ValueError("NO APLICADO (%s): old_text aparece %d veces (lineas %s). Amplia el "
-                                 "fragmento hasta que sea unico, o manda all=true." % (etiqueta, len(spans), rayas))
+                raise ValueError("NOT APPLIED (%s): old_text appears %d times (lines %s). Include more "
+                                 "surrounding context so it is unique, or pass all=true." % (etiqueta, len(spans), rayas))
             cursor, partes, aplicadas = 0, [], 0
             for a, b in spans:
                 if a < cursor:
-                    continue                  # coincidencia solapada: ya la cubrio la anterior
+                    continue                  # overlapping match: already covered
                 partes.append(candidato[cursor:a])
                 partes.append(nuevo)
                 cursor = b
@@ -1077,7 +1095,7 @@ def call(name, args, *, full_access=False, policy=None):
             candidato = "".join(partes)
             detalles.append((aplicadas, modo, _raya(texto, spans[0][0])))
         aplicadas = sum(d[0] for d in detalles)
-        modo = detalles[0][1] if len(detalles) == 1 else "lote"
+        modo = detalles[0][1] if len(detalles) == 1 else "batch"
         primera_linea = min(d[2] for d in detalles)
         aviso = ""
         extension = os.path.splitext(str(path))[1].lower()
@@ -1088,44 +1106,32 @@ def call(name, args, *, full_access=False, policy=None):
                 despues = verify.verificar_contenido(candidato, path)
                 nuevos = _errores_nuevos(antes, despues)
                 if nuevos:
-                    # SWE-agent: si el cambio introduce un error, NO se aplica y se dice cual,
-                    # para que el modelo arregle ESE punto en vez de reintentar el fichero entero.
-                    raise ValueError("NO APLICADO: el cambio deja errores que el fichero actual no tenia: "
+                    # SWE-agent: if the edit introduces errors, reject it and pinpoint where to fix.
+                    raise ValueError("NOT APPLIED: the change introduces errors not present in the original file: "
                                      + " | ".join(str(n)[:180] for n in nuevos[:4])
-                                     + "\nTu edicion cae alrededor de la linea %d; mira esa zona con "
-                                       "fs_read(path, linea=%d, ventana=24) y arregla solo ese bloque."
+                                     + "\nYour edit is around line %d; inspect that region with "
+                                       "fs_read(path, linea=%d, ventana=24) and fix only that block."
                                        % (primera_linea, max(1, primera_linea - 9)))
-                aviso = " | comprobado: sin errores nuevos"
+                aviso = " | verified: no new errors"
             except ImportError:
-                aviso = " | (comprobacion omitida: falta agent/verify.py)"
-        # Y, opcionalmente (STRATA_AGENT_EDIT_BROWSER=1), se ejecuta de verdad ANTES de aplicar: el
-        # analizador estatico no ve el ReferenceError de la linea 9 ni el import que falla. Esta
-        # APAGADO por defecto porque mide lo que cuesta: una escena de ~20k voxels tarda 30-80 s en
-        # montarse con SwiftShader (la GPU no participa) y eso convertia cada edicion en un minuto.
-        # Para probar se usa la herramienta pc__web_render (o el boton Guardar y comprobar), que ya
-        # lleva su techo de tiempo. La copia se prueba al lado del original y con la misma extension,
-        # para que el CDN y las rutas relativas se comporten igual. Que hacer con lo que salga de ahi:
+                aviso = " | (check skipped: missing agent/verify.py)"
         prueba = ""
         if extension in (".html", ".htm") and os.environ.get("STRATA_AGENT_EDIT_BROWSER", "0") == "1":
             try:
                 informe = ejecuta_contenido(candidato, path)
             except Exception as error:
                 informe = None
-                prueba = "\n(sin ejecucion de la version nueva: %s)" % str(error)[:90]
+                prueba = "\n(new version execution skipped: %s)" % str(error)[:90]
             if informe is not None:
                 if informe.get("error"):
-                    prueba = "\n(no se pudo ejecutar la version nueva: %s)" % informe["error"]
+                    prueba = "\n(could not execute new version: %s)" % informe["error"]
                 else:
-                    #   - SyntaxError: la pagina ya no compila, es culpa del cambio -> NO se aplica.
-                    #   - cualquier otro error de consola: se APLICA y se reporta. Bloquearlos seria un
-                    #     candado: al arreglar el primer fallo queda al descubierto el siguiente (el
-                    #     script moria antes de llegar), y el modelo no podria ni guardar la correccion.
                     rompe = [e for e in (informe.get("errores") or [])
                              if "SyntaxError" in str(e) or "Unexpected" in str(e)]
                     if rompe:
-                        raise ValueError("NO APLICADO: con tu cambio la pagina no compila (SyntaxError):\n%s\n"
-                                         "%s\nEl fichero sigue intacto; arregla ese bloque con fs_edit sobre "
-                                         "el texto exacto." % ("\n".join(str(r)[:220] for r in rompe[:2]),
+                        raise ValueError("NOT APPLIED: with your change the page does not compile (SyntaxError):\n%s\n"
+                                         "%s\nThe file is unchanged; fix that block with fs_edit on the exact text."
+                                         % ("\n".join(str(r)[:220] for r in rompe[:2]),
                                          pista_de_linea(rompe)))
                     nuevos = []
                     if informe.get("errores"):
@@ -1135,10 +1141,10 @@ def call(name, args, *, full_access=False, policy=None):
                         except Exception:
                             nuevos = []
                     prueba = "\n" + (informe.get("resumen") or "")
-                    prueba += "\n(ejecutado ANTES de aplicar: %s)" % (
-                        "sin errores de consola" if not informe.get("errores") else
-                        ("%d error(es) de ejecucion; %d son nuevos con este cambio. Se aplica igual: "
-                         "arregla el nuevo con fs_edit sobre la linea indicada."
+                    prueba += "\n(executed BEFORE applying: %s)" % (
+                        "no console errors" if not informe.get("errores") else
+                        ("%d runtime error(s); %d are new with this change. Applied anyway: "
+                         "fix the new one with fs_edit at the indicated line."
                          % (len(informe["errores"]), len(nuevos))))
                     if nuevos:
                         prueba += "\n" + pista_de_linea(nuevos)
@@ -1161,26 +1167,23 @@ def call(name, args, *, full_access=False, policy=None):
             if pending is not None:
                 os.unlink(pending)
         delta = candidato.count("\n") - texto.count("\n")
-        return ("editado: %s (%d sustitucion(es)%s, coincidencia por %s, %+d lineas, %d caracteres)%s%s%s"
-                % (path, aplicadas, "" if len(detalles) == 1 else " en %d edits" % len(detalles),
-                   " y ".join(sorted({d[1] for d in detalles})), delta, len(candidato), aviso,
+        return ("edited: %s (%d replacement(s)%s, matched via %s, %+d lines, %d chars)%s%s%s"
+                % (path, aplicadas, "" if len(detalles) == 1 else " across %d edits" % len(detalles),
+                   " and ".join(sorted({d[1] for d in detalles})), delta, len(candidato), aviso,
                    recibo_diff(texto, candidato), prueba or comprueba_ejecucion(path)))
     if name == "web_render":
-        # La pagina se abre de verdad (chrome-headless-shell, o Edge/Brave si no) y se lee su
-        # consola por DevTools. Es la unica forma de saber si el codigo generado falla al ejecutar,
-        # que es lo que el modelo no puede ver desde dentro.
         if not isinstance(args.get("path"), str) or not args["path"].strip():
-            raise ValueError("path debe contener una ruta")
+            raise ValueError("path must contain a file path")
         path = policy.path(args["path"], full_access)
         if not os.path.exists(path):
-            raise ValueError("no existe %s; escribe antes la pagina con fs_write" % path)
+            raise ValueError("%s does not exist; create the page first with fs_write" % path)
         suf = os.path.splitext(str(path))[1].lower()
         if suf not in (".html", ".htm"):
-            raise ValueError("web_render abre paginas .html (esto es %s)" % (suf or "sin extension"))
+            raise ValueError("web_render opens .html pages (got %s)" % (suf or "no extension"))
         try:
             import render_check
         except ImportError as error:
-            raise ValueError("el entorno de pruebas no esta disponible: %s" % str(error)[:120])
+            raise ValueError("test environment is unavailable: %s" % str(error)[:120])
         informe = render_check.resumen(path,
                                        espera_ms=int(args.get("espera_ms") or 2200),
                                        pintura=bool(args.get("pintura")),diagnostics=args.get('diagnostics',True) is not False)
@@ -1255,13 +1258,13 @@ def call(name, args, *, full_access=False, policy=None):
             source.mkdir(parents=True, exist_ok=True)
             return "created: " + str(source)
         if source == policy.root:
-            raise ValueError("No se puede modificar la raíz del espacio de trabajo.")
+            raise ValueError("Cannot modify the workspace root.")
         if action == "stat":
             info = source.stat()
             return json.dumps({"path": str(source), "is_dir": source.is_dir(), "bytes": info.st_size, "mtime": info.st_mtime, "mode": oct(info.st_mode)}, ensure_ascii=False)
         if action == "delete":
             if not source.exists() and not source.is_symlink():
-                raise ValueError("No existe: " + str(source))
+                raise ValueError("Path does not exist: " + str(source))
             if source.is_dir() and not source.is_symlink():
                 if any(source.iterdir()) and not bool(args.get("recursive")):
                     raise ValueError("Directory is not empty; pass recursive=true to delete it.")
@@ -1312,7 +1315,7 @@ def call(name, args, *, full_access=False, policy=None):
             if backup is not None:
                 shutil.rmtree(backup, ignore_errors=True)
             return ("moved: " if action == "move" else "copied: ") + str(source) + " -> " + str(destination)
-        raise ValueError("Acción fs_manage no válida.")
+        raise ValueError("Invalid fs_manage action.")
     if name == "shell_run":
         if not full_access:
             from sandbox_exec import run

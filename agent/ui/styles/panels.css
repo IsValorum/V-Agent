@@ -1157,10 +1157,16 @@ body.desktop-frame #chatwrap .topbar{pointer-events:auto;}
 #composerControls .context-block-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:2px;}
 #composerControls .context-block-title{font-size:12px;font-weight:600;color:var(--text);}
 #composerControls .context-memory{font-size:11px;color:var(--muted);}
-#composerControls .context-block #contextUsage,#composerControls .context-block #ctxTarget,#composerControls .context-block .context-setting label{display:none;}
+#composerControls .context-block #ctxTarget,#composerControls .context-block .context-setting label{display:none;}
+#composerControls #remoteModelInfo .context-usage{margin:10px 0 4px;}
 #composerControls .context-block .context-setting #ctxValue{margin-left:0;font-size:15px;}
 #composerControls .context-block .context-setting .row .help-trigger{display:none;}
 #composerControls .context-block #ctxApply:disabled{display:none;}
+#composerControls .context-block #kvSettings{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
+#composerControls .context-block #kvSettings .row{min-height:25px;}
+#composerControls .context-block #kvSettings .row>.field-label{flex:1;}
+#composerControls .context-block #kvSettings select{max-width:58%;min-width:88px;}
+#composerControls .context-block #kvStatus{margin:4px 0 0;font-size:10px;line-height:1.4;}
 #composerControls #modelSectionTabs{margin-top:12px;}
 #composerControls .context-memory-warning{margin:6px 0 0;font-size:11px;line-height:1.4;color:#e0a458;}
 #composerControls .context-memory-warning[hidden]{display:none;}

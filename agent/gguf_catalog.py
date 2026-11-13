@@ -15,7 +15,7 @@ _expert=re.compile(r'\.ffn_(gate|up|down|gate_up)_exps\.weight$')
 
 def inspect(path):
     path=Path(path).resolve();stat=path.stat()
-    key=[os.path.normcase(str(path)),stat.st_size,stat.st_mtime_ns,2]
+    key=[os.path.normcase(str(path)),stat.st_size,stat.st_mtime_ns,3]
     ident=hashlib.sha256(key[0].encode()).hexdigest()
     with _lock:
         item=_memory.get(ident)
@@ -30,10 +30,22 @@ def inspect(path):
         arch=str(meta.get('general.architecture') or '')
         keys=['general.architecture','general.name','general.basename','general.size_label','split.count']
         keys += [arch+'.'+name for name in ('context_length','block_count','expert_count','expert_used_count',
-                 'nextn_predict_layers','embedding_length','attention.key_length','attention.key_length_swa','attention.value_length','attention.head_count','attention.head_count_kv','attention.sliding_window','full_attention_interval','ssm.conv_kernel','ssm.state_size','ssm.group_count','ssm.time_step_rank','ssm.inner_size')]
+                 'nextn_predict_layers','embedding_length','rope.dimension_count','attention.key_length',
+                 'attention.key_length_swa','attention.value_length','attention.value_length_swa',
+                 'attention.key_length_mla','attention.value_length_mla','attention.kv_lora_rank',
+                 'attention.head_count','attention.head_count_kv','attention.sliding_window',
+                 'attention.sliding_window_pattern','attention.shared_kv_layers','attention.recurrent_layers',
+                 'full_attention_interval','shortconv.l_cache','kda.head_dim',
+                 'ssm.conv_kernel','ssm.state_size','ssm.group_count','ssm.time_step_rank','ssm.inner_size')]
+        ordered=sorted(gguf.tensors,key=lambda t:t.offset)
+        split_count=meta.get('split.count',1)
+        data_end=max(0,stat.st_size-gguf.data_start) if not isinstance(split_count,int) or split_count<=1 else None
         dense=experts=0
-        for tensor in gguf.tensors:
-            size=tensor.expected_bytes() or 0
+        for idx,tensor in enumerate(ordered):
+            size=tensor.expected_bytes()
+            if size is None:
+                end=ordered[idx+1].offset if idx+1<len(ordered) else data_end
+                size=max(0,end-tensor.offset) if end is not None else 0
             if _expert.search(tensor.name):experts+=size
             else:dense+=size
         facts={'metadata':{k:meta[k] for k in keys if k in meta},'types':gguf.by_type(),

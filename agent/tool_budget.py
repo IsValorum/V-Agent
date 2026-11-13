@@ -30,6 +30,7 @@ SHORT_DESCRIPTIONS = {
     'pc__draft_resume': 'Resume the latest saved draft. No arguments.',
     'pc__fs_list': 'List a directory ("." or any relative/absolute directory path).',
     'pc__fs_read': 'Read a UTF-8 file (use fs_list for directories); linea=first line, ventana=line count; offset=character offset.',
+    'pc__doc_read': 'Extract text and tables from PDF, DOCX, XLSX, PPTX, ODF, EPUB, RTF, HTML, XML and CSV.',
     'pc__fs_write': 'Write UTF-8 text to a relative or absolute file path; creates parents and replaces existing files.',
     'pc__fs_edit': 'Replace old_text with new_text, or apply edits atomically.',
     'pc__fs_copy': 'Copy desde to destino; linea/hasta select lines; ancla sets insertion; cortar moves.',

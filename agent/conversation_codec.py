@@ -8,8 +8,8 @@ def model_history(history):
         if message.get('compacted'):
             info=message.get('compacted') if isinstance(message.get('compacted'),dict) else {}
             label=info.get('method_label') or info.get('method') or 'API'
-            result.append({'role':'user','content':f"Contexto previo comprimido ({label}):\n\n{message.get('content','')}"})
-            result.append({'role':'assistant','content':'Entendido. Continúo usando este contexto comprimido.'})
+            result.append({'role':'user','content':f"Compressed prior context ({label}):\n\n{message.get('content','')}"})
+            result.append({'role':'assistant','content':'Understood. I will continue using this compressed context.'})
             continue
         if message.get('role')=='assistant':
             groups={}
