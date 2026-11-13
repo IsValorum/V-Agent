@@ -198,6 +198,21 @@ class StateConsistencyTests(unittest.TestCase):
         self.assertIn("showTip(searchBtn,'WebSearch/WebVisit'", shell)
         self.assertIn('#agentModeTooltip[data-compact=true]', panels)
 
+    def test_every_help_card_entry_has_all_translations(self):
+        events = (UI / 'app/events.js').read_text(encoding='utf-8')
+        locales = json.loads((UI / 'locales.json').read_text(encoding='utf-8'))
+        import re
+        block = re.search(r'const HELP=\{([\s\S]*?)\};', events).group(1)
+        pairs = re.findall(r":\['((?:\\.|[^'])*)','((?:\\.|[^'])*)'\]", block)
+        self.assertGreater(len(pairs), 60)
+        for raw_title, raw_body in pairs:
+            for item in (raw_title, raw_body):
+                text = item.replace("\\'", "'")
+                self.assertIn(text, locales, f'Missing locale entry for HELP string: {text!r}')
+                for lang in ('en', 'pt', 'fr', 'de'):
+                    self.assertTrue(locales[text].get(lang), f'Missing {lang} translation for HELP string: {text!r}')
+        self.assertIn("$('#helpTitle').textContent=uiText(title);$('#helpText').textContent=uiText(text);", events)
+
 
 if __name__ == '__main__':
     unittest.main()

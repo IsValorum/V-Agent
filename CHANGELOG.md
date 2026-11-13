@@ -4,6 +4,31 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.0.9
+
+- **Redesigned interface and refined Art Déco appearance:** Streamlined the top bar, composer controls,
+  unified model selector card, tabbed load/generation settings, and typography; softened Art Déco geometry
+  with stepped corner ornaments and double-line trim (renamed cleanly to `Art Déco` in the style picker);
+  and moved the collapsible `Memory breakdown` (`Desglose de memoria`) directly inside the Context card.
+- **Accurate VRAM warnings and GGUF memory estimation:** Hides the llama.cpp offload warning when running
+  Strata or Strata Rust, accounts for reclaimable VRAM already used by the active llama.cpp server to avoid
+  false overload warnings when enough free VRAM exists, and extends `memory_estimate` and `gguf_catalog`
+  for sliding-window attention (`SWA`), MLA/LoRA KV, shared KV layers, and recurrent/SSM/KDA/ShortConv states.
+- **Built-in document reader (`pc__doc_read`) and expanded tool limits:** Extracts text, tables, and
+  metadata from PDF (including OCR fallback for scanned pages), Word (`.docx`), Excel (`.xlsx`/`.xlsm`),
+  PowerPoint (`.pptx`), OpenDocument (`.odt`/`.ods`/`.odp`), EPUB, RTF, HTML, XML, and CSV/TSV files,
+  with raised/configurable MCP visit-token and result limits.
+- **Integrated browser, search, and desktop window fixes:** Added a fullscreen toggle to the integrated
+  browser dock, upgraded the web search toggle to a high-contrast globe-and-magnifier icon with a
+  theme-adaptive `WebSearch/WebVisit` tooltip, added DuckDuckGo retry fallback when quoted or Yahoo search
+  queries return `No results found`, opens release notes in an in-app dialog instead of inside the browser
+  dock, and fixed sandbox/conversation folder opening and native save dialogs for chat and theme exports.
+- **Complete translations, loading feedback, and clean release pipeline:** Stabilized the `Tools` counter
+  and standardized `Tools` across all 5 languages (`es`, `en`, `pt`, `fr`, `de`), made the model loading
+  progress bar adapt to every theme and accent color, completed remaining help-card and loading-phase
+  translations (`Shared console`, `MTP`, preparation states), normalized model-facing prompts/errors, and
+  added clean-worktree release builds that verify runtime binaries and exclude personal data or dev artifacts.
+
 ## 1.0.8
 
 - **Provider models with very long context can be used.** "Use model" on an API model that declares more

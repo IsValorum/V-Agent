@@ -41,7 +41,7 @@ function hideHelp(){clearTimeout(helpTimer);const card=$('#helpCard');if(card.ma
 function showHelp(button,pin=false){
   clearTimeout(helpTimer);if(helpPinned&&helpAnchor!==button&&!pin)return;
   if(helpAnchor&&helpAnchor!==button){helpAnchor.setAttribute('aria-expanded','false');helpAnchor.removeAttribute('aria-describedby');}
-  helpAnchor=button;helpPinned=pin;const [title,text]=HELP[button.dataset.help];$('#helpTitle').textContent=title;$('#helpText').textContent=text;
+  helpAnchor=button;helpPinned=pin;const [title,text]=HELP[button.dataset.help];$('#helpTitle').textContent=uiText(title);$('#helpText').textContent=uiText(text);
   const card=$('#helpCard');card.hidden=false;if(card.showPopover&&!card.matches(':popover-open'))card.showPopover();
   const box=button.getBoundingClientRect(),height=card.offsetHeight,width=card.offsetWidth;
   card.style.left=Math.max(12,Math.min(innerWidth-width-12,box.left+box.width/2-width/2))+'px';card.style.top=Math.max(12,Math.min(innerHeight-height-12,box.bottom+8+height<=innerHeight-12?box.bottom+8:box.top-height-8))+'px';
