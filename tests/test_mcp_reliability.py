@@ -42,6 +42,48 @@ class SearchTests(unittest.TestCase):
         self.assertEqual([c['backend'] for c in calls],['duckduckgo','yahoo'])
         self.assertEqual(calls[0]['max_results'],8);self.assertEqual(results[0]['link'],'https://python.org/')
 
+    def test_no_results_and_quoted_fallback(self):
+        class DDGSException(Exception):
+            pass
+        calls=[]
+        class Client:
+            def __init__(self,**kw):pass
+            def __enter__(self):return self
+            def __exit__(self,*args):pass
+            def text(self,query,**kwargs):
+                calls.append((query,kwargs['backend'],kwargs['region']))
+                if '"' in query:
+                    raise DDGSException('No results found.')
+                if 'none-everywhere' in query:
+                    raise DDGSException('No results found.')
+                if kwargs['backend']=='duckduckgo':
+                    raise DDGSException('No results found.')
+                return [{'title':'Hit','href':'https://example.org/news','body':'Matched without quotes'}]
+        with patch('ddgs.DDGS',Client):
+            empty=busqueda_local.search('none-everywhere',count=5,region='es-es',strict_errors=True)
+            relaxed=busqueda_local.search('"operacion conjunta"',count=5,region='es-es',strict_errors=True)
+        self.assertEqual(empty,[])
+        self.assertEqual(len(relaxed),1)
+        self.assertEqual(relaxed[0]['link'],'https://example.org/news')
+        self.assertIn(('operacion conjunta','yahoo','es-es'),calls)
+
+    def test_real_backend_errors_report_all_failed_providers(self):
+        class TimeoutException(Exception):
+            pass
+        class Client:
+            def __init__(self,**kw):pass
+            def __enter__(self):return self
+            def __exit__(self,*args):pass
+            def text(self,query,**kwargs):
+                raise TimeoutException('timed out')
+        with patch('ddgs.DDGS',Client):
+            with self.assertRaises(RuntimeError) as ctx:
+                busqueda_local.search('Python',count=5,region='us-en',strict_errors=True)
+        msg=str(ctx.exception)
+        self.assertIn('duckduckgo:',msg)
+        self.assertIn('yahoo:',msg)
+        self.assertIn('auto:',msg)
+
     def test_glm_template_uses_its_own_tool_parser(self):
         template='''{% for m in messages %}{{ m.content }}{% if m.tool_calls %}{% for c in m.tool_calls %}<tool_call>{{ c.function.name }}{% for k,v in c.function.arguments.items() %}<arg_key>{{ k }}</arg_key><arg_value>{{ v if v is string else (v|tojson) }}</arg_value>{% endfor %}</tool_call>{% endfor %}{% endif %}{% endfor %}'''
         with tempfile.TemporaryDirectory() as directory:

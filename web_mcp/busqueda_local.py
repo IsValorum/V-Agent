@@ -62,6 +62,21 @@ def short_snippet(text):
         lines.append(current)
     return '\n'.join(lines)[:321]
 
+def _is_no_results_error(error):
+    name = type(error).__name__.lower()
+    if 'timeout' in name or 'ratelimit' in name:
+        return False
+    msg = str(error or '').strip().lower().rstrip('.!')
+    return msg in ('no results found', 'no results') or (
+        'no results found' in msg and not any(
+            token in msg for token in (
+                'timeout', 'timed out', 'rate', '403', '429',
+                '500', '502', '503', 'connect', 'ssl', 'proxy', 'dns', 'network',
+            )
+        )
+    )
+
+
 def search(query, count=5, region=None, timelimit=None, filter_list=None, threads=1, strict_errors=False, safesearch='moderate', timeout=10, filter_ads=True):
     from ddgs import DDGS
     if not query or not query.strip():
@@ -105,30 +120,50 @@ def search(query, count=5, region=None, timelimit=None, filter_list=None, thread
                 parsed.hostname.lower() in ('ad.doubleclick.net','googleadservices.com','www.googleadservices.com')):continue
             seen.add(link);out.append(result)
         return out
-    for backend_choice, reg in attempts:
-        try:
-            with DDGS(proxy=proxy, timeout=timeout) as client:
-                client.threads = threads or 1
-                kwargs = {
-                    'safesearch': safesearch,
-                    'timelimit': timelimit or None,
-                    'max_results': candidates
-                }
-                if backend_choice:
-                    kwargs['backend'] = backend_choice
-                if reg:
-                    kwargs['region'] = reg
 
-                raw = usable(client.text(query, **kwargs))
-                completed = True
-                if raw:
-                    break
-        except Exception as error:
-            failures.append(f'{backend_choice or "auto"}: {type(error).__name__}: {str(error)[:180]}')
-            continue
+    def run_attempts(search_query, pairs):
+        nonlocal raw, completed
+        for backend_choice, reg in pairs:
+            try:
+                with DDGS(proxy=proxy, timeout=timeout) as client:
+                    client.threads = threads or 1
+                    kwargs = {
+                        'safesearch': safesearch,
+                        'timelimit': timelimit or None,
+                        'max_results': candidates
+                    }
+                    if backend_choice:
+                        kwargs['backend'] = backend_choice
+                    if reg:
+                        kwargs['region'] = reg
+
+                    raw = usable(client.text(search_query, **kwargs))
+                    completed = True
+                    if raw:
+                        return True
+            except Exception as error:
+                if _is_no_results_error(error):
+                    # ddgs raises DDGSException("No results found.") when every
+                    # backend responds cleanly with zero hits; do not misreport
+                    # that as a backend outage.
+                    completed = True
+                    continue
+                failures.append(f'{backend_choice or "auto"}: {type(error).__name__}: {str(error)[:180]}')
+        return False
+
+    run_attempts(query, attempts)
+    if not raw and completed:
+        relaxed = ' '.join(re.sub(r'["“”]+', ' ', query).split())
+        if relaxed and relaxed != query.strip():
+            run_attempts(relaxed, attempts)
+        else:
+            relaxed = query.strip()
+        if not raw and target_region and target_region != 'wt-wt':
+            run_attempts(relaxed or query, [('auto', 'wt-wt')])
 
     if strict_errors and not completed:
-        raise RuntimeError('Server-side search backends did not respond (' + '; '.join(failures[-2:]) + '). Use another enabled web/browser tool or suggest the user search directly in the browser.')
+        summary = '; '.join(list(dict.fromkeys(failures))[:3])
+        raise RuntimeError(f'Server-side search backends did not respond ({summary}). Use another enabled web/browser tool or suggest the user search directly in the browser.')
 
     if filter_list and raw:
         try:
