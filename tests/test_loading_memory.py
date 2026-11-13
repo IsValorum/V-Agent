@@ -113,4 +113,35 @@ class LoadingMemoryTests(unittest.TestCase):
    with patch('gguf_catalog.inspect',return_value={'metadata':meta}):
     info=kv_settings.describe(cfg)
    self.assertEqual([o['value'] for o in info['options']],['fp16','int8','int8k'])
+ def test_hardware_accounts_for_reclaimable_engine_vram(self):
+  import subprocess as sp
+  import memory_estimate
+  from types import SimpleNamespace
+  mib=2**20
+  memory_estimate._idle_gpu_used=None
+  memory_estimate.invalidate_hardware_cache()
+  def fake_run(cmd,**_kwargs):
+   q=cmd[1] if len(cmd)>1 else ''
+   if 'memory.free' in q:return SimpleNamespace(stdout='1900, 6141\n')
+   if 'compute-apps' in q:return SimpleNamespace(stdout='4242, 4050\n9999, 100\n')
+   return SimpleNamespace(stdout='')
+  with patch('memory_estimate.subprocess.run',side_effect=fake_run):
+   idle=memory_estimate.hardware(force=True)
+   self.assertEqual(idle['gpu_reclaimable'],0)
+   self.assertEqual(idle['gpu_effective_available'],1900*mib)
+   with_engine=memory_estimate.hardware(reclaimable_bytes=3500*mib,engine_pids=[4242],force=True)
+   self.assertEqual(with_engine['gpu_reclaimable'],4050*mib)
+   self.assertEqual(with_engine['gpu_effective_available'],5950*mib)
+   external_only=memory_estimate.hardware(engine_pids=[1111],force=True)
+   self.assertGreaterEqual(external_only['gpu_effective_available'],1900*mib)
+  # Vulkan / WDDM fallback when compute-apps reports [N/A]
+  def fake_vulkan(cmd,**_kwargs):
+   q=cmd[1] if len(cmd)>1 else ''
+   if 'memory.free' in q:return SimpleNamespace(stdout='1800, 6141\n')
+   if 'compute-apps' in q:return SimpleNamespace(stdout='4242, [N/A]\n')
+   return SimpleNamespace(stdout='')
+  with patch('memory_estimate.subprocess.run',side_effect=fake_vulkan):
+   vulkan=memory_estimate.hardware(reclaimable_bytes=4000*mib,engine_pids=[4242],force=True)
+   self.assertEqual(vulkan['gpu_effective_available'],min(6141*mib,1800*mib+4000*mib))
+  memory_estimate._idle_gpu_used=None;memory_estimate.invalidate_hardware_cache()
 if __name__=='__main__':unittest.main()

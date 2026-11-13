@@ -288,6 +288,8 @@ body.browser-open.browser-overlay #updateStack{right:16px;}
 #browserDock{position:fixed;top:0;right:0;bottom:0;width:var(--browser-width,520px);z-index:45;display:flex;flex-direction:column;background:color-mix(in srgb,var(--panel) 97%,transparent);border-left:1px solid var(--border);box-shadow:-10px 0 34px #0003;overflow:hidden;}
 #browserDock[hidden]{display:none!important;}
 .browser-dock-head{flex:none;display:flex;align-items:center;gap:4px;padding:5px 7px;border-bottom:1px solid var(--border);min-height:40px;background:color-mix(in srgb,var(--panel) 85%,transparent);}
+.browser-dock-head .icon-btn{flex:none;}
+.browser-dock-head .icon-btn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
 .browser-tabs{flex:1;display:flex;align-items:center;gap:4px;overflow-x:auto;scrollbar-width:thin;min-width:0;}
 .browser-tab{display:flex;align-items:center;gap:5px;max-width:190px;min-width:80px;padding:5px 6px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);font-size:11px;cursor:pointer;flex:0 1 auto;}
 .browser-tab[aria-selected=true]{background:color-mix(in srgb,var(--accent) 10%,var(--panel));border-color:var(--border);color:var(--text);}
@@ -338,6 +340,7 @@ body.browser-resizing{cursor:ew-resize;user-select:none;}
 /* Compact update toasts, bottom-right. */
 #updateStack{position:fixed;top:auto;left:auto;right:16px;bottom:var(--update-bottom,16px);z-index:70;display:flex;flex-direction:column;align-items:flex-end;gap:8px;width:min(310px,calc(100vw - 24px));max-height:calc(100dvh - 140px);pointer-events:none;}
 body.browser-open #updateStack{right:calc(var(--browser-width) + 16px);}
+body.browser-open.browser-fullscreen #updateStack{right:16px;}
 #updateStack[hidden]{display:none!important;}
 #appUpdateNotice{position:fixed;top:64px;right:16px;z-index:71;width:min(310px,calc(100vw - 32px));grid-template-columns:minmax(0,1fr) auto;}
 #appUpdateNotice[hidden]{display:none!important;}
@@ -526,7 +529,10 @@ body[data-theme-mode=day] [data-logo-choice=ivory]{filter:none;}
 
 /* Ornaments occupy chrome gutters, never header or history text. */
 #agentModeTooltip{position:fixed;inset:auto;margin:0;width:max-content;max-width:min(330px,calc(100vw - 24px));padding:12px 14px;font:12px/1.6 var(--ui-font);color:var(--text);background:var(--panel);border:1px solid color-mix(in srgb,var(--accent) 50%,var(--border));border-radius:var(--panel-radius,12px);box-shadow:var(--panel-shadow);pointer-events:none;}
-:root[data-amoled=true] #agentModeTooltip{background:#000;}
+#agentModeTooltip[data-compact=true]{padding:7px 11px;font:11.5px/1.35 var(--ui-font);font-weight:550;letter-spacing:.01em;}
+:root[data-ui-style=glass] #agentModeTooltip{background:var(--glass-fill,color-mix(in srgb,var(--panel) 78%,transparent));-webkit-backdrop-filter:var(--glass-filter);backdrop-filter:var(--glass-filter);border-color:color-mix(in srgb,var(--accent) 44%,var(--glass-edge,var(--border)));}
+:root[data-ui-style=deco] #agentModeTooltip{border-radius:var(--panel-radius,10px);border:1.5px solid color-mix(in srgb,var(--accent) 52%,var(--double-line));box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--panel) 85%,transparent),inset 0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent),var(--panel-shadow);}
+:root[data-amoled=true] #agentModeTooltip{background:#000!important;-webkit-backdrop-filter:none;backdrop-filter:none;}
 #projectBtn,#agentModeSegments,.welcome h2{text-shadow:var(--readability-shadow,none);}
 #readabilitySettings{margin-block:10px;}.app-icon-setting{margin-block:12px;font-size:11px;}.app-icon-setting select{max-width:55%;}
 
@@ -865,6 +871,11 @@ body.desktop-frame #sidebar .sidebar-chrome{min-height:30px;}
 body.desktop-frame.browser-open #browserDock{top:var(--frame-height,48px);}
 body.desktop-frame.browser-open #windowControls{width:var(--browser-width,520px);justify-content:flex-end;background:color-mix(in srgb,var(--panel) 97%,transparent);border-left:1px solid var(--soft-line,var(--border));}
 body.desktop-frame.browser-open .topbar{padding-right:32px;}
+body.browser-open.browser-fullscreen #chatwrap{margin-right:0;}
+:root body.browser-open.browser-fullscreen #browserDock{left:0;right:0;width:100%!important;border-left:0!important;box-shadow:none;background:var(--bg)!important;}
+body.browser-open.browser-fullscreen #browserDock .browser-dock-head{background:var(--panel)!important;}
+body.browser-open.browser-fullscreen .browser-dock-resize{display:none;}
+body.desktop-frame.browser-open.browser-fullscreen #windowControls{width:100vw;border-left:0;}
 
 /* ===================== Glass (iOS-like, default) =====================
    Translucent surfaces that blur and saturate what is behind them, with a thin light edge and a soft
@@ -1639,6 +1650,16 @@ body.desktop-frame.browser-open #chatwrap .topbar{padding-right:16px!important;}
 #composerControls .context-block .context-setting #ctxValue{font-size:16px;font-weight:600;}
 #composerControls .context-ticks{font-size:10.5px;margin-top:4px;}
 #composerControls .context-block #kvSettings{margin-top:10px;padding-top:10px;border-top:1px solid var(--soft-line,var(--border));}
+#composerControls .context-block #modelMemoryEstimate{margin:10px 0 0;padding-top:2px;border-top:1px solid var(--soft-line,var(--border));}
+#composerControls .context-block #modelMemoryEstimate>summary{padding:8px 0 4px;font-size:12px;font-weight:500;color:var(--muted);}
+#composerControls .context-block #modelMemoryEstimate>summary:hover,
+#composerControls .context-block #modelMemoryEstimate[open]>summary{color:var(--text);}
+#composerControls .context-block #modelMemoryEstimate #memoryHeadline{margin-left:auto;color:var(--muted);}
+#composerControls .context-block #modelMemoryEstimate>summary::after{margin-left:4px;}
+#composerControls .context-block #modelMemoryEstimate .memory-estimate-body{padding:6px 0 4px;font-size:11.5px;}
+#composerControls .context-block #modelMemoryEstimate .memory-total{margin-bottom:8px;}
+#composerControls .context-block #modelMemoryEstimate .memory-detail{font-size:11.5px;margin:4px 0;color:var(--text);opacity:.86;}
+#composerControls .context-block #modelMemoryEstimate .memory-estimate-body details summary{font-size:11px;color:var(--muted);cursor:pointer;}
 #composerControls .model-grid .row,#composerControls .context-block #kvSettings .row{min-height:32px;margin:7px 0;gap:10px;}
 #composerControls .model-grid .row select,#composerControls .context-block #kvSettings select{max-width:60%;min-width:110px;}
 #composerControls .model-grid .row input[type=number]{width:92px;}

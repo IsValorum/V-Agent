@@ -118,13 +118,30 @@
     const CHAT_MIN=520;
     function sidebarSpace(){const sidebar=document.getElementById('sidebar');return sidebar&&sidebar.offsetParent?Math.round(sidebar.getBoundingClientRect().width):0;}
     function currentWidth(){return Math.min(maxWidth(),Math.max(360,Number(localStorage.getItem(WIDTH_KEY)||520)||520));}
+    const fullscreenBtn=document.getElementById('browserDockFullscreen');
+    let fullscreen=false;
+    function syncFullscreenButton(){
+      if(!fullscreenBtn)return;
+      const label=uiText(fullscreen?'Salir de pantalla completa':'Pantalla completa');
+      fullscreenBtn.setAttribute('aria-pressed',String(fullscreen));
+      fullscreenBtn.setAttribute('aria-label',label);fullscreenBtn.title=label;
+      fullscreenBtn.innerHTML=fullscreen
+        ?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7"/></svg>'
+        :'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>';
+    }
     function applyWidth(){
       const width=currentWidth();
       // Not enough room for a usable chat beside the browser: the browser floats over the chat
       // instead of squeezing it (the chat keeps its full width underneath).
-      document.body.classList.toggle('browser-overlay',innerWidth>760&&innerWidth-sidebarSpace()-width<CHAT_MIN);
+      document.body.classList.toggle('browser-overlay',!fullscreen&&innerWidth>760&&innerWidth-sidebarSpace()-width<CHAT_MIN);
       document.documentElement.style.setProperty('--browser-width',width+'px');
-      dock.style.width=width+'px';
+      dock.style.width=fullscreen?'':width+'px';
+    }
+    function setFullscreen(next){
+      fullscreen=Boolean(next)&&open;
+      document.body.classList.toggle('browser-fullscreen',fullscreen);
+      applyWidth();syncFullscreenButton();
+      if(open){requestAnimationFrame(()=>syncBounds());setTimeout(()=>{syncBounds();window.VALWindows?.arrange();},70);}
     }
     async function syncBounds(){
       const tab=active();
@@ -293,14 +310,14 @@
     }
     function openDock(){
       if(open)return;
-      open=true;dock.hidden=false;document.body.classList.add('browser-open');applyWidth();setState('Abierta');
+      open=true;dock.hidden=false;document.body.classList.add('browser-open');document.body.classList.toggle('browser-fullscreen',fullscreen);applyWidth();syncFullscreenButton();setState('Abierta');
       if(!tabs.length)newTab();else activateTab(activeId||tabs[0].id);
       setTimeout(()=>{syncBounds();window.VALWindows?.arrange();},30);
       clearInterval(pollTimer);pollTimer=setInterval(()=>{const tab=active();if(tab&&tab.view&&listView.hidden&&!bridgeActive)refreshTab(tab);},1400);
     }
     function closeDock(){
       if(!open)return;
-      open=false;dock.hidden=true;document.body.classList.remove('browser-open');setState('Cerrado');
+      open=false;fullscreen=false;dock.hidden=true;document.body.classList.remove('browser-open','browser-fullscreen');syncFullscreenButton();setState('Cerrado');
       const tab=active();if(tab&&tab.view)tauri('browser_tab_hide',{label:tab.label}).catch(()=>{});
       clearInterval(pollTimer);pollTimer=0;
       window.VALWindows?.arrange();
@@ -316,6 +333,8 @@
     });
     document.getElementById('openBrowser').onclick=toggleDock;
     document.getElementById('browserDockClose').onclick=closeDock;
+    if(fullscreenBtn){fullscreenBtn.onclick=()=>{if(!open)openDock();setFullscreen(!fullscreen);};syncFullscreenButton();window.VALI18n?.onChange?.(syncFullscreenButton);}
+    document.addEventListener('keydown',event=>{if(event.key==='Escape'&&open&&fullscreen&&!document.querySelector('dialog[open]')&&!document.querySelector(':popover-open'))setFullscreen(false);});
     document.getElementById('browserNewTab').onclick=()=>{if(!open)openDock();newTab();};
     document.getElementById('browserGo').onclick=()=>navigateActive(urlInput.value);
     document.getElementById('browserBack').onclick=()=>historyAction('back');

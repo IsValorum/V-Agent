@@ -6425,11 +6425,29 @@
     "fr": "Doux",
     "de": "Weich"
   },
-  "Art Déco (líneas dobles)": {
-    "en": "Art Deco (double lines)",
-    "pt": "Art Déco (linhas duplas)",
-    "fr": "Art déco (doubles lignes)",
-    "de": "Art déco (Doppellinien)"
+  "Art Déco": {
+    "en": "Art Deco",
+    "pt": "Art Déco",
+    "fr": "Art Déco",
+    "de": "Art Déco"
+  },
+  "Desglose de memoria": {
+    "en": "Memory breakdown",
+    "pt": "Detalhamento da memória",
+    "fr": "Détail de la mémoire",
+    "de": "Speicheraufschlüsselung"
+  },
+  "Pantalla completa": {
+    "en": "Fullscreen",
+    "pt": "Tela cheia",
+    "fr": "Plein écran",
+    "de": "Vollbild"
+  },
+  "Salir de pantalla completa": {
+    "en": "Exit fullscreen",
+    "pt": "Sair da tela cheia",
+    "fr": "Quitter le plein écran",
+    "de": "Vollbild beenden"
   },
   "Botones": {
     "en": "Buttons",

@@ -170,6 +170,34 @@ class StateConsistencyTests(unittest.TestCase):
         self.assertIn('NOT APPLIED (%s): old_text was not found', pc_mcp)
         self.assertIn('Only public internet pages are allowed.', web_mcp)
 
+    def test_memory_breakdown_lives_collapsed_inside_context_block(self):
+        load_js = (UI / 'app/load-settings.js').read_text(encoding='utf-8')
+        panel_js = (UI / 'app/model-panel.js').read_text(encoding='utf-8')
+        locales = (UI / 'locales.json').read_text(encoding='utf-8')
+        self.assertIn("const freeGpu=typeof h.gpu_effective_available==='number'?h.gpu_effective_available:h.gpu_available;", load_js)
+        self.assertIn("document.getElementById('contextBlock')", load_js)
+        self.assertIn('memory.open=false', load_js)
+        self.assertIn('Desglose de memoria', load_js)
+        self.assertIn('Desglose de memoria', locales)
+        self.assertIn("if(block&&!block.contains(estimate))", panel_js)
+
+    def test_browser_fullscreen_deco_label_and_search_tooltip(self):
+        html = (UI / 'v-agent.html').read_text(encoding='utf-8')
+        tools_js = (UI / 'app/tools.js').read_text(encoding='utf-8')
+        panels = (UI / 'styles/panels.css').read_text(encoding='utf-8')
+        palette = (UI / 'app/palette.js').read_text(encoding='utf-8')
+        shell = (UI / 'app/shell.js').read_text(encoding='utf-8')
+        locales = (UI / 'locales.json').read_text(encoding='utf-8')
+        self.assertIn('id="browserDockFullscreen"', html)
+        self.assertIn("document.body.classList.toggle('browser-fullscreen',fullscreen);", tools_js)
+        self.assertIn('body.browser-open.browser-fullscreen #browserDock', panels)
+        self.assertIn('Pantalla completa', locales)
+        self.assertIn('<option value="deco">Art Déco</option>', palette)
+        self.assertNotIn('líneas dobles', palette)
+        self.assertNotIn('double lines', locales)
+        self.assertIn("showTip(searchBtn,'WebSearch/WebVisit'", shell)
+        self.assertIn('#agentModeTooltip[data-compact=true]', panels)
+
 
 if __name__ == '__main__':
     unittest.main()
