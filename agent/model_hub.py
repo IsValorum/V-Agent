@@ -209,11 +209,17 @@ class Downloads:
             try:
                 path = self._download(job)
                 with self.lock:
+                    if job['state'] == 'cancelled':
+                        continue
                     job['path'] = str(path)
                 if self.register and not job['mmproj']:
-                    job['model'] = self.register(path, job)
+                    model_id = self.register(path, job)
+                    with self.lock:
+                        if job['state'] != 'cancelled':
+                            job['model'] = model_id
                 with self.lock:
-                    job['state'] = 'done'
+                    if job['state'] != 'cancelled':
+                        job['state'] = 'done'
             except Exception as error:
                 with self.lock:
                     if job['state'] != 'cancelled':
@@ -273,8 +279,13 @@ class Downloads:
             if part.get('sha256') and digest.hexdigest() != part['sha256']:
                 partial.unlink(missing_ok=True)
                 raise ValueError('El archivo descargado no coincide con el publicado (SHA-256).')
-            partial.replace(final)
-            done += part['size']
             with self.lock:
+                if job['state'] == 'cancelled':
+                    raise ValueError('Descarga cancelada.')
+            partial.replace(final)
+            done += part['size'] or size
+            with self.lock:
+                if job['state'] == 'cancelled':
+                    raise ValueError('Descarga cancelada.')
                 job['state'] = 'downloading'
         return first

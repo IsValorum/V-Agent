@@ -91,8 +91,12 @@ def scan_lmstudio():
             break
         if _skip(gguf):
             continue
+        try:
+            size = gguf.stat().st_size
+        except OSError:
+            continue
         settings = _lm_settings(_json(_lm_config_path(root, gguf)) or {})
-        found.append({'source': 'lmstudio', 'path': str(gguf), 'name': gguf.stem, 'size': gguf.stat().st_size,
+        found.append({'source': 'lmstudio', 'path': str(gguf), 'name': gguf.stem, 'size': size,
                       'group': str(gguf.parent.relative_to(root)).replace('\\', '/'), **settings})
     return found
 
@@ -159,6 +163,7 @@ def scan_unsloth():
     if not UNSLOTH.is_dir():
         return []
     folders, by_model, loaded = [], {}, []
+    db = None
     try:
         db = _unsloth_db()
         if db:
@@ -170,9 +175,11 @@ def scan_unsloth():
                     item = json.loads(value) or {}
                     if item.get('kind') == 'gguf' and item.get('id'):
                         loaded.append(Path(item['id']))
-            db.close()
     except (sqlite3.Error, ValueError, OSError):
         pass
+    finally:
+        if db is not None:
+            db.close()
     candidates = []
     for folder, recursive in folders:
         if folder.is_dir():
@@ -191,6 +198,8 @@ def scan_unsloth():
             continue
         seen.add(key)
         params = by_model.get(str(gguf.parent)) or by_model.get(str(gguf)) or {}
+        if not isinstance(params, dict):
+            params = {}
         try:
             size = gguf.stat().st_size
         except OSError:

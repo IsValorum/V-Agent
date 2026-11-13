@@ -141,16 +141,16 @@ class AccessPolicy:
         if value.startswith(('\\\\', '//', '\\', '/')) or drive and not os.path.isabs(value):
             # Decir donde SI se puede escribir: sin eso el modelo reintenta la misma ruta
             # o, peor, narra el escrito como si hubiera ocurrido.
-            example = Path(value.replace('\\', '/')).name or 'archivo.txt'
-            raise AccessDenied(f'Sandbox: "{value}" es una ruta absoluta. Usa una ruta relativa a la '
-                               f'carpeta de trabajo, por ejemplo "{example}" (eso escribe en {self.root}).')
+            example = Path(value.replace('\\', '/')).name or 'file.txt'
+            raise AccessDenied(f'Sandbox: "{value}" is an absolute path. Use a path relative to the '
+                               f'working folder, e.g. "{example}" (writes inside {self.root}).')
         raw = Path(value)
         for part in raw.parts:
             if part == raw.anchor or part in ('.', '..'):
                 continue
             if ':' in part or getattr(os.path, 'isreserved', lambda p: False)(part):
-                raise AccessDenied(f'Sandbox: "{value}" lleva letra de unidad o un nombre reservado. '
-                                   f'Escribe dentro de {self.root} con una ruta relativa.')
+                raise AccessDenied(f'Sandbox: "{value}" contains a drive letter or reserved name. '
+                                   f'Write inside {self.root} using a relative path.')
         candidate = Path(os.path.abspath(raw if raw.is_absolute() else self.root / raw))
         root = os.path.normcase(str(self.root))
         try:
@@ -158,8 +158,8 @@ class AccessPolicy:
         except ValueError:
             inside = False
         if not inside:
-            raise AccessDenied(f'Sandbox: "{value}" queda fuera de la carpeta de trabajo ({self.root}). '
-                               f'Activa "Toda la PC" en la interfaz para escribir fuera de ella.')
+            raise AccessDenied(f'Sandbox: "{value}" is outside the working folder ({self.root}). '
+                               f'Enable "Toda la PC" (Full-PC access) in the interface to work outside it.')
         self._check_links(candidate)
         return candidate
 

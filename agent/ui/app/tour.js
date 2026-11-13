@@ -77,7 +77,7 @@ const VAL_TOUR=(()=>{
     if(hasEngine(snapshot)){p.textContent=uiText('Ya tienes un motor instalado. Puedes cambiarlo cuando quieras desde Modelo → Cambiar motor.');return;}
     let hardware={};try{hardware=await requestJSON('/api/harness/hardware');}catch{}
     const variant=snapshot?.recommended_variant||'cpu',key='llama-'+variant;
-    const label={cuda:'llama.cpp · CUDA (NVIDIA)',vulkan:'llama.cpp · Vulkan (AMD, Intel Arc, NVIDIA)',cpu:'llama.cpp · CPU'}[variant];
+    const label={cuda:'llama.cpp · CUDA (NVIDIA)',vulkan:'llama.cpp · Vulkan (AMD, Intel Arc, NVIDIA)',cpu:'llama.cpp · CPU'}[variant]||('llama.cpp · '+variant);
     p.textContent=uiText('V-Agent no incluye motores: descarga la versión oficial más reciente que mejor encaja con tu equipo.')+' '+uiParts(hardware.hardware_summary||hardware.summary||'');
     const install=document.createElement('button');install.type='button';install.className='soft-btn primary';install.textContent=uiText('Descargar e instalar')+' · '+label;
     const api=document.createElement('button');api.type='button';api.className='soft-btn';api.textContent=uiText('Prefiero conectar una API');
@@ -94,9 +94,9 @@ const VAL_TOUR=(()=>{
         await requestJSON('/api/harness/updates/install',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({engine:key})});
         for(;;){
           await new Promise(r=>setTimeout(r,800));const u=await requestJSON('/api/harness/updates');const g=u.progress;
-          if(g&&g.engine===key&&g.total)status.textContent=uiText({download:'Descargando',extract:'Extrayendo',verify:'Verificando'}[g.phase]||'Procesando')+' · '+Math.round(g.received/g.total*100)+' % · '+(g.total/1048576).toFixed(0)+' MB';
+          if(g&&g.engine===key)status.textContent=uiText({download:'Descargando',extract:'Extrayendo',verify:'Verificando'}[g.phase]||'Procesando')+(g.total?' · '+Math.round(g.received/g.total*100)+' % · '+(g.total/1048576).toFixed(0)+' MB':'');
           if(u.error)throw new Error(u.error);
-          if(!u.busy&&u.installed?.[key])break;
+          if(!u.busy){if(u.installed?.[key])break;throw new Error(uiText('No se pudo completar la instalación.'));}
         }
         await requestJSON('/api/harness/configure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({engine:'llama',variant,gpu_layers:'auto'})});
         status.textContent=uiText('Motor instalado y verificado. Ahora añade o carga un modelo desde Modelo.');
@@ -135,7 +135,7 @@ const VAL_TOUR=(()=>{
       if(!s.configured){status.textContent=uiText('Versión')+' '+label(s.version)+' · '+uiText('Las actualizaciones automáticas se activarán cuando se publique el repositorio oficial.');go.hidden=true;return;}
       if(s.error){status.textContent=uiText('No se pudo comprobar')+': '+s.error;}
       else if(s.ready){status.textContent=uiText('Actualización descargada y verificada.');go.textContent=uiText('Instalar y reiniciar');go.hidden=false;go.dataset.action='launch';}
-      else if(s.busy&&s.progress){status.textContent=uiText('Descargando')+' · '+Math.round(s.progress.received/s.progress.total*100)+' %';}
+      else if(s.busy&&s.progress){status.textContent=uiText('Descargando')+(s.progress.total?' · '+Math.round(s.progress.received/s.progress.total*100)+' %':'');}
       else if(s.available){status.textContent=uiText('Nueva versión disponible')+': '+s.available.version+(s.available.notes?' · '+s.available.notes.slice(0,140):'');go.textContent=uiText('Descargar')+' '+s.available.version;go.hidden=false;go.dataset.action='download';}
       else status.textContent=uiText('Versión')+' '+label(s.version)+(s.checked_at?' · '+uiText('Estás al día.'):'');
     };

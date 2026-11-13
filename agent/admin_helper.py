@@ -12,7 +12,7 @@ import ctypes
 import os
 import subprocess
 import time
-from multiprocessing.connection import Listener
+from multiprocessing.connection import Client
 
 
 def is_admin() -> bool:
@@ -61,34 +61,39 @@ def main():
     parser.add_argument("--authkey", required=True)
     args = parser.parse_args()
     address = r"\\.\pipe" + "\\" + args.pipe
-    listener = Listener(address, family="AF_PIPE", authkey=args.authkey.encode("utf-8"))
-    try:
-        connection = listener.accept()
+    connection = None
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline:
         try:
-            while True:
-                try:
-                    request = connection.recv()
-                except EOFError:
-                    break
-                if not isinstance(request, dict):
-                    continue
-                action = request.get("action")
-                if action == "stop":
-                    break
-                if action == "status":
-                    reply = {"ok": True, "admin": is_admin(), "pid": os.getpid(),
-                             "user": os.environ.get("USERNAME", ""), "helper": True}
-                elif action == "run":
-                    reply = execute(str(request.get("command") or ""), str(request.get("shell") or "powershell"),
-                                    int(request.get("timeout") or 120), request.get("cwd"))
-                    reply["admin"] = is_admin()
-                else:
-                    reply = {"ok": False, "error": "acción no válida"}
-                connection.send(reply)
-        finally:
-            connection.close()
+            connection = Client(address, family="AF_PIPE", authkey=args.authkey.encode("utf-8"))
+            break
+        except (OSError, EOFError):
+            time.sleep(0.1)
+    if connection is None:
+        return
+    try:
+        while True:
+            try:
+                request = connection.recv()
+            except (EOFError, OSError):
+                break
+            if not isinstance(request, dict):
+                continue
+            action = request.get("action")
+            if action == "stop":
+                break
+            if action == "status":
+                reply = {"ok": True, "admin": is_admin(), "pid": os.getpid(),
+                         "user": os.environ.get("USERNAME", ""), "helper": True}
+            elif action == "run":
+                reply = execute(str(request.get("command") or ""), str(request.get("shell") or "powershell"),
+                                int(request.get("timeout") or 120), request.get("cwd"))
+                reply["admin"] = is_admin()
+            else:
+                reply = {"ok": False, "error": "invalid action"}
+            connection.send(reply)
     finally:
-        listener.close()
+        connection.close()
 
 
 if __name__ == "__main__":

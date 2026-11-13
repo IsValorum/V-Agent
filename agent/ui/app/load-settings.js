@@ -36,6 +36,7 @@ function setupLoadSettings(){
   document.getElementById('composerControls').addEventListener('fw:open',()=>requestMemoryEstimate(true));
   document.getElementById('composerControls').addEventListener('fw:close',()=>{clearTimeout(memoryTimer);memoryController?.abort();});
   syncLoadSettings();
+  if(typeof attachLoadSettingsToPanel==='function')attachLoadSettingsToPanel();
 }
 function syncLoadSettings(){
   const group=document.getElementById('modelLoadSettings');if(!group)return;

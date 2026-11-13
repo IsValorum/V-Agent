@@ -45,7 +45,7 @@ function syncModelSelectionSummary(){
     state.title=loadedModel&&!inMemory?uiText('En memoria:')+' '+(modelNames[loadedModel]||loadedModel):'';
   }
   if($('#remoteContextValue')){$('#remoteContextValue').textContent=model?.context?model.context.toLocaleString()+' tokens':uiText('No informado');$('#remoteContextOrigin').textContent=model?.context_source==='manual'?uiText('Límite indicado por ti'):model?.context_source==='provider'?uiText('Declarado por la API'):uiText('La API no publica este dato');if(document.activeElement!==$('#remoteContextInput'))$('#remoteContextInput').value=model?.context||'';}
-  const action=$('#modelSummaryAction');if(action){const loaded=!!model&&model.id===loadedModel;action.hidden=!model;action.textContent=model?.remote?(loaded?uiText('Dejar de usar'):uiText('Usar modelo')):(loaded?uiText('Descargar'):uiText('Cargar'));const switching=!!model&&!model.remote&&!!loadedModel&&!loaded;if(switching)action.textContent=uiText('Cambiar a este modelo');action.dataset.primary=String(!loaded);action.disabled=!model||model.status==='unavailable'||busy||engineBusy||engineFormDirty()||!!loadedModel&&!loaded&&model.remote;action.title=model?.remote?uiText('Seleccionar o dejar de usar este modelo de la API'):loaded?uiText('Descargar el modelo de memoria'):uiText('Cargar el modelo seleccionado');action.onclick=async()=>{if(switching){await unloadModel();if(!loadedModel)await loadModel();return;}const button=document.getElementById(loaded?'unload':'load');button?.click();};}
+  const action=$('#modelSummaryAction');if(action){const loaded=!!model&&model.id===loadedModel;action.hidden=!model;action.textContent=model?.remote?(loaded?uiText('Dejar de usar'):uiText('Usar modelo')):(loaded?uiText('Descargar'):uiText('Cargar'));const switching=!!model&&!!loadedModel&&!loaded;if(switching)action.textContent=uiText('Cambiar a este modelo');action.dataset.primary=String(!loaded);action.disabled=!model||model.status==='unavailable'||busy||engineBusy||engineFormDirty();action.title=model?.remote?uiText('Seleccionar o dejar de usar este modelo de la API'):loaded?uiText('Descargar el modelo de memoria'):uiText('Cargar el modelo seleccionado');action.onclick=async()=>{if(switching){await unloadModel();if(!loadedModel)await loadModel();return;}const button=document.getElementById(loaded?'unload':'load');button?.click();};}
 }
 
 async function loadModels() {
@@ -120,7 +120,7 @@ async function unloadModel() {
     setLoadedModel(null);if(typeof result.engine_online==='boolean')setEngineState(result.engine_online);
     await loadModels();$('#modelStatus').textContent=uiText('Modelo descargado. Selecciona otro y pulsa Cargar modelo.');note('Modelo descargado.');
   }catch(error){$('#modelStatus').textContent=uiText('No se pudo descargar:')+' '+error.message;note($('#modelStatus').textContent);await loadModels();}
-  finally{modelStateRevision++;setEngineBusy(false);button.textContent=uiText('Descargar modelo');pollStats();}
+  finally{modelStateRevision++;setEngineBusy(false);syncEngineCapabilities();pollStats();}
 }
 async function loadModel() {
   if(busy||engineBusy||preparationState?.active)return;
@@ -146,7 +146,7 @@ async function loadModel() {
     if(result.warning)note('Plantilla jinja: '+result.warning);
     else if(result.template&&result.template.reaplicacion)note('Plantilla jinja: '+result.template.reaplicacion);
   }catch(error){await loadModels();$('#modelStatus').textContent=uiText('No se pudo cargar:')+' '+error.message;note($('#modelStatus').textContent);}
-  finally{clearInterval(timer);loadingModelId=null;syncModelSelectionSummary();clearTimeout(preparationTimer);preparationTimer=null;modelStateRevision++;syncModelPicker();setEngineBusy(false);button.textContent=uiText('Cargar modelo');pollStats();}
+  finally{clearInterval(timer);loadingModelId=null;syncModelSelectionSummary();clearTimeout(preparationTimer);preparationTimer=null;modelStateRevision++;syncModelPicker();setEngineBusy(false);syncEngineCapabilities();pollStats();}
 }
 
 /* ---------- plantilla jinja del modelo cargado ---------- */
@@ -247,7 +247,7 @@ function syncContextSelection() {
   // another window), unless the user is changing it right now.
   const running = model && model === loadedModel && contextCapacity ? contextCapacity : null;
   $('#ctxInput').value = pendingModelContexts.get(model) ?? running ?? modelPreferences[model]?.context ?? (modelContexts[model] || 16384);
-  $('#ctxTarget').textContent = model ? modelNames[model] || model : 'Selecciona un modelo.';
+  $('#ctxTarget').textContent = model ? modelNames[model] || model : uiText('Selecciona un modelo.');
   $('#ctxStatus').textContent = pendingModelContexts.has(model) && loadedModel!==model?'Se aplicará al cargar este modelo.':'';
   updateContextSlider();
 }
@@ -310,7 +310,7 @@ async function pollLiveContext(generation){
 function formatTokens(value) {return Math.round(value).toLocaleString(window.VALI18n?.locale||'es-ES');}
 function syncContextMeter() {
   const limit=loadedModel?(contextCapacity||modelContexts[loadedModel]||null):null;
-  const previous=messages.findLast(message=>message.role==='assistant');
+  const previous=messages.findLast(message=>(message.role==='assistant'||message.compacted)&&!message.pre_compaction);
   const live=activeGeneration?.provenance.model===loadedModel&&activeGeneration;
   // Until the first live sample arrives, keep showing the last measure instead of "—".
   const earlier=previous?.model===loadedModel?previous.usage:null;
@@ -328,7 +328,7 @@ function updateContextMeter(usage) {
   const used=Number.isFinite(usage?.used)&&usage.used>=0?usage.used:null;
   const percent=used!==null&&limit?used*100/limit:null;
   const numbers=(used===null?'—':formatTokens(used))+' / '+(limit?formatTokens(limit):'—');
-  const ratio=percent===null?'—':percent.toLocaleString('es',{maximumFractionDigits:1})+' %';
+  const ratio=percent===null?'—':percent.toLocaleString(window.VALI18n?.locale||'es-ES',{maximumFractionDigits:1})+' %';
   $('#ctxLabel').textContent=numbers+' · '+ratio;
   const contextSummary='Contexto: '+numbers+' tokens · '+ratio;
   $('#ctxBtn').setAttribute('aria-label',contextSummary);

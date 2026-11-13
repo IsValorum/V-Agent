@@ -37,6 +37,7 @@ throw-away data folder first:
 | `smoke/repaint_probe.py` | Counts visible repaints while windows sit idle; a window that repaints on its own (flicker) fails it. Needs Pillow. |
 | `smoke/real_models.py` | A real model on llama.cpp, Strata and/or Strata Rust (`--llama`, `--strata`, `--rust`): files written and working, denied approval, leaving a reply half way, two chats at once, malformed requests, engine key and Host checks, unsupported architectures (`--unsupported`). Starts its own isolated core. |
 | `smoke/ui_consistency.py` | Uses the interface by clicks and compares the screen with the core after each action and reload; watches for messages written where nobody can see them. Starts its own isolated core; `--model` a small GGUF. |
+| `smoke/api_edge_cases.py` | Remote APIs against a local fake provider (OpenAI and Anthropic formats): reasoning and tool calls, no usage, 401/429/500 errors without the key, a stream cut half way, leaving a reply, switching provider models, 1M-token context. No account or key needed. |
 | `smoke/xss_model_card.py` | Feeds the real Models window a model card with 28 XSS vectors. No model needed. |
 | `smoke/language_checks.py` | The code checker on a correct and a broken file per language, and the sandboxed-preview check for web pages. No core needed. |
 

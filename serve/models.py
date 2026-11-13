@@ -130,7 +130,7 @@ def describe(config: Path) -> dict | None:
         else:
             try:
                 g = _gguf(path)
-            except (OSError, ValueError, KeyError) as err:
+            except (OSError, ValueError, KeyError, EOFError) as err:
                 e["status"], e["problem"] = "unavailable", f"the model file cannot be read ({err})"
             else:
                 e["backend"] = g["backend"]

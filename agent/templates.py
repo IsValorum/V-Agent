@@ -63,6 +63,7 @@ def leer_registro():
 
 
 def escribir_registro(datos):
+    REGISTRO.parent.mkdir(parents=True, exist_ok=True)
     tmp = REGISTRO.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(datos, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     tmp.replace(REGISTRO)
@@ -121,10 +122,10 @@ def repo_de(modelo, config_path=None, registro=None):
         i = leido.find(tag)
         if i < 0:
             continue
-        m = re.search(rb"(https?://hugging\.co/[^/\"'\s]+/[^\"'\s]+)", leido[i:i + 400])
+        m = re.search(rb"(https?://(?:huggingface|hugging)\.co/[^/\"'\s]+/[^\"'\s]+)", leido[i:i + 400])
         if m:
             url = m.group(1).decode("utf-8", "replace")
-            return url.split("huggingface.co/", 1)[-1].rstrip("/.,")
+            return re.sub(r"^https?://(?:huggingface|hugging)\.co/", "", url).rstrip("/.,")
     return candidato_repo(gguf)
 
 
@@ -136,6 +137,7 @@ def _cache():
 
 
 def _guarda_cache(d):
+    CACHE.parent.mkdir(parents=True, exist_ok=True)
     tmp = CACHE.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(d, indent=2, ensure_ascii=False), encoding="utf-8")
     tmp.replace(CACHE)
@@ -330,7 +332,7 @@ def formato_llamada(tpath, *, native=False):
         original = Path(tpath) / "chat_template.native.jinja"
         if original.is_file():
             from serve.frontend import native_tool_template
-            fuente = native_tool_template(fuente, original.read_text(encoding="utf-8"))
+            fuente = native_tool_template(fuente, original.read_text(encoding="utf-8-sig", errors="replace"))
     if '<|tool_call>' in fuente and 'call:' in fuente:
         return 'gemma'
     if '<arg_key>' in fuente and '<arg_value>' in fuente:

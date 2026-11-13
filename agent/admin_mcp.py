@@ -26,7 +26,8 @@ mcp = FastMCP("V-Agent Admin")
 WRITE = ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=False)
 READ = ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False)
 LOCK = threading.RLock()
-STATE = {"client": None, "process": None, "pipe": None, "key": None, "status": None}
+START_LOCK = threading.Lock()
+STATE = {"client": None, "listener": None, "process": None, "pipe": None, "key": None, "status": None}
 
 
 def _helper_argv(pipe: str, key: str) -> list[str]:
@@ -42,50 +43,78 @@ def _address(pipe: str) -> str:
 
 
 def _reset():
-    client = STATE.get("client")
-    if client is not None:
-        try:
-            client.close()
-        except Exception:
-            pass
-    STATE.update({"client": None, "pipe": None, "key": None, "status": None})
+    with LOCK:
+        client = STATE.get("client")
+        listener = STATE.get("listener")
+        STATE.update({"client": None, "listener": None, "pipe": None, "key": None, "status": None})
+    for handle in (client, listener):
+        if handle is not None:
+            try:
+                handle.close()
+            except Exception:
+                pass
 
 
 def _start() -> dict:
-    from multiprocessing.connection import Client
-    with LOCK:
-        if STATE.get("client") is not None:
-            return STATE.get("status") or {"ok": True, "admin": True}
+    from multiprocessing.connection import Listener
+    with START_LOCK:
+        with LOCK:
+            if STATE.get("client") is not None:
+                return STATE.get("status") or {"ok": True, "admin": True}
         _reset()
         pipe = "val-admin-" + uuid.uuid4().hex
         key = secrets.token_hex(24)
         argv = _helper_argv(pipe, key)
-        if os.environ.get("VAL_ADMIN_NO_ELEVATE") == "1":
-            process = subprocess.Popen(argv, cwd=str(DATA_ROOT) if DATA_ROOT.exists() else None, stdin=subprocess.DEVNULL,
-                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-            STATE["process"] = process
-        else:
-            params = subprocess.list2cmdline(argv[1:])
-            result = ctypes.windll.shell32.ShellExecuteW(None, "runas", argv[0], params, str(DATA_ROOT) if DATA_ROOT.exists() else None, 1)
-            if result <= 32:
-                raise RuntimeError("Windows canceló o no pudo abrir la elevación (UAC).")
-        STATE["pipe"] = pipe
-        STATE["key"] = key
-        deadline = time.monotonic() + 90
-        last_error = None
-        while time.monotonic() < deadline:
+        listener = Listener(_address(pipe), family="AF_PIPE", authkey=key.encode("utf-8"))
+        accepted = []
+        accept_error = []
+
+        def _accept():
             try:
-                client = Client(_address(pipe), family="AF_PIPE", authkey=key.encode("utf-8"))
-                STATE["client"] = client
-                reply = _request({"action": "status"}, timeout=10)
+                accepted.append(listener.accept())
+            except Exception as exc:
+                accept_error.append(exc)
+
+        waiter = threading.Thread(target=_accept, daemon=True, name="val-admin-accept")
+        waiter.start()
+        try:
+            if os.environ.get("VAL_ADMIN_NO_ELEVATE") == "1":
+                process = subprocess.Popen(argv, cwd=str(DATA_ROOT) if DATA_ROOT.exists() else None, stdin=subprocess.DEVNULL,
+                                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                with LOCK:
+                    STATE["process"] = process
+            else:
+                params = subprocess.list2cmdline(argv[1:])
+                hwnd = None
+                try:
+                    hwnd = ctypes.windll.user32.GetForegroundWindow() or None
+                except Exception:
+                    hwnd = None
+                # SW_HIDE (0) prevents opening an empty console window for the elevated helper process.
+                result = ctypes.windll.shell32.ShellExecuteW(hwnd, "runas", argv[0], params, str(DATA_ROOT) if DATA_ROOT.exists() else None, 0)
+                if result <= 32:
+                    raise RuntimeError("Windows cancelled or could not open the UAC elevation prompt.")
+            waiter.join(timeout=45)
+            if not accepted:
+                detail = str(accept_error[0]) if accept_error else "timed out waiting for elevated helper connection"
+                raise RuntimeError("The elevated helper did not connect in time: " + detail)
+            with LOCK:
+                STATE["listener"] = listener
+                STATE["client"] = accepted[0]
+                STATE["pipe"] = pipe
+                STATE["key"] = key
+            reply = _request({"action": "status"}, timeout=10, auto_start=False)
+            with LOCK:
                 STATE["status"] = reply
-                return reply
-            except (OSError, EOFError, ValueError) as error:
-                last_error = error
-                time.sleep(0.35)
-        _reset()
-        raise RuntimeError("El helper elevado no respondió a tiempo: " + str(last_error))
+            return reply
+        except Exception:
+            try:
+                listener.close()
+            except Exception:
+                pass
+            _reset()
+            raise
 
 
 def _request(payload: dict, timeout: float = 120, auto_start: bool = True) -> dict:
@@ -93,20 +122,21 @@ def _request(payload: dict, timeout: float = 120, auto_start: bool = True) -> di
         client = STATE.get("client")
     if client is None and auto_start:
         _start()
-        client = STATE.get("client")
+        with LOCK:
+            client = STATE.get("client")
     if client is None:
-        raise RuntimeError("Administrador no iniciado.")
+        raise RuntimeError("Administrator helper is not started.")
     try:
         client.send(payload)
         if not client.poll(timeout):
-            raise TimeoutError("El helper elevado no respondió a tiempo.")
+            raise TimeoutError("The elevated helper did not respond in time.")
         reply = client.recv()
         if not isinstance(reply, dict):
-            raise RuntimeError("Respuesta del helper no válida.")
+            raise RuntimeError("Invalid response from the elevated helper.")
         return reply
     except (EOFError, OSError) as error:
         _reset()
-        raise RuntimeError("El helper elevado se cerró: " + str(error)) from None
+        raise RuntimeError("The elevated helper closed unexpectedly: " + str(error)) from None
 
 
 def _status_text(reply) -> str:
@@ -121,9 +151,16 @@ def start() -> str:
 
 @mcp.tool(annotations=READ)
 def status() -> str:
-    """Report whether the elevated helper is active and whether commands are truly elevated."""
+    """Report whether the elevated helper is active or on standby (ready to auto-start on admin__run or admin__start)."""
     with LOCK:
-        if STATE.get("client") is None:return _status_text({"ok":True,"active":False,"admin":False})
+        if STATE.get("client") is None:
+            return _status_text({
+                "ok": True,
+                "active": False,
+                "admin": False,
+                "standby": True,
+                "note": "The elevated Administrator helper is on standby (not started yet). Call admin__run (or admin__start) when you need to execute an elevated command; Windows will prompt UAC once and run with full Administrator privileges."
+            })
     try:
         reply = _request({"action": "status"}, timeout=8, auto_start=False)
         return _status_text(reply)
@@ -133,11 +170,11 @@ def status() -> str:
 
 @mcp.tool(annotations=WRITE)
 def run(command: str, shell: str = "powershell", timeout: int = 120, cwd: str | None = None) -> str:
-    """Run a PowerShell or CMD command with the elevated Windows token. Output is capped."""
+    """Run a PowerShell or CMD command with the elevated Windows token (auto-starts the UAC helper on first call if on standby). Output is capped."""
     if shell not in ("powershell", "cmd"):
-        raise ValueError("shell debe ser powershell o cmd.")
+        raise ValueError("shell must be 'powershell' or 'cmd'.")
     if not isinstance(command, str) or not command.strip():
-        raise ValueError("command no puede estar vacío.")
+        raise ValueError("command cannot be empty.")
     reply = _request({"action": "run", "command": command, "shell": shell,
                       "timeout": max(1, min(int(timeout), 3600)), "cwd": cwd})
     return _status_text(reply)
@@ -156,9 +193,11 @@ def stop() -> str:
             client.close()
         except Exception:
             pass
-    if process is not None and process.poll() is None:
+    if process is not None:
         try:
-            process.terminate()
+            if process.poll() is None:
+                process.terminate()
+            process.wait(timeout=3)
         except Exception:
             pass
     _reset()

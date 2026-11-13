@@ -113,11 +113,26 @@ function simplifyModelPanel(){
   const title=document.createElement('span');title.className='context-block-title';title.textContent=uiText('Contexto');
   const memory=document.createElement('span');memory.id='contextMemory';memory.className='context-memory';
   head.append(title,memory);block.append(head,context);top.after(block);
-  const headline=$('#memoryHeadline'),copy=()=>{const text=(headline?.textContent||'').trim();memory.textContent=text?uiText('Memoria')+' '+text:'';};
-  if(headline){copy();new MutationObserver(copy).observe(headline,{childList:true,characterData:true,subtree:true});}
+  const compactBox=document.createElement('section');compactBox.id='contextCompactBox';compactBox.className='context-compact-box';
+  compactBox.innerHTML='<div class="context-compact-row"><div class="context-compact-meta"><strong id="contextCompactTitle"></strong><small id="contextCompactStatus" class="mini" role="status"></small></div><button id="ctxCompact" type="button"></button></div>';
+  compactBox.querySelector('#contextCompactTitle').textContent=uiText('Compactar historial');
+  compactBox.querySelector('#ctxCompact').textContent=uiText('Comprimir contexto');
+  block.after(compactBox);
+  if(compactBox.querySelector('#ctxCompact'))compactBox.querySelector('#ctxCompact').onclick=()=>window.compactConversationContext?.();
   const tabs=$('#modelSectionTabs'),loadTab=$('#tab-load'),genTab=$('#tab-generation');
   if(loadTab)loadTab.textContent=uiText('Avanzado');
   if(tabs&&loadTab&&genTab)tabs.insertBefore(genTab,loadTab);
+  attachLoadSettingsToPanel();
+  root.querySelector('.model-footer-static')?.classList.add('model-footer-hidden');
+  setModelSection('generation');syncModelSelectionSummary();
+}
+function attachLoadSettingsToPanel(){
+  const memory=$('#contextMemory'),headline=$('#memoryHeadline');
+  if(memory&&headline&&!headline.dataset.bound){
+    headline.dataset.bound='1';
+    const copy=()=>{const text=(headline.textContent||'').trim();memory.textContent=text?uiText('Memoria')+' '+text:'';};
+    copy();new MutationObserver(copy).observe(headline,{childList:true,characterData:true,subtree:true});
+  }
   const loadSettings=$('#modelLoadSettings');
   if(loadSettings&&!loadSettings.closest('details')){
     const group=document.createElement('details');group.className='settings-group';group.id='engineLoadGroup';
@@ -125,8 +140,6 @@ function simplifyModelPanel(){
     loadSettings.before(group);group.append(loadSettings);loadSettings.querySelector('h4')?.setAttribute('hidden','');
   }
   if($('#modelMemoryEstimate'))$('#modelMemoryEstimate').open=false;
-  root.querySelector('.model-footer-static')?.classList.add('model-footer-hidden');
-  setModelSection('generation');syncModelSelectionSummary();
 }
 function updateCreatorNotice(){
   const notice=$('#creatorNotice'),pref=modelPreferences[$('#model').value];if(!notice||!pref)return;

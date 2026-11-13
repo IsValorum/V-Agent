@@ -227,48 +227,49 @@ class ImageGen:
         logf = work / "sd-cli.log"
         t0 = time.monotonic()
         self.progress = (0, job["steps"])
-        with self.lock:
-            with open(logf, "w", encoding="utf-8", errors="replace") as lf:
-                try:
-                    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                            stdin=subprocess.DEVNULL, env=image_env(self.cfg),
-                                            cwd=str(work), text=True, errors="replace", bufsize=1)
-                except OSError as e:
-                    raise ImageJobFailed(f"sd-cli did not start ({cmd[0]}): {e}") from e
-                try:
-                    from serve.winjob import contain
-                    contain(proc)                 # ends with the server (Windows)
-                except Exception:
-                    pass
-                why = None
-
-                def pump():
-                    for line in proc.stdout:
-                        lf.write(line)
-                        m = STEP_LINE.search(line)
-                        if m:
-                            self.progress = (int(m.group(1)), int(m.group(2)))
-                reader = threading.Thread(target=pump, daemon=True)
-                reader.start()
-                while proc.poll() is None:
-                    if cancel is not None and cancel.is_set():
-                        why = "cancelled (the client left)"
-                    elif time.monotonic() - t0 > timeout:
-                        why = f"it ran past timeout_s ({timeout:g} s)"
-                    if why:
-                        proc.kill()
-                        break
-                    time.sleep(0.2)
-                with contextlib.suppress(subprocess.TimeoutExpired):
-                    proc.wait(timeout=30)
-                reader.join(timeout=10)
-        secs = time.monotonic() - t0
-        self.progress = None
-        log = logf.read_text(encoding="utf-8", errors="replace")
-        outs = [work / f"img_{i}.png" for i in range(job["n"])]
         try:
+            with self.lock:
+                with open(logf, "w", encoding="utf-8", errors="replace") as lf:
+                    try:
+                        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                                stdin=subprocess.DEVNULL, env=image_env(self.cfg),
+                                                cwd=str(work), text=True, errors="replace", bufsize=1)
+                    except OSError as e:
+                        self.totals["failed"] += 1
+                        raise ImageJobFailed(f"sd-cli did not start ({cmd[0]}): {e}") from e
+                    try:
+                        from serve.winjob import contain
+                        contain(proc)                 # ends with the server (Windows)
+                    except Exception:
+                        pass
+                    why = None
+
+                    def pump():
+                        for line in proc.stdout:
+                            lf.write(line)
+                            m = STEP_LINE.search(line)
+                            if m:
+                                self.progress = (int(m.group(1)), int(m.group(2)))
+                    reader = threading.Thread(target=pump, daemon=True)
+                    reader.start()
+                    while proc.poll() is None:
+                        if cancel is not None and cancel.is_set():
+                            why = "cancelled (the client left)"
+                        elif time.monotonic() - t0 > timeout:
+                            why = f"it ran past timeout_s ({timeout:g} s)"
+                        if why:
+                            proc.kill()
+                            break
+                        time.sleep(0.2)
+                    with contextlib.suppress(subprocess.TimeoutExpired):
+                        proc.wait(timeout=30)
+                    reader.join(timeout=10)
+            secs = time.monotonic() - t0
+            log = logf.read_text(encoding="utf-8", errors="replace")
+            outs = [work / f"img_{i}.png" for i in range(job["n"])]
             if why or proc.returncode != 0 or not all(p.is_file() for p in outs):
-                self.totals["failed"] += 1
+                with self.lock:
+                    self.totals["failed"] += 1
                 tail = "\n".join(log.strip().splitlines()[-12:])
                 what = why or (f"sd-cli exited with code {proc.returncode}" if proc.returncode
                                else "sd-cli wrote no image")
@@ -276,6 +277,7 @@ class ImageGen:
                 raise ImageJobFailed(f"{what}; the end of its log:\n{tail}")
             images = [p.read_bytes() for p in outs]
         finally:
+            self.progress = None
             for p in work.iterdir():
                 with contextlib.suppress(OSError):
                     p.unlink()
@@ -290,10 +292,11 @@ class ImageGen:
             m = re.findall(pat, log)
             if m:
                 figures[key] = float(m[-1])
-        self.totals["jobs"] += 1
-        self.totals["images"] += job["n"]
-        self.totals["seconds"] += secs
-        self.last = figures
+        with self.lock:
+            self.totals["jobs"] += 1
+            self.totals["images"] += job["n"]
+            self.totals["seconds"] += secs
+            self.last = figures
         return images, figures
 
     def store(self, data: bytes) -> str:
@@ -390,8 +393,9 @@ def gpu_turn(svc, gen: ImageGen, job: dict, cancel: threading.Event | None = Non
                 with svc.status_lock:
                     svc.status.update(busy=True, phase="generating an image", started=time.time(),
                                       first_token=None, prompt_tokens=None, generated=None, max_tokens=None)
-                restore = _make_room(svc, gen, policy, need)
+                restore = None
                 try:
+                    restore = _make_room(svc, gen, policy, need)
                     yield policy
                 finally:
                     _give_back(svc, gen, policy, restore)

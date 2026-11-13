@@ -575,8 +575,14 @@ class McpHub:
         cap = int(self.settings["max_result_chars"])
         # VAL worker preferences only cap returned data; tool schemas stay unchanged.
         if server is not None:
-            from mcp_options import options
-            preferred = options(server.name).get('max_result_chars')
+            try:
+                from mcp_options import options
+            except ImportError:
+                try:
+                    from agent.mcp_options import options
+                except ImportError:
+                    options = None
+            preferred = options(server.name).get('max_result_chars') if options else None
             if preferred: cap = min(cap, preferred) if cap > 0 else preferred
         full = len(text)
         if cap > 0 and full > cap:

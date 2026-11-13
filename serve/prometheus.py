@@ -5,6 +5,7 @@ same dict the JSON /metrics returns) plus three latency histograms observed when
 What vLLM has no name for is the JSON's own facts under `strata:`, named after the JSON's keys (live.tok_s ->
 strata:live_tok_s, totals.decode_ms -> strata:totals_decode_seconds_total, hardware.gpu_util -> strata:gpu_util), so
 the two formats say the same thing and a panel can be moved from the Monitor tab to Grafana by its key."""
+import math
 import threading
 
 # vLLM's buckets for the request latencies (seconds)
@@ -26,7 +27,7 @@ class Histogram:
         self.n = 0
 
     def observe(self, v: float, times: int = 1):
-        if v is None or times <= 0:
+        if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or times <= 0:
             return
         for i, b in enumerate(BUCKETS):
             if v <= b:

@@ -365,39 +365,38 @@ def windows_display_adapters(vendor=None) -> list:
         return []
     try:
         import winreg
-        root = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, _DISPLAY_CLASS)
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, _DISPLAY_CLASS) as root:
+            out = []
+            i = 0
+            while True:
+                try:
+                    sub = winreg.EnumKey(root, i)
+                except OSError:
+                    break
+                i += 1
+                if not sub.isdigit():
+                    continue
+                try:
+                    with winreg.OpenKey(root, sub) as k:
+                        def val(name, k=k):
+                            try:
+                                return winreg.QueryValueEx(k, name)[0]
+                            except OSError:
+                                return None
+                        name = val("DriverDesc")
+                        if not isinstance(name, str) or not name.strip():
+                            continue
+                        mem = val("HardwareInformation.qwMemorySize")
+                        if mem is None:
+                            mem = val("HardwareInformation.MemorySize")
+                        if isinstance(mem, (bytes, bytearray)):
+                            mem = int.from_bytes(bytes(mem[:8]), "little") if mem else None
+                        out.append({"name": name.strip(), "provider": str(val("ProviderName") or ""), "driver": val("DriverVersion"),
+                                    "vram_bytes": mem if isinstance(mem, int) and mem > 0 else None})
+                except OSError:
+                    continue
     except OSError:
         return []
-    out = []
-    i = 0
-    while True:
-        try:
-            sub = winreg.EnumKey(root, i)
-        except OSError:
-            break
-        i += 1
-        if not sub.isdigit():
-            continue
-        try:
-            k = winreg.OpenKey(root, sub)
-        except OSError:
-            continue
-
-        def val(name, k=k):
-            try:
-                return winreg.QueryValueEx(k, name)[0]
-            except OSError:
-                return None
-        name = val("DriverDesc")
-        if not isinstance(name, str) or not name.strip():
-            continue
-        mem = val("HardwareInformation.qwMemorySize")
-        if mem is None:
-            mem = val("HardwareInformation.MemorySize")
-        if isinstance(mem, (bytes, bytearray)):
-            mem = int.from_bytes(bytes(mem[:8]), "little") if mem else None
-        out.append({"name": name.strip(), "provider": str(val("ProviderName") or ""), "driver": val("DriverVersion"),
-                    "vram_bytes": mem if isinstance(mem, int) and mem > 0 else None})
     if vendor:
         keys = {"amd": ("advanced micro devices", "amd", "radeon"), "nvidia": ("nvidia",), "intel": ("intel",)}[vendor]
         out = [a for a in out if any(s in (a["provider"] + " " + a["name"]).lower() for s in keys)]
@@ -427,14 +426,18 @@ def _cpu_name():
     if os.name == "nt":
         try:
             import winreg
-            k = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\CentralProcessor\0")
-            return winreg.QueryValueEx(k, "ProcessorNameString")[0].strip()
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\CentralProcessor\0") as k:
+                return str(winreg.QueryValueEx(k, "ProcessorNameString")[0]).strip()
         except OSError:
             pass
     elif os.path.exists("/proc/cpuinfo"):
-        for line in open("/proc/cpuinfo", encoding="utf-8", errors="replace"):
-            if line.startswith("model name"):
-                return line.split(":", 1)[1].strip()
+        try:
+            with open("/proc/cpuinfo", encoding="utf-8", errors="replace") as f:
+                for line in f:
+                    if line.startswith("model name"):
+                        return line.split(":", 1)[1].strip()
+        except OSError:
+            pass
     return platform.processor() or None
 
 
@@ -451,7 +454,8 @@ class _CpuRamFallback:
                 return idle.value, kern.value + user.value           # kernel time includes idle
             return None
         try:
-            f = [int(x) for x in open("/proc/stat").readline().split()[1:]]
+            with open("/proc/stat", encoding="utf-8", errors="replace") as fp:
+                f = [int(x) for x in fp.readline().split()[1:]]
             return f[3] + f[4], sum(f)
         except (OSError, ValueError):
             return None
@@ -478,7 +482,8 @@ class _CpuRamFallback:
                 return m.ullTotalPhys - m.ullAvailPhys, m.ullTotalPhys
             return None, None
         try:
-            info = dict(line.split(":", 1) for line in open("/proc/meminfo"))
+            with open("/proc/meminfo", encoding="utf-8", errors="replace") as fp:
+                info = dict(line.split(":", 1) for line in fp)
             total = int(info["MemTotal"].split()[0]) * 1024
             avail = int(info["MemAvailable"].split()[0]) * 1024
             return total - avail, total
@@ -605,7 +610,7 @@ class Telemetry:
         if prev is None or t <= prev[0]:
             return None, None
         dt = t - prev[0]
-        return (c.read_bytes - prev[1]) / dt / 2**20, (c.write_bytes - prev[2]) / dt / 2**20
+        return max(0, c.read_bytes - prev[1]) / dt / 2**20, max(0, c.write_bytes - prev[2]) / dt / 2**20
 
     def sample(self):
         s = {}

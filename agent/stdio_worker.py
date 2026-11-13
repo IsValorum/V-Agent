@@ -15,6 +15,8 @@ def serve_worker(execute):
     for stream in (sys.stdin,sys.stdout,sys.stderr):
         if hasattr(stream,'reconfigure'):stream.reconfigure(encoding='utf-8')
     for line in sys.stdin:
+        if not line.strip():
+            continue
         result=execute(json.loads(line))
         print(json.dumps(result,ensure_ascii=False),flush=True)
 
@@ -140,7 +142,7 @@ def serve(script, tools, name, version, timeout, protocol='2025-06-18',persisten
             if process is not None and (not keep_worker or slot['cancel'].is_set()):
                 stop(process)
             with lock:
-                if worker is not None and worker.process is process and process.poll() is not None:worker=None
+                if worker is not None and worker.process is process and (not keep_worker or process.poll() is not None):worker=None
                 active.pop(request['id'], None)
             if acquired:
                 serial.release()

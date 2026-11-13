@@ -152,7 +152,7 @@ function codeBlock(lang,code,partial=false){
     const go=document.createElement('button');go.type='button';go.textContent=uiText('Guardar y comprobar');
     const salida=document.createElement('span');salida.className='saveout';
     go.onclick=async()=>{
-      go.disabled=true;salida.dataset.bad='';salida.textContent=uiText('Comprobando…');
+      go.disabled=true;salida.dataset.bad='';salida.textContent=uiText('Comprobando…');saveRow.querySelector('.save-fix-btn')?.remove();
       try{
         const r=await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},
           body:JSON.stringify({path:inp.value.trim(),content:wrap._codeSource.code,conversation_id:currentId})});
@@ -164,7 +164,7 @@ function codeBlock(lang,code,partial=false){
           +(ej.ok?' '+uiText('y ejecutada en')+' '+ej.navegador+', '+ej.nodos+' '+uiText('nodos, sin errores de consola'):'')+'.';return;}
         salida.dataset.bad='1';
         salida.textContent=uiText('Guardado en')+' '+d.path+'. '+uiText('Errores de comprobación:')+' '+(v.errores||[]).join(' · ');
-        const fix=document.createElement('button');fix.type='button';fix.textContent=uiText('Que lo corrija');
+        const fix=document.createElement('button');fix.type='button';fix.className='save-fix-btn';fix.textContent=uiText('Que lo corrija');
         fix.onclick=()=>{
           $('#input').value='El archivo '+d.path+' presenta estos errores de comprobación: '+
             (v.errores||[]).join(' · ')+((v.avisos||[]).length?' Avisos: '+v.avisos.join(' · '):'')+
@@ -248,7 +248,7 @@ function previewViewer(){
   }
   let doc=viewerCode;
   if(viewerLang==='svg')doc='<!doctype html><html><body>'+viewerCode+'</body></html>';
-  else if(viewerLang==='css')doc='<!doctype html><html><head><style>'+viewerCode+'</style></head><body><h1>'+uiText('Vista previa')+'</h1><p>'+uiText('Texto de ejemplo.')+'</p><button>'+uiText('Botón')+'</button></body></html>';
+  else if(viewerLang==='css')doc='<!doctype html><html><head><style>'+viewerCode.replace(/<\/style/gi,'<\\/style')+'</style></head><body><h1>'+uiText('Vista previa')+'</h1><p>'+uiText('Texto de ejemplo.')+'</p><button>'+uiText('Botón')+'</button></body></html>';
   else if(viewerLang==='javascript'){
     const closeScript='<'+'/script>',source=viewerCode.replace(/<\/script/gi,'<\\/script');
     doc='<!doctype html><html><body><pre id="log" style="font:12px monospace;white-space:pre-wrap"></pre><script>(()=>{const output=(...a)=>{document.getElementById("log").textContent+=a.join(" ")+"\\n"};console.log=output;console.error=output;window.onerror=(m)=>output("Error: "+m);})();'+closeScript+'<script>'+source+closeScript+'</body></html>';

@@ -52,10 +52,10 @@ TOOLS = [
     {"name": "draft_resume", "description": "Resume the latest saved draft in this conversation without regenerating it. Takes no arguments.",
      "inputSchema": {"type": "object", "properties": {}}},
     {"name": "fs_list", "description": "List a directory.",
-     "inputSchema": {"type": "object", "properties": {"path": {"type": "string", "description": "Relative to the working folder, e.g. notes.txt or src/app.py."}}, "required": ["path"]}},
+     "inputSchema": {"type": "object", "properties": {"path": {"type": "string", "description": "Relative to the working folder (default .), or an absolute PC path when Full-PC access is enabled."}}}},
     {"name": "fs_read", "description": "Read UTF-8 text. offset continues by character; linea is a 1-based starting line, ventana is the line count.",
      "inputSchema": {"type": "object", "properties": {
-         "path": {"type": "string", "description": "Relative to the working folder, e.g. notes.txt or src/app.py."},
+         "path": {"type": "string", "description": "Relative to the working folder (e.g. notes.txt), or an absolute PC path when Full-PC access is enabled. Must be a file; use fs_list for directories."},
          "max_chars": {"type": "integer", "minimum": 1, "maximum": 7800, "description": "Characters per part; default 6000."},
          "offset": {"type": "integer", "minimum": 0, "description": "Starting character offset; default 0."},
          "linea": {"type": "integer", "minimum": 1, "description": "First line, 1-based."},
@@ -63,7 +63,7 @@ TOOLS = [
          "required": ["path"]}},
     {"name": "fs_write", "description": "Write UTF-8 text; creates parent directories and replaces existing files.",
      "inputSchema": {"type": "object", "properties": {
-         "path": {"type": "string", "description": "Relative to the working folder, e.g. notes.txt or src/app.py."},
+         "path": {"type": "string", "description": "Relative to the working folder (e.g. notes.txt), or an absolute PC path when Full-PC access is enabled."},
          "content": {"type": "string", "description": "UTF-8 text."}}, "required": ["path", "content"]}},
     # fs_edit es la via para cambiar algo que ya esta escrito: el reemplazo exige coincidencia
     # unica, asi que el modelo no puede limitarse a vomitar otra version del fichero entero.
@@ -71,7 +71,7 @@ TOOLS = [
     # cuadra no se escribe nada (así lo hace Unsloth con edits:[{old_string,new_string}]).
     {"name": "fs_edit", "description": "Replace exact blocks in an existing file. Use old_text/new_text or atomic edits=[{old_text,new_text}]. Match once, or set all=true.",
      "inputSchema": {"type": "object", "properties": {
-         "path": {"type": "string", "description": "Relative to the working folder, e.g. notes.txt or src/app.py."},
+         "path": {"type": "string", "description": "Relative to the working folder (e.g. notes.txt), or an absolute PC path when Full-PC access is enabled."},
          "old_text": {"type": "string", "description": "Exact text to replace."},
          "new_text": {"type": "string", "description": "Replacement; empty to delete."},
          "all": {"type": "boolean", "description": "Replace every match; default false."},
@@ -82,14 +82,14 @@ TOOLS = [
          "required": ["path"]}},
     {"name": "web_render", "description": "Render HTML; report console errors and scene/camera/instance diagnostics. Not a visual quality guarantee.",
      "inputSchema": {"type": "object", "properties": {
-         "path": {"type": "string", "description": "Relative to the working folder, e.g. notes.txt or src/app.py."},
+         "path": {"type": "string", "description": "Relative to the working folder (e.g. index.html), or an absolute PC path when Full-PC access is enabled."},
          "espera_ms": {"type": "integer", "minimum": 500, "maximum": 40000,
                        "description": "Wait in milliseconds; default 2200."},
          "pintura": {"type": "boolean", "description": "Sample canvas pixels; slower."},
          "diagnostics": {"type":"boolean","description":"Inspect scene geometry and transforms; default true."}},
          "required": ["path"]}},
     # Copiar/pegar por referencia: lo que mueve texto sin que el modelo lo teclee token a token.
-    {"name": "fs_search", "description": "Search files by glob and/or text/regex inside the working tree. Skips binary files and symlinks; returns bounded path/line matches.",
+    {"name": "fs_search", "description": "Search files by glob and/or text/regex in path (default '.', or any directory when Full-PC access is enabled). Skips binary files and symlinks; returns bounded path/line matches.",
      "inputSchema": {"type": "object", "properties": {
          "path": {"type": "string", "description": "Directory or file to search; default ."},
          "glob": {"type": "string", "description": "Glob such as **/*.py; default **/*"},
@@ -154,7 +154,7 @@ TOOLS = [
 
 
 JOBS = {}
-JOBS_LOCK = threading.Lock()
+JOBS_LOCK = threading.RLock()
 
 
 def _background_argv(command: str, mode: str):
@@ -192,7 +192,7 @@ def _start_background(args, policy):
     startup = subprocess.STARTUPINFO()
     startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
     startup.wShowWindow = subprocess.SW_HIDE
-    process = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=str(policy.root),
+    process = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=str(policy.root),
                                env=environment, text=True, encoding="utf-8", errors="replace",
                                bufsize=1, creationflags=subprocess.CREATE_NEW_CONSOLE, startupinfo=startup)
     ident = uuid.uuid4().hex[:10]
@@ -243,8 +243,9 @@ def job_wait(args):
 
 
 def job_status(args):
+    job = _job(args.get("job_id"))
     with JOBS_LOCK:
-        return json.dumps(_job_view(_job(args.get("job_id")), include_output=True), ensure_ascii=False)
+        return json.dumps(_job_view(job, include_output=True), ensure_ascii=False)
 
 
 def job_list(args):
@@ -269,7 +270,7 @@ def ok(text):
         # principio (lo que intento) y al final (el error). Quedarse solo con la cabeza perdia justo
         # la linea del fallo, y el modelo volvía a escribir el fichero entero "por si acaso".
         cabeza = cap - 260
-        trozo = text[:cabeza] + "\n[recortado %d caracteres: vuelve con offset/linea para esa parte]\n" % (
+        trozo = text[:cabeza] + "\n[truncated %d characters: continue with offset/linea for that section]\n" % (
             len(text) - cabeza - 200) + text[-200:]
         return {"content": [{"type": "text", "text": trozo}]}
     return {"content": [{"type": "text", "text": text}]}
@@ -288,7 +289,7 @@ def command_failure_hint(command, stderr):
     legacy_module = 'huggingface_hub.__main__' in stderr
     legacy_api = "cannot import name 'HfFolder'" in stderr and 'huggingface_hub' in stderr
     if legacy_cli or legacy_module or legacy_api:
-        return '\n[ayuda] CLI HF instalada: hf. Cuenta (solo lectura): hf auth whoami. Comandos: hf --help.'
+        return '\n[hint] Installed HF CLI: hf. Account (read-only): hf auth whoami. Commands: hf --help.'
     return ''
 
 
@@ -329,25 +330,34 @@ def shell_run(args, policy=None):
     startup = subprocess.STARTUPINFO()
     startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
     startup.wShowWindow = subprocess.SW_HIDE
-    p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd,
-                         env=environment, creationflags=subprocess.CREATE_NEW_CONSOLE, startupinfo=startup)
+    # Temp files avoid pipe handle inheritance deadlocks when a command spawns a GUI app (e.g. start notepad).
     timed_out = False
-    try:
-        stdout, stderr = p.communicate(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        timed_out = True
-        subprocess.run([os.path.join(windows, "System32", "taskkill.exe"), "/F", "/T", "/PID", str(p.pid)],
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10,
-                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-        p.kill()
-        stdout, stderr = p.communicate(timeout=5)
+    with tempfile.TemporaryFile() as out_file, tempfile.TemporaryFile() as err_file:
+        p = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=out_file, stderr=err_file, cwd=cwd,
+                             env=environment, creationflags=subprocess.CREATE_NEW_CONSOLE, startupinfo=startup)
+        try:
+            p.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            subprocess.run([os.path.join(windows, "System32", "taskkill.exe"), "/F", "/T", "/PID", str(p.pid)],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10,
+                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            p.kill()
+            try:
+                p.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                pass
+        out_file.seek(0)
+        err_file.seek(0)
+        stdout = out_file.read()
+        stderr = err_file.read()
     out = stdout.decode("utf-8", "replace").strip()
     err = stderr.decode("utf-8", "replace").strip()
-    result = f"exit={p.returncode}\nshell={mode}\ncwd={cwd}\n[stdout]\n" + (out or "(sin salida)")
+    result = f"exit={p.returncode}\nshell={mode}\ncwd={cwd}\n[stdout]\n" + (out or "(no output)")
     if err:
         result += "\n[stderr]\n" + err
     if timed_out:
-        raise RuntimeError(f"Tiempo agotado ({timeout}s).\n" + result)
+        raise RuntimeError(f"Timed out ({timeout}s).\n" + result)
     if p.returncode:
         raise RuntimeError(result + command_failure_hint(command, err))
     return result
@@ -611,7 +621,11 @@ def fs_copy(args, full_access, policy=None):
     destino = policy.path(destino_s, full_access)
     origen = policy.path(origen_s, full_access)
     if not os.path.exists(origen):
-        raise ValueError("no existe el origen %s" % origen)
+        raise ValueError("source file does not exist: %s" % origen)
+    if os.path.isdir(origen):
+        raise ValueError("%s is a directory, not a text file; use fs_manage to copy or move directories." % origen)
+    if os.path.isdir(destino):
+        raise ValueError("%s is a directory; pass a destination file path to fs_copy or use fs_manage." % destino)
     modo = str(args.get("modo") or "").strip().lower() or None
     with open(origen, "r", encoding="utf-8-sig", errors="strict") as f:
         lineas_origen = f.read().splitlines(keepends=True)
@@ -668,12 +682,13 @@ def fs_copy(args, full_access, policy=None):
             _corta_escribe(origen, "".join(lineas_origen[:a - 1] + lineas_origen[b:]), ".strata-cut-",policy.root)
     try:_corta_escribe(destino, candidato, ".strata-copy-",policy.root)
     except Exception:
-        if args.get('cortar') and not si_mismo:_corta_escribe(origen,''.join(lineas_origen),'.strata-rollback-')
+        if args.get('cortar') and not si_mismo:_corta_escribe(origen,''.join(lineas_origen),'.strata-rollback-',policy.root)
         raise
     delta = candidato.count("\n") - texto.count("\n")
     n = b - a + 1
+    accion = ("movida" if n == 1 else "movidas") if args.get("cortar") else ("copiada" if n == 1 else "copiadas")
     informe = ("%d %s %s por copiado desde %s (%s) a %s: %+d linea%s, %d caracteres"
-               % (n, "linea" if n == 1 else "lineas", "movida" if n == 1 else "movidas",
+               % (n, "linea" if n == 1 else "lineas", accion,
                   os.path.basename(str(origen)),
                   "%d-%d" % (a, b), os.path.basename(str(destino)), delta,
                   "" if delta in (-1, 1) else "s", len(candidato)))
@@ -723,7 +738,44 @@ def _local_json(path, body=None, timeout=15):
             payload = {}
         raise ValueError(payload.get('error') or ('HTTP ' + str(error.code)))
     except urllib.error.URLError as error:
-        raise ValueError('No se pudo llegar a V-Agent en 127.0.0.1:' + str(port) + ' (' + str(error.reason) + ').')
+        if '/console' in path:
+            hint = 'Use pc__shell_run to run commands directly.'
+            target = 'Visible V-Agent console'
+        else:
+            hint = 'Use autobrowser__* for headless browser automation or web__http_request to fetch URLs.'
+            target = 'Visible V-Agent browser'
+        raise ValueError(f'{target} is unavailable at 127.0.0.1:{port} ({error.reason}). {hint}')
+
+
+_TRACKING_PARAMS = frozenset({
+    'fbclid', 'gclid', 'msclkid', 'mc_eid', 'cvid', 'rdr', 'rdrig',
+    'ved', 'ei', 'sa', 'opi', 'sca_esv', 'pq', 'sc', 'sk', 'sp', 'lq', 'form',
+})
+
+
+def _clean_snapshot_href(raw):
+    value = str(raw or '').strip()
+    if not value:
+        return ''
+    try:
+        from urllib.parse import urlparse, parse_qs, parse_qsl, urlencode, urlunparse
+        import base64
+        parsed = urlparse(value)
+        if parsed.hostname and parsed.hostname.endswith('bing.com') and parsed.path.startswith('/ck/a'):
+            u_vals = parse_qs(parsed.query).get('u') or []
+            if u_vals and u_vals[0].startswith('a1') and len(u_vals[0]) > 2:
+                b64 = u_vals[0][2:].replace('-', '+').replace('_', '/')
+                b64 += '=' * ((-len(b64)) % 4)
+                decoded = base64.b64decode(b64).decode('utf-8', 'ignore')
+                if decoded.lower().startswith(('http://', 'https://')):
+                    return _clean_snapshot_href(decoded)
+            return f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+        kept = [(k, v) for k, v in parse_qsl(parsed.query, keep_blank_values=True)
+                if k not in _TRACKING_PARAMS and not k.startswith('utm_')]
+        cleaned = urlunparse(parsed._replace(query=urlencode(kept, doseq=True)))
+        return cleaned[:180]
+    except Exception:
+        return value[:180]
 
 
 def _format_browser_snapshot(result, max_chars):
@@ -733,7 +785,7 @@ def _format_browser_snapshot(result, max_chars):
         return 'Browser error: ' + str(result.get('error') or 'unknown error')
     lines = []
     title = str(result.get('title') or '').strip()
-    url = str(result.get('url') or '').strip()
+    url = _clean_snapshot_href(result.get('url') or '') or str(result.get('url') or '').strip()
     if title:
         lines.append('title: ' + title)
     if url:
@@ -745,28 +797,29 @@ def _format_browser_snapshot(result, max_chars):
         extra = []
         if item.get('type'):
             extra.append(str(item['type'])[:20])
-        if item.get('href'):
-            extra.append(str(item['href'])[:70])
+        href = _clean_snapshot_href(item.get('href'))
+        if href:
+            extra.append(href[:70])
         if item.get('disabled'):
             extra.append('disabled')
         line = '- ' + str(item.get('selector') or '') + ' · ' + str(label)[:70] + ((' · ' + ' · '.join(extra)) if extra else '')
-        if sum(len(value) + 1 for value in item_lines) + len(line) > 6000:
+        if sum(len(value) + 1 for value in item_lines) + len(line) > 5000:
             break
         item_lines.append(line)
     text = str(result.get('text') or '')
     budget = 7600 - sum(len(value) + 1 for value in item_lines) - 250
     text_cap = max(500, min(max_chars, budget))
     if len(text) > text_cap:
-        text = text[:text_cap] + '\n[texto recortado; usa action=text para leer la página]'
+        text = text[:text_cap] + '\n[text truncated; use action=text to read the page]'
     if text:
         lines.append('')
         lines.append(text)
     if item_lines:
         lines.append('')
-        lines.append('Elementos interactivos:')
+        lines.append('Interactive elements:')
         lines.extend(item_lines)
         if len(items) > len(item_lines):
-            lines.append('[más elementos no mostrados; usa snapshot de nuevo o eval]')
+            lines.append('[more elements omitted; run snapshot again or use eval]')
     return '\n'.join(lines)
 
 
@@ -774,7 +827,7 @@ def _browser_tool(args):
     action = args.get('action')
     allowed = {'open','navigate','snapshot','text','click','fill','press','eval','back','forward','reload','close'}
     if action not in allowed:
-        raise ValueError('Acción de navegador no admitida.')
+        raise ValueError('Unsupported browser action.')
     payload = {key: args[key] for key in ('url','selector','text','key','script','max_chars')
                if args.get(key) is not None}
     timeout = max(5, min(int(args.get('timeout') or 40), 90))
@@ -817,8 +870,8 @@ def _console_tool(args, full_access, policy):
         output = state.get('run_text') or ''
         header = 'shell=' + str(state.get('shell')) + ' cwd=' + str(state.get('cwd')) + ' exit=' + str(state.get('exit_code'))
         if timed_out:
-            header += ' (tiempo agotado; sesión detenida)'
-        return header + '\n[consola compartida]\n' + (output or '(sin salida)')
+            header += ' (timed out; session stopped)'
+        return header + '\n[shared console]\n' + (output or '(no output)')
     if action == 'status':
         state = _local_json('/api/harness/console', None, timeout=10)
         return json.dumps({key: state.get(key) for key in ('id','running','exit_code','shell','cwd','session')}, ensure_ascii=False)
@@ -856,11 +909,11 @@ def call(name, args, *, full_access=False, policy=None):
             if not result.get('checked'):result['project_checks']=diagnostics.inspect(path,root_limit=None if full_access else policy.root)
         from verification_evidence import evidence
         result=evidence(result,'project' if path.is_dir() or project_check else 'syntax')
-        text=json.dumps(result,ensure_ascii=False)
-        if result.get('ok') is False:raise ValueError(text)
-        return text
+        return json.dumps(result,ensure_ascii=False)
     if name == "fs_list":
-        path = policy.path(args["path"], full_access)
+        path = policy.path(args.get("path") or ".", full_access)
+        if os.path.isfile(path):
+            raise ValueError(f"{path} is a file, not a directory; use fs_read to read its contents.")
         rows = []
         # Internal recovery data at the workspace root is not the user's: listing it led models to write there.
         hide = not full_access and pathlib.Path(path).resolve() == pathlib.Path(policy.root).resolve()
@@ -874,19 +927,28 @@ def call(name, args, *, full_access=False, policy=None):
                     size = 0
                 rows.append(f"{'[D]' if e.is_dir() else '   '} {e.name}\t{size}")
         if len(entries) > 200:
-            rows.append(f"[Mostrando 200 de {len(entries)} entradas]")
+            rows.append(f"[Showing 200 of {len(entries)} entries]")
         return "\n".join(rows) or "(empty)"
     if name == "fs_read":
         path = policy.path(args["path"], full_access)
-        with open(path, "r", encoding="utf-8-sig", errors="strict") as f:
-            texto_completo = f.read()
-        if args.get("linea"):
+        if os.path.isdir(path):
+            raise ValueError(f"{path} is a directory, not a file; use fs_list to list its contents.")
+        try:
+            with open(path, "r", encoding="utf-8-sig", errors="strict") as f:
+                texto_completo = f.read()
+        except UnicodeDecodeError:
+            raise ValueError(f"{path} is a binary or non-UTF-8 file ({os.path.getsize(path)} bytes); inspect it with python/shell instead of fs_read.")
+        if args.get("linea") is not None or args.get("ventana") is not None:
+            if args.get("linea") is not None and int(args["linea"]) < 1:
+                raise ValueError("linea is 1-based and must be >= 1.")
+            if args.get("ventana") is not None and int(args["ventana"]) < 1:
+                raise ValueError("ventana must be >= 1.")
             # Vista por lineas numeradas (la ventana de 100 lineas de SWE-agent): el modelo copia el
             # trozo tal cual para fs_edit y ademas sabe donde esta, que es lo que falta para poder
             # editar UN punto en vez de reescribir el fichero entero.
             lineas = texto_completo.splitlines()
             total = len(lineas)
-            inicio = max(1, min(int(args["linea"]), max(1, total)))
+            inicio = max(1, min(int(args["linea"]) if args.get("linea") is not None else 1, max(1, total)))
             n = max(1, min(int(args.get("ventana") or 100), 240))
             corte = lineas[inicio - 1:inicio - 1 + n]
             ancho = max(4, len(str(total)))
@@ -907,11 +969,15 @@ def call(name, args, *, full_access=False, policy=None):
             corte = corte[:len(rows)]
             cuerpo = "\n".join(rows)
             siguiente = inicio + len(corte)
-            guia = ("\n[lineas %d-%d de %d. Para seguir: fs_read(path, linea=%d). Para editar, copia el "
-                    "texto de la linea (sin su numero) en old_text de fs_edit."
+            guia = ("\n[lines %d-%d of %d. To continue: fs_read(path, linea=%d). To edit, copy the "
+                    "line text (without its line number) into old_text of fs_edit.]"
                     % (inicio, inicio + len(corte) - 1, total, siguiente) if siguiente <= total else
-                    "\n[final del archivo: %d lineas]" % total)
-            return (cuerpo or "(vacio)") + guia
+                    "\n[end of file: %d lines]" % total)
+            return (cuerpo or "(empty)") + guia
+        if args.get("max_chars") is not None and int(args["max_chars"]) < 1:
+            raise ValueError("max_chars must be >= 1.")
+        if args.get("offset") is not None and int(args["offset"]) < 0:
+            raise ValueError("offset must be >= 0.")
         n = max(1, min(int(args.get("max_chars") or 6000), options('pc')['max_result_chars'] - 200))
         offset = max(0, int(args.get("offset") or 0))
         content = texto_completo[offset:offset + n]
@@ -921,11 +987,13 @@ def call(name, args, *, full_access=False, policy=None):
         # Validate before opening the destination: a malformed model call must
         # never truncate an existing file. Replace only after a complete write.
         if not isinstance(args.get("path"), str) or not args["path"].strip():
-            raise ValueError("path debe contener una ruta")
+            raise ValueError("path must be a non-empty file path")
         if not isinstance(args.get("content"), str):
-            raise ValueError("content debe ser texto")
+            raise ValueError("content must be text")
         args = {**args, "content": DATE_NOTE.sub("", args["content"])}
         path = policy.path(args["path"], full_access)
+        if os.path.isdir(path):
+            raise ValueError(f"{path} is an existing directory, not a file; pass a file path to fs_write.")
         existia = os.path.exists(path)
         VERSIONS.capture(path,policy.root)
         parent = os.path.dirname(os.path.abspath(path))
@@ -943,27 +1011,29 @@ def call(name, args, *, full_access=False, policy=None):
         finally:
             if pending is not None:
                 os.unlink(pending)
-        return f"escrito: {path} ({len(args['content'])} caracteres)" + (
-            "\nEl archivo ya existia y lo has reemplazado entero. Para el proximo cambio pequeno "
-            "usa fs_edit (old_text exacto y unico) o fs_copy (mueve lineas sin teclearlas) en vez de "
-            "volver a escribir todo." if existia else "") + (
+        return f"written: {path} ({len(args['content'])} chars)" + (
+            "\nThe file already existed and was replaced in full. For small follow-up changes, "
+            "use fs_edit (exact, unique old_text) or fs_copy (move lines without retyping) instead of "
+            "rewriting the whole file." if existia else "") + (
             aviso_escritura(path, args["content"]) + comprueba_ejecucion(path) + syntax_report(path))
     if name == "fs_copy":
         return fs_copy(args, full_access, policy)
     if name == "fs_edit":
         if not isinstance(args.get("path"), str) or not args["path"].strip():
-            raise ValueError("path debe contener una ruta")
+            raise ValueError("path must be a non-empty file path")
         lote = args.get("edits")
         if lote is None:
             lote = [{"old_text": args.get("old_text"), "new_text": args.get("new_text"),
                      "all": args.get("all")}]
         if not isinstance(lote, list) or not lote:
-            raise ValueError('edits debe ser una lista no vacia de {"old_text","new_text"}')
+            raise ValueError('edits must be a non-empty list of {"old_text","new_text"}')
         if len(lote) > 12:
-            raise ValueError("demasiados edits en un solo lote (maximo 12)")
+            raise ValueError("too many edits in a single batch (maximum 12)")
         path = policy.path(args["path"], full_access)
+        if os.path.isdir(path):
+            raise ValueError(f"{path} is a directory, not a file; pass a file path to fs_edit.")
         if not os.path.exists(path):
-            raise ValueError("no existe %s; para crear un archivo usa fs_write" % path)
+            raise ValueError("file does not exist: %s; to create a file use fs_write" % path)
         with open(path, "rb") as f:
             original_bytes = f.read()
         has_bom = original_bytes.startswith(b'\xef\xbb\xbf')
@@ -1267,7 +1337,7 @@ def call(name, args, *, full_access=False, policy=None):
                 cpu = winreg.QueryValueEx(key, "ProcessorNameString")[0].strip()
         except (ImportError, OSError):
             pass
-        lines = [f"OS: {platform.platform()}", f"CPU: {cpu} ({os.cpu_count()} hilos)"]
+        lines = [f"OS: {platform.platform()}", f"CPU: {cpu} ({os.cpu_count()} threads)"]
         try:
             import psutil
             vm = psutil.virtual_memory()

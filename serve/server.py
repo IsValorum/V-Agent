@@ -5277,7 +5277,8 @@ class Service:
         for ev in cut(parser.finish(finish)):
             yield "event", ev
         if parser.rescued or parser.refused:
-            self.totals["tool_calls_from_reasoning"] = self.totals.get("tool_calls_from_reasoning", 0) + parser.rescued
+            with self.status_lock:
+                self.totals["tool_calls_from_reasoning"] = self.totals.get("tool_calls_from_reasoning", 0) + parser.rescued
             print(f"[strata] tool calls inside the thinking: {parser.rescued} read as calls, {parser.refused} kept as "
                   f"reasoning (quoted, or the turn did not end on a stop)", flush=True)
         if stops is not None and stops.hit is None and stops.held:
@@ -6462,14 +6463,19 @@ def make_handler(svc: Service):
         def _models_post(self, path):
             """POST /api/models/load {"model": name}: switch to that model (Service.switch_model).
             POST /api/models/unload: stop the one that is loaded; the next request, or a load, starts it again."""
-            try:
-                length = int(self.headers.get("Content-Length", "0"))
-            except ValueError:
-                length = -1
-            if not 0 <= length <= 65536:
-                self._json(400, {"error": {"message": "send a JSON object of at most 64 KiB"}})
-                return
-            raw = self.rfile.read(length) if length else b""
+            if self._chunked():
+                self.body_read = True
+                raw = self._read_chunked(65536)
+            else:
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                except ValueError:
+                    length = -1
+                if not 0 <= length <= 65536:
+                    self._json(400, {"error": {"message": "send a JSON object of at most 64 KiB"}})
+                    return
+                self.body_read = True
+                raw = self.rfile.read(length) if length else b""
             if not self._own_page("the model can be switched"):
                 return
             try:
@@ -6689,22 +6695,31 @@ def make_handler(svc: Service):
                         self.wfile.write(b"data: " + json.dumps(c, ensure_ascii=False).encode() + b"\n\n")
                     self.wfile.flush()
                 self.wfile.write(b"data: [DONE]\n\n")
+                self.wfile.flush()
             except OSError:
                 self._note(outcome="disconnected")
                 cancel.set()                                 # client went away: stop the engine
-                chunks.close()
-            except EngineDied as e:                          # mid-stream: say so, then end the stream properly
-                err = {"error": {"type": "server_error", "message": f"{e}; the next request restarts it"}}
+            except (EngineDied, EngineNonFinite, GpuBusy, EngineStarting, EngineStuck) as e:  # mid-stream
+                msg = f"{e}; the next request restarts it" if isinstance(e, EngineDied) else str(e)
+                err = {"error": {"type": "server_error", "message": msg}}
                 self._note(error=err["error"])
-                self.wfile.write(b"data: " + json.dumps(err).encode() + b"\n\ndata: [DONE]\n\n")
+                with contextlib.suppress(OSError):
+                    self.wfile.write(b"data: " + json.dumps(err).encode() + b"\n\ndata: [DONE]\n\n")
+                    self.wfile.flush()
             except StructuredOutputError as e:
                 err = {"error": {"type": "structured_output_failed", "code": "structured_output_failed", "message": str(e)}}
                 self._note(error=err["error"])
-                self.wfile.write(b"data: " + json.dumps(err).encode() + b"\n\ndata: [DONE]\n\n")
+                with contextlib.suppress(OSError):
+                    self.wfile.write(b"data: " + json.dumps(err).encode() + b"\n\ndata: [DONE]\n\n")
+                    self.wfile.flush()
             except ValueError as e:                          # the engine's ERR after the stream started: the
                 err = {"error": {"type": "server_error", "message": str(e)}}   # headers are sent, so no 400 now
                 self._note(error=err["error"])
-                self.wfile.write(b"data: " + json.dumps(err).encode() + b"\n\ndata: [DONE]\n\n")
+                with contextlib.suppress(OSError):
+                    self.wfile.write(b"data: " + json.dumps(err).encode() + b"\n\ndata: [DONE]\n\n")
+                    self.wfile.flush()
+            finally:
+                chunks.close()
 
         def _responses_ready(self, req, events):
             """Send a finished Responses result that did not run on the engine."""
@@ -6769,7 +6784,7 @@ def make_handler(svc: Service):
                 except EngineDied as e:
                     return self._json(503, responses_error_body(f"{e}; the next request restarts it", "server_error",
                                                                 code="server_error"))
-                except EngineNonFinite as e:                 # #879, twice: not the request's fault
+                except (EngineNonFinite, GpuBusy, EngineStarting, EngineStuck) as e:  # #879 / load wait
                     return self._json(503, responses_error_body(str(e), "server_error", code="server_error"))
                 except ValueError as e:                      # the engine's ERR line
                     return self._json(500, responses_error_body(str(e), "server_error", code="server_error"))
@@ -6798,13 +6813,15 @@ def make_handler(svc: Service):
             except OSError:
                 self._note(outcome="disconnected")
                 cancel.set()                                 # client went away: stop the engine
-                items.close()
-            except EngineDied as e:                          # mid-stream: response.failed, then the stream ends
-                self._responses_failed(asm, f"{e}; the next request restarts it", "server_error", send)
+            except (EngineDied, EngineNonFinite, GpuBusy, EngineStarting, EngineStuck) as e:  # mid-stream
+                msg = f"{e}; the next request restarts it" if isinstance(e, EngineDied) else str(e)
+                self._responses_failed(asm, msg, "server_error", send)
             except StructuredOutputError as e:
                 self._responses_failed(asm, str(e), "structured_output_failed", send)
             except ValueError as e:                          # the engine's ERR after the stream started
                 self._responses_failed(asm, str(e), "server_error", send)
+            finally:
+                items.close()
 
         def _responses_failed(self, asm, message, code, send):
             e = asm.failed(message, code)
@@ -6917,15 +6934,21 @@ def make_handler(svc: Service):
             except OSError:
                 self._note(outcome="disconnected")
                 cancel.set()
-                events.close()
-            except EngineDied as e:                          # mid-stream: Anthropic's error event
-                err = {"type": "error", "error": {"type": "api_error", "message": f"{e}; the next request restarts it"}}
+            except (EngineDied, EngineNonFinite, GpuBusy, EngineStarting, EngineStuck) as e:  # mid-stream
+                msg = f"{e}; the next request restarts it" if isinstance(e, EngineDied) else str(e)
+                err = {"type": "error", "error": {"type": "api_error", "message": msg}}
                 self._note(error=err["error"])
-                self.wfile.write(b"event: error\ndata: " + json.dumps(err).encode() + b"\n\n")
+                with contextlib.suppress(OSError):
+                    self.wfile.write(b"event: error\ndata: " + json.dumps(err).encode() + b"\n\n")
+                    self.wfile.flush()
             except ValueError as e:                          # the engine's ERR after the stream started
                 err = {"type": "error", "error": {"type": "api_error", "message": str(e)}}
                 self._note(error=err["error"])
-                self.wfile.write(b"event: error\ndata: " + json.dumps(err).encode() + b"\n\n")
+                with contextlib.suppress(OSError):
+                    self.wfile.write(b"event: error\ndata: " + json.dumps(err).encode() + b"\n\n")
+                    self.wfile.flush()
+            finally:
+                events.close()
 
     return Handler
 

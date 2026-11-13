@@ -21,7 +21,7 @@ which areas are reviewed for security, and what is still not covered.
 
 ## Automatic tests
 
-214 Python tests and 7 Node suites, none of which need a model, a GPU or the internet (see
+259 Python tests and 7 Node suites, none of which need a model, a GPU or the internet (see
 [tests/README.md](../tests/README.md)). Besides the core features, dedicated suites cover the areas of the
 security and interface reviews:
 
@@ -84,6 +84,14 @@ GPU with 6 GB of VRAM:
   card with 28 known XSS vectors (mutation XSS, `javascript:` and entity-encoded URLs, `srcset`,
   `srcdoc`, SVG/MathML namespaces, event handlers…); none may run, no dangerous element or attribute
   may survive, and the rest of the card must still render. Chat Markdown escapes all HTML first.
+
+## Remote APIs
+
+`tests/smoke/api_edge_cases.py` runs the API path against a local fake provider in the OpenAI and
+Anthropic formats, without any account or key: reasoning plus tool calls, a provider that sends no
+usage, 401/429/500 errors (readable, never showing the key or a provider's HTML), a stream cut half way
+(reported, not shown as a complete answer), leaving a reply (the provider connection closes), switching
+between provider models, and models declaring 1,048,576 tokens of context.
 
 ## Code checker
 

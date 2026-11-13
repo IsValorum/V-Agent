@@ -88,7 +88,9 @@ class ModelPreferences:
                     if value not in ('default','none','think','minimal','low','medium','high','xhigh'):raise ValueError('Razonamiento no válido.')
                     entry[key] = value
                 else:
-                    low,high = (2048,262144) if key=='context' else (2,100)
+                    # Provider models declare up to millions of tokens; local engines are still held to
+                    # 262,144 when a model is loaded (/api/load), not here.
+                    low,high = (2048,16777216) if key=='context' else (2,100)
                     if type(value) is not int or not low<=value<=high:raise ValueError('Valor fuera de rango: '+key)
                     entry[key] = value
             records = {**self.records,model:entry}

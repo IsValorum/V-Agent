@@ -5,6 +5,12 @@ import json
 def model_history(history):
     result=[]
     for index,message in enumerate(history):
+        if message.get('compacted'):
+            info=message.get('compacted') if isinstance(message.get('compacted'),dict) else {}
+            label=info.get('method_label') or info.get('method') or 'API'
+            result.append({'role':'user','content':f"Contexto previo comprimido ({label}):\n\n{message.get('content','')}"})
+            result.append({'role':'assistant','content':'Entendido. Continúo usando este contexto comprimido.'})
+            continue
         if message.get('role')=='assistant':
             groups={}
             for offset,call in enumerate(message.get('tool_trace') or []):
@@ -25,6 +31,6 @@ def model_history(history):
         if message.get('role')!='assistant' or message.get('content') or message.get('reasoning_content'):
             clean={key:copy.deepcopy(message[key]) for key in ('role','content','reasoning_content') if key in message}
             if message.get('role')=='user' and message.get('images'):
-                clean['content']=[{'type':'text','text':message.get('content','')},*[{'type':'image_url','image_url':{'url':image['url']}} for image in message['images']]]
+                clean['content']=[{'type':'text','text':message.get('content') or ''},*[{'type':'image_url','image_url':{'url':image['url']}} for image in message['images']]]
             result.append(clean)
     return result

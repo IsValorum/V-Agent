@@ -63,7 +63,7 @@ def project_map(workspace, relative='.', full_access=False):
             try:path=workspace.path(str(item),full_access)
             except PermissionError:continue
             if path.is_dir():visit(path,depth+1)
-            elif path.suffix in ('.py','.js','.ts','.tsx','.jsx','.html','.json','.md') and path.stat().st_size<=1024*1024:
+            elif path.suffix.lower() in ('.py','.js','.ts','.tsx','.jsx','.html','.json','.md') and path.stat().st_size<=1024*1024:
                 text=path.read_text(encoding='utf-8',errors='replace')
                 symbols=re.findall(r'(?m)^\s*(?:export\s+)?(?:async\s+)?(?:def|class|function)\s+([\w$]+)',text)[:12]
                 rows.append(str(path.relative_to(root))+(': '+', '.join(symbols) if symbols else ''))

@@ -22,7 +22,7 @@ def inspect_template(text):
 
 def capability(model,kind='strata'):
     if kind=='rust':return {'mode':'toggle','choices':['none','think'],'default':'think','source':'Strata Rust · enable_thinking'}
-    if kind=='api':return {'mode':'fixed','choices':[],'default':'default','source':'Provider API'}
+    if kind=='api':return {'mode':'levels','choices':['default','none','low','medium','high','xhigh'],'default':'default','source':'Provider API'}
     try:
         cfg=json.loads(Path(model['config']).read_text(encoding='utf-8-sig'))
         if kind=='strata':
@@ -53,6 +53,9 @@ def apply(payload,value,info):
     kwargs=payload.setdefault('chat_template_kwargs',{})
     kwargs.pop('enable_thinking',None);kwargs.pop('reasoning_effort',None)
     if info['mode']=='fixed':return
+    if info.get('source')=='Provider API':
+        if value and value!='default':payload['reasoning_effort']=value
+        return
     if info.get('switch')=='thinking_option':kwargs['thinking_option']='off' if value=='none' else 'on'
     else:kwargs['enable_thinking']=value!='none'
     if info['mode']=='levels':

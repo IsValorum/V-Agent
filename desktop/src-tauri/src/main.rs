@@ -176,9 +176,17 @@ async fn browser_tab_open(app:AppHandle,label:String,url:String,x:f64,y:f64,w:f6
   let _=view.show();let _=view.set_focus();
  }else{
   let window=app.get_window("main").ok_or("No se encontró la ventana principal.")?;
+  let app_handle=app.clone();
+  let tab_label=label.clone();
   let view=window.add_child(
    WebviewBuilder::new(label.clone(),WebviewUrl::External(target))
-    .on_navigation(|url|matches!(url.scheme(),"http"|"https"|"about")&&internal_navigation(url)),
+    .on_navigation(|url|matches!(url.scheme(),"http"|"https"|"about")&&internal_navigation(url))
+    .on_new_window(move|url,_features|{
+     if matches!(url.scheme(),"http"|"https")&&internal_navigation(&url){
+      if let Some(child)=tab(&app_handle,&tab_label){let _=child.navigate(url);}
+     }
+     tauri::webview::NewWindowResponse::Deny
+    }),
    LogicalPosition::new(x.max(0.),y.max(0.)),
    LogicalSize::new(w.clamp(200.,4000.),h.clamp(120.,4000.))
   ).map_err(|error|error.to_string())?;
@@ -250,52 +258,112 @@ async fn browser_tab_dom(app:AppHandle,label:String,action:String,selector:Optio
     const maxChars = __MAX__;
     const clean = value => String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
     const visible = el => {
-      const style = getComputedStyle(el);
+      const style = (el.ownerDocument.defaultView || window).getComputedStyle(el);
       const rect = el.getBoundingClientRect();
       return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
     };
+    const collectRoots = (root, out = []) => {
+      if (!root) return out;
+      out.push(root);
+      for (const el of root.querySelectorAll('*')) {
+        if (el.shadowRoot) collectRoots(el.shadowRoot, out);
+        if (el.tagName === 'IFRAME' || el.tagName === 'FRAME') {
+          try { if (el.contentDocument) collectRoots(el.contentDocument, out); } catch (e) {}
+        }
+      }
+      return out;
+    };
+    const findEl = (sel, root = document) => {
+      if (!root || !sel) return null;
+      let hit = null;
+      try { hit = root.querySelector(sel); } catch (e) { return null; }
+      if (hit) return hit;
+      for (const el of root.querySelectorAll('*')) {
+        if (el.shadowRoot) { hit = findEl(sel, el.shadowRoot); if (hit) return hit; }
+        if (el.tagName === 'IFRAME' || el.tagName === 'FRAME') {
+          try { if (el.contentDocument) { hit = findEl(sel, el.contentDocument); if (hit) return hit; } } catch (e) {}
+        }
+      }
+      return null;
+    };
     if (action === 'snapshot' || action === 'text') {
-      const pageText = (document.body ? document.body.innerText : '').slice(0, maxChars);
+      const roots = collectRoots(document);
+      const textParts = [], seenText = new Set();
+      const addChunk = raw => {
+        const s = String(raw || '').trim();
+        if (s && !seenText.has(s)) { seenText.add(s); textParts.push(s); }
+      };
+      addChunk(document.body ? document.body.innerText : '');
+      for (const r of roots.slice(1)) {
+        if (r.host && r.host.shadowRoot === r) {
+          for (const child of r.childNodes) {
+            if (child.nodeType === 1 && !['SCRIPT','STYLE','TEMPLATE'].includes(child.tagName)) {
+              addChunk(child.innerText || child.textContent);
+            } else if (child.nodeType === 3) {
+              addChunk(child.nodeValue);
+            }
+          }
+        } else if (r.body) {
+          addChunk(r.body.innerText);
+        }
+      }
+      const pageText = textParts.join('\n').slice(0, maxChars);
       const items = [];
       if (action === 'snapshot') {
-        document.querySelectorAll('[data-val-ref]').forEach(el => el.removeAttribute('data-val-ref'));
+        for (const r of roots) r.querySelectorAll('[data-val-ref]').forEach(el => el.removeAttribute('data-val-ref'));
         const token = 'val' + Date.now().toString(36);
         let count = 0;
-        const nodes = document.querySelectorAll('a[href],button,input,select,textarea,[role=button],[role=link],[role=textbox],[contenteditable=true],[onclick]');
+        const nodes = [];
+        for (const r of roots) for (const el of r.querySelectorAll('a[href],button,input,select,textarea,[role=button],[role=link],[role=textbox],[contenteditable=true],[onclick]')) nodes.push(el);
         for (const el of nodes) {
-          if (count >= 120) break;
+          if (count >= 60) break;
           if (!visible(el)) continue;
+          const tag = el.tagName.toLowerCase();
+          const type = clean(el.getAttribute('type') || el.getAttribute('role') || '');
+          const label = clean(el.getAttribute('aria-label') || el.getAttribute('title') || el.innerText || el.getAttribute('value') || el.getAttribute('placeholder') || '').slice(0, 120);
+          const name = clean(el.getAttribute('name') || '');
+          if (tag === 'a' && !label && !name) continue;
           const ref = token + '-' + (count + 1);
           el.setAttribute('data-val-ref', ref);
-          items.push({
+          const item = {
             selector: '[data-val-ref="' + ref + '"]',
-            tag: el.tagName.toLowerCase(),
-            type: el.getAttribute('type') || el.getAttribute('role') || '',
-            text: clean(el.getAttribute('aria-label') || el.getAttribute('title') || el.innerText || el.getAttribute('placeholder') || '').slice(0, 140),
-            name: clean(el.getAttribute('name') || ''),
-            href: el.href ? String(el.href).slice(0, 300) : '',
-            disabled: !!el.disabled,
-            checked: !!el.checked
-          });
+            tag
+          };
+          if (type) item.type = type;
+          if (label) item.text = label;
+          if (name) item.name = name;
+          if (el.href) item.href = String(el.href).slice(0, 300);
+          if (el.disabled) item.disabled = true;
+          if (el.checked) item.checked = true;
+          items.push(item);
           count += 1;
         }
       }
       return {ok: true, title: document.title, url: location.href, text: pageText, items};
     }
     if (action === 'eval') {
-      const value = eval(script);
+      const raw = eval(script);
+      let value = raw === undefined ? null : raw;
+      try { JSON.stringify(value); } catch { value = String(raw); }
       return {ok: true, value};
     }
-    if (!selector) return {ok: false, error: 'Falta el selector.'};
-    const el = document.querySelector(selector);
-    if (!el) return {ok: false, error: 'No se encontró el elemento: ' + selector};
+    if (!selector) return {ok: false, error: 'Missing selector.'};
+    const el = findEl(selector);
+    if (!el) return {ok: false, error: 'Element not found: ' + selector};
     el.scrollIntoView({block: 'center', inline: 'center'});
     if (action === 'click') {
       el.focus({preventScroll: true});
+      const link = el.closest ? el.closest('a[href]') : null;
+      const hadTarget = link ? link.getAttribute('target') : null;
+      if (link && hadTarget && hadTarget !== '_self') link.setAttribute('target', '_self');
       el.click();
+      if (link && hadTarget) link.setAttribute('target', hadTarget);
       return {ok: true, clicked: true, tag: el.tagName.toLowerCase()};
     }
     if (action === 'fill') {
+      if (el.tagName === 'INPUT' && (el.type || '').toLowerCase() === 'file') {
+        return {ok: false, error: 'WebView2 cannot programmatically set <input type="file"> paths; use autobrowser__open + autobrowser__fill for file uploads.'};
+      }
       const value = text == null ? '' : text;
       el.focus({preventScroll: true});
       if (el.isContentEditable) {
@@ -304,7 +372,8 @@ async fn browser_tab_dom(app:AppHandle,label:String,action:String,selector:Optio
         el.dispatchEvent(new Event('change', {bubbles: true}));
         return {ok: true, filled: true, value: String(el.textContent).slice(0, 200)};
       }
-      const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : el instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+      const w = el.ownerDocument.defaultView || window;
+      const proto = el instanceof w.HTMLTextAreaElement ? w.HTMLTextAreaElement.prototype : el instanceof w.HTMLSelectElement ? w.HTMLSelectElement.prototype : w.HTMLInputElement.prototype;
       const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
       if (setter) setter.call(el, value); else el.value = value;
       el.dispatchEvent(new Event('input', {bubbles: true}));
@@ -314,8 +383,10 @@ async fn browser_tab_dom(app:AppHandle,label:String,action:String,selector:Optio
     if (action === 'press') {
       const pressed = key || 'Enter';
       el.focus({preventScroll: true});
-      const keyCode = pressed === 'Enter' ? 13 : pressed.length === 1 ? pressed.toUpperCase().charCodeAt(0) : 0;
-      const options = {key: pressed, code: pressed === 'Enter' ? 'Enter' : ('Key' + pressed.toUpperCase()), keyCode, which: keyCode, bubbles: true, cancelable: true};
+      const keyCodes = {Enter: 13, Escape: 27, Tab: 9, Backspace: 8, ArrowUp: 38, ArrowDown: 40, ArrowLeft: 37, ArrowRight: 39};
+      const code = pressed.length === 1 && /[a-z]/i.test(pressed) ? ('Key' + pressed.toUpperCase()) : pressed;
+      const keyCode = keyCodes[pressed] ?? (pressed.length === 1 ? pressed.toUpperCase().charCodeAt(0) : 0);
+      const options = {key: pressed, code, keyCode, which: keyCode, bubbles: true, cancelable: true};
       el.dispatchEvent(new KeyboardEvent('keydown', options));
       el.dispatchEvent(new KeyboardEvent('keypress', options));
       el.dispatchEvent(new KeyboardEvent('keyup', options));
@@ -325,8 +396,8 @@ async fn browser_tab_dom(app:AppHandle,label:String,action:String,selector:Optio
         if (form) {
           try { form.requestSubmit(); submitted = true; } catch (error) {}
         } else {
-          const scope = el.parentElement;
-          const button = scope ? scope.querySelector('button[type=submit], input[type=submit], [role=button]') : null;
+          const scope = el.closest('form') || el.parentElement;
+          const button = scope ? scope.querySelector('button[type=submit], button:not([type]), input[type=submit], [role=button]') : null;
           if (button) { button.click(); submitted = true; }
         }
       }
@@ -359,7 +430,7 @@ fn status(port:u16)->Option<serde_json::Value>{
  let mut bytes=Vec::new();socket.take(32768).read_to_end(&mut bytes).ok()?;
  let text=String::from_utf8(bytes).ok()?;let body=text.split_once("\r\n\r\n")?.1;
  let value:serde_json::Value=serde_json::from_str(body).ok()?;
- if value["product"]=="VALAgent" || value["product"]=="VALHarness"{Some(value)}else{None}
+ if value["product"]=="VALAgent" || value["product"]=="VALHarness" || value["product"]=="V-Agent"{Some(value)}else{None}
 }
 
 fn core_path()->Option<PathBuf>{

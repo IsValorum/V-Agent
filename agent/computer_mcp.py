@@ -55,7 +55,7 @@ class INPUT(ctypes.Structure):
 def _send(*items: INPUT):
     array = (INPUT * len(items))(*items)
     if user32.SendInput(len(items), array, ctypes.sizeof(INPUT)) != len(items):
-        raise OSError("SendInput fue bloqueado por Windows.")
+        raise OSError("SendInput was blocked by Windows UIPI or an inactive/locked desktop session.")
 
 
 def _mouse(flags: int, x: int = 0, y: int = 0, data: int = 0):
@@ -101,7 +101,12 @@ def _screenshot() -> dict:
     folder = DATA_ROOT / "screenshots"
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / ("screen-" + time.strftime("%Y%m%d-%H%M%S") + ".png")
-    image = ImageGrab.grab(all_screens=True)
+    try:
+        image = ImageGrab.grab(all_screens=True)
+    except OSError as error:
+        raise RuntimeError(
+            f"Screen capture failed ({error}). Windows blocks desktop grabs when the session is locked, disconnected, or headless."
+        ) from error
     image.save(path)
     return {"ok": True, "path": str(path), "width": image.width, "height": image.height,
             "active": _active_window(), "ocr": _ocr(path)}
@@ -118,7 +123,7 @@ def ocr_image(path: str) -> str:
     """Run Windows OCR on an existing PNG/JPEG and return its text."""
     image = Path(path).expanduser().resolve()
     if not image.is_file() or image.suffix.lower() not in (".png", ".jpg", ".jpeg", ".bmp"):
-        raise ValueError("Imagen no válida.")
+        raise ValueError("Invalid image file.")
     return json.dumps({"ok": True, "path": str(image), "text": _ocr(image)}, ensure_ascii=False)
 
 
@@ -158,7 +163,7 @@ def window_focus(title_contains: str) -> str:
     """Bring the first visible window whose title contains the text to the foreground."""
     needle = str(title_contains or "").strip().lower()
     if not needle:
-        raise ValueError("Escribe parte del título de la ventana.")
+        raise ValueError("Provide part of the window title.")
     found = []
 
     @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
@@ -172,12 +177,26 @@ def window_focus(title_contains: str) -> str:
 
     user32.EnumWindows(callback, 0)
     if not found:
-        raise ValueError("No se encontró una ventana visible con ese título.")
+        raise ValueError("No visible window matched that title.")
     hwnd, title = found[0]
-    user32.ShowWindow(hwnd, 9)
-    user32.SetForegroundWindow(hwnd)
-    time.sleep(0.25)
-    return json.dumps({"ok": True, "hwnd": int(hwnd), "title": title[:180], "active": _active_window()}, ensure_ascii=False)
+    for attempt in range(2):
+        user32.ShowWindow(hwnd, 9)
+        if attempt == 1:
+            _key(0x12)
+            _key(0x12, True)
+        user32.BringWindowToTop(hwnd)
+        user32.SetForegroundWindow(hwnd)
+        time.sleep(0.18)
+        active = _active_window()
+        if active.get("hwnd") == int(hwnd):
+            break
+    else:
+        active = _active_window()
+    focused = active.get("hwnd") == int(hwnd)
+    out = {"ok": focused, "hwnd": int(hwnd), "title": title[:180], "active": active}
+    if not focused:
+        out["error"] = "Window did not acquire foreground focus."
+    return json.dumps(out, ensure_ascii=False)
 
 
 @mcp.tool(annotations=WRITE)
@@ -190,11 +209,14 @@ def mouse_move(x: int, y: int) -> str:
 @mcp.tool(annotations=WRITE)
 def mouse_click(x: int, y: int, button: str = "left", clicks: int = 1) -> str:
     """Click at absolute screen coordinates."""
-    user32.SetCursorPos(int(x), int(y))
+    count = int(clicks)
+    if not 1 <= count <= 3:
+        raise ValueError("clicks must be between 1 and 3.")
     flags = {"left": (0x0002, 0x0004), "right": (0x0008, 0x0010), "middle": (0x0020, 0x0040)}.get(str(button).lower())
     if not flags:
-        raise ValueError("button debe ser left, right o middle.")
-    for _ in range(max(1, min(int(clicks), 3))):
+        raise ValueError("button must be left, right, or middle.")
+    user32.SetCursorPos(int(x), int(y))
+    for _ in range(count):
         _mouse(flags[0]); _mouse(flags[1]); time.sleep(0.05)
     return json.dumps({"ok": True, "x": int(x), "y": int(y), "button": button}, ensure_ascii=False)
 
@@ -202,8 +224,11 @@ def mouse_click(x: int, y: int, button: str = "left", clicks: int = 1) -> str:
 @mcp.tool(annotations=WRITE)
 def mouse_scroll(amount: int) -> str:
     """Scroll the wheel; positive is up, negative is down (typically 120 per notch)."""
-    _mouse(0x0800, data=int(amount))
-    return json.dumps({"ok": True, "amount": int(amount)})
+    delta = int(amount)
+    if delta == 0:
+        raise ValueError("amount cannot be 0 (use positive to scroll up, negative to scroll down, e.g. 120 or -120).")
+    _mouse(0x0800, data=delta)
+    return json.dumps({"ok": True, "amount": delta})
 
 
 KEY_NAMES = {
@@ -220,7 +245,7 @@ for _i in range(1, 13):
 def keyboard_type(text: str) -> str:
     """Type Unicode text into the focused control using SendInput."""
     if not isinstance(text, str) or not text:
-        raise ValueError("text no puede estar vacío.")
+        raise ValueError("text cannot be empty.")
     count = 0
     for char in text[:4000]:
         if char == "\n":
@@ -241,14 +266,14 @@ def keyboard_key(keys: str) -> str:
     """Press a key or combo such as Enter, Tab, Ctrl+L, Alt+F4 or Shift+Tab."""
     parts = [part.strip().lower() for part in str(keys or "").split("+") if part.strip()]
     if not parts:
-        raise ValueError("Indica una tecla.")
+        raise ValueError("Provide a key name.")
     codes = []
     for part in parts:
         code = KEY_NAMES.get(part)
         if code is None and len(part) == 1:
             code = ord(part.upper())
         if code is None:
-            raise ValueError("Tecla no admitida: " + part)
+            raise ValueError("Unsupported key: " + part)
         codes.append(code)
     for code in codes:
         _key(code)
