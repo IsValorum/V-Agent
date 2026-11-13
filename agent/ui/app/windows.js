@@ -1,7 +1,7 @@
 /* Floating, non-modal panels: automatic tiling, persisted sizes and motion. */
 (()=>{
-  const MIN_WIDTH=220,MIN_HEIGHT=160,EDGE=12,GAP=12,TOP=64;
-  const DEFAULTS={settings:{width:780,height:640},model:{width:400,height:640},tools:{width:400,height:560},project:{width:360,height:380},import:{width:430,height:520},console:{width:620,height:420},browser:{width:520,height:700},models:{width:1040,height:700}};
+  const MIN_WIDTH=240,MIN_HEIGHT=180,EDGE=12,GAP=12,TOP=64;
+  const DEFAULTS={settings:{width:860,height:660},model:{width:490,height:680},tools:{width:490,height:620},project:{width:420,height:420},import:{width:480,height:540},console:{width:680,height:450},browser:{width:540,height:700},models:{width:1080,height:720}};
   const entries=new Map(),sizes={},dirtySizes=new Set(),animationsMap=new WeakMap(),layoutAnims=new WeakMap(),reduce=matchMedia('(prefers-reduced-motion: reduce)');
   let layer=null,stack=75,saveTimer=0,saving=false,saveAgain=false,prefsLoaded=false,needsSave=false,retried=false,orderCounter=0,layoutTimer=0;
   let animateWindows=true;
@@ -314,12 +314,19 @@
       .then(response=>response.ok?response.json():null)
       .then(data=>{
         const boxes=data&&data.windows;
+        let migrated=true;
+        try{migrated=typeof localStorage!=='undefined'&&localStorage.getItem('valUiLayoutV2')==='1';}catch{}
         if(boxes&&typeof boxes==='object')for(const [id,box] of Object.entries(boxes)){
           if(!DEFAULTS[id]||!box||dirtySizes.has(id))continue;
           if(!Number.isInteger(box.width)||!Number.isInteger(box.height))continue;
           if(box.width<160||box.width>5000||box.height<160||box.height>5000)continue;
-          sizes[id]={width:box.width,height:box.height};
+          const d=DEFAULTS[id];
+          const w=migrated?box.width:Math.max(box.width,d.width);
+          const h=migrated?box.height:Math.max(box.height,d.height);
+          if(!migrated&&(w!==box.width||h!==box.height)){pendingSave[id]={width:w,height:h};needsSave=true;}
+          sizes[id]={width:w,height:h};
         }
+        try{if(!migrated&&typeof localStorage!=='undefined')localStorage.setItem('valUiLayoutV2','1');}catch{}
       })
       .catch(()=>{})
       .finally(()=>{
