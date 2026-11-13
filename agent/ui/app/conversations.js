@@ -5,7 +5,7 @@ function selectedConversation() {
 async function openConversationSandbox(){
   if(!currentId){note(uiText('Envía un mensaje para crear la conversación y su carpeta.'));return;}
   try{await flushSessionSaves();const native=!!window.__TAURI__?.core?.invoke;const id=currentId;await requestJSON('/api/workspace/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conversation_id:id,prepare_only:native})});if(native)await window.__TAURI__.core.invoke('open_sandbox_folder',{conversationId:id});}
-  catch(error){note(error?.message||String(error));}
+  catch(error){note(uiText(typeof error==='string'?error:(error?.message||String(error))));}
 }
 $('#openSandbox').onclick=openConversationSandbox;
 function syncWorkspacePath() {
@@ -102,14 +102,12 @@ function renderConvs() {
   }
   syncWorkspacePath();
 }
-function exportConversation(chat){
+async function exportConversation(chat){
   if(!chat)return;
   const data={type:'strata-conversation',version:1,conversation:chat};
-  const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
-  const link=document.createElement('a');
   const title=(chat.title||'chat').replace(/[^\p{L}\p{N}_-]+/gu,'-').slice(0,70);
-  link.href=url;link.download='strata-'+title+'.json';link.click();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  try{await downloadToolDraft('strata-'+title+'.json',JSON.stringify(data,null,2),'application/json');}
+  catch(error){note(uiText(typeof error==='string'?error:(error?.message||String(error))));}
 }
 function archiveConversation(chat){
   if(!chat||busy)return;

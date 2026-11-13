@@ -133,9 +133,15 @@
   },
   "Herramientas": {
     "en": "Tools",
-    "pt": "Ferramentas",
-    "fr": "Outils",
-    "de": "Werkzeuge"
+    "pt": "Tools",
+    "fr": "Tools",
+    "de": "Tools"
+  },
+  "Tools": {
+    "en": "Tools",
+    "pt": "Tools",
+    "fr": "Tools",
+    "de": "Tools"
   },
   "Historial": {
     "en": "History",
@@ -4057,15 +4063,27 @@
   },
   "Configura los servicios aquí. Activa sus herramientas y permisos en la ventana de Herramientas.": {
     "en": "Configure services here. Enable their tools and permissions in the Tools window.",
-    "pt": "Configure os serviços aqui. Ative as suas ferramentas e permissões na janela de Ferramentas.",
-    "fr": "Configurez les services ici. Activez leurs outils et permissions dans la fenêtre Outils.",
-    "de": "Konfigurieren Sie Dienste hier. Aktivieren Sie ihre Werkzeuge und Berechtigungen im Werkzeugfenster."
+    "pt": "Configure os serviços aqui. Ative as suas ferramentas e permissões na janela Tools.",
+    "fr": "Configurez les services ici. Activez leurs outils et permissions dans la fenêtre Tools.",
+    "de": "Konfigurieren Sie Dienste hier. Aktivieren Sie ihre Werkzeuge und Berechtigungen im Tools-Fenster."
+  },
+  "Configura los servicios aquí. Activa sus herramientas y permisos en la ventana de Tools.": {
+    "en": "Configure services here. Enable their tools and permissions in the Tools window.",
+    "pt": "Configure os serviços aqui. Ative as suas ferramentas e permissões na janela Tools.",
+    "fr": "Configurez les services ici. Activez leurs outils et permissions dans la fenêtre Tools.",
+    "de": "Konfigurieren Sie Dienste hier. Aktivieren Sie ihre Werkzeuge und Berechtigungen im Tools-Fenster."
   },
   "Abrir ventana de herramientas": {
     "en": "Open Tools window",
-    "pt": "Abrir janela de ferramentas",
-    "fr": "Ouvrir la fenêtre Outils",
-    "de": "Werkzeugfenster öffnen"
+    "pt": "Abrir janela Tools",
+    "fr": "Ouvrir la fenêtre Tools",
+    "de": "Tools-Fenster öffnen"
+  },
+  "Abrir ventana de Tools": {
+    "en": "Open Tools window",
+    "pt": "Abrir janela Tools",
+    "fr": "Ouvrir la fenêtre Tools",
+    "de": "Tools-Fenster öffnen"
   },
   "Abrir conversaciones": {
     "en": "Open conversations",
@@ -4237,9 +4255,15 @@
   },
   "Sesión persistente: conserva la carpeta y las variables entre comandos. Tú y el agente compartís esta consola. No es un terminal interactivo completo; los programas que piden entrada no funcionan. Requiere Acceso completo en la ventana de Herramientas.": {
     "en": "Persistent session: keeps the folder and variables between commands. You and the agent share this console. It is not a full interactive terminal; programs that ask for input do not work. Requires Full access in the Tools window.",
-    "pt": "Sessão persistente: mantém a pasta e as variáveis entre comandos. Você e o agente partilham esta consola. Não é um terminal interativo completo; programas que pedem entrada não funcionam. Requer Acesso completo na janela de Ferramentas.",
-    "fr": "Session persistante : conserve le dossier et les variables entre les commandes. Vous et l agent partagez cette console. Ce n est pas un terminal interactif complet ; les programmes qui demandent une entrée ne fonctionnent pas. Nécessite l accès complet dans la fenêtre Outils.",
-    "de": "Persistente Sitzung: Ordner und Variablen bleiben zwischen Befehlen erhalten. Sie und der Agent teilen diese Konsole. Es ist kein vollständiges interaktives Terminal; Programme mit Eingabeaufforderung funktionieren nicht. Erfordert Vollzugriff im Werkzeugfenster."
+    "pt": "Sessão persistente: mantém a pasta e as variáveis entre comandos. Você e o agente partilham esta consola. Não é um terminal interativo completo; programas que pedem entrada não funcionam. Requer Acesso completo na janela Tools.",
+    "fr": "Session persistante : conserve le dossier et les variables entre les commandes. Vous et l’agent partagez cette console. Ce n’est pas un terminal interactif complet ; les programmes qui demandent une entrée ne fonctionnent pas. Nécessite l’accès complet dans la fenêtre Tools.",
+    "de": "Persistente Sitzung: Ordner und Variablen bleiben zwischen Befehlen erhalten. Sie und der Agent teilen diese Konsole. Es ist kein vollständiges interaktives Terminal; Programme mit Eingabeaufforderung funktionieren nicht. Erfordert Vollzugriff im Tools-Fenster."
+  },
+  "Sesión persistente: conserva la carpeta y las variables entre comandos. Tú y el agente compartís esta consola. No es un terminal interactivo completo; los programas que piden entrada no funcionan. Requiere Acceso completo en la ventana de Tools.": {
+    "en": "Persistent session: keeps the folder and variables between commands. You and the agent share this console. It is not a full interactive terminal; programs that ask for input do not work. Requires Full access in the Tools window.",
+    "pt": "Sessão persistente: mantém a pasta e as variáveis entre comandos. Você e o agente partilham esta consola. Não é um terminal interativo completo; programas que pedem entrada não funcionam. Requer Acesso completo na janela Tools.",
+    "fr": "Session persistante : conserve le dossier et les variables entre les commandes. Vous et l’agent partagez cette console. Ce n’est pas un terminal interactif complet ; les programmes qui demandent une entrée ne fonctionnent pas. Nécessite l’accès complet dans la fenêtre Tools.",
+    "de": "Persistente Sitzung: Ordner und Variablen bleiben zwischen Befehlen erhalten. Sie und der Agent teilen diese Konsole. Es ist kein vollständiges interaktives Terminal; Programme mit Eingabeaufforderung funktionieren nicht. Erfordert Vollzugriff im Tools-Fenster."
   },
   "Modo del agente": {
     "en": "Agent mode",
@@ -4394,13 +4418,13 @@
   "Activar Agente completo": {
     "en": "Enable Full agent",
     "pt": "Ativar Agente completo",
-    "fr": "Activer l agent complet",
+    "fr": "Activer l’agent complet",
     "de": "Vollständigen Agenten aktivieren"
   },
   "El Agente completo puede realizar cualquier acción en tu equipo y en Internet sin pedir permiso. Actívalo solo si confías en la tarea y en el modelo.": {
     "en": "The Full agent can take any action on your machine and on the Internet without asking for permission. Enable it only if you trust the task and the model.",
     "pt": "O Agente completo pode realizar qualquer ação no seu equipamento e na Internet sem pedir permissão. Ative-o apenas se confiar na tarefa e no modelo.",
-    "fr": "L agent complet peut effectuer toute action sur votre machine et sur Internet sans demander de permission. Activez-le uniquement si vous faites confiance à la tâche et au modèle.",
+    "fr": "L’agent complet peut effectuer toute action sur votre machine et sur Internet sans demander de permission. Activez-le uniquement si vous faites confiance à la tâche et au modèle.",
     "de": "Der vollständige Agent kann jede Aktion auf Ihrem Gerät und im Internet ohne Nachfrage ausführen. Aktivieren Sie ihn nur, wenn Sie der Aufgabe und dem Modell vertrauen."
   },
   "Al activarlo, Windows pedirá UAC una vez para el administrador elevado.": {
@@ -6313,9 +6337,15 @@
   },
   "Ajusta cómo funcionan las herramientas y sus conexiones MCP. Para activarlas en un chat y elegir permisos, usa la ventana de Herramientas.": {
     "en": "Adjust how tools and their MCP connections work. To enable them in a chat and choose permissions, use the Tools window.",
-    "pt": "Ajuste como as ferramentas e suas conexões MCP funcionam. Para ativá-las em um chat e escolher permissões, use a janela Ferramentas.",
-    "fr": "Réglez le fonctionnement des outils et de leurs connexions MCP. Pour les activer dans un chat et choisir les autorisations, utilisez la fenêtre Outils.",
-    "de": "Lege fest, wie Werkzeuge und ihre MCP-Verbindungen arbeiten. Zum Aktivieren in einem Chat und für Berechtigungen nutze das Werkzeugfenster."
+    "pt": "Ajuste como as ferramentas e suas conexões MCP funcionam. Para ativá-las em um chat e escolher permissões, use a janela Tools.",
+    "fr": "Réglez le fonctionnement des outils et de leurs connexions MCP. Pour les activer dans un chat et choisir les autorisations, utilisez la fenêtre Tools.",
+    "de": "Lege fest, wie Werkzeuge und ihre MCP-Verbindungen arbeiten. Zum Aktivieren in einem Chat und für Berechtigungen nutze das Tools-Fenster."
+  },
+  "Ajusta cómo funcionan las herramientas y sus conexiones MCP. Para activarlas en un chat y elegir permisos, usa la ventana de Tools.": {
+    "en": "Adjust how tools and their MCP connections work. To enable them in a chat and choose permissions, use the Tools window.",
+    "pt": "Ajuste como as ferramentas e suas conexões MCP funcionam. Para ativá-las em um chat e escolher permissões, use a janela Tools.",
+    "fr": "Réglez le fonctionnement des outils et de leurs connexions MCP. Pour les activer dans un chat et choisir les autorisations, utilisez la fenêtre Tools.",
+    "de": "Lege fest, wie Werkzeuge und ihre MCP-Verbindungen arbeiten. Zum Aktivieren in einem Chat und für Berechtigungen nutze das Tools-Fenster."
   },
   "Extensiones": {
     "en": "Extensions",
@@ -7384,7 +7414,8 @@
   "Sin conexión local": {"en":"No local connection","pt":"Sem conexão local","fr":"Pas de connexion locale","de":"Keine lokale Verbindung"},
   "El servicio local no respondió. Revisa data/logs/agent.log.": {"en":"The local service did not respond. Check data/logs/agent.log.","pt":"O serviço local não respondeu. Verifique data/logs/agent.log.","fr":"Le service local n’a pas répondu. Vérifiez data/logs/agent.log.","de":"Der lokale Dienst hat nicht geantwortet. Prüfe data/logs/agent.log."},
   "No se pudieron guardar los cambios. Revisa el espacio disponible del navegador.": {"en":"Could not save changes. Check available browser storage space.","pt":"Não foi possível salvar as alterações. Verifique o espaço disponível do navegador.","fr":"Impossible d’enregistrer les modifications. Vérifiez l’espace disponible du navigateur.","de":"Änderungen konnten nicht gespeichert werden. Prüfe den verfügbaren Browserspeicher."},
-  "Activa Acceso completo en la ventana de Herramientas antes de ejecutar comandos.": {"en":"Enable Full PC access in the Tools window before running commands.","pt":"Ative o Acesso completo na janela Ferramentas antes de executar comandos.","fr":"Activez l’Accès complet dans la fenêtre Outils avant d’exécuter des commandes.","de":"Aktiviere Vollzugriff im Werkzeuge-Fenster, bevor du Befehle ausführst."},
+  "Activa Acceso completo en la ventana de Herramientas antes de ejecutar comandos.": {"en":"Enable Full PC access in the Tools window before running commands.","pt":"Ative o Acesso completo na janela Tools antes de executar comandos.","fr":"Activez l’Accès complet dans la fenêtre Tools avant d’exécuter des commandes.","de":"Aktiviere Vollzugriff im Tools-Fenster, bevor du Befehle ausführst."},
+  "Activa Acceso completo en la ventana de Tools antes de ejecutar comandos.": {"en":"Enable Full PC access in the Tools window before running commands.","pt":"Ative o Acesso completo na janela Tools antes de executar comandos.","fr":"Activez l’Accès complet dans la fenêtre Tools avant d’exécuter des commandes.","de":"Aktiviere Vollzugriff im Tools-Fenster, bevor du Befehle ausführst."},
   "Las descargas del navegador integrado se gestionan en Windows. Los archivos se guardan en tu carpeta de descargas.": {"en":"Built-in browser downloads are handled by Windows. Files are saved to your downloads folder.","pt":"Os downloads do navegador integrado são gerenciados pelo Windows. Os arquivos são salvos na sua pasta de downloads.","fr":"Les téléchargements du navigateur intégré sont gérés par Windows. Les fichiers sont enregistrés dans votre dossier de téléchargements.","de":"Downloads des integrierten Browsers werden von Windows verwaltet. Dateien werden in deinem Downloads-Ordner gespeichert."},
   "Contexto comprimido": {"en":"Compressed context","pt":"Contexto comprimido","fr":"Contexte compressé","de":"Komprimierter Kontext"},
   "Contexto comprimido.": {"en":"Context compressed.","pt":"Contexto comprimido.","fr":"Contexte compressé.","de":"Kontext komprimiert."},
@@ -7500,5 +7531,37 @@
   "La ventana de escritorio no está disponible.": {"en":"The desktop window is unavailable.","pt":"A janela de desktop não está disponível.","fr":"La fenêtre de bureau est indisponible.","de":"Das Desktopfenster ist nicht verfügbar."},
   "No se pudo abrir la página.": {"en":"Could not open the page.","pt":"Não foi possível abrir a página.","fr":"Impossible d’ouvrir la page.","de":"Seite konnte nicht geöffnet werden."},
   "No hay una página abierta en el navegador integrado.": {"en":"There is no page open in the built-in browser.","pt":"Não há página aberta no navegador integrado.","fr":"Aucune page n’est ouverte dans le navigateur intégré.","de":"Im integrierten Browser ist keine Seite geöffnet."},
-  "Acción de navegador no admitida.": {"en":"Unsupported browser action.","pt":"Ação de navegador não suportada.","fr":"Action de navigateur non prise en charge.","de":"Nicht unterstützte Browseraktion."}
+  "Acción de navegador no admitida.": {"en":"Unsupported browser action.","pt":"Ação de navegador não suportada.","fr":"Action de navigateur non prise en charge.","de":"Nicht unterstützte Browseraktion."},
+  "no compatible": {"en":"incompatible","pt":"incompatível","fr":"incompatible","de":"nicht kompatibel"},
+  "No compatible": {"en":"Incompatible","pt":"Incompatível","fr":"Incompatible","de":"Nicht kompatibel"},
+  "16 bits; mayor precisión y consumo de memoria.": {"en":"16-bit precision; highest accuracy and memory usage.","pt":"16 bits; maior precisão e consumo de memória.","fr":"16 bits ; précision et consommation mémoire maximales.","de":"16 Bit; höchste Genauigkeit und höchster Speicherverbrauch."},
+  "8 bits para claves y valores; reduce el consumo de memoria.": {"en":"8-bit keys and values; reduces memory usage.","pt":"8 bits para chaves e valores; reduz o consumo de memória.","fr":"8 bits pour clés et valeurs ; réduit la consommation mémoire.","de":"8 Bit für Schlüssel und Werte; reduziert den Speicherverbrauch."},
+  "Claves y valores de 8 bits; implementación propia de esta arquitectura.": {"en":"8-bit keys and values; custom implementation for this architecture.","pt":"Chaves e valores de 8 bits; implementação própria desta arquitetura.","fr":"Clés et valeurs sur 8 bits ; implémentation propre à cette architecture.","de":"8-Bit-Schlüssel und -Werte; eigene Implementierung dieser Architektur."},
+  "Claves de 8 bits y valores FP16; consumo intermedio.": {"en":"8-bit keys and FP16 values; intermediate memory usage.","pt":"Chaves de 8 bits e valores FP16; consumo intermediário.","fr":"Clés sur 8 bits et valeurs FP16 ; consommation intermédiaire.","de":"8-Bit-Schlüssel und FP16-Werte; mittlerer Speicherverbrauch."},
+  "4 bits con rotación Hadamard; menor memoria y precisión.": {"en":"4-bit with Hadamard rotation; lowest memory usage and accuracy.","pt":"4 bits com rotação Hadamard; menor memória e precisão.","fr":"4 bits avec rotation de Hadamard ; mémoire et précision réduites.","de":"4 Bit mit Hadamard-Rotation; geringster Speicherbedarf und geringere Genauigkeit."},
+  "Claves INT8 y valores Q4_0; formato híbrido.": {"en":"INT8 keys and Q4_0 values; hybrid format.","pt":"Chaves INT8 e valores Q4_0; formato híbrido.","fr":"Clés INT8 et valeurs Q4_0 ; format hybride.","de":"INT8-Schlüssel und Q4_0-Werte; Hybridformat."},
+  "No se pudo comprobar la compatibilidad KV.": {"en":"Could not verify KV compatibility.","pt":"Não foi possível verificar a compatibilidade KV.","fr":"Impossible de vérifier la compatibilité KV.","de":"KV-Kompatibilität konnte nicht geprüft werden."},
+  "Formato de caché KV no admitido por este modelo y motor.": {"en":"KV cache format not supported by this model and engine.","pt":"Formato de cache KV não suportado por este modelo e motor.","fr":"Format de cache KV non pris en charge par ce modèle et ce moteur.","de":"KV-Cache-Format wird von diesem Modell und dieser Engine nicht unterstützt."},
+  "Selecciona un formato compatible.": {"en":"Select a compatible format.","pt":"Selecione um formato compatível.","fr":"Sélectionnez un format compatible.","de":"Wähle ein kompatibles Format."},
+  "No se encontró la ventana principal.": {"en":"Main window was not found.","pt":"A janela principal não foi encontrada.","fr":"La fenêtre principale est introuvable.","de":"Das Hauptfenster wurde nicht gefunden."},
+  "Identificador de conversación no válido.": {"en":"Invalid conversation ID.","pt":"Identificador de conversa inválido.","fr":"Identifiant de conversation non valide.","de":"Ungültige Konversations-ID."},
+  "No existe la carpeta del Sandbox.": {"en":"Sandbox folder does not exist.","pt":"A pasta do Sandbox não existe.","fr":"Le dossier Sandbox n’existe pas.","de":"Der Sandbox-Ordner existiert nicht."},
+  "No existe la carpeta de esta conversación.": {"en":"Folder for this conversation does not exist.","pt":"A pasta desta conversa não existe.","fr":"Le dossier de cette conversation n’existe pas.","de":"Der Ordner für diese Konversation existiert nicht."},
+  "La carpeta del Sandbox no es válida.": {"en":"Sandbox folder path is invalid.","pt":"O caminho da pasta do Sandbox não é válido.","fr":"Le dossier Sandbox n’est pas valide.","de":"Der Sandbox-Ordnerpfad ist ungültig."},
+  "No se encontró la carpeta del ejecutable.": {"en":"Executable folder was not found.","pt":"A pasta do executável não foi encontrada.","fr":"Le dossier de l’exécutable est introuvable.","de":"Der Programmordner wurde nicht gefunden."},
+  "Carpeta desconocida.": {"en":"Unknown folder.","pt":"Pasta desconhecida.","fr":"Dossier inconnu.","de":"Unbekannter Ordner."},
+  "La carpeta de motores no está disponible.": {"en":"Engines folder is unavailable.","pt":"A pasta de motores não está disponível.","fr":"Le dossier des moteurs est indisponible.","de":"Der Engine-Ordner ist nicht verfügbar."},
+  "No se encontró la carpeta de V-Agent.": {"en":"V-Agent folder was not found.","pt":"A pasta do V-Agent não foi encontrada.","fr":"Le dossier de V-Agent est introuvable.","de":"Der V-Agent-Ordner wurde nicht gefunden."},
+  "No se encontró el desinstalador. Esta instalación puede ser portátil.": {"en":"Uninstaller was not found. This installation may be portable.","pt":"O desinstalador não foi encontrado. Esta instalação pode ser portátil.","fr":"Le programme de désinstallation est introuvable. Cette installation est peut-être portable.","de":"Deinstallationsprogramm nicht gefunden. Dies könnte eine portable Installation sein."},
+  "Color de ventana no válido.": {"en":"Invalid window color.","pt":"Cor de janela inválida.","fr":"Couleur de fenêtre non valide.","de":"Ungültige Fensterfarbe."},
+  "Redondez fuera de rango.": {"en":"Corner radius out of range.","pt":"Arredondamento fora do intervalo.","fr":"Rayon d’angle hors plage.","de":"Eckenradius außerhalb des gültigen Bereichs."},
+  "No se pudo abrir el diálogo para guardar el archivo.": {"en":"Could not open the save file dialog.","pt":"Não foi possível abrir a caixa de diálogo para salvar o arquivo.","fr":"Impossible d’ouvrir la boîte de dialogue d’enregistrement.","de":"Der Speicherdialog konnte nicht geöffnet werden."},
+  "No se pudo guardar el archivo.": {"en":"Could not save the file.","pt":"Não foi possível salvar o arquivo.","fr":"Impossible d’enregistrer le fichier.","de":"Die Datei konnte nicht gespeichert werden."},
+  "Archivo guardado.": {"en":"File saved.","pt":"Arquivo salvo.","fr":"Fichier enregistré.","de":"Datei gespeichert."},
+  "Exportación cancelada.": {"en":"Export cancelled.","pt":"Exportação cancelada.","fr":"Exportation annulée.","de":"Export abgebrochen."},
+  "Usa los controles de V-Agent para abrir la carpeta.": {"en":"Use V-Agent controls to open the folder.","pt":"Use os controles do V-Agent para abrir a pasta.","fr":"Utilisez les contrôles de V-Agent pour ouvrir le dossier.","de":"Verwende die V-Agent-Steuerelemente, um den Ordner zu öffnen."},
+  "Primero abre o guarda una conversación.": {"en":"Open or save a conversation first.","pt":"Abra ou salve uma conversa primeiro.","fr":"Ouvrez ou enregistrez d’abord une conversation.","de":"Öffne oder speichere zuerst eine Konversation."},
+  "Conecta una API para ver sus modelos.": {"en":"Connect an API to see its models.","pt":"Conecte uma API para ver os modelos.","fr":"Connectez une API pour voir ses modèles.","de":"Verbinde eine API, um ihre Modelle anzuzeigen."},
+  "Guardando contexto…": {"en":"Saving context…","pt":"Salvando contexto…","fr":"Enregistrement du contexte…","de":"Kontext wird gespeichert…"},
+  "No hay modelos instalados.": {"en":"No installed models found.","pt":"Não há modelos instalados.","fr":"Aucun modèle installé.","de":"Keine installierten Modelle gefunden."}
 }

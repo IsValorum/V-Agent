@@ -26,7 +26,7 @@ async function flushSessionSaves(){
   })();
   try{await sessionFlush;}finally{sessionFlush=null;}
 }
-$('#exportSessions').onclick=async()=>{try{await flushSessionSaves();const data=await requestJSON('/api/v1/sessions');downloadToolDraft('strata-historial.json',JSON.stringify({version:1,sessions:data.sessions},null,2));}catch(error){note(error.message);}};
+$('#exportSessions').onclick=async()=>{try{await flushSessionSaves();const data=await requestJSON('/api/v1/sessions');await downloadToolDraft('strata-historial.json',JSON.stringify({version:1,sessions:data.sessions},null,2),'application/json');}catch(error){note(error?.message||String(error));}};
 $('#importSessions').onclick=()=>$('#sessionsFile').click();
 $('#sessionsFile').onchange=async event=>{const file=event.target.files[0];if(!file)return;try{const value=JSON.parse(await file.text());const sessions=Array.isArray(value)?value:value.sessions||[value.conversation||value];const result=await requestJSON('/api/v1/sessions/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessions})});convs=result.sessions;savedSessionBodies.clear();for(const chat of convs)savedSessionBodies.set(chat.id,JSON.stringify(sessionBody(chat)));renderConvs();note(result.errors?.length?'Importación parcial; la copia original se conserva en disco.':'Historial importado sin sobrescribir conversaciones existentes.');}catch(error){note(error.message);}finally{event.target.value='';}};
 

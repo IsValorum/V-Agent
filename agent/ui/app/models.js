@@ -261,7 +261,7 @@
       status.textContent=ok.length+' '+T('importados')+(bad.length?' · '+bad.length+' '+T('con error')+': '+bad.map(r=>r.error).join(' · '):'')+(warnings.length?' · '+warnings.join(' · '):'');
       document.getElementById('refreshModels')?.click();
       return data;
-    }catch(error){status.textContent=error.message;}
+    }catch(error){status.textContent=T(error?.message||String(error));}
   }
   async function importSelected(){const button=transfer.querySelector('#transferImport');button.disabled=true;await importItems(selected(),transfer.querySelector('#transferStatus'));await scan();}
   async function fillExportModels(){
@@ -277,11 +277,12 @@
     try{
       const data=await api('/api/harness/external/export',{model,target});
       if(target==='file'){
-        const blob=new Blob([JSON.stringify(data.file,null,2)],{type:'application/json'}),link=document.createElement('a');
-        link.href=URL.createObjectURL(blob);link.download='v-agent-'+(data.file.models?.[0]?.name||'modelo').replace(/[^\p{L}\p{N}_.-]+/gu,'-').slice(0,60)+'.json';link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);
-        status.textContent=T('Archivo de ajustes guardado.');
+        const filename='v-agent-'+(data.file.models?.[0]?.name||'modelo').replace(/[^\p{L}\p{N}_.-]+/gu,'-').slice(0,60)+'.json';
+        const content=JSON.stringify(data.file,null,2);
+        const saved=window.downloadToolDraft?await window.downloadToolDraft(filename,content,'application/json',{silent:true}):null;
+        status.textContent=saved?(T('Guardado en')+' '+saved):T('Exportación cancelada.');
       }else status.textContent=T('Ajustes escritos en')+' '+data.written;
-    }catch(error){status.textContent=error.message;}
+    }catch(error){status.textContent=T(error?.message||String(error));}
   }
   async function importFile(event){
     const file=event.target.files[0];event.target.value='';if(!file)return;const status=transfer.querySelector('#exportStatus');
@@ -289,7 +290,7 @@
       const data=JSON.parse(await file.text());
       if(data.type!=='v-agent-model-settings'||!Array.isArray(data.models))throw new Error(T('No es un archivo de ajustes de V-Agent.'));
       await importItems(data.models,status);
-    }catch(error){status.textContent=error.message;}
+    }catch(error){status.textContent=T(error?.message||String(error));}
   }
 
   // ---------------------------------------------------------------- entry points

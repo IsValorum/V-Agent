@@ -38,14 +38,14 @@ function setupLoadSettings(){
   syncLoadSettings();
   if(typeof attachLoadSettingsToPanel==='function')attachLoadSettingsToPanel();
 }
-function syncLoadSettings(){
+function syncLoadSettings(estimate=true){
   const group=document.getElementById('modelLoadSettings');if(!group)return;
   const currentModel=document.getElementById('model').value;
   loadCurrent={...LOAD_DEFAULTS,...modelPreferences[currentModel]?.load};draftCurrent={...DRAFT_DEFAULTS,...modelPreferences[currentModel]?.draft};
   group.hidden=!['llama','strata'].includes(activeEngine);document.getElementById('modelMemoryEstimate').hidden=activeEngine==='api';
   const draftBox=document.getElementById('modelDraftSettings');
-  if(draftBox){draftBox.hidden=activeEngine!=='llama';const enabled=document.getElementById('llamaDraftEnabled'),path=document.getElementById('llamaDraftPath'),type=document.getElementById('llamaDraftType'),max=document.getElementById('llamaDraftMax'),min=document.getElementById('llamaDraftMin');enabled.checked=!!draftCurrent.enabled;path.value=draftCurrent.path||'';type.value=draftCurrent.type||'auto';max.value=draftCurrent.max||3;min.value=draftCurrent.min||0;enabled.disabled=busy||engineBusy;for(const input of [path,type,max,min])input.disabled=busy||engineBusy||!draftCurrent.enabled;const label=type.options[type.selectedIndex]?.textContent||'Automático';const status=document.getElementById('llamaDraftStatus');status.textContent=!draftCurrent.enabled?'Sin draft: el modelo principal responde solo.':!draftCurrent.path?'Elige un GGUF draft compatible.':(draftCurrent.path.split(/[\\/]/).pop()+' · '+label+' · '+draftCurrent.max+' tokens · suma memoria y debe ser compatible con el modelo principal.');}
-  for(const key of ['parallel','batch','ubatch','checkpoints']){const input=document.getElementById('load_'+key);input.closest('.setting-row').hidden=activeEngine==='strata'&&key!=='checkpoints';if(document.activeElement!==input)input.value=loadCurrent.auto&&key!=='checkpoints'?'Auto':loadCurrent[key]===0&&key!=='checkpoints'?'Auto':loadCurrent[key];input.disabled=loadCurrent.auto||busy||engineBusy||(key==='checkpoints'&&activeEngine==='llama'&&loadCapabilities?.checkpoints===false);}
+  if(draftBox){draftBox.hidden=activeEngine!=='llama';const enabled=document.getElementById('llamaDraftEnabled'),path=document.getElementById('llamaDraftPath'),type=document.getElementById('llamaDraftType'),max=document.getElementById('llamaDraftMax'),min=document.getElementById('llamaDraftMin');enabled.checked=!!draftCurrent.enabled;path.value=draftCurrent.path||'';type.value=draftCurrent.type||'auto';max.value=draftCurrent.max||3;min.value=draftCurrent.min||0;enabled.disabled=busy||engineBusy;for(const input of [path,type,max,min])input.disabled=busy||engineBusy||!draftCurrent.enabled;const label=type.options[type.selectedIndex]?.textContent||uiText('Automático');const status=document.getElementById('llamaDraftStatus');status.textContent=!draftCurrent.enabled?uiText('Sin draft: el modelo principal responde solo.'):!draftCurrent.path?uiText('Elige un GGUF draft compatible.'):(draftCurrent.path.split(/[\\/]/).pop()+' · '+uiText(label)+' · '+draftCurrent.max+' tokens · '+uiText('suma memoria y debe ser compatible con el modelo principal.'));}
+  for(const key of ['parallel','batch','ubatch','checkpoints']){const input=document.getElementById('load_'+key);input.closest('.setting-row').hidden=activeEngine==='strata'&&key!=='checkpoints';if(document.activeElement!==input)input.value=loadCurrent.auto&&key!=='checkpoints'?uiText('Auto'):loadCurrent[key]===0&&key!=='checkpoints'?uiText('Auto'):loadCurrent[key];input.disabled=loadCurrent.auto||busy||engineBusy||(key==='checkpoints'&&activeEngine==='llama'&&loadCapabilities?.checkpoints===false);}
   // llama.cpp: the VRAM margin belongs to automatic (--fit); layers and MoE experts to manual.
   const layers=memoryLast?.memory?.block_count,moe=memoryLast?.memory?.moe!==false;
   for(const key of LOAD_LLAMA_FIELDS){const input=document.getElementById('load_'+key),row=input.closest('.setting-row');
@@ -55,23 +55,24 @@ function syncLoadSettings(){
   for(const button of group.querySelectorAll('[data-load-auto]')){button.setAttribute('aria-pressed',String(String(loadCurrent.auto)===button.dataset.loadAuto));button.disabled=busy||engineBusy;}
   const status=document.getElementById('loadSettingsStatus');
   if(activeEngine==='llama')status.textContent=loadCurrent.auto?uiText('Automático: llama.cpp ajusta capas y contexto a tu memoria (--fit).'):uiText('Personalizado: tú eliges las capas (sin --fit). Se aplicará en la próxima carga.')+(layers?' '+uiText('El modelo tiene')+' '+layers+' '+uiText('capas')+'.':'');
-  else status.textContent=loadCurrent.auto?'Automático: 1 slot, lotes del motor y 1 checkpoint.':'Se aplicará en la próxima carga manual.';
-  requestMemoryEstimate();
+  else status.textContent=loadCurrent.auto?uiText('Automático: 1 slot, lotes del motor y 1 checkpoint.'):uiText('Se aplicará en la próxima carga manual.');
+  if(estimate)requestMemoryEstimate();
 }
-function memoryGiB(value){return typeof value==='number'?'≈ '+(value/2**30).toLocaleString(undefined,{maximumFractionDigits:2})+' GiB':'No disponible';}
-function paintMemory(data){
-  memoryLast=data;loadCapabilities=data.capabilities;syncLoadSettings();const m=data.memory,h=m.hardware||{};document.getElementById('memoryHeadline').textContent=memoryGiB(m.total);{const cm=document.getElementById('contextMemory');if(cm)cm.textContent=uiText('Memoria')+' '+memoryGiB(m.total);}document.getElementById('memoryTotal').textContent=memoryGiB(m.total);
-  document.getElementById('memoryGpuLabel').textContent=activeEngine==='strata'?'GPU (base)':'GPU con descarga completa';document.getElementById('memoryGpu').textContent=memoryGiB(m.gpu_full_offload);
+function memoryGiB(value){return typeof value==='number'?'≈ '+(value/2**30).toLocaleString(window.VALI18n?.locale||undefined,{maximumFractionDigits:2})+' GiB':uiText('No disponible');}
+function paintMemory(data,resync=true){
+  memoryLast=data;loadCapabilities=data.capabilities;if(resync)syncLoadSettings();const m=data.memory,h=m.hardware||{};document.getElementById('memoryHeadline').textContent=memoryGiB(m.total);{const cm=document.getElementById('contextMemory');if(cm)cm.textContent=uiText('Memoria')+' '+memoryGiB(m.total);}document.getElementById('memoryTotal').textContent=memoryGiB(m.total);
+  document.getElementById('memoryGpuLabel').textContent=uiText(activeEngine==='strata'?'GPU (base)':'GPU con descarga completa');document.getElementById('memoryGpu').textContent=memoryGiB(m.gpu_full_offload);
   const breakdown=document.getElementById('memoryBreakdown');breakdown.replaceChildren();for(const [label,key] of [['Pesos','weights'],['Caché KV','kv'],['Estados y checkpoints','recurrent'],['Buffers','buffers']]){const row=document.createElement('div'),title=document.createElement('span'),value=document.createElement('span');row.className='memory-detail';title.textContent=uiText(label);value.textContent=memoryGiB(m[key]);row.append(title,value);breakdown.append(row);}
-  document.getElementById('memoryShape').textContent=m.kv_type+' · '+m.context_per_slot.toLocaleString()+' tokens/slot · '+m.slots+' slots';
+  document.getElementById('memoryShape').textContent=m.kv_type+' · '+m.context_per_slot.toLocaleString(window.VALI18n?.locale||undefined)+' tokens/slot · '+m.slots+' slots';
   const warning=document.getElementById('memoryWarning'),gpu=document.getElementById('memoryGpu');const exceeds=typeof h.gpu_available==='number'&&m.gpu_full_offload>h.gpu_available;gpu.dataset.exceeds=String(exceeds);
-  warning.textContent=exceeds?'La descarga completa supera la VRAM libre. Automático puede dejar capas en CPU; la generación será más lenta.':typeof h.ram_available==='number'&&m.total>h.ram_available+(h.gpu_available||0)?'La estimación supera la memoria libre del equipo. Reduce contexto o cambia la caché KV.':'';
+  warning.textContent=exceeds?uiText('La descarga completa supera la VRAM libre. Automático puede dejar capas en CPU; la generación será más lenta.'):typeof h.ram_available==='number'&&m.total>h.ram_available+(h.gpu_available||0)?uiText('La estimación supera la memoria libre del equipo. Reduce contexto o cambia la caché KV.'):'';
   // The warning lived only inside the folded "Estimated memory": shown again under the context control.
   let shown=document.getElementById('contextMemoryWarning');const block=document.getElementById('contextBlock');
   if(!shown&&block){shown=document.createElement('p');shown.id='contextMemoryWarning';shown.className='context-memory-warning';shown.setAttribute('role','status');block.append(shown);}
-  if(shown){shown.textContent=warning.textContent?uiText(warning.textContent):'';shown.hidden=!warning.textContent;}
+  if(shown){shown.textContent=warning.textContent;shown.hidden=!warning.textContent;}
   document.getElementById('memoryNotes').textContent=uiText('Estimación, no reserva de memoria.')+' '+m.notes.map(note=>uiText(note)).join(' ');
 }
+window.refreshLoadSettingsTranslations=()=>{syncLoadSettings(false);if(memoryLast&&document.getElementById('modelMemoryEstimate'))paintMemory(memoryLast,false);};
 function requestMemoryEstimate(force=false){
   if(!document.getElementById('modelMemoryEstimate'))return;
   clearTimeout(memoryTimer);const model=document.getElementById('model')?.value;if(!model||activeEngine==='api'||!document.getElementById('modelMemoryEstimate'))return;
