@@ -563,7 +563,7 @@ function syncApplicationIcon(logo){
 function setupWindowFrame(){
   const api=window.__TAURI__?.window;if(!api?.getCurrentWindow||document.getElementById('windowControls'))return;
   const win=api.getCurrentWindow();document.body.classList.add('desktop-frame');
-  for(const element of document.querySelectorAll('.topbar,.topbar .breadcrumb,.topbar .spacer,#sidebar .sidebar-chrome'))element.setAttribute('data-tauri-drag-region','');
+  for(const element of document.querySelectorAll('.topbar,.topbar .breadcrumb,.topbar .breadcrumb span,.topbar .spacer,#sidebar .sidebar-chrome,#sidebar .chrome-status'))element.setAttribute('data-tauri-drag-region','');
   const icons={minimize:'<path d="M6 12h12"/>',maximize:'<rect x="6" y="6" width="12" height="12" rx="1.5"/>',restore:'<rect x="8" y="5" width="11" height="11" rx="1.5"/><path d="M5 9v8.5A1.5 1.5 0 0 0 6.5 19H15"/>',close:'<path d="m7 7 10 10M17 7 7 17"/>'};
   const bar=document.createElement('div');bar.id='windowControls';bar.setAttribute('data-tauri-drag-region','');bar.setAttribute('role','group');bar.setAttribute('aria-label',uiText('Ventana'));
   const make=(id,label,run)=>{const button=document.createElement('button');button.type='button';button.className='window-control';button.dataset.control=id;button.setAttribute('aria-label',uiText(label));button.title=uiText(label);button.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true">'+icons[id]+'</svg>';button.onclick=()=>run().catch(error=>console.warn('Window control:',error));bar.append(button);return button;};

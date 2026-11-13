@@ -1178,9 +1178,276 @@ body.desktop-frame #chatwrap .topbar{pointer-events:auto;}
 .context-compact-meta small{font-size:10px;color:var(--muted);overflow-wrap:anywhere;}
 #ctxCompact{padding:6px 11px;font-size:11px;font-weight:600;border-radius:var(--radius,10px);background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--text);border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border));}
 #ctxCompact:hover:enabled{background:var(--accent);color:var(--accent-ink,#111);}
-.msg.compacted{max-width:100%;}
+#chat .msg.compacted,.msg.compacted{max-width:100%;}
 .compact-card{width:100%;border:1px dashed color-mix(in srgb,var(--accent) 45%,var(--border));border-radius:10px;padding:8px 12px;background:color-mix(in srgb,var(--accent) 5%,transparent);}
 .compact-card>summary{cursor:pointer;font-size:11px;color:var(--muted);font-weight:600;list-style:none;}
 .compact-card>summary::-webkit-details-marker{display:none;}
 .compact-card[open]>summary{margin-bottom:8px;color:var(--text);}
 .compact-body{font-size:12px;}
+
+/* ===================== Unified 1.0.8 UI Redesign =====================
+   Consolidates layout balance, typography scale, panel breathing room,
+   and palette coherence without touching legacy structure contracts. */
+
+/* 1. Harmonize outside tokens & surface hierarchy with every theme */
+:root{
+  --redesign-card-bg:color-mix(in srgb,var(--text) 2.5%,var(--panel));
+  --redesign-subtle-bg:color-mix(in srgb,var(--text) 4.5%,transparent);
+}
+body,body[data-theme-mode=day]{
+  --outside-surface:color-mix(in srgb,var(--panel) calc(var(--outside-opacity,.90) * 100%),var(--bg));
+  --outside-text:var(--text);
+  --outside-border:var(--soft-line,var(--border));
+}
+body[data-theme-mode=day]:not([data-ui-style=deco]){
+  --soft-line:color-mix(in srgb,var(--text) 10%,transparent);
+  --soft-shadow:0 14px 36px rgb(0 0 0 / .09),0 2px 8px rgb(0 0 0 / .05);
+}
+:root[data-amoled=true]:not([data-ui-style=deco]){
+  --soft-line:color-mix(in srgb,#ffffff 13%,transparent);
+  --soft-fill:color-mix(in srgb,#ffffff 7%,transparent);
+  --soft-fill-hover:color-mix(in srgb,#ffffff 12%,transparent);
+}
+
+/* Eliminate leftover Art Deco double borders outside explicit deco mode */
+:root:not([data-ui-style=deco]) .sidebar-extras{border-top:0!important;border-bottom:1px solid var(--soft-line)!important;}
+:root:not([data-ui-style=deco]) .file-chip{border:1px solid var(--soft-line)!important;border-radius:var(--control-radius,10px)!important;}
+:root:not([data-ui-style=deco]) .draft-speculative{border-top:1px solid var(--soft-line)!important;}
+
+/* 2. Rebalanced top chrome: sidebar status badge + chat topbar (title & quick actions) */
+#sidebar .sidebar-chrome{padding:4px 4px 10px;gap:3px;min-height:36px;}
+#sidebar .sidebar-chrome .icon-btn{width:30px;height:30px;padding:6px;border-radius:var(--control-radius,8px)!important;}
+#sidebar .chrome-status{margin-left:auto;display:flex;align-items:center;min-width:0;max-width:100%;}
+#sidebar .chrome-status .connection{margin:0!important;display:inline-flex!important;align-items:center;gap:6px;padding:4px 9px;border-radius:999px;background:color-mix(in srgb,var(--text) 4.5%,transparent);border:1px solid var(--soft-line,var(--border));font-size:11px;line-height:1.2;max-width:132px;}
+#sidebar .chrome-status .connection #connectionText{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+#chatwrap .topbar{
+  position:absolute!important;z-index:6;top:0;left:0;right:0;
+  height:var(--frame-height,48px)!important;min-height:0!important;
+  display:flex!important;align-items:center;gap:8px;padding:0 16px!important;
+  pointer-events:auto;transition:background .2s ease,border-color .2s ease;
+}
+#chatwrap .topbar .breadcrumb{
+  display:flex!important;align-items:center;min-width:0;max-width:60%;
+  font-size:13px;font-weight:550;color:var(--text);transition:opacity .18s ease;
+}
+#chatwrap .topbar #chatTitle{max-width:100%;font-weight:550;letter-spacing:-.01em;}
+#chatwrap .topbar .spacer{display:block!important;flex:1;min-width:12px;}
+#chatwrap[data-empty="true"] .topbar{
+  background:transparent!important;border-bottom:1px solid transparent!important;
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+}
+#chatwrap[data-empty="true"] .topbar .breadcrumb{opacity:0;visibility:hidden;pointer-events:none;}
+#chatwrap[data-empty="false"] .topbar{
+  background:color-mix(in srgb,var(--bg) 86%,transparent)!important;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+}
+:root:not([data-ui-style=deco]) #chatwrap[data-empty="false"] .topbar{border-bottom:1px solid var(--soft-line)!important;}
+:root[data-ui-style=deco] #chatwrap[data-empty="false"] .topbar{border-bottom:3px double var(--double-line)!important;}
+
+#chatwrap .topbar .top-actions{margin-left:0;display:flex;align-items:center;gap:4px;flex:0 0 auto;}
+#chatwrap .topbar .icon-btn{
+  width:32px;height:32px;padding:6px;border:0!important;
+  border-radius:var(--control-radius,9px)!important;background:transparent!important;
+  color:var(--muted);transition:background .15s ease,color .15s ease;
+}
+#chatwrap .topbar .icon-btn:hover:not(:disabled){
+  color:var(--text);background:color-mix(in srgb,var(--text) 8%,transparent)!important;
+}
+body.desktop-frame:not(.browser-open) #chatwrap .topbar{padding-right:152px!important;}
+body.desktop-frame.browser-open #chatwrap .topbar{padding-right:16px!important;}
+#chatwrap[data-empty="false"] #chat{padding-top:calc(var(--frame-height,48px) + 18px)!important;}
+@media(max-width:760px){
+  #chatwrap .topbar{padding:0 12px!important;}
+  body.desktop-frame:not(.browser-open) #chatwrap .topbar{padding-right:146px!important;}
+}
+
+/* 3. Sidebar craft */
+#sidebar{padding:10px 10px 12px;}
+#sidebar #newchat{
+  min-height:36px;padding:7px 12px;margin:2px 0 6px;
+  border-radius:var(--control-radius,10px)!important;
+  border:1px solid color-mix(in srgb,var(--accent) 20%,transparent)!important;
+  background:color-mix(in srgb,var(--accent) 11%,transparent)!important;
+  color:var(--text);font-size:13px;font-weight:550;gap:8px;
+  transition:background .16s ease,border-color .16s ease;
+}
+#sidebar #newchat:hover{
+  background:color-mix(in srgb,var(--accent) 18%,transparent)!important;
+  border-color:color-mix(in srgb,var(--accent) 34%,transparent)!important;
+}
+#sidebar .sidebar-extra{
+  min-height:33px;padding:6px 10px!important;border-radius:var(--control-radius,9px)!important;gap:9px;
+}
+#sidebar .sidebar-extra strong{font-size:12.5px;}
+#sidebar .side-head{font-size:10.5px;font-weight:600;letter-spacing:.06em;padding:4px 8px;margin-top:8px;}
+#sidebar .conv{padding:7px 10px;min-height:32px;font-size:12.5px;border-radius:var(--control-radius,9px);}
+#sidebar .conv-group-label{font-size:10.5px;margin:10px 8px 4px;}
+#sidebar .engine-card{border-radius:var(--control-radius,10px);border:1px solid var(--soft-line,var(--border));background:var(--redesign-subtle-bg);padding:8px 10px;}
+#sidebar .sidebar-foot{padding-top:8px;gap:6px;}
+#sidebar #gear{min-height:32px;padding:6px 10px;border-radius:var(--control-radius,9px);font-size:12.5px;}
+
+/* 4. Welcome screen, user bubbles (restore --userBg!), & composer bar */
+.welcome{gap:14px;padding:8px 20px;}
+.welcome h2{
+  background:transparent!important;border:0!important;box-shadow:none!important;
+  color:var(--text)!important;padding:0!important;border-radius:0!important;
+  font-size:clamp(21px,2.35vw,29px);font-weight:600;letter-spacing:-.022em;line-height:1.25;
+}
+:root:not([data-ui-style=deco]) #chat .msg.user .bubble{
+  background:var(--userBg,color-mix(in srgb,var(--accent) 13%,var(--panel)))!important;
+  border:1px solid color-mix(in srgb,var(--text) 9%,transparent)!important;
+  border-radius:16px 16px 4px 16px!important;
+  padding:10px 15px!important;line-height:1.62;
+  box-shadow:0 2px 10px rgb(0 0 0 / .06)!important;
+}
+:root[data-ui-style=deco] #chat .msg.user .bubble{
+  background:var(--userBg,var(--panel))!important;
+}
+#chat .msg .message-actions button{font-size:11.5px;min-height:26px;padding:3px 8px;border-radius:7px;}
+#chat .tool-name{font-size:12px;}
+#chat .tool-hint{font-size:11px;}
+#chat .tool-status{font-size:11px;}
+
+.compose-inner .project-strip{gap:8px;margin-bottom:8px;}
+#projectBtn{
+  min-height:30px;padding:4px 12px;font-size:12px;border-radius:999px;gap:6px;
+  border:1px solid var(--outside-border,var(--border));background:var(--outside-surface);
+}
+#projectBtn .control-chevron{overflow:visible!important;text-overflow:clip!important;flex:0 0 auto;font-size:12px;line-height:1;}
+#agentModeSegments{
+  min-height:30px;padding:3px;border-radius:999px;
+  border:1px solid var(--outside-border,var(--border));background:var(--outside-surface);
+}
+#agentModeSegments button{font-size:12px;padding:4px 11px;min-height:24px;}
+.compose-surface{
+  border-radius:max(16px,var(--panel-radius,16px))!important;
+  padding:12px 14px 10px;
+  transition:border-color .18s ease,box-shadow .18s ease;
+}
+.compose-surface:focus-within{
+  border-color:color-mix(in srgb,var(--accent) 46%,var(--soft-line,var(--border)))!important;
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent),0 12px 32px rgb(0 0 0 / .16)!important;
+}
+#input{font-size:14px;line-height:1.55;}
+.composer-tools{margin-top:8px;padding-top:6px;gap:6px;}
+.composer-control{min-height:30px;padding:4px 10px;font-size:12px;border-radius:999px;gap:5px;}
+#send{width:34px;height:34px;border-radius:50%!important;}
+#composerBox .composer-foot{font-size:11px;margin-top:7px;opacity:.78;}
+
+/* 5. Floating windows, Settings Drawer, & Comfort Typography (12.5px system) */
+:root:not([data-ui-style=glass]) :is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw,.val-confirm,.tool-approval){
+  background:color-mix(in srgb,var(--panel) 97%,transparent)!important;
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+}
+:is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw,dialog){
+  --panel-control-fs:12.5px;
+}
+:is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw,dialog) :is(button:not(.icon-btn):not(.help-trigger):not(.window-control):not(.tool-remove):not(.conv-more),select,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),textarea){
+  font-size:12.5px;min-height:32px;
+}
+:is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw,dialog) :is(.row,.setting-row,.field-label,.chk,.settings-group>summary){
+  font-size:12.5px;line-height:1.45;
+}
+:is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw,dialog) :is(p.mini,.setting-note,.muted-note,.context-memory,.model-load-state,.context-compact-meta small){
+  font-size:11.5px;line-height:1.5;
+}
+:is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw) :is(.drawer-head,.controls-head,.fw-head,.dlg-head){
+  padding:13px 16px;border-bottom:1px solid var(--soft-line,var(--border));
+}
+:is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw) :is(.drawer-head h2,.controls-head h2,.fw-head h2,.dlg-head h2){
+  font-size:15px;font-weight:600;letter-spacing:-.01em;
+}
+
+/* Settings Drawer (#drawer) */
+#drawer{grid-template-columns:174px minmax(0,1fr)!important;grid-template-rows:auto minmax(0,1fr)!important;}
+#drawer .settings-navigation{
+  padding:12px 10px;border-right:1px solid var(--soft-line,var(--border));
+  background:color-mix(in srgb,var(--text) 1.5%,transparent);
+  max-height:none!important;min-height:0;overflow-y:auto;
+}
+#drawer #settingsSearch{box-sizing:border-box;width:100%;margin-bottom:8px;padding:7px 10px;border-radius:var(--control-radius,8px);}
+#drawer #settingsNav{gap:3px;}
+#drawer #settingsNav button{
+  font-size:12.5px;font-weight:500;padding:8px 11px;min-height:34px;
+  border-radius:var(--control-radius,9px)!important;text-align:left;
+  position:relative;color:var(--muted);border:0!important;background:transparent;
+}
+#drawer #settingsNav button:hover{
+  color:var(--text);background:color-mix(in srgb,var(--text) 6%,transparent);
+}
+#drawer #settingsNav button[aria-selected=true]{
+  color:var(--text);font-weight:600;
+  background:color-mix(in srgb,var(--accent) 14%,transparent)!important;
+}
+#drawer .drawer-body{padding:14px 18px 18px;}
+#drawer .settings-page h3{font-size:14.5px;font-weight:600;margin:0 0 8px;}
+#drawer .settings-data{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+#drawer #userGuide{display:inline-flex;align-items:center;min-height:32px;padding:6px 12px;font-size:12.5px;border-radius:var(--control-radius,9px);}
+#drawer .setting-row{min-height:36px;padding:7px 0;gap:12px;}
+#drawer .settings-group{margin:10px 0;border-radius:var(--control-radius,10px);border:1px solid var(--soft-line,var(--border));padding:0 12px;background:var(--redesign-card-bg);}
+#drawer .settings-group>summary{padding:11px 0;font-weight:600;}
+#drawer .group-body{padding:2px 0 12px;}
+
+/* Composer Inspector (#composerControls: Model, Response, Context) */
+#composerControls,#composerControls[data-pane="tools"]{
+  max-height:calc(100dvh - 84px);
+}
+#composerControls .controls-body{padding:12px 16px 16px;gap:10px;}
+#composerControls .model-card{
+  padding:6px;border-radius:var(--panel-radius,14px);
+  border:1px solid var(--soft-line,var(--border));background:var(--redesign-card-bg);
+}
+#composerControls .model-chooser{padding:9px 11px;border-radius:var(--control-radius,10px);}
+#composerControls .model-chooser strong{font-size:13.5px;}
+#composerControls .model-chooser small{font-size:11.5px;}
+#composerControls #modelSummaryAction{font-size:12.5px;font-weight:600;min-height:32px;padding:6px 15px;border-radius:var(--control-radius,9px);}
+#composerControls .context-block{
+  margin:10px 0 4px;padding:12px 14px;border-radius:var(--panel-radius,14px);
+  border:1px solid var(--soft-line,var(--border));background:var(--redesign-card-bg);
+}
+#composerControls .context-block-title{font-size:13px;font-weight:600;}
+#composerControls .context-block .context-setting #ctxValue{font-size:16px;font-weight:600;}
+#composerControls .context-ticks{font-size:10.5px;margin-top:4px;}
+#composerControls .context-block #kvSettings{margin-top:10px;padding-top:10px;border-top:1px solid var(--soft-line,var(--border));}
+#composerControls .model-grid .row,#composerControls .context-block #kvSettings .row{min-height:32px;margin:7px 0;gap:10px;}
+#composerControls .model-grid .row select,#composerControls .context-block #kvSettings select{max-width:60%;min-width:110px;}
+#composerControls .model-grid .row input[type=number]{width:92px;}
+#composerControls .context-compact-box{
+  margin:10px 0 4px;padding:11px 14px;border-radius:var(--panel-radius,14px);
+  border:1px solid var(--soft-line,var(--border));background:color-mix(in srgb,var(--accent) 5%,var(--panel));
+}
+#composerControls .context-compact-meta strong{font-size:12.5px;}
+#composerControls #ctxCompact{font-size:12px;font-weight:600;min-height:32px;padding:6px 13px;border-radius:var(--control-radius,9px);}
+#composerControls .engine-quick{
+  padding:11px 14px;border-radius:var(--panel-radius,14px);
+  border:1px solid color-mix(in srgb,var(--accent) 22%,transparent);
+}
+#composerControls #modelSectionTabs{margin-top:10px;}
+#composerControls #modelSectionTabs button{font-size:12px;padding:6px 11px;min-height:30px;}
+
+/* Tools & MCP Window (#toolsWindow) & Models Hub (#modelsWindow) & Console */
+#toolsWindow .fw-body{padding:12px 16px 16px;gap:10px;}
+#toolsWindow .tool-group{
+  padding:12px 14px;margin:8px 0;border-radius:var(--panel-radius,14px);
+  border:1px solid var(--soft-line,var(--border));background:var(--redesign-card-bg);
+  gap:8px 12px;
+}
+#toolsWindow .tool-group .group-title,#toolsWindow .tool-group>h3{font-size:13px;font-weight:600;margin-bottom:2px;}
+#toolsWindow .tool-group>p{font-size:11.5px;line-height:1.5;}
+#toolsWindow .chk{min-height:28px;font-size:12.5px;gap:8px;}
+
+/* Modals (#addModelDialog, #projectDialog, #editMessageDialog) */
+:is(#addModelDialog,#projectDialog,#editMessageDialog){padding:20px 22px;border-radius:var(--panel-radius,16px);}
+:is(#addModelDialog,#projectDialog,#editMessageDialog) h3{font-size:15px;font-weight:600;margin-bottom:10px;}
+
+/* Compact density override retains clean proportions */
+:root[data-density=compact] #drawer .setting-row{min-height:30px;padding:4px 0;}
+:root[data-density=compact] :is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw,dialog) :is(button:not(.icon-btn):not(.help-trigger):not(.window-control):not(.tool-remove):not(.conv-more),select,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),textarea){
+  min-height:28px;font-size:12px;
+}
+
+@media(max-width:700px){
+  #drawer{grid-template-columns:146px minmax(0,1fr)!important;}
+  #drawer .drawer-body{padding:10px 12px;}
+}
