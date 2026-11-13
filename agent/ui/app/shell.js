@@ -145,7 +145,7 @@ async function restoreClientPreferences(){
   const duration=uiPreferences.animation_ms??620;window.VALMotion?.setDuration(duration);$('#animationSpeed').value=duration;$('#animationSpeedValue').textContent=duration+' ms';
   if(!window.VALI18n){$('#uiLanguage').disabled=true;return;}
   try{await window.VALI18n.init(uiPreferences.language);}catch{uiPreferences.language='es';window.VALI18n.setLanguage('es');$('#uiLanguage').disabled=true;$('#languageSaveState').textContent='No se pudieron cargar las traducciones.';}uiPreferences.language=window.VALI18n.language;$('#uiLanguage').value=uiPreferences.language;
-  const selectors=['#thinkingMenu','#permissionMenu','#searchToggle','#mobileMenu','.top-actions','#drawer','#composerControls','#composerAddMenu','#helpCard','#addModelDialog','#projectDialog','#viewer .dlg-head','#editMessageDialog','#engineCard','#gear','#newchat','.side-head','.sidebar-local','#sidebarExtras','#sidebarResizer','#sidebarReopen','#sidebar .sidebar-chrome','#convSearch','#projectsNav','.composer-foot','#agentModeBtn','#agentModeMenu','#agentModeSegments','#agentModeWarning','#convMenu','#projectMenu','#updateStack','#browserDock','#consoleWindow','#toolsWindow','#viewer','#vframe','#scopeBtn','#responseBtn','#modelBtn','#mcpBtn','#ctxBtn','#input','#attach','#projectBtn','#send','#themeBtn','#followBtn','.help-trigger','#chatActions','#attachments','#st-ram-meter','#st-vram-meter','#preparationProgress','#modelPreparation','#browserTabs','#browserNewTab','#browserDockClose','#browserBack','#browserUrl','#browserBookmark','#browserListClose','#toast','#dismissToast','#editMessageInput','.welcome','.history-empty','#toastText'];
+  const selectors=['#thinkingMenu','#permissionMenu','#searchToggle','#mobileMenu','.top-actions','#drawer','#composerControls','#composerAddMenu','#helpCard','#addModelDialog','#projectDialog','#viewer .dlg-head','#editMessageDialog','#engineCard','#gear','#newchat','.side-head','.sidebar-local','#sidebarExtras','#sidebarResizer','#sidebarReopen','#sidebar .sidebar-chrome','#convSearch','#projectsNav','.composer-foot','#agentModeBtn','#agentModeMenu','#agentModeSegments','#agentModeWarning','#convMenu','#projectMenu','#updateStack','#browserDock','#consoleWindow','#toolsWindow','#viewer','#vframe','#scopeBtn','#responseBtn','#modelBtn','#mcpBtn','#ctxBtn','#input','#attach','#projectBtn','#send','#themeBtn','#followBtn','.help-trigger','#chatActions','#attachments','#st-ram-meter','#st-vram-meter','#preparationProgress','#modelPreparation','#browserTabs','#browserNewTab','#browserDockFullscreen','#browserDockClose','#browserBack','#browserUrl','#browserBookmark','#browserListClose','#toast','#dismissToast','#editMessageInput','.welcome','.history-empty','#toastText'];
   for(const selector of selectors)document.querySelectorAll(selector).forEach(el=>window.VALI18n.observe(el));
   window.VALI18n.onChange(()=>{document.querySelectorAll('.welcome,.history-empty').forEach(el=>window.VALI18n.observe(el));syncComposerLabels();syncPreparationView();syncContextMeter();if(lastToolBudget)pintarPresupuesto(lastToolBudget);if(!currentId)$('#chatTitle').textContent=uiText('Nuevo chat');if(!loadedModel&&$('#loadedTxt'))$('#loadedTxt').textContent=uiText(modelStateKnown?'Ninguno':'Comprobando…');for(const el of document.querySelectorAll('[data-ui-label]'))el.textContent=uiText(el.dataset.uiLabel);window.refreshChatTranslations?.();window.refreshModelPanelTranslations?.();window.refreshLoadSettingsTranslations?.();window.VALI18n.refresh();});
   syncSettingsSummary();window.VALI18n.refresh();
@@ -295,10 +295,26 @@ function setupAgentModeSeat(){
   for(const key of AGENT_MODE_ORDER){const option=document.createElement('button');option.type='button';option.dataset.agentMode=key;option.textContent=uiText(AGENT_MODES[key].short);option.dataset.modeDescription=uiText(AGENT_MODES[key].desc);option.setAttribute('aria-label',uiText(AGENT_MODES[key].name));option.onclick=()=>setAgentMode(key);segments.append(option);}
   strip.append(segments);button.hidden=true;window.VALI18n?.observe(segments);
   const tip=document.createElement('div');tip.id='agentModeTooltip';tip.setAttribute('role','tooltip');tip.setAttribute('popover','manual');document.body.append(tip);
-  const dismissTip=()=>{if(tip.matches(':popover-open'))window.VALMotion.hidePopover(tip,()=>{},true);};
-  const showTip=option=>{tip.textContent=uiText(option.dataset.modeDescription);option.setAttribute('aria-describedby',tip.id);window.VALMotion.showPopover(tip);const r=option.getBoundingClientRect();tip.style.left=Math.max(10,Math.min(innerWidth-tip.offsetWidth-10,r.left))+'px';tip.style.top=Math.max(10,r.top-tip.offsetHeight-10)+'px';};
-  for(const option of segments.children){option.addEventListener('pointerenter',()=>showTip(option));option.addEventListener('focus',()=>showTip(option));option.addEventListener('pointerleave',dismissTip);option.addEventListener('blur',dismissTip);option.addEventListener('click',dismissTip);}
-  addEventListener('resize',dismissTip);document.addEventListener('scroll',dismissTip,true);document.addEventListener('keydown',e=>{if(e.key==='Escape')dismissTip();});
+  let tipAnchor=null;
+  const dismissTip=()=>{if(tipAnchor){tipAnchor.removeAttribute('aria-describedby');tipAnchor=null;}if(tip.matches(':popover-open')){if(window.VALMotion)window.VALMotion.hidePopover(tip,()=>{},true);else tip.hidePopover();}};
+  const showTip=(anchor,text,{compact=false,center=false}={})=>{
+    tipAnchor=anchor;tip.dataset.compact=compact?'true':'false';tip.textContent=text;
+    anchor.setAttribute('aria-describedby',tip.id);if(window.VALMotion)window.VALMotion.showPopover(tip);else tip.showPopover();
+    const r=anchor.getBoundingClientRect();
+    const desiredLeft=center?(r.left+r.width/2-tip.offsetWidth/2):r.left;
+    tip.style.left=Math.max(10,Math.min(innerWidth-tip.offsetWidth-10,desiredLeft))+'px';
+    const aboveTop=r.top-tip.offsetHeight-(compact?8:10);
+    const top=aboveTop>=10?aboveTop:Math.min(innerHeight-tip.offsetHeight-10,r.bottom+(compact?8:10));
+    tip.style.top=Math.max(10,top)+'px';
+  };
+  for(const option of segments.children){option.addEventListener('pointerenter',()=>showTip(option,uiText(option.dataset.modeDescription)));option.addEventListener('focus',()=>showTip(option,uiText(option.dataset.modeDescription)));option.addEventListener('pointerleave',dismissTip);option.addEventListener('blur',dismissTip);option.addEventListener('click',dismissTip);}
+  const searchBtn=document.getElementById('searchToggle');
+  if(searchBtn&&!searchBtn.dataset.tipBound){
+    searchBtn.dataset.tipBound='1';
+    const showSearchTip=()=>showTip(searchBtn,'WebSearch/WebVisit',{compact:true,center:true});
+    searchBtn.addEventListener('pointerenter',showSearchTip);searchBtn.addEventListener('focus',showSearchTip);searchBtn.addEventListener('pointerleave',dismissTip);searchBtn.addEventListener('blur',dismissTip);
+  }
+  addEventListener('resize',dismissTip);document.addEventListener('scroll',dismissTip,true);document.addEventListener('pointerdown',e=>{if(!e.target.closest?.('#searchToggle,#agentModeSegments button'))dismissTip();});document.addEventListener('keydown',e=>{if(e.key==='Escape')dismissTip();});
 
   const menu=document.createElement('div');menu.id='agentModeMenu';menu.className='agent-small-menu agent-mode-menu';menu.setAttribute('popover','manual');menu.setAttribute('role','menu');menu.setAttribute('aria-label',uiText('Modo del agente'));
   for(const key of AGENT_MODE_ORDER){

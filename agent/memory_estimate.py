@@ -5,18 +5,58 @@ from gguf_catalog import inspect
 from load_settings import effective
 GIB=2**30
 _hardware=(0,{})
+_hardware_pids=()
+_idle_gpu_used=None
 _hw_lock=threading.Lock()
-def hardware():
-    global _hardware
+def invalidate_hardware_cache():
+    global _hardware,_hardware_pids
+    with _hw_lock:_hardware=(0,{});_hardware_pids=()
+def _pid_vram(engine_pids):
+    pids={int(p) for p in (engine_pids or ()) if p}
+    if not pids:return 0,False
+    try:r=subprocess.run(['nvidia-smi','--query-compute-apps=pid,used_gpu_memory','--format=csv,noheader,nounits'],capture_output=True,text=True,timeout=2,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+    except (OSError,subprocess.TimeoutExpired):return 0,False
+    total=0;matched=False
+    for line in r.stdout.splitlines():
+        parts=[part.strip() for part in line.split(',')]
+        if len(parts)<2:continue
+        try:pid=int(parts[0])
+        except ValueError:continue
+        if pid not in pids:continue
+        try:total+=int(parts[1])*2**20;matched=True
+        except ValueError:pass
+    return total,matched
+def hardware(reclaimable_bytes=0,engine_pids=None,force=False):
+    global _hardware,_hardware_pids,_idle_gpu_used
+    pid_sig=tuple(sorted({int(p) for p in (engine_pids or ()) if p}))
     with _hw_lock:
-        if time.monotonic()-_hardware[0]<15:return _hardware[1]
-        import psutil
-        ram=psutil.virtual_memory();result={'ram_available':ram.available,'ram_total':ram.total,'gpu_available':None,'gpu_total':None}
-        try:
-            r=subprocess.run(['nvidia-smi','--query-gpu=memory.free,memory.total','--format=csv,noheader,nounits'],capture_output=True,text=True,timeout=2,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
-            parts=r.stdout.splitlines()[0].split(',');result.update(gpu_available=int(parts[0])*2**20,gpu_total=int(parts[1])*2**20)
-        except (OSError,ValueError,IndexError,subprocess.TimeoutExpired):pass
-        _hardware=(time.monotonic(),result);return result
+        if not force and pid_sig==_hardware_pids and time.monotonic()-_hardware[0]<5 and _hardware[1]:
+            base=dict(_hardware[1])
+        else:
+            import psutil
+            ram=psutil.virtual_memory();base={'ram_available':ram.available,'ram_total':ram.total,'gpu_available':None,'gpu_total':None}
+            try:
+                r=subprocess.run(['nvidia-smi','--query-gpu=memory.free,memory.total','--format=csv,noheader,nounits'],capture_output=True,text=True,timeout=2,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+                parts=r.stdout.splitlines()[0].split(',');base.update(gpu_available=int(parts[0])*2**20,gpu_total=int(parts[1])*2**20)
+            except (OSError,ValueError,IndexError,subprocess.TimeoutExpired):pass
+            pid_vram,pid_matched=_pid_vram(pid_sig) if base.get('gpu_total') is not None else (0,False)
+            base['_pid_vram']=pid_vram;base['_pid_matched']=pid_matched
+            if base.get('gpu_available') is not None and base.get('gpu_total') is not None and not pid_sig and not reclaimable_bytes:
+                _idle_gpu_used=max(0,base['gpu_total']-base['gpu_available'])
+            _hardware=(time.monotonic(),base);_hardware_pids=pid_sig
+    result={k:v for k,v in base.items() if not k.startswith('_')}
+    gpu_avail=result.get('gpu_available');gpu_total=result.get('gpu_total')
+    reclaim=0
+    if gpu_avail is not None and gpu_total is not None and (pid_sig or reclaimable_bytes):
+        used_now=max(0,gpu_total-gpu_avail)
+        delta=max(0,used_now-_idle_gpu_used) if _idle_gpu_used is not None else 0
+        if base.get('_pid_matched') and base.get('_pid_vram',0)>0:reclaim=min(used_now,base['_pid_vram'])
+        else:reclaim=min(used_now,max(delta,int(reclaimable_bytes or 0)))
+        result['gpu_effective_available']=min(gpu_total,gpu_avail+reclaim)
+    else:
+        result['gpu_effective_available']=gpu_avail
+    result['gpu_reclaimable']=reclaim
+    return result
 
 _KV_BPE={'fp16':(2,2),'f16':(2,2),'bf16':(2,2),'q8_0':(34/32,34/32),'int8':(1,1),'q4_0':(18/32,18/32),'int8k':(1,2),'k8v4':(1,18/32)}
 
@@ -130,6 +170,7 @@ def estimate_facts(facts,context,kv,settings,kind='llama',gpu_layers='auto',caps
     return {'estimated':True,'weights':weights,'kv':cache,'recurrent':state,'buffers':buffers,'total':total,'gpu_full_offload':gpu,'cpu_weights':weights-gpu_weights,'context_per_slot':context,'slots':slots,'kv_type':kv,'effective':v,'notes':notes,'architecture':a,
             'block_count':layers,'moe':bool(facts.get('expert_bytes'))}
 
-def estimate(model,context,kv,settings,kind,layers,caps=None):
+def estimate(model,context,kv,settings,kind,layers,caps=None,*,reclaimable_bytes=0,engine_pids=None):
     result=estimate_facts(inspect(Path(model['path'])),context,kv,settings,kind,layers,caps)
-    result['hardware']=hardware();return result
+    result['hardware']=hardware(reclaimable_bytes=reclaimable_bytes,engine_pids=engine_pids) if (reclaimable_bytes or engine_pids) else hardware()
+    return result

@@ -139,7 +139,11 @@ function attachLoadSettingsToPanel(){
     const label=document.createElement('summary');label.textContent=uiText('Carga del motor');group.append(label);
     loadSettings.before(group);group.append(loadSettings);loadSettings.querySelector('h4')?.setAttribute('hidden','');
   }
-  if($('#modelMemoryEstimate'))$('#modelMemoryEstimate').open=false;
+  const estimate=$('#modelMemoryEstimate'),block=$('#contextBlock'),warn=$('#contextMemoryWarning');
+  if(estimate){
+    if(block&&!block.contains(estimate)){if(warn)warn.before(estimate);else block.append(estimate);}
+    estimate.open=false;
+  }
 }
 function updateCreatorNotice(){
   const notice=$('#creatorNotice'),pref=modelPreferences[$('#model').value];if(!notice||!pref)return;

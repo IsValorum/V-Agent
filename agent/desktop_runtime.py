@@ -205,9 +205,22 @@ def install(a):
         if not item:raise ValueError('Ese modelo no está disponible en el motor seleccionado.')
         return item
 
+    def _clear_hw_cache():
+        from memory_estimate import invalidate_hardware_cache
+        invalidate_hardware_cache()
+
+    def _active_engine_pids():
+        pids=[]
+        proc=getattr(a,'_SERVER_PROCESS',None) if manager.kind=='strata' else manager.process
+        if proc is not None and proc.poll() is None:
+            pids.append(proc.pid)
+            try:pids.extend(child.pid for child in psutil.Process(proc.pid).children(recursive=True))
+            except Exception:pass
+        return pids
+
     def health():
         if manager.kind=='strata':return original['engine_health']()
-        if manager.kind in ('llama','rust') and manager.process and manager.process.poll() is not None:manager.stop()
+        if manager.kind in ('llama','rust') and manager.process and manager.process.poll() is not None:manager.stop();_clear_hw_cache()
         return {'status':'ok','loaded':bool(manager.loaded),'model':manager.loaded}
 
     def load(name,context=None):
@@ -238,8 +251,11 @@ def install(a):
                 while '--prompt-cache' in args:
                     i=args.index('--prompt-cache');del args[i:i+2]
                 args+=['--prompt-cache',str(effective(saved)['checkpoints'])];cfg['args']=args;atomic_json(file,cfg)
-            return original['load_agent_model'](name,context)
-        model=selected(name);manager.load(model,context or model['preferences']['context'],a.PREPARATION)
+            try:return original['load_agent_model'](name,context)
+            finally:_clear_hw_cache()
+        model=selected(name)
+        try:manager.load(model,context or model['preferences']['context'],a.PREPARATION)
+        finally:_clear_hw_cache()
         return {'status':'loaded','model':model,'loaded':True,'loaded_model':name,'engine_online':True,'preparation':a.PREPARATION.snapshot()}
 
     def context(tokens,name=None):
@@ -296,8 +312,14 @@ def install(a):
         return result
     a.REMOTE_ENGINE=lambda:manager.kind=='api';a.installed_models=annotated_models;a.selected_model=selected;a.engine_health=health;a.load_agent_model=load;a.require_loaded_model=require;a.change_context=context;a.engine_chat_stream=stream;a.stats=stats
     a.current_model=lambda:original['current_model']() if manager.kind=='strata' else (manager.loaded,selected(manager.loaded).get('config') if manager.loaded else None)
-    a.unload_agent_model=lambda:original['unload_agent_model']() if manager.kind=='strata' else manager.release_remote() if manager.kind=='api' else manager.stop()
-    a.stop_engine=lambda *args,**kwargs:original['stop_engine'](*args,**kwargs) if manager.kind=='strata' else manager.stop()
+    def _unload():
+        try:return original['unload_agent_model']() if manager.kind=='strata' else manager.release_remote() if manager.kind=='api' else manager.stop()
+        finally:_clear_hw_cache()
+    def _stop(*args,**kwargs):
+        try:return original['stop_engine'](*args,**kwargs) if manager.kind=='strata' else manager.stop()
+        finally:_clear_hw_cache()
+    a.unload_agent_model=_unload
+    a.stop_engine=_stop
     a.start_engine=lambda name=None:original['start_engine'](name) if manager.kind=='strata' else ({'status':'ready','engine_online':True} if manager.kind=='llama' else manager.connect())
     a.tokenizer_del_modelo=lambda *args:original['tokenizer_del_modelo'](*args) if manager.kind=='strata' else None
     a.engine_context=lambda:original['engine_context']() if manager.kind=='strata' else manager.metrics()['engine'].get('max_context')
@@ -503,18 +525,30 @@ def install(a):
                     kv=body.get('kv') or model.get('preferences',{}).get('kv','fp16')
                     if manager.kind=='strata':a.kv_settings.validate(model['config'],kv)
                     elif kv not in {item['value'] for item in model.get('kv',{}).get('options',[])}:raise ValueError('Formato de caché KV no admitido por el motor seleccionado.')
-                    from load_settings import validate,capabilities
-                    from memory_estimate import estimate
+                    from load_settings import validate,capabilities,gpu_layers
+                    from memory_estimate import estimate,estimate_facts,inspect
+                    from draft_models import validate as validate_draft,weight_bytes
                     load=validate(body.get('load',model.get('preferences',{}).get('load',{})))
                     caps=capabilities(manager.executable()) if manager.kind=='llama' else {}
                     if manager.kind=='strata':
                         config=_read_json(model['config'],{});args=config.get('args',[])
                         try:caps['prompt_batch']=int(args[args.index('--prompt-batch')+1]) if '--prompt-batch' in args else 1024
                         except (ValueError,IndexError):caps['prompt_batch']=1024
-                    from load_settings import gpu_layers
                     cfg=manager.settings.get('llama',{});layers='auto' if manager.kind=='strata' else '0' if cfg.get('variant')=='cpu' else gpu_layers(load,cfg.get('gpu_layers','auto'))
-                    result=estimate(model,context,kv,load,manager.kind,layers,caps)
-                    from draft_models import validate as validate_draft,weight_bytes
+                    engine_pids=_active_engine_pids();reclaimable=0
+                    loaded_name=a.current_model()[0] if manager.kind=='strata' else manager.loaded
+                    if loaded_name:
+                        try:
+                            loaded_item=model if loaded_name==model.get('id') else selected(loaded_name)
+                            if isinstance(loaded_item,dict) and loaded_item.get('path'):
+                                loaded_pref=loaded_item.get('preferences') or {}
+                                loaded_load=validate(loaded_pref.get('load',{}))
+                                loaded_layers='auto' if manager.kind=='strata' else '0' if cfg.get('variant')=='cpu' else gpu_layers(loaded_load,cfg.get('gpu_layers','auto'))
+                                loaded_ctx=(a.engine_context() if manager.kind=='strata' else getattr(manager,'loaded_context',None)) or loaded_item.get('context') or 16384
+                                loaded_est=estimate_facts(inspect(Path(loaded_item['path'])),int(loaded_ctx),loaded_pref.get('kv','fp16'),loaded_load,manager.kind,loaded_layers,caps)
+                                reclaimable=int(loaded_est.get('gpu_full_offload') or 0)+weight_bytes(validate_draft(loaded_pref.get('draft') or {}))
+                        except (ValueError,OSError,KeyError,TypeError):reclaimable=0
+                    result=estimate(model,context,kv,load,manager.kind,layers,caps,reclaimable_bytes=reclaimable,engine_pids=engine_pids)
                     draft=validate_draft(body.get('draft') or model.get('preferences',{}).get('draft') or {})
                     draft_size=weight_bytes(draft)
                     if draft_size:
