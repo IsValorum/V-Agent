@@ -9,13 +9,21 @@
       ['safesearch','Filtro de contenido','select',[['on','Estricto'],['moderate','Moderado'],['off','Desactivado']]],
       ['filter_ads','Excluir anuncios identificados','checkbox'],
       ['timeout','Tiempo de espera por petición (s)','number',[5,30]],
-      ['visit_tokens','Web Visit · tokens por página ≈','number',[256,2000]],
+      ['visit_tokens','Web Visit · tokens por página ≈ (0 = sin límite)','number',[0,1000000]],
       ['include_links','Web Visit · incluir enlaces','checkbox'],
       ['include_tables','Web Visit · incluir tablas','checkbox'],
-      ['max_result_chars','Límite de salida (caracteres)','number',[1000,12000]],
+      ['max_result_chars','Límite de salida (caracteres, 0 = sin límite)','number',[0,1000000]],
     ],
-    pc:[['command_timeout','Comandos · espera predeterminada (s)','number',[5,300]],['max_result_chars','Límite de salida (caracteres)','number',[1000,12000]]],
-    hf:[['command_timeout','CLI · espera predeterminada (s)','number',[5,300]],['max_result_chars','Límite de salida (caracteres)','number',[1000,12000]]],
+    documents:[
+      ['extract_mode','Modo de extracción predeterminado','select',[['auto','Automático (Markdown + tablas)'],['markdown','Markdown estructurado'],['text','Texto plano'],['tables','Solo tablas']]],
+      ['max_pages','Páginas máx. en PDF (0 = sin límite)','number',[0,5000]],
+      ['max_chars','Caracteres máx. por lectura (0 = sin límite)','number',[0,1000000]],
+      ['include_tables','Extraer tablas como Markdown','checkbox'],
+      ['ocr_scanned','OCR en páginas escaneadas (Windows OCR)','checkbox'],
+      ['include_metadata','Incluir metadatos del documento','checkbox'],
+    ],
+    pc:[['command_timeout','Comandos · espera predeterminada (s)','number',[5,300]],['max_result_chars','Límite de salida (caracteres)','number',[1000,1000000]]],
+    hf:[['command_timeout','CLI · espera predeterminada (s)','number',[5,300]],['max_result_chars','Límite de salida (caracteres)','number',[1000,1000000]]],
   };
   async function requestJSON(url,init){const response=await fetch(url,init);const data=await response.json();if(!response.ok||data.error)throw new Error(data.error||('HTTP '+response.status));return data;}
   let loaded=null,loading=null;
@@ -28,7 +36,7 @@
     const host=document.createElement('details');host.id='mcpOptions';host.className='settings-group';
     host.innerHTML='<summary>Configuración de MCPs</summary><div class="mcp-options-body"><p class="mini">Se aplican a las próximas llamadas. No activa herramientas.</p><div id="mcpOptionsFields"></div><div class="mcp-options-actions"><button id="saveMCPOptions" type="button" disabled>Guardar ajustes</button><span id="mcpOptionsState" class="mini" role="status"></span></div></div>';
     document.getElementById('settings-tools').insertBefore(host,document.getElementById('settingsToolsHost'));
-    for(const [server,title] of [['duckduckgo','Web Search / Web Visit'],['pc','PC · archivos y código'],['hf','Hugging Face']]){
+    for(const [server,title] of [['duckduckgo','Web Search / Web Visit'],['documents','Extractor de PDF y documentos'],['pc','PC · archivos y código'],['hf','Hugging Face']]){
       const group=document.createElement('details');group.className='mcp-option-server';const summary=document.createElement('summary');summary.textContent=title;group.append(summary);
       const content=document.createElement('div');content.className='mcp-option-fields';
       for(const [key,label,type,values] of fields[server]){
@@ -39,7 +47,9 @@
         row.append(text,input);content.append(row);
       }
       if(server==='duckduckgo'){
-        const hint=document.createElement('p');hint.className='mini';hint.textContent='El buscador combina país e idioma. Otro idioma puede usar su región principal. Web Visit usa un presupuesto aproximado: 4 caracteres por token. Los resultados ya son orgánicos; se excluyen anuncios marcados.';content.append(hint);
+        const hint=document.createElement('p');hint.className='mini';hint.textContent='El buscador combina país e idioma. Otro idioma puede usar su región principal. Web Visit usa un presupuesto aproximado: 4 caracteres por token. Pon 0 = sin límite para extraer la página completa. Los resultados ya son orgánicos; se excluyen anuncios marcados.';content.append(hint);
+      }else if(server==='documents'){
+        const hint=document.createElement('p');hint.className='mini';hint.textContent='Admite PDF (texto, tablas y OCR opcional), Word (.docx), Excel (.xlsx), PowerPoint (.pptx), OpenDocument, EPUB, RTF, HTML, XML y CSV. Pon 0 = sin límite en páginas o caracteres. También se aplica cuando Web Visit abre un PDF o documento remoto.';content.append(hint);
       }
       group.append(content);document.getElementById('mcpOptionsFields').append(group);
     }
@@ -51,5 +61,6 @@
       try{loaded=await requestJSON('/api/harness/mcp-options',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});status.textContent=t('Guardado en este equipo');}
       catch(error){status.textContent=t('No se pudieron guardar los ajustes.');}finally{button.disabled=false;}
     };
+    window.VALI18n?.observe?.(host);
   };
 })();

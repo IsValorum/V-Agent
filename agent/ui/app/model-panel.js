@@ -61,7 +61,7 @@ function setupModelWindow(){
   const context=$('#controls-context'),response=$('#controls-response');
   for(const pane of [context,response]){pane.hidden=false;delete pane.dataset.controlsPane;}
   const cache=$('#kvSettings');
-  load.append(context,cache,$('#draftSettings'));generation.append(response);
+  load.append(context,$('#draftSettings'));generation.append(response);
   cache.querySelector('#kvCache').onchange=()=>{queueModelPreferences();syncKVSettings();};
   response.querySelector('details').open=true;
   const notice=document.createElement('div');notice.id='creatorNotice';notice.setAttribute('role','status');

@@ -95,7 +95,8 @@ function syncEngineCapabilities(){
   if(activeEngine==='llama'&&$('#visionEncoder')){$('#visionEncoder').value='Integrado en llama.cpp';$('#browseEncoder').hidden=true;}else if($('#browseEncoder'))$('#browseEncoder').hidden=false;
   const add=$('#addModel');if(add){add.hidden=remote;}
   if($('#modelResults'))$('#modelResults').setAttribute('aria-label',remote?'Modelos de la API':'Modelos instalados');
-  if($('#remoteModelInfo'))$('#remoteModelInfo').hidden=!remote;
+  if($('#remoteModelInfo')){$('#remoteModelInfo').hidden=!remote;const usage=$('#contextUsage');if(usage){if(remote){$('#remoteModelInfo .remote-context-stats')?.after(usage);}else{$('#controls-context')?.prepend(usage);}}}
+  if($('#contextCompactBox')){if(remote&&$('#remoteModelInfo'))$('#remoteModelInfo').after($('#contextCompactBox'));else if($('#contextBlock'))$('#contextBlock').after($('#contextCompactBox'));$('#contextCompactBox').hidden=false;}
   $('#composerControls').dataset.activeSource=remote?'api':'local';if($('#engineQuickSettings')){const label=$('#engineQuickSettings span')||$('#engineQuickSettings');label.textContent=uiText(remote?'Gestionar conexiones':'Cambiar motor');}
   syncModelSelectionSummary();syncSettingsSummary();
 }

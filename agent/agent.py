@@ -115,7 +115,7 @@ def _parecido(a, b):
 
 
 READ_ONLY_TOOLS = {
-    'pc__fs_read', 'pc__fs_list', 'pc__fs_search', 'pc__sys_info', 'pc__project_map',
+    'pc__fs_read', 'pc__doc_read', 'pc__fs_list', 'pc__fs_search', 'pc__sys_info', 'pc__project_map',
     'pc__code_check', 'pc__web_render', 'pc__file_history', 'hf__hf_account',
     'duckduckgo__web_search', 'duckduckgo__web_visit', 'web__http_request',
     'autobrowser__snapshot', 'autobrowser__text', 'autobrowser__screenshot',
@@ -767,7 +767,7 @@ def compact_local_context(model_id, messages, instructions=None, engine_port=ENG
         "chat_template_kwargs": {"no_date": True, "enable_thinking": False},
         "messages": [
             {"role": "system", "content": prompt},
-            {"role": "user", "content": "Historial a comprimir:\n\n" + transcript},
+            {"role": "user", "content": "Conversation history to compress:\n\n" + transcript},
         ],
     }
     connection = http.client.HTTPConnection("127.0.0.1", engine_port, timeout=600)
@@ -781,6 +781,7 @@ def compact_local_context(model_id, messages, instructions=None, engine_port=ENG
         data = json.loads(raw)
         choice = (data.get("choices") or [None])[0] or {}
         summary = str(((choice.get("message") or {}).get("content")) or "").strip()
+        summary = re.sub(r"<think>.*?</think>", "", summary, flags=re.S).strip() or summary
         if not summary:
             raise ValueError("El modelo no devolvió texto al comprimir el contexto.")
         raw_usage = data.get("usage") if isinstance(data.get("usage"), dict) else None
@@ -1070,7 +1071,7 @@ def tools_for(fn, tpath=None, agent_profile="balanced"):
     if fn.get("visit"):
         enabled.add("web_visit")
     if fn.get("files"):
-        enabled.update({"fs_list", "fs_read", "fs_write", "fs_edit", "fs_copy", "fs_search", "fs_manage", "web_render", "draft_resume", "file_history", "code_check", "project_map"})
+        enabled.update({"fs_list", "fs_read", "doc_read", "fs_write", "fs_edit", "fs_copy", "fs_search", "fs_manage", "web_render", "draft_resume", "file_history", "code_check", "project_map"})
     if fn.get("browser"):
         enabled.add("browser")
     if fn.get("web"):
@@ -1110,12 +1111,13 @@ def tools_for(fn, tpath=None, agent_profile="balanced"):
     if not full_access:
         descriptions = {'pc__fs_list': 'List sandbox files; use relative paths.',
                         'pc__fs_read': 'Read sandbox UTF-8 text; offset continues by character; linea is a 1-based line, ventana is the line count.',
+                        'pc__doc_read': 'Extract text, tables and metadata from PDF, Word, Excel, PowerPoint, ODF, EPUB, RTF, HTML, XML and CSV in the sandbox.',
                         'pc__fs_write': 'Write sandbox UTF-8 text; use relative paths.',
                         'pc__fs_edit': 'Replace exact blocks in a sandbox file: old_text/new_text or edits=[...] (all or nothing); old_text must match verbatim.',
                         'pc__fs_copy': 'Copy or move text between sandbox files by line number, without the model retyping it.',
                         'pc__web_render': 'Render sandbox HTML; report console errors and scene/camera/instance diagnostics. Not a visual quality guarantee.',
                         'pc__shell_run': 'Run CMD in the isolated workspace. No network, PowerShell or background jobs. If unavailable, the command is not run.'}
-        path_notes = {'pc__fs_list', 'pc__fs_read', 'pc__fs_write', 'pc__fs_edit', 'pc__web_render'}
+        path_notes = {'pc__fs_list', 'pc__fs_read', 'pc__doc_read', 'pc__fs_write', 'pc__fs_edit', 'pc__web_render'}
         for tool in tools:
             fn = tool['function']
             if fn['name'] in descriptions:

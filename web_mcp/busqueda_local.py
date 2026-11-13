@@ -155,7 +155,7 @@ def relevant_sections(text, find_in_page):
         if (phrase and phrase in normalized) or terms & keywords(paragraph):
             selected.update(range(max(0, i - 1), min(len(paragraphs), i + 2)))
     if not selected:
-        return '[No se encontraron coincidencias para find_in_page.]\n\n' + text
+        return '[No matches found for find_in_page.]\n\n' + text
     # Relevant paragraphs and their neighbors precede the rest, before truncation.
     return '\n\n'.join([paragraphs[i] for i in sorted(selected)] +
                        [p for i, p in enumerate(paragraphs) if i not in selected])

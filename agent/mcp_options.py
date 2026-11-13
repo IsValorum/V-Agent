@@ -14,12 +14,20 @@ SCHEMA = {
         'timelimit': ('', ('','d','w','m','y')),
         'safesearch': ('moderate', ('on','moderate','off')),
         'count': (5, 1, 10), 'filter_ads': (True, bool),
-        'timeout': (10, 5, 30), 'visit_tokens': (1500, 256, 2000),
+        'timeout': (10, 5, 30), 'visit_tokens': (1500, 0, 1000000),
         'include_links': (True, bool), 'include_tables': (True, bool),
-        'max_result_chars': (12000, 1000, 12000),
+        'max_result_chars': (0, 0, 1000000),
     },
-    'pc': {'command_timeout': (60, 5, 300), 'max_result_chars': (8000, 1000, 12000)},
-    'hf': {'command_timeout': (60, 5, 300), 'max_result_chars': (12000, 1000, 12000)},
+    'pc': {'command_timeout': (60, 5, 300), 'max_result_chars': (8000, 1000, 1000000)},
+    'hf': {'command_timeout': (60, 5, 300), 'max_result_chars': (12000, 1000, 1000000)},
+    'documents': {
+        'extract_mode': ('auto', ('auto', 'markdown', 'text', 'tables')),
+        'max_pages': (0, 0, 5000),
+        'max_chars': (24000, 0, 1000000),
+        'include_tables': (True, bool),
+        'ocr_scanned': (True, bool),
+        'include_metadata': (True, bool),
+    },
 }
 
 def defaults():

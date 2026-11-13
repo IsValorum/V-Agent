@@ -577,7 +577,7 @@ class EngineManager:
 
         if self.kind=='api' and protocol=='anthropic':
             req={'model':raw_model,'system':[{'type':'text','text':prompt}],
-                 'messages':[{'role':'user','content':'Historial a comprimir:\n\n'+transcript}],
+                 'messages':[{'role':'user','content':'Conversation history to compress:\n\n'+transcript}],
                  'max_tokens':min(positive_int((self.selected_remote() or {}).get('max_output_tokens')) or 4096,4096),
                  'stream':False}
             extra={}
@@ -610,7 +610,7 @@ class EngineManager:
                     summary,comp_item,usage=extract_responses_compact_summary(data)
                     if summary or comp_item:
                         return {'ok':True,'method':'openai_responses_compact','method_label':'API nativa (/responses/compact)',
-                                'summary':summary or 'Estado de contexto compactado nativamente por la API.',
+                                'summary':summary or 'Conversation state natively compacted by the API.',
                                 **({'compacted_item':comp_item} if comp_item else {}),
                                 **({'usage':usage} if usage else {})}
                 except ValueError:
@@ -618,7 +618,7 @@ class EngineManager:
             elif status not in (400,404,405,422,501):
                 raise ValueError(provider_error(status,raw[:2048],key))
 
-        chat_body={'model':raw_model,'stream':False,'messages':[{'role':'system','content':prompt},{'role':'user','content':'Historial a comprimir:\n\n'+transcript}]}
+        chat_body={'model':raw_model,'stream':False,'messages':[{'role':'system','content':prompt},{'role':'user','content':'Conversation history to compress:\n\n'+transcript}]}
         if self.kind in ('llama','rust'):
             chat_body['chat_template_kwargs']={'no_date':True,'enable_thinking':False}
         if self.kind=='api':
@@ -632,6 +632,7 @@ class EngineManager:
         except ValueError:raise ValueError('El servidor no devolvió una respuesta JSON válida al comprimir.') from None
         choice=(data.get('choices') or [None])[0] or {}
         summary=str(((choice.get('message') or {}).get('content')) or '').strip()
+        summary=re.sub(r'<think>.*?</think>','',summary,flags=re.S).strip() or summary
         if not summary:
             raise ValueError('El modelo no devolvió texto al comprimir el contexto.')
         raw_usage=data.get('usage') if isinstance(data.get('usage'),dict) else None

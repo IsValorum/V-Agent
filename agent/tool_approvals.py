@@ -4,10 +4,10 @@ import time
 import uuid
 import re
 
-SAFE={'pc__fs_list','pc__fs_read','pc__project_map','pc__sys_info','duckduckgo__web_search','duckduckgo__web_visit','hf__hf_account'}
+SAFE={'pc__fs_list','pc__fs_read','pc__doc_read','pc__project_map','pc__sys_info','duckduckgo__web_search','duckduckgo__web_visit','hf__hf_account'}
 # Read-only and confined to the isolated conversation folder: asking for each one only trains
 # users to click "allow" without reading. Network reads are excluded: they send data out.
-LOCAL_READS={'pc__fs_list','pc__fs_read','pc__fs_search','pc__project_map','pc__file_history','pc__sys_info'}
+LOCAL_READS={'pc__fs_list','pc__fs_read','pc__doc_read','pc__fs_search','pc__project_map','pc__file_history','pc__sys_info'}
 # Also read-only in "Confirm changes": the status of jobs already approved, and what the agent's own
 # browser shows (not its cookies or network log). Opening pages, clicking and typing still ask.
 AUTO_READS=LOCAL_READS|{'pc__job_list','pc__job_status','pc__job_wait','autobrowser__text','autobrowser__snapshot',

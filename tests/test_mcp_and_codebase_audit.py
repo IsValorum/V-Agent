@@ -287,12 +287,12 @@ class McpSevenServerAuditTests(unittest.TestCase):
         r_cp = self._call(
             "pc__fs_copy", {"desde": "a.txt", "destino": "b.txt", "linea": 1, "hasta": 2, "modo": "nuevo", "cortar": False}
         )
-        self.assertTrue(r_cp["ok"] and "copiadas" in r_cp["text"] and "movidas" not in r_cp["text"], r_cp["text"])
+        self.assertTrue(r_cp["ok"] and "copied" in r_cp["text"] and "moved" not in r_cp["text"], r_cp["text"])
 
         r_mv = self._call(
             "pc__fs_copy", {"desde": "a.txt", "destino": "c.txt", "linea": 1, "hasta": 1, "modo": "nuevo", "cortar": True}
         )
-        self.assertTrue(r_mv["ok"] and "movida" in r_mv["text"], r_mv["text"])
+        self.assertTrue(r_mv["ok"] and "moved" in r_mv["text"], r_mv["text"])
 
         r_con = self._call("pc__console", {"action": "status"})
         self.assertFalse(r_con["ok"])

@@ -69,7 +69,7 @@ def migrate_workspace_layout(root):
 def conversation_id(value):
     if (not isinstance(value, str) or not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,79}", value)
             or getattr(os.path, "isreserved", lambda _: False)(value)):
-        raise ValueError("Identificador de conversación no válido. Abre el chat y vuelve a intentar.")
+        raise ValueError("Invalid conversation identifier. Open the chat and try again.")
     return value
 
 
@@ -98,7 +98,7 @@ class AccessPolicy:
             except FileNotFoundError:
                 continue
             if stat.S_ISLNK(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 0x400:
-                raise AccessDenied('Sandbox: no se permiten enlaces ni junctions.')
+                raise AccessDenied('Sandbox: symlinks and junctions are not allowed.')
 
     @property
     def workspaces(self):
@@ -115,7 +115,7 @@ class AccessPolicy:
 
     def set_mode(self, mode):
         if mode not in ('sandbox', 'full_pc'):
-            raise ValueError('Acceso no válido.')
+            raise ValueError('Invalid access mode.')
         with self.lock:
             self.mode = mode
         return self.snapshot()
@@ -124,7 +124,7 @@ class AccessPolicy:
         if not isinstance(value, str) or not value.strip() or '\x00' in value:
             # Nombre del campo en el mensaje: fs_copy usa desde/destino y un "path debe contener
             # una ruta" deja al modelo relanzando la misma llamada vacia.
-            raise ValueError('%s debe contener una ruta.' % campo)
+            raise ValueError('%s must contain a path.' % campo)
         value = os.path.expanduser(value)
         # Old conversations may still reference the Spanish workspace subfolders.
         first, separator, rest = value.replace('\\', '/').partition('/')
@@ -169,7 +169,7 @@ class AccessPolicy:
             # podria leer fuera de la carpeta de trabajo "copiando" hacia dentro.
             self.path(args.get('desde'), full_access, 'desde')
             self.path(args.get('destino'), full_access, 'destino')
-        elif name in ('fs_list', 'fs_read', 'fs_write', 'fs_edit', 'web_render', 'fs_search'):
+        elif name in ('fs_list', 'fs_read', 'doc_read', 'fs_write', 'fs_edit', 'web_render', 'fs_search'):
             self.path(args.get('path') or '.', full_access)
         elif name == 'fs_manage':
             self.path(args.get('path'), full_access)

@@ -35,6 +35,7 @@ V-Agent downloads them from their official sources only when the user asks, unde
 | cryptography | 50.0.2 | Apache-2.0 OR BSD-3-Clause |
 | dateparser | 1.5.0 | BSD-3-Clause |
 | ddgs | 9.14.4 | MIT |
+| et_xmlfile | 2.0.0 | MIT |
 | fake-useragent | 2.2.0 | Apache-2.0 |
 | filelock | 4.2.10 | MIT |
 | fsspec | 2026.9.0 | BSD-3-Clause |
@@ -59,7 +60,10 @@ V-Agent downloads them from their official sources only when the user asks, unde
 | lxml_html_clean | 0.4.6 | BSD-3-Clause |
 | MarkupSafe | 3.0.4 | BSD-3-Clause |
 | mcp | 1.27.2 | MIT License |
+| openpyxl | 3.1.5 | MIT |
 | packaging | 26.3 | Apache-2.0 OR BSD-2-Clause |
+| pdfminer.six | 20260107 | MIT |
+| pdfplumber | 0.11.10 | MIT License |
 | pillow | 13.0.0 | MIT-CMU |
 | primp | 2.0.1 | MIT License |
 | psutil | 7.2.2 | BSD-3-Clause |
@@ -68,9 +72,13 @@ V-Agent downloads them from their official sources only when the user asks, unde
 | pydantic-settings | 2.16.2 | MIT |
 | pydantic_core | 2.50.4 | MIT |
 | PyJWT | 2.15.1 | MIT |
+| pypdf | 7.1.0 | BSD-3-Clause |
+| pypdfium2 | 5.15.2 | BSD-3-Clause AND Apache-2.0 |
 | python-dateutil | 4.0.0 | BSD-3-Clause |
+| python-docx | 1.2.0 | MIT |
 | python-dotenv | 1.2.4 | BSD-3-Clause |
 | python-multipart | 0.0.33 | Apache-2.0 |
+| python-pptx | 1.0.2 | MIT |
 | pytz | 2026.6 | MIT License |
 | pywin32 | 312 | Python Software Foundation License |
 | PyYAML | 6.0.3 | MIT License |
@@ -93,3 +101,4 @@ V-Agent downloads them from their official sources only when the user asks, unde
 | urllib3 | 2.8.0 | MIT |
 | uvicorn | 0.54.0 | BSD-3-Clause |
 | websockets | 17.4 | BSD-3-Clause |
+| XlsxWriter | 3.3.1 | BSD-2-Clause |

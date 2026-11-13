@@ -261,6 +261,67 @@ class ContextCompactionTests(unittest.TestCase):
         self.assertEqual([m["role"] for m in out], ["user", "assistant", "user"])
         self.assertIn("Resumen clave", out[0]["content"])
 
+    def test_local_compaction_summarizes_and_reduces_history_for_strata_and_llama(self):
+        import agent as agent_mod
+        seen = []
+
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+
+            def do_POST(self):
+                n = int(self.headers.get("Content-Length") or 0)
+                payload = json.loads(self.rfile.read(n))
+                seen.append((self.path, payload))
+                body = json.dumps({
+                    "choices": [{"message": {"content": "<think>borrador interno</think>\nObjetivo: compilar 1.0.9. Archivos: doc_extractor.py."}}],
+                    "usage": {"prompt_tokens": 120, "completion_tokens": 18},
+                }).encode()
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+        srv = self._run_server(Handler)
+        try:
+            long_history = [
+                {"role": "user", "content": "Analiza el código " + ("detalle " * 300)},
+                {"role": "assistant", "content": "Resultado extenso " + ("línea " * 300), "tool_trace": [
+                    {"executed": True, "name": "pc__fs_read", "args": {"path": "README.md"}, "result": "x" * 2000}
+                ]},
+                {"role": "user", "content": "Sigue con doc_extractor.py"},
+            ]
+            # 1) Strata local compaction (agent.compact_local_context)
+            res_strata = agent_mod.compact_local_context("qwen-local", long_history, engine_port=srv.server_port)
+            self.assertTrue(res_strata["ok"])
+            self.assertEqual(res_strata["method"], "local_chat_completions")
+            self.assertEqual(res_strata["method_label"], "Resumen con modelo local")
+            self.assertNotIn("<think>", res_strata["summary"])
+            self.assertIn("Objetivo: compilar 1.0.9.", res_strata["summary"])
+
+            # 2) llama.cpp / Strata Rust local compaction (EngineManager.compact_context)
+            self.manager.configure({"engine": "llama"})
+            self.manager.online = True
+            self.manager.loaded = "gemma-local.gguf"
+            with patch.object(self.manager, "base", return_value=f"http://127.0.0.1:{srv.server_port}/v1"):
+                res_llama = self.manager.compact_context("gemma-local.gguf", long_history)
+            self.assertEqual(res_llama["method"], "local_chat_completions")
+            self.assertNotIn("<think>", res_llama["summary"])
+            self.assertEqual(len(seen), 2)
+            self.assertEqual(seen[1][1]["chat_template_kwargs"], {"no_date": True, "enable_thinking": False})
+
+            # 3) Verify real prompt compression on the next turn via conversation_codec
+            raw_payload_chars = len(json.dumps(conversation_codec.model_history(long_history), ensure_ascii=False))
+            compacted_history = [
+                {"role": "assistant", "content": res_strata["summary"], "compacted": {"method": res_strata["method"], "method_label": res_strata["method_label"]}},
+                {"role": "user", "content": "¿Cuál es el siguiente paso?"},
+            ]
+            compacted_payload_chars = len(json.dumps(conversation_codec.model_history(compacted_history), ensure_ascii=False))
+            self.assertLess(compacted_payload_chars * 4, raw_payload_chars)
+        finally:
+            srv.shutdown()
+            srv.server_close()
+
     def test_ui_wires_compact_button_and_fixes_interrupted_params_label(self):
         chat_js = (ROOT / "agent/ui/app/chat.js").read_text(encoding="utf-8")
         panel_js = (ROOT / "agent/ui/app/model-panel.js").read_text(encoding="utf-8")

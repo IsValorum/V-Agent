@@ -130,8 +130,45 @@ class StateConsistencyTests(unittest.TestCase):
     def test_the_memory_warning_is_shown_under_the_context(self):
         self.assertIn('contextMemoryWarning', (UI / 'app/load-settings.js').read_text(encoding='utf-8'))
 
+    def test_kv_selector_stays_visible_with_context_controls(self):
+        model_panel = (UI / 'app/model-panel.js').read_text(encoding='utf-8')
+        shell = (UI / 'app/shell.js').read_text(encoding='utf-8')
+        self.assertIn("load.append(context,$('#draftSettings'));", model_panel)
+        self.assertIn("['draftSettings','visionSettings','templateSettings']", shell)
+
+    def test_context_compaction_works_in_local_and_api_modes(self):
+        model_panel = (UI / 'app/model-panel.js').read_text(encoding='utf-8')
+        engine = (UI / 'app/engine-controls.js').read_text(encoding='utf-8')
+        composer = (UI / 'app/composer.js').read_text(encoding='utf-8')
+        runtime = Path('agent/desktop_runtime.py').read_text(encoding='utf-8')
+        self.assertIn("contextCompactBox", model_panel)
+        self.assertNotIn("compactBox.hidden=true;", model_panel)
+        self.assertIn("$('#contextCompactBox').hidden=false;", engine)
+        self.assertIn("if(compactBox)compactBox.hidden=false;", composer)
+        self.assertIn("a.compact_local_context(model_id,msgs,instructions)", runtime)
+
     def test_api_connection_errors_are_plain_words(self):
         self.assertIn("'No se pudo conectar con '", Path('agent/desktop_runtime.py').read_text(encoding='utf-8'))
+
+    def test_context_usage_meter_is_not_hidden(self):
+        panels = (UI / 'styles/panels.css').read_text(encoding='utf-8')
+        engine = (UI / 'app/engine-controls.js').read_text(encoding='utf-8')
+        self.assertNotIn('.context-block #contextUsage', panels)
+        self.assertIn("$('#remoteModelInfo .remote-context-stats')?.after(usage);", engine)
+
+    def test_model_facing_prompts_and_tool_errors_stay_in_english(self):
+        agent_src = Path('agent/agent.py').read_text(encoding='utf-8')
+        chat_src = (UI / 'app/chat.js').read_text(encoding='utf-8')
+        composer_src = (UI / 'app/composer.js').read_text(encoding='utf-8')
+        codec_src = Path('agent/conversation_codec.py').read_text(encoding='utf-8')
+        pc_mcp = Path('agent/pc_mcp.py').read_text(encoding='utf-8')
+        web_mcp = Path('web_mcp/buscador_mcp.py').read_text(encoding='utf-8')
+        self.assertIn('Conversation history to compress:', agent_src)
+        self.assertIn('Continue from the recovered draft.', chat_src)
+        self.assertIn('Compressed prior context', composer_src)
+        self.assertIn('Compressed prior context', codec_src)
+        self.assertIn('NOT APPLIED (%s): old_text was not found', pc_mcp)
+        self.assertIn('Only public internet pages are allowed.', web_mcp)
 
 
 if __name__ == '__main__':

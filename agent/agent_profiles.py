@@ -5,11 +5,11 @@ PROFILES={
  'advanced':{'label':'Completo','result_chars':12000,'history':'unchanged','rounds':50},
 }
 LIGHT_TOOLS={
- 'web_search','web_visit','fs_list','fs_read','fs_write','fs_edit','fs_copy','fs_search','fs_manage',
+ 'web_search','web_visit','fs_list','fs_read','doc_read','fs_write','fs_edit','fs_copy','fs_search','fs_manage',
  'web_render','draft_resume','file_history','code_check','project_map','sys_info','console','shell_run',
 }
 ALL_TOOLS={
- 'web_search','web_visit','fs_list','fs_read','fs_write','fs_edit','fs_copy','fs_search','fs_manage',
+ 'web_search','web_visit','fs_list','fs_read','doc_read','fs_write','fs_edit','fs_copy','fs_search','fs_manage',
  'web_render','draft_resume','file_history','code_check','project_map','browser',
  'http_request','download','job_wait','job_status','job_list','job_stop','start','status','run','stop','screen_capture','ocr_image','window_list','window_focus','mouse_move','mouse_click','mouse_scroll','keyboard_type','keyboard_key','open','navigate','snapshot','text','click','fill','press','evaluate','wait','screenshot','cookies','network','browser_console','browser_download','tabs','close',
  'sys_info','hf_account','hf_cli','hf_transfer',

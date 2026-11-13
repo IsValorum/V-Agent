@@ -23,9 +23,22 @@ class MCPOptionsTests(unittest.TestCase):
     def test_validation_is_atomic(self):
         with tempfile.TemporaryDirectory() as folder:
             store=MCPOptions(Path(folder)/'options.json');before=store.save({'pc':{'command_timeout':45}})
-            for body in ({'pc':{'command_timeout':True}},{'duckduckgo':{'visit_tokens':0}},{'pc':{'root':'C:\\'}},{'unknown':{}},{'duckduckgo':{'count':1.5}}):
+            for body in ({'pc':{'command_timeout':True}},{'duckduckgo':{'visit_tokens':-1}},{'documents':{'max_pages':-1}},{'documents':{'extract_mode':'pdf'}},{'pc':{'root':'C:\\'}},{'unknown':{}},{'duckduckgo':{'count':1.5}}):
                 with self.assertRaises(ValueError):store.save(body)
                 self.assertEqual(store.get(),before)
+    def test_visit_supports_unlimited_and_high_budgets(self):
+        import buscador_mcp as web
+        long_text='palabra larga '*3000  # ~42000 chars (> 11500 old cap)
+        settings_30k={**defaults()['duckduckgo'],'visit_tokens':30000,'max_result_chars':0}
+        with patch.object(web,'options',return_value=settings_30k),patch.object(web,'read_public_page',return_value=long_text):
+            data=json.loads(web.web_visit('https://example.com/big'))
+            self.assertEqual(data['content'],long_text)
+            self.assertFalse(data['has_more'])
+        settings_inf={**defaults()['duckduckgo'],'visit_tokens':0,'max_result_chars':0}
+        with patch.object(web,'options',return_value=settings_inf),patch.object(web,'read_public_page',return_value=long_text):
+            data=json.loads(web.web_visit('https://example.com/inf'))
+            self.assertEqual(data['content'],long_text)
+            self.assertFalse(data['has_more'])
     def test_visit_preserves_json_and_continuation(self):
         import buscador_mcp as web
         settings={**defaults()['duckduckgo'],'visit_tokens':256,'max_result_chars':1000}

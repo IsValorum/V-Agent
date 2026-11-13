@@ -10,5 +10,10 @@ ddgs==9.14.4
 huggingface_hub==2.4.0
 PyYAML==6.0.3
 Pillow==13.0.0  # computer MCP: screen capture (ImageGrab)
+pypdf==7.1.0
+pdfplumber==0.11.10
+python-docx==1.2.0
+openpyxl==3.1.5
+python-pptx==1.0.2
 pyinstaller==6.22.0
 cryptography>=50.0.2

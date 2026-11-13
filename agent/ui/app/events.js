@@ -23,7 +23,7 @@ const HELP={
   load:['Cargar modelo','Carga únicamente el modelo seleccionado. Descarga antes el que esté en memoria. Si el motor está apagado, enciende el servicio.'],unload:['Descargar modelo','Detiene la respuesta si está generando y libera el modelo de la memoria. El motor permanece encendido y no carga otro modelo automáticamente.'],exportTheme:['Exportar tema','Guarda un archivo con tus colores y efectos. No incluye chats ni ajustes del modelo.'],importTheme:['Importar tema','Restaura los colores y efectos desde un archivo de tema de V-Agent.'],resetTheme:['Restablecer','Vuelve a los valores iniciales del modo claro u oscuro que estés editando.']
 };
 function helpButton(key) {
-  const button=document.createElement('button');button.type='button';button.className='help-trigger';button.textContent='?';button.dataset.help=key;button.setAttribute('aria-label','Ayuda: '+HELP[key][0]);button.setAttribute('aria-expanded','false');return button;
+  const button=document.createElement('button');button.type='button';button.className='help-trigger';button.textContent='?';button.dataset.help=key;button.setAttribute('aria-label',uiText('Ayuda')+': '+uiText(HELP[key][0]));button.setAttribute('aria-expanded','false');return button;
 }
 for(const [key] of Object.entries(HELP)) {
   const control=document.getElementById(key);if(!control)continue;

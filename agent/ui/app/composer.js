@@ -4,7 +4,8 @@ function renderAttachments() {
   attachments.forEach((a, i) => {
     const c = document.createElement("span");
     c.className = "chip";
-    c.innerHTML = '<span></span><button title="Quitar">×</button>';
+    c.innerHTML = '<span></span><button>×</button>';
+    c.querySelector("button").title = uiText("Quitar");
     c.querySelector("span").textContent = (a.image?"▧ ":"📄 ") + a.name;
     c.querySelector("button").onclick = () => { attachments.splice(i, 1); renderAttachments(); };
     box.appendChild(c);
@@ -25,14 +26,14 @@ async function addFiles(files) {
       }catch(error){note('No se pudo adjuntar la imagen: '+error.message);}
       continue;
     }
-    if (f.size > 400000) { note("«" + f.name + "» es demasiado grande (máx. 400 KB)."); continue; }
+    if (f.size > 400000) { note("«" + f.name + "» " + uiText("es demasiado grande (máx. 400 KB).")); continue; }
     try {
       const content = await f.text();
       if (content.includes("\u0000") || ["image/", "audio/", "video/", "application/pdf"].some(t => f.type.startsWith(t))) {
-        note("«" + f.name + "»: adjunta un archivo de texto, código, CSV o Markdown."); continue;
+        note("«" + f.name + "»: " + uiText("adjunta un archivo de texto, código, CSV o Markdown.")); continue;
       }
       attachments.push({ name: f.name, content });
-    } catch { note("No se pudo leer «" + f.name + "»."); }
+    } catch { note(uiText("No se pudo leer") + " «" + f.name + "»."); }
   }
   renderAttachments();
 }
@@ -61,7 +62,7 @@ function setLoadedModel(id,known=true,capacity=null){
   loadedModel=id||null;
   modelStateKnown=known;
   if(changed&&!engineBusy)$('#modelStatus').textContent='';
-  $('#loadedTxt').textContent=known?(loadedModel?(modelNames[loadedModel]||loadedModel):'Ninguno'):'Comprobando…';
+  $('#loadedTxt').textContent=known?(loadedModel?(modelNames[loadedModel]||loadedModel):uiText('Ninguno')):uiText('Comprobando…');
   updateControls();
   syncContextMeter();
   // The model window then shows the context the engine really runs with.
@@ -91,7 +92,8 @@ function updateControls() {
   $('#unload').disabled=blocked||!modelStateKnown||!loadedModel||engineOnline===false;
   $('#unload').title=busy?uiText('Detener la respuesta y descargar el modelo'):uiText('Descargar el modelo y liberar su memoria');
   for(const id of ['engineToggle'])$('#'+id).disabled=busy||blocked||engineOnline===null;
-  const compactBtn=$('#ctxCompact');
+  const compactBtn=$('#ctxCompact'),compactBox=$('#contextCompactBox');
+  if(compactBox)compactBox.hidden=false;
   if(compactBtn)compactBtn.disabled=busy||blocked||accessChanging||!modelIsReady()||messages.length<2;
   syncComposerLabels();syncPreparationView();
   syncEngineCapabilities();if($('#modelFilter'))$('#modelFilter').disabled=busy||blocked||!modelCatalog.length;
@@ -156,8 +158,8 @@ function conversationForModel(history) {
   history.forEach((message,messageIndex)=>{
     if(message.compacted){
       const label=message.compacted.method_label||message.compacted.method||'API';
-      result.push({role:'user',content:'Contexto previo comprimido ('+label+'):\n\n'+(message.content||'')});
-      result.push({role:'assistant',content:'Entendido. Continúo usando este contexto comprimido.'});
+      result.push({role:'user',content:'Compressed prior context ('+label+'):\n\n'+(message.content||'')});
+      result.push({role:'assistant',content:'Understood. I will continue using this compressed context.'});
       return;
     }
     if(message.role==='assistant'){
@@ -201,7 +203,8 @@ async function compactConversationContext() {
   const originalCount=splitIndex;
   setEngineBusy(true);
   if(btn)btn.textContent=uiText('Comprimiendo…');
-  if(status)status.textContent=uiText('Comprimiendo historial con el método nativo…');
+  const waitingSrc=activeEngine==='api'?'Comprimiendo historial con el método nativo…':'Comprimiendo historial con el modelo local…';
+  if(status){status.dataset.uiLabel=waitingSrc;status.textContent=uiText(waitingSrc);}
   try{
     await flushSessionSaves();
     const result=await requestJSON('/api/harness/context/compact',{
@@ -213,8 +216,8 @@ async function compactConversationContext() {
       role:'assistant',
       content:result.summary||'',
       compacted:{
-        method:result.method||'api',
-        method_label:result.method_label||result.method||'API',
+        method:result.method||(activeEngine==='api'?'api':'local_chat_completions'),
+        method_label:result.method_label||result.method||(activeEngine==='api'?'API':'Resumen con modelo local'),
         compressed_count:originalCount,
         kept_count:messages.length-splitIndex,
         created_at:new Date().toISOString()
@@ -228,11 +231,13 @@ async function compactConversationContext() {
     persistConv();
     renderChat();
     syncContextMeter();
-    const label=result.method_label||result.method||'API';
-    if(status)status.textContent=uiText('Comprimido · ')+originalCount+' msg · '+label;
+    const rawLabel=result.method_label||result.method||(activeEngine==='api'?'API':'Resumen con modelo local');
+    const label=uiText(rawLabel);
+    const doneSrc='Comprimido · '+originalCount+' msg · '+rawLabel;
+    if(status){status.dataset.uiLabel=doneSrc;status.textContent=uiText(doneSrc);}
     note(uiText('Contexto comprimido.')+' ('+label+')');
   }catch(error){
-    if(status)status.textContent=uiText('Error: ')+(error?.message||String(error));
+    if(status){delete status.dataset.uiLabel;status.textContent=uiText('Error: ')+(error?.message||String(error));}
     note(error?.message||String(error));
   }finally{
     if(btn)btn.textContent=uiText('Comprimir contexto');
@@ -244,7 +249,7 @@ window.compactConversationContext=compactConversationContext;
 
 function stopGeneration() {
   if(!activeGeneration||activeGeneration.stopped)return;
-  activeGeneration.stopped=true;activeGeneration.controller.abort();$('#send').disabled=true;$('#modeNote').textContent='Deteniendo…';
+  activeGeneration.stopped=true;activeGeneration.controller.abort();$('#send').disabled=true;$('#modeNote').textContent=uiText('Deteniendo…');
 }
 async function waitForGenerationEnd() {
   const deadline=Date.now()+6000;

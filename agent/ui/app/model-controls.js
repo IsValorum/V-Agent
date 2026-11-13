@@ -7,10 +7,10 @@ function renderModelOptions(selected){
   const query=($('#modelFilter')?.value||'').trim().toLocaleLowerCase();
   const matches=modelCatalog.filter(model=>(modelFileName(model)+' '+model.id).toLocaleLowerCase().includes(query));
   const visible=modelCatalog.filter(model=>matches.includes(model)||model.id===selected);
-  $('#model').replaceChildren(...visible.map(model=>{const option=new Option(modelFileName(model)+(model.status==='unavailable'?' · No disponible':''),model.id);option.disabled=model.status==='unavailable';option.title=[modelFileName(model),model.problem].filter(Boolean).join(' · ');return option;}));
-  if(!visible.length)$('#model').add(new Option(query?'Sin coincidencias':'No hay modelos instalados',''));
+  $('#model').replaceChildren(...visible.map(model=>{const option=new Option(modelFileName(model)+(model.status==='unavailable'?' · '+uiText('No disponible'):''),model.id);option.disabled=model.status==='unavailable';option.title=[modelFileName(model),model.problem].filter(Boolean).join(' · ');return option;}));
+  if(!visible.length)$('#model').add(new Option(query?uiText('Sin coincidencias'):uiText('No hay modelos instalados'),''));
   if(visible.some(model=>model.id===selected))$('#model').value=selected;
-  if($('#modelCount')){$('#modelCount').textContent=query?matches.length+'/'+modelCatalog.length:modelCatalog.length+' modelos';$('#modelCount').title=query&&!matches.length?'Sin coincidencias. Se conserva el modelo seleccionado.':'';}
+  if($('#modelCount')){$('#modelCount').textContent=query?matches.length+'/'+modelCatalog.length:modelCatalog.length+' '+uiText('modelos');$('#modelCount').title=query&&!matches.length?uiText('Sin coincidencias. Se conserva el modelo seleccionado.'):'';}
   renderModelList(selected);
 }
 function renderModelList(selected){
@@ -18,7 +18,7 @@ function renderModelList(selected){
   const query=($('#modelFilter')?.value||'').trim().toLocaleLowerCase();
   const matches=modelCatalog.filter(model=>(modelFileName(model)+' '+model.id+' '+(model.backend||'')).toLocaleLowerCase().includes(query)).sort((a,b)=>{const score=m=>m.id===loadedModel?0:m.status==='loaded'?1:m.status==='unavailable'?3:2;return score(a)-score(b)||modelFileName(a).localeCompare(modelFileName(b));});
   box.replaceChildren();box.classList.toggle('remote-models',activeEngine==='api');
-  if(!matches.length){const empty=document.createElement('div');empty.className='model-empty';empty.textContent=query?'Ningún modelo coincide con «'+query+'».':activeEngine==='api'?'Conecta una API para ver sus modelos.':'No hay modelos instalados.';box.append(empty);}
+  if(!matches.length){const empty=document.createElement('div');empty.className='model-empty';empty.textContent=query?uiText('Ningún modelo coincide con')+' «'+query+'».':activeEngine==='api'?uiText('Conecta una API para ver sus modelos.'):uiText('No hay modelos instalados.');box.append(empty);}
   for(const model of matches){
     const row=document.createElement('button');row.type='button';row.className='model-option';row.dataset.id=model.id;row.setAttribute('role','option');row.setAttribute('aria-selected',String(model.id===selected));row.disabled=model.status==='unavailable';
     const name=document.createElement('span');name.className='model-option-name';name.textContent=modelFileName(model);
@@ -265,7 +265,7 @@ $('#ctxApply').onclick = async () => {
   const status = $('#ctxStatus');
   modelStateRevision++;
   setEngineBusy(true);
-  status.textContent = loadedModel === model ? 'Aplicando y recargando el modelo…' : 'Guardando contexto…';
+  status.textContent = loadedModel === model ? uiText('Aplicando y recargando el modelo…') : uiText('Guardando contexto…');
   try {
     queueModelPreferences();await flushModelPreferences();
     const result = await requestJSON('/api/context', {
@@ -275,9 +275,9 @@ $('#ctxApply').onclick = async () => {
     pendingModelContexts.delete(model);
     if(result.reloaded)contextCapacity=result.context;
     await loadModels();
-    status.textContent = result.reloaded ? 'Contexto aplicado.' : 'Guardado para la próxima carga.';
+    status.textContent = result.reloaded ? uiText('Contexto aplicado.') : uiText('Guardado para la próxima carga.');
   } catch (error) {
-    status.textContent = 'Error: ' + error.message;
+    status.textContent = uiText('Error: ') + error.message;
   } finally {
     modelStateRevision++;
     setEngineBusy(false);
@@ -330,13 +330,13 @@ function updateContextMeter(usage) {
   const numbers=(used===null?'—':formatTokens(used))+' / '+(limit?formatTokens(limit):'—');
   const ratio=percent===null?'—':percent.toLocaleString(window.VALI18n?.locale||'es-ES',{maximumFractionDigits:1})+' %';
   $('#ctxLabel').textContent=numbers+' · '+ratio;
-  const contextSummary='Contexto: '+numbers+' tokens · '+ratio;
+  const contextSummary=uiText('Contexto')+': '+numbers+' tokens · '+ratio;
   $('#ctxBtn').setAttribute('aria-label',contextSummary);
   $('#contextUsageNumbers').textContent=numbers;$('#contextUsagePercent').textContent=ratio;
   const meter=$('#contextUsageBar');meter.style.setProperty('--context-fill',percent===null?'0%':Math.min(100,percent)+'%');meter.dataset.level=percent>=95?'full':percent>=80?'high':'normal';
-  if(percent===null){meter.removeAttribute('aria-valuenow');meter.setAttribute('aria-valuetext','Sin medida disponible');}
+  if(percent===null){meter.removeAttribute('aria-valuenow');meter.setAttribute('aria-valuetext',uiText('Sin medida disponible'));}
   else {meter.setAttribute('aria-valuenow',Math.min(100,percent).toFixed(1));meter.setAttribute('aria-valuetext',numbers+' tokens, '+ratio);}
-  const title=used===null?'Sin medida para este chat y modelo.':!usage.source?'Chat nuevo.':(usage.source==='live'?'Petición en curso':'Última medida de este chat')+': '+formatTokens(usage.prompt_tokens||0)+' tokens de entrada + '+formatTokens(usage.completion_tokens||0)+' de salida, incluido el razonamiento. Incluye la plantilla y las herramientas activadas. No cuenta el texto aún sin enviar.';
+  const title=used===null?uiText('Sin medida para este chat y modelo.'):!usage.source?uiText('Chat nuevo.'):uiText(usage.source==='live'?'Petición en curso':'Última medida de este chat')+': '+formatTokens(usage.prompt_tokens||0)+' '+uiText('tokens de entrada')+' + '+formatTokens(usage.completion_tokens||0)+' '+uiText('de salida, incluido el razonamiento. Incluye la plantilla y las herramientas activadas. No cuenta el texto aún sin enviar.');
   $('#contextUsage').title=title;
 }
 
