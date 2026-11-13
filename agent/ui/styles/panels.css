@@ -161,8 +161,9 @@ button{transition-duration:var(--motion-duration);}
 
 #modelBtn.model-control{width:154px;min-width:0;max-width:154px;flex:0 1 154px;}
 #modelBtnLabel{min-width:0;}
-#searchToggle{flex:none;margin-inline:2px;}
-#searchToggle[aria-pressed=true]{color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent);}
+#searchToggle{flex:none;margin-inline:2px;color:var(--muted);}
+#searchToggle:hover:not(:disabled){color:var(--text);}
+#searchToggle[aria-pressed=true]{color:var(--accent-ink,#101216)!important;background:var(--accent)!important;border-color:color-mix(in srgb,var(--accent) 85%,var(--text))!important;box-shadow:0 2px 8px color-mix(in srgb,var(--accent) 32%,transparent);}
 .agent-small-menu{position:fixed;inset:auto;margin:0;padding:6px;width:230px;max-height:calc(100dvh - 24px);overflow:auto;border:1px solid var(--border);border-radius:12px;background:var(--panel);color:var(--text);box-shadow:var(--panel-shadow);}
 .agent-small-menu:not(:popover-open){display:none;}
 .agent-small-menu button{display:block;width:100%;text-align:left;padding:9px 10px;border:0;background:transparent;border-radius:7px;font-size:12px;}
@@ -399,8 +400,8 @@ body.browser-open #updateStack{right:calc(var(--browser-width) + 16px);}
 @keyframes dockIn {from{opacity:.2}to{opacity:1}}
 @media(prefers-reduced-motion:reduce){#browserDock:not([hidden]){animation:none!important}.model-option{transition:none!important}}
 .model-selected-label{font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap;}
-#searchToggle.icon-only{width:28px;min-width:28px;justify-content:center;padding:5px;}
-#searchToggle.icon-only svg{width:14px;height:14px;}
+#searchToggle.icon-only{width:30px;min-width:30px;justify-content:center;padding:4px;}
+#searchToggle.icon-only svg{width:16px;height:16px;}
 /* Form controls keep their own borders: never decorate chat textareas, toggles or navigation globally. */
 .model-footer-static{position:static!important;z-index:auto!important;border-top:1px solid var(--border);margin-top:6px;}
 .model-summary-action{font-size:9px;padding:3px 6px;border-style:double!important;border-width:2px!important;border-color:var(--double-line)!important;background:transparent;color:var(--accent);white-space:nowrap;}
@@ -803,10 +804,16 @@ body.sidebar-collapsed #chatwrap .topbar{border-bottom-left-radius:0!important;}
 :root:not([data-ui-style=deco]) .agent-small-menu button:hover:not(:disabled){background:var(--soft-fill-hover);}
 .conv-menu button[data-action=delete]:hover:not(:disabled){background:color-mix(in srgb,#d9534f 14%,transparent);}
 
-/* Progress bars follow the accent colour instead of the system green. */
-progress{accent-color:var(--accent);}
-progress::-webkit-progress-bar{background:var(--soft-fill,color-mix(in srgb,var(--text) 8%,transparent));}
-progress::-webkit-progress-value{background:var(--accent);border-radius:inherit;}
+/* Progress bars follow the accent colour across every light/dark theme, including indeterminate states. */
+progress{accent-color:var(--accent);color-scheme:inherit;}
+progress::-webkit-progress-bar{background:color-mix(in srgb,var(--text) 14%,var(--panel));border-radius:999px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--text) 14%,transparent);}
+progress::-webkit-progress-value{background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 82%,var(--text)),var(--accent));border-radius:999px;}
+progress::-moz-progress-bar{background:var(--accent);border-radius:999px;}
+#preparationProgress{height:6px!important;border-radius:999px!important;background:color-mix(in srgb,var(--text) 14%,var(--panel))!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--text) 14%,transparent);}
+#preparationProgress:indeterminate::-webkit-progress-bar{background-color:color-mix(in srgb,var(--text) 14%,var(--panel));background-image:linear-gradient(90deg,transparent 0%,color-mix(in srgb,var(--accent) 55%,transparent) 22%,var(--accent) 50%,color-mix(in srgb,var(--accent) 55%,transparent) 78%,transparent 100%);background-size:48% 100%;background-repeat:no-repeat;animation:prepIndeterminate 1.3s ease-in-out infinite;}
+#preparationProgress:indeterminate::-moz-progress-bar{background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 60%,transparent),var(--accent));border-radius:999px;}
+@keyframes prepIndeterminate{0%{background-position:-60% 0}100%{background-position:160% 0}}
+@media(prefers-reduced-motion:reduce){#preparationProgress:indeterminate::-webkit-progress-bar{background-image:repeating-linear-gradient(45deg,var(--accent) 0 10px,color-mix(in srgb,var(--accent) 38%,transparent) 10px 18px);background-size:100% 100%;animation:none;}}
 
 /* Shared soft buttons for in-app dialogs. */
 .soft-btn{padding:8px 16px;border:0!important;font-weight:500;}
@@ -1345,135 +1352,215 @@ body.desktop-frame.browser-open #chatwrap .topbar{padding-right:16px!important;}
 #send{width:34px;height:34px;}
 :root:not([data-ui-style=deco]) #send{border-radius:50%!important;}
 
-/* Architectural refinement & subtle brass accents dedicated to Art Déco style */
+/* Architectural refinement & authentic lightweight ornamentation dedicated to Art Déco style */
 :root[data-ui-style=deco]{
-  --control-radius:min(var(--radius),3px);
-  --panel-radius:min(var(--radius),6px);
+  --control-radius:clamp(6px,calc(var(--radius) * .62),11px);
+  --panel-radius:clamp(10px,calc(var(--radius) * .88),16px);
+  --deco-diamond:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 9'%3E%3Cpath d='M2 4.5h14l3-2.5m31 2.5H36l-3-2.5M2 4.5h14l3 2.5m31-2.5H36l-3 2.5' stroke='black' stroke-width='1.1' fill='none' stroke-linecap='round'/%3E%3Cpolygon points='26,0.6 31.5,4.5 26,8.4 20.5,4.5' fill='black'/%3E%3Ccircle cx='26' cy='4.5' r='1.3' fill='white'/%3E%3C/svg%3E");
+}
+:root[data-ui-style=deco] #sidebar .brand{
+  position:relative;padding-bottom:20px;margin-bottom:4px;
+}
+:root[data-ui-style=deco] #sidebar .brand::after{
+  content:"";position:absolute;left:10px;right:10px;bottom:6px;height:9px;pointer-events:none;
+  background:color-mix(in srgb,var(--accent) 56%,var(--double-line));
+  -webkit-mask:var(--deco-diamond) center/52px 9px no-repeat;mask:var(--deco-diamond) center/52px 9px no-repeat;
 }
 :root[data-ui-style=deco] #sidebar .chrome-status .connection{
   border-radius:var(--control-radius);
-  border:1px solid color-mix(in srgb,var(--accent) 38%,var(--double-line));
+  border:1px solid color-mix(in srgb,var(--accent) 40%,var(--double-line));
   background:color-mix(in srgb,var(--accent) 6%,var(--panel));
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 12%,transparent);
 }
 :root[data-ui-style=deco] #projectBtn,
 :root[data-ui-style=deco] #agentModeSegments{
   border-radius:var(--control-radius);
-  border:1px solid color-mix(in srgb,var(--accent) 44%,var(--double-line));
+  border:1px solid color-mix(in srgb,var(--accent) 46%,var(--double-line));
   background:var(--outside-surface);
-  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 14%,transparent);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 16%,transparent),0 3px 10px rgb(0 0 0 / .08);
 }
 :root[data-ui-style=deco] #projectBtn:hover{
   border-color:color-mix(in srgb,var(--accent) 75%,var(--double-line));
 }
-:root[data-ui-style=deco] #agentModeSegments{padding:2px;gap:2px;}
+:root[data-ui-style=deco] #agentModeSegments{padding:3px;gap:2px;}
 :root[data-ui-style=deco] #agentModeSegments button{
-  border-radius:max(1px,calc(var(--control-radius) - 1px));
+  position:relative;
+  border-radius:max(4px,calc(var(--control-radius) - 2px));
   border:1px solid transparent;
 }
 :root[data-ui-style=deco] #agentModeSegments button[aria-pressed=true]{
-  background:color-mix(in srgb,var(--accent) 20%,var(--panel));
+  background:color-mix(in srgb,var(--accent) 22%,var(--panel));
   color:var(--text);
-  border-color:color-mix(in srgb,var(--accent) 45%,transparent);
+  border-color:color-mix(in srgb,var(--accent) 48%,transparent);
   box-shadow:inset 0 -2px 0 var(--accent);
+}
+:root[data-ui-style=deco] #agentModeSegments button[aria-pressed=true]::after{
+  content:"";position:absolute;left:50%;bottom:2px;width:7px;height:4px;transform:translateX(-50%);pointer-events:none;
+  background:var(--accent);clip-path:polygon(50% 0,100% 100%,0 100%);
 }
 :root[data-ui-style=deco] #chatwrap :is(.compose-surface,#composer){
   border-radius:var(--panel-radius)!important;
 }
 :root[data-ui-style=deco] .compose-surface{
+  position:relative;
   border-radius:var(--panel-radius)!important;
-  border:3px double color-mix(in srgb,var(--accent) 42%,var(--double-line))!important;
-  padding:12px 15px 10px;
-  background-image:
-    linear-gradient(var(--accent),var(--accent)),linear-gradient(var(--accent),var(--accent)),
-    linear-gradient(var(--accent),var(--accent)),linear-gradient(var(--accent),var(--accent)),
-    linear-gradient(var(--accent),var(--accent)),linear-gradient(var(--accent),var(--accent)),
-    linear-gradient(var(--accent),var(--accent)),linear-gradient(var(--accent),var(--accent));
-  background-size:9px 1px,1px 9px,9px 1px,1px 9px,9px 1px,1px 9px,9px 1px,1px 9px;
-  background-position:
-    5px 5px,5px 5px,
-    calc(100% - 5px) 5px,calc(100% - 5px) 5px,
-    5px calc(100% - 5px),5px calc(100% - 5px),
-    calc(100% - 5px) calc(100% - 5px),calc(100% - 5px) calc(100% - 5px);
-  background-repeat:no-repeat;
-  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 12%,transparent),0 8px 26px rgb(0 0 0 / .14)!important;
+  border:1.5px solid color-mix(in srgb,var(--accent) 48%,var(--double-line))!important;
+  padding:15px 18px 11px;
+  box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--panel) 84%,transparent),inset 0 0 0 4px color-mix(in srgb,var(--accent) 20%,transparent),0 10px 28px rgb(0 0 0 / .16)!important;
+}
+:root[data-ui-style=deco] .compose-surface::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:0;
+  background:color-mix(in srgb,var(--accent) 52%,transparent);
+  transition:background .2s ease;
+  -webkit-mask-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpath d='M1 15V4.5h3.5V1H15M4.5 10.5V4.5h6' stroke='black' stroke-width='1.2' fill='none'/%3E%3Cpolygon points='8,6.2 9.8,8 8,9.8 6.2,8' fill='black'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpath d='M21 15V4.5h-3.5V1H7M17.5 10.5V4.5h-6' stroke='black' stroke-width='1.2' fill='none'/%3E%3Cpolygon points='14,6.2 15.8,8 14,9.8 12.2,8' fill='black'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpath d='M1 7v10.5h3.5V21H15M4.5 11.5v6h6' stroke='black' stroke-width='1.2' fill='none'/%3E%3Cpolygon points='8,12.2 9.8,14 8,15.8 6.2,14' fill='black'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpath d='M21 7v10.5h-3.5V21H7M17.5 11.5v6h-6' stroke='black' stroke-width='1.2' fill='none'/%3E%3Cpolygon points='14,12.2 15.8,14 14,15.8 12.2,14' fill='black'/%3E%3C/svg%3E");
+  -webkit-mask-size:20px 20px;
+  -webkit-mask-position:left 6px top 6px,right 6px top 6px,left 6px bottom 6px,right 6px bottom 6px;
+  -webkit-mask-repeat:no-repeat;
+  mask-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpath d='M1 15V4.5h3.5V1H15M4.5 10.5V4.5h6' stroke='black' stroke-width='1.2' fill='none'/%3E%3Cpolygon points='8,6.2 9.8,8 8,9.8 6.2,8' fill='black'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpath d='M21 15V4.5h-3.5V1H7M17.5 10.5V4.5h-6' stroke='black' stroke-width='1.2' fill='none'/%3E%3Cpolygon points='14,6.2 15.8,8 14,9.8 12.2,8' fill='black'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpath d='M1 7v10.5h3.5V21H15M4.5 11.5v6h6' stroke='black' stroke-width='1.2' fill='none'/%3E%3Cpolygon points='8,12.2 9.8,14 8,15.8 6.2,14' fill='black'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpath d='M21 7v10.5h-3.5V21H7M17.5 11.5v6h-6' stroke='black' stroke-width='1.2' fill='none'/%3E%3Cpolygon points='14,12.2 15.8,14 14,15.8 12.2,14' fill='black'/%3E%3C/svg%3E");
+  mask-size:20px 20px;
+  mask-position:left 6px top 6px,right 6px top 6px,left 6px bottom 6px,right 6px bottom 6px;
+  mask-repeat:no-repeat;
 }
 :root[data-ui-style=deco] .compose-surface:focus-within{
-  border-color:color-mix(in srgb,var(--accent) 74%,var(--double-line))!important;
-  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 28%,transparent),0 10px 28px rgb(0 0 0 / .18)!important;
+  border-color:color-mix(in srgb,var(--accent) 76%,var(--double-line))!important;
+  box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--panel) 84%,transparent),inset 0 0 0 4px color-mix(in srgb,var(--accent) 34%,transparent),0 12px 30px rgb(0 0 0 / .20)!important;
+}
+:root[data-ui-style=deco] .compose-surface:focus-within::before{
+  background:color-mix(in srgb,var(--accent) 84%,transparent);
 }
 :root[data-ui-style=deco] .compose-surface .composer-tools{
-  border-top:1px solid color-mix(in srgb,var(--accent) 20%,var(--double-line));
-  margin-top:8px;padding-top:7px;
+  position:relative;border-top:0;margin-top:8px;padding-top:11px;
+}
+:root[data-ui-style=deco] .compose-surface .composer-tools::before{
+  content:"";position:absolute;left:0;right:0;top:4px;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent 0%,color-mix(in srgb,var(--accent) 36%,var(--double-line)) 10%,color-mix(in srgb,var(--accent) 36%,var(--double-line)) calc(50% - 29px),transparent calc(50% - 29px),transparent calc(50% + 29px),color-mix(in srgb,var(--accent) 36%,var(--double-line)) calc(50% + 29px),color-mix(in srgb,var(--accent) 36%,var(--double-line)) 90%,transparent 100%);
+}
+:root[data-ui-style=deco] .compose-surface .composer-tools::after{
+  content:"";position:absolute;left:50%;top:0;width:52px;height:9px;transform:translateX(-50%);pointer-events:none;
+  background:color-mix(in srgb,var(--accent) 72%,var(--text));
+  -webkit-mask:var(--deco-diamond) center/contain no-repeat;mask:var(--deco-diamond) center/contain no-repeat;
 }
 :root[data-ui-style=deco] .composer-control{
   border-radius:var(--control-radius);
-  border:1px solid color-mix(in srgb,var(--accent) 26%,var(--double-line));
-  background:color-mix(in srgb,var(--accent) 4%,transparent);
+  border:1px solid color-mix(in srgb,var(--accent) 28%,var(--double-line));
+  background:color-mix(in srgb,var(--accent) 4.5%,transparent);
 }
 :root[data-ui-style=deco] .composer-control:hover:not(:disabled),
 :root[data-ui-style=deco] .composer-control[aria-expanded=true],
-:root[data-ui-style=deco] .composer-control[aria-pressed=true]{
-  border-color:color-mix(in srgb,var(--accent) 60%,var(--double-line));
-  background:color-mix(in srgb,var(--accent) 13%,transparent);
+:root[data-ui-style=deco] .composer-control[aria-pressed=true]:not(#searchToggle){
+  border-color:color-mix(in srgb,var(--accent) 62%,var(--double-line));
+  background:color-mix(in srgb,var(--accent) 14%,transparent);
+}
+:root[data-ui-style=deco] #searchToggle[aria-pressed=true]{
+  background:var(--accent)!important;
+  color:var(--accent-ink,#101216)!important;
+  border-color:color-mix(in srgb,var(--accent) 85%,var(--text))!important;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent-ink,#101216) 24%,transparent),0 2px 8px color-mix(in srgb,var(--accent) 30%,transparent)!important;
 }
 :root[data-ui-style=deco] #send{
   border-radius:var(--control-radius)!important;
-  border:1px solid color-mix(in srgb,var(--accent) 72%,var(--border))!important;
-  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent-ink,#111) 28%,transparent)!important;
+  border:1px solid color-mix(in srgb,var(--accent) 78%,var(--border))!important;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent-ink,#111) 24%,transparent),0 2px 8px color-mix(in srgb,var(--accent) 28%,transparent)!important;
 }
 :root[data-ui-style=deco] .welcome h2{
-  padding:7px 22px 9px!important;
-  border:2px double color-mix(in srgb,var(--accent) 52%,var(--double-line))!important;
+  position:relative;
+  padding:20px 30px 16px!important;
+  border:1.5px solid color-mix(in srgb,var(--accent) 52%,var(--double-line))!important;
   border-radius:var(--panel-radius)!important;
-  background:color-mix(in srgb,var(--panel) 84%,transparent)!important;
-  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 16%,transparent),0 4px 16px rgb(0 0 0 / .08)!important;
+  background:color-mix(in srgb,var(--panel) 88%,transparent)!important;
+  box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--panel) 78%,transparent),inset 0 0 0 4px color-mix(in srgb,var(--accent) 20%,transparent),0 8px 24px rgb(0 0 0 / .10)!important;
+}
+:root[data-ui-style=deco] .welcome h2::before{
+  content:"";position:absolute;left:50%;top:4px;width:88px;height:15px;transform:translateX(-50%);pointer-events:none;
+  background:color-mix(in srgb,var(--accent) 72%,var(--text));
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 22'%3E%3Cpath d='M2 20h30M56 20h30M44 20 27 11M44 20 33 5M44 20 40 2M44 20V1M44 20l4-18M44 20 55 5M44 20 61 11' stroke='black' stroke-width='1.15' stroke-linecap='round'/%3E%3Cpath d='M32 20a12 12 0 0 1 24 0M37 20a7 7 0 0 1 14 0' stroke='black' stroke-width='1.2' fill='none'/%3E%3Cpolygon points='44,14 47,17 44,20 41,17' fill='black'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 22'%3E%3Cpath d='M2 20h30M56 20h30M44 20 27 11M44 20 33 5M44 20 40 2M44 20V1M44 20l4-18M44 20 55 5M44 20 61 11' stroke='black' stroke-width='1.15' stroke-linecap='round'/%3E%3Cpath d='M32 20a12 12 0 0 1 24 0M37 20a7 7 0 0 1 14 0' stroke='black' stroke-width='1.2' fill='none'/%3E%3Cpolygon points='44,14 47,17 44,20 41,17' fill='black'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+:root[data-ui-style=deco] .welcome h2::after{
+  content:"";position:absolute;left:50%;bottom:4px;width:96px;height:9px;transform:translateX(-50%);pointer-events:none;
+  background:color-mix(in srgb,var(--accent) 64%,var(--double-line));
+  -webkit-mask:var(--deco-diamond) center/contain no-repeat;mask:var(--deco-diamond) center/contain no-repeat;
 }
 :root[data-ui-style=deco] #sidebar #newchat{
   border-radius:var(--control-radius)!important;
-  border:1px solid color-mix(in srgb,var(--accent) 44%,var(--double-line))!important;
-  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 12%,transparent)!important;
+  border:1px solid color-mix(in srgb,var(--accent) 46%,var(--double-line))!important;
+  box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--panel) 82%,transparent),inset 0 0 0 3px color-mix(in srgb,var(--accent) 16%,transparent)!important;
 }
 :root[data-ui-style=deco] #sidebar .conv.active,
 :root[data-ui-style=deco] #drawer #settingsNav button[aria-selected=true]{
   border-radius:var(--control-radius)!important;
   background:color-mix(in srgb,var(--accent) 16%,transparent)!important;
-  box-shadow:inset 3px 0 0 var(--accent);
+  box-shadow:inset 3px 0 0 var(--accent),inset 0 0 0 1px color-mix(in srgb,var(--accent) 22%,transparent);
   color:var(--text);
 }
 :root[data-ui-style=deco] :is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw) :is(.drawer-head,.controls-head,.fw-head,.dlg-head){
-  border-bottom:3px double color-mix(in srgb,var(--accent) 42%,var(--double-line));
+  position:relative;overflow:visible;z-index:2;
+  border-bottom:1px solid color-mix(in srgb,var(--accent) 42%,var(--double-line));
+}
+:root[data-ui-style=deco] :is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw) :is(.drawer-head,.controls-head,.fw-head,.dlg-head) > *{
+  position:relative;z-index:1;
+}
+:root[data-ui-style=deco] :is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw) :is(.drawer-head,.controls-head,.fw-head,.dlg-head)::before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  border-top-left-radius:calc(var(--panel-radius) - 2px);border-top-right-radius:calc(var(--panel-radius) - 2px);
+  background:color-mix(in srgb,var(--accent) 9%,transparent);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 16'%3E%3Cpath d='M0 16A16 16 0 0 1 32 16M5 16A11 11 0 0 1 27 16M10 16A6 6 0 0 1 22 16' stroke='black' stroke-width='1.05' fill='none'/%3E%3Cpath d='M-16 8A16 16 0 0 1 16 8M16 8A16 16 0 0 1 48 8' stroke='black' stroke-width='0.9' fill='none'/%3E%3C/svg%3E") 0 0/32px 16px repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 16'%3E%3Cpath d='M0 16A16 16 0 0 1 32 16M5 16A11 11 0 0 1 27 16M10 16A6 6 0 0 1 22 16' stroke='black' stroke-width='1.05' fill='none'/%3E%3Cpath d='M-16 8A16 16 0 0 1 16 8M16 8A16 16 0 0 1 48 8' stroke='black' stroke-width='0.9' fill='none'/%3E%3C/svg%3E") 0 0/32px 16px repeat;
+}
+:root[data-ui-style=deco] :is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw) :is(.drawer-head,.controls-head,.fw-head,.dlg-head)::after{
+  content:"";position:absolute;left:50%;bottom:-4.5px;width:52px;height:9px;transform:translateX(-50%);pointer-events:none;z-index:2;
+  background:color-mix(in srgb,var(--accent) 72%,var(--double-line));
+  -webkit-mask:var(--deco-diamond) center/contain no-repeat;mask:var(--deco-diamond) center/contain no-repeat;
 }
 :root[data-ui-style=deco] #drawer .settings-group,
-:root[data-ui-style=deco] #sidebar .engine-card{
-  border-radius:var(--panel-radius);
-  border-color:color-mix(in srgb,var(--accent) 26%,var(--double-line));
+:root[data-ui-style=deco] #sidebar .engine-card,
+:root[data-ui-style=deco] .plugin-card{
+  border-radius:var(--panel-radius)!important;
+  border-color:color-mix(in srgb,var(--accent) 28%,var(--double-line))!important;
+}
+:root[data-ui-style=deco] #composerControls:popover-open{
+  clip-path:inset(0 round var(--panel-radius));
 }
 :root[data-ui-style=deco] #drawer,
 :root[data-ui-style=deco] #composerControls,
 :root[data-ui-style=deco] #toolsWindow,
 :root[data-ui-style=deco] #modelsWindow,
 :root[data-ui-style=deco] #consoleWindow,
-:root[data-ui-style=deco] section.fw{
+:root[data-ui-style=deco] section.fw,
+:root[data-ui-style=deco] :is(#addModelDialog,#projectDialog,#editMessageDialog,#releaseNotesDialog){
   background:var(--panel)!important;
+  border-radius:var(--panel-radius)!important;
+  border:1.5px solid color-mix(in srgb,var(--accent) 44%,var(--double-line))!important;
+  box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--panel) 85%,transparent),inset 0 0 0 4px color-mix(in srgb,var(--accent) 18%,transparent),var(--panel-shadow)!important;
 }
 :root[data-ui-style=deco] :is(.model-source-tabs,.section-tabs,.load-mode,.mode-toggle)[data-segmented]{
   border-radius:var(--control-radius);
-  border:1px solid color-mix(in srgb,var(--accent) 36%,var(--double-line));
+  border:1px solid color-mix(in srgb,var(--accent) 38%,var(--double-line));
 }
 :root[data-ui-style=deco] :is(.model-source-tabs,.section-tabs,.load-mode,.mode-toggle)[data-segmented]>button{
-  border-radius:var(--control-radius)!important;
+  border-radius:max(4px,calc(var(--control-radius) - 2px))!important;
 }
 :root[data-ui-style=deco] :is(.model-source-tabs,.section-tabs,.load-mode,.mode-toggle)[data-segmented]>button:is([aria-pressed=true],[aria-selected=true]){
   box-shadow:inset 0 -2px 0 var(--accent);
 }
 :root[data-ui-style=deco] #toast{
-  border:2px double color-mix(in srgb,var(--accent) 50%,var(--double-line))!important;
-  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 14%,transparent),var(--panel-shadow);
+  border-radius:var(--panel-radius)!important;
+  border:1.5px solid color-mix(in srgb,var(--accent) 52%,var(--double-line))!important;
+  box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--panel) 84%,transparent),inset 0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent),var(--panel-shadow);
 }
 :root[data-ui-style=deco] #chatwrap .msg.user .bubble,
 :root[data-ui-style=deco] #chat .msg.user .bubble{
-  border-radius:var(--panel-radius)!important;
-  border:1px solid color-mix(in srgb,var(--accent) 40%,var(--double-line))!important;
+  border-radius:var(--panel-radius) var(--panel-radius) 5px var(--panel-radius)!important;
+  border:1px solid color-mix(in srgb,var(--accent) 42%,var(--double-line))!important;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 14%,transparent);
 }
 #composerBox .composer-foot{font-size:11px;margin-top:7px;opacity:.78;}
 

@@ -110,7 +110,7 @@ function updatePreparation(state){
 function syncPreparationView(){
   const active=!!preparationState?.active||!!loadingModelId,view=$('#modelPreparation');view.hidden=!active;if(!active)return;
   const state=preparationState,reading=state?.stage==='reading'&&!state.cancel_requested;
-  $('#preparationLabel').textContent=state?.cancel_requested?uiText('Cancelando la carga…'):reading?uiText('Leyendo pesos')+' · '+Math.round(state.percent||0)+' %':state?.active?state.message||uiText('Preparando modelo…'):state?.stage==='cancelled'?uiText('Carga cancelada.'):uiText('Preparando carga…');
+  $('#preparationLabel').textContent=state?.cancel_requested?uiText('Cancelando la carga…'):reading?uiText('Leyendo pesos')+' · '+Math.round(state.percent||0)+' %':state?.active?(state.message?uiText(state.message):uiText('Preparando modelo…')):state?.stage==='cancelled'?uiText('Carga cancelada.'):uiText('Preparando carga…');
   const amount=[];
   if(state?.total_bytes&&reading)amount.push(((state.done_bytes||0)/2**30).toFixed(1)+' / '+(state.total_bytes/2**30).toFixed(1)+' GiB');
   if(state?.started_at)amount.push(Math.max(0,Math.floor(Date.now()/1000-state.started_at))+' s');

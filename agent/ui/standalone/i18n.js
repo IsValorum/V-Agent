@@ -30,6 +30,7 @@
     if((m=text.match(/^(\d+) actualizaci(?:ón|ones) más del runtime$/)))return ({en:(m[1]==='1'?'{n} more runtime update':'{n} more runtime updates'),pt:(m[1]==='1'?'{n} atualização adicional do runtime':'{n} atualizações adicionais do runtime'),fr:(m[1]==='1'?'{n} mise à jour supplémentaire du runtime':'{n} mises à jour supplémentaires du runtime'),de:(m[1]==='1'?'{n} weitere Runtime-Aktualisierung':'{n} weitere Runtime-Aktualisierungen')})[language].replace('{n}',m[1]);
     if((m=text.match(/^(\d+) entradas$/)))return m[1]+' '+t('entradas');
     if((m=text.match(/^(\d+) comandos?$/)))return m[1]+' '+t('comandos');
+    if((m=text.match(/^Cargando con (.+?)(…|\.\.\.)?$/)))return t('Cargando con')+' '+m[1]+(m[2]||'');
     if((m=text.match(/^Carpeta de plugins: (.+)$/)))return t('Carpeta de plugins')+': '+m[1];
     if((m=text.match(/^El modelo no se puede cargar: (.+)$/)))return ({en:'The model cannot be loaded: ',pt:'O modelo não pode ser carregado: ',fr:'Le modèle ne peut pas être chargé : ',de:'Das Modell kann nicht geladen werden: '})[language]+m[1];
     if((m=text.match(/^Error del motor \((.+)\)$/)))return ({en:'Engine error (',pt:'Erro do motor (',fr:'Erreur du moteur (',de:'Engine-Fehler ('})[language]+m[1]+')';
