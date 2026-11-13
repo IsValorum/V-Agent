@@ -6,28 +6,48 @@ Minor updates delivered through the signed components channel are numbered per v
 
 ## 1.0.9
 
-- **Redesigned interface and refined Art Déco appearance:** Streamlined the top bar, composer controls,
-  unified model selector card, tabbed load/generation settings, and typography; softened Art Déco geometry
-  with stepped corner ornaments and double-line trim (renamed cleanly to `Art Déco` in the style picker);
-  and moved the collapsible `Memory breakdown` (`Desglose de memoria`) directly inside the Context card.
+Major release featuring a full UI redesign, major MCP and document-reading upgrades, English-only model-facing MCP standardization, accurate VRAM/GGUF memory estimation, and integrated browser/search fixes.
+
+- **Redesigned interface and refined Art Deco appearance:** Streamlined the top bar, composer controls,
+  unified model selector card, tabbed Load/Generation settings, and typography; softened Art Deco geometry
+  with stepped corner ornaments and double-line trim (`Art Deco` in the English style picker); and moved
+  the collapsible `Memory breakdown` panel directly inside the Context card.
+- **English-only model-facing MCP standardization:** Converted remaining Spanish MCP tool errors, validation
+  messages, workspace/sandbox hints (`pc`, `duckduckgo`, `AccessPolicy`, `draft_recovery`), `find_in_page`
+  notices, and context-compaction prompts (`conversation_codec`, `agent`, `engine_manager`) to clear English
+  for reliable multi-step tool execution across local and remote models.
+- **Built-in document reader (`pc__doc_read`) and remote document extraction:** Added `pc__doc_read` to
+  extract text, tables, and metadata from PDF (with Windows OCR fallback for scanned pages), Word (`.docx`),
+  Excel (`.xlsx`/`.xlsm`), PowerPoint (`.pptx`), OpenDocument (`.odt`/`.ods`/`.odp`), EPUB, RTF, HTML, XML,
+  and CSV files with `pages` range selection and `mode` (`auto`, `markdown`, `text`, `tables`); `pc__fs_read`
+  detects formatted/binary documents and directs models to `doc_read`, `pc__doc_read` is registered across
+  read-only safety/approval/profile rules, and `duckduckgo__web_visit` downloads and extracts remote documents
+  up to 24 MiB (and web pages up to 8 MiB).
+- **Removed artificial MCP truncation caps and added Documents options:** Expanded `MCP Options` so
+  `duckduckgo` `visit_tokens` scales from `0` (unlimited) to `1,000,000` (previously capped at `2,000`),
+  changed `duckduckgo` `max_result_chars` default from `12,000` to `0` (`unlimited`, `0–1,000,000`) while
+  removing the internal `11,500`-character clamp in `web_visit`, raised `pc` and `hf` `max_result_chars`
+  ceilings to `1,000,000`, and added a dedicated `documents` settings section (`extract_mode`, `max_pages`,
+  `max_chars`, `include_tables`, `ocr_scanned`, `include_metadata`).
+- **DuckDuckGo search fallback and local compaction hardening:** `duckduckgo__web_search` treats clean
+  `No results found` responses (including regional or Yahoo queries) as empty searches rather than server
+  outages, retries without quotes when quoted queries yield no hits, and falls back to the `wt-wt` global
+  region on empty regional results; local context compaction strips `<think>` blocks on Strata, llama.cpp,
+  and Strata Rust.
 - **Accurate VRAM warnings and GGUF memory estimation:** Hides the llama.cpp offload warning when running
-  Strata or Strata Rust, accounts for reclaimable VRAM already used by the active llama.cpp server to avoid
+  Strata or Strata Rust, accounts for reclaimable VRAM already held by the active llama.cpp server to avoid
   false overload warnings when enough free VRAM exists, and extends `memory_estimate` and `gguf_catalog`
   for sliding-window attention (`SWA`), MLA/LoRA KV, shared KV layers, and recurrent/SSM/KDA/ShortConv states.
-- **Built-in document reader (`pc__doc_read`) and expanded tool limits:** Extracts text, tables, and
-  metadata from PDF (including OCR fallback for scanned pages), Word (`.docx`), Excel (`.xlsx`/`.xlsm`),
-  PowerPoint (`.pptx`), OpenDocument (`.odt`/`.ods`/`.odp`), EPUB, RTF, HTML, XML, and CSV/TSV files,
-  with raised/configurable MCP visit-token and result limits.
-- **Integrated browser, search, and desktop window fixes:** Added a fullscreen toggle to the integrated
+- **Integrated browser, search toggle, and desktop window fixes:** Added a fullscreen toggle to the integrated
   browser dock, upgraded the web search toggle to a high-contrast globe-and-magnifier icon with a
-  theme-adaptive `WebSearch/WebVisit` tooltip, added DuckDuckGo retry fallback when quoted or Yahoo search
-  queries return `No results found`, opens release notes in an in-app dialog instead of inside the browser
-  dock, and fixed sandbox/conversation folder opening and native save dialogs for chat and theme exports.
-- **Complete translations, loading feedback, and clean release pipeline:** Stabilized the `Tools` counter
+  theme-adaptive `WebSearch/WebVisit` tooltip, opens release notes in an in-app dialog instead of inside the
+  browser dock, and fixed sandbox/conversation folder opening and native save dialogs for chat and theme
+  exports.
+- **Complete UI translations, loading feedback, and clean release pipeline:** Stabilized the `Tools` counter
   and standardized `Tools` across all 5 languages (`es`, `en`, `pt`, `fr`, `de`), made the model loading
   progress bar adapt to every theme and accent color, completed remaining help-card and loading-phase
-  translations (`Shared console`, `MTP`, preparation states), normalized model-facing prompts/errors, and
-  added clean-worktree release builds that verify runtime binaries and exclude personal data or dev artifacts.
+  translations (`Shared console`, `MTP`, preparation states), and enforced clean-worktree release builds that
+  verify runtime binaries and exclude personal data or development artifacts.
 
 ## 1.0.8
 
