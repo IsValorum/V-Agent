@@ -101,7 +101,7 @@ try{const logo=localStorage.getItem('valBootLogo');if(['gold','silver','jade','b
               <button id="modelBtn" class="composer-control model-control" data-controls="model" aria-controls="composerControls" aria-haspopup="dialog" aria-expanded="false"><span class="model-dot" aria-hidden="true"></span><span id="modelBtnLabel">Modelo</span><span class="control-chevron" aria-hidden="true">⌄</span></button>
               <button id="responseBtn" class="composer-control" data-controls="response" aria-controls="composerControls" aria-haspopup="dialog" aria-expanded="false"><span id="responseBtnLabel">Respuesta</span><span class="control-chevron" aria-hidden="true">⌄</span></button>
               <button id="ctxBtn" class="composer-control context-control" data-controls="context" aria-controls="composerControls" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 9h6v6H9V9Z"/></svg><span id="ctxLabel">— / — · —</span></button>
-              <button id="mcpBtn" class="composer-control" data-controls="tools" aria-controls="composerControls" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v4m8-4v4M6 7h12v3a6 6 0 0 1-12 0V7Zm6 9v5"/></svg>Herramientas <span id="toolCount">0</span></button>
+              <button id="mcpBtn" class="composer-control" data-controls="tools" aria-controls="composerControls" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v4m8-4v4M6 7h12v3a6 6 0 0 1-12 0V7Zm6 9v5"/></svg>Tools <span id="toolCount">0</span></button>
               <button id="scopeBtn" class="composer-control" data-controls="tools" data-scope="sandbox" aria-controls="composerControls" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 4 8 9 8 9s8-5 8-9V6l-8-3Z"/><path d="m8 12 3 3 5-6"/></svg><span id="scopeLabel">Sandbox</span></button>
             </div>
             <div id="composerRight" data-composer-side="right" aria-label="Botones a la derecha"><button id="send" aria-label="Enviar mensaje"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg></button></div>
@@ -178,15 +178,15 @@ try{const logo=localStorage.getItem('valBootLogo');if(['gold','silver','jade','b
 
   </div>
 </aside>
-<section id="toolsWindow" class="fw" role="dialog" aria-label="Herramientas" hidden>
-  <header class="fw-head"><h2>Herramientas</h2><button class="icon-btn" type="button" data-fw-close aria-label="Cerrar herramientas" title="Cerrar">×</button></header>
+<section id="toolsWindow" class="fw" role="dialog" aria-label="Tools" hidden>
+  <header class="fw-head"><h2>Tools</h2><button class="icon-btn" type="button" data-fw-close aria-label="Cerrar herramientas" title="Cerrar">×</button></header>
   <div class="fw-body" id="toolsHost"></div>
 </section>
 <section id="consoleWindow" class="fw" role="dialog" aria-label="Consola" hidden>
   <header class="fw-head"><h2>Consola</h2><span id="consoleState" class="fw-state">Inactiva</span><button class="icon-btn" type="button" data-fw-close aria-label="Cerrar consola" title="Cerrar">×</button></header>
   <div class="fw-body console-body">
     <div class="console-bar"><select id="consoleShell" aria-label="Intérprete"><option value="powershell">PowerShell</option><option value="cmd">CMD</option></select><input id="consoleCommand" type="text" autocomplete="off" spellcheck="false" placeholder="Escribe un comando y pulsa Enter" aria-label="Comando"><button id="consoleRun" type="button">Ejecutar</button><button id="consoleStop" type="button" disabled>Detener</button></div>
-    <p id="consoleHint" class="mini">Sesión persistente: conserva la carpeta y las variables entre comandos. Tú y el agente compartís esta consola. No es un terminal interactivo completo; los programas que piden entrada no funcionan. Requiere Acceso completo en la ventana de Herramientas.</p>
+    <p id="consoleHint" class="mini">Sesión persistente: conserva la carpeta y las variables entre comandos. Tú y el agente compartís esta consola. No es un terminal interactivo completo; los programas que piden entrada no funcionan. Requiere Acceso completo en la ventana de Tools.</p>
     <pre id="consoleOutput" class="console-output" tabindex="0" aria-label="Salida de la consola"></pre>
     <div class="console-foot"><span id="consoleMeta" class="mini"></span><button id="consoleCopy" type="button" class="text-btn">Copiar salida</button><button id="consoleClear" type="button" class="text-btn">Limpiar vista</button></div>
   </div>

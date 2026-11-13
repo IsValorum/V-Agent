@@ -39,7 +39,7 @@
     async function run(){
       const command=document.getElementById('consoleCommand').value;
       if(!command.trim()||running)return;
-      if(pcAccess.mode!=='full_pc'){document.getElementById('consoleHint').textContent='Activa Acceso completo en la ventana de Herramientas antes de ejecutar comandos.';return;}
+      if(pcAccess.mode!=='full_pc'){document.getElementById('consoleHint').textContent=uiText('Activa Acceso completo en la ventana de Tools antes de ejecutar comandos.');return;}
       if(history[history.length-1]!==command)history.push(command);
       historyIndex=history.length;
       document.getElementById('consoleRun').disabled=true;state('Iniciando');
@@ -308,6 +308,7 @@
     function toggleDock(){open?closeDock():openDock();}
     window.VALBrowser={open:url=>{openDock();navigateActive(url);},navigate:navigateActive,toggle:toggleDock,close:closeDock};
     document.addEventListener('click',event=>{
+      if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
       if(!hasTauri())return;
       const link=event.target.closest('a[href]');if(!link||link.hasAttribute('download'))return;
       const href=link.getAttribute('href')||'';if(!/^https?:\/\//i.test(href))return;

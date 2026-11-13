@@ -142,11 +142,23 @@ function toolTitle(call) {
 function toolState(call) {
   return uiText(({drafting:'Redactando',validating:'Validando',running:'Ejecutando',completed:'Resultado recibido',error:'Error',blocked:'No ejecutada',interrupted:'Interrumpida',missing:'Sin resultado recibido'})[call.status]||(Object.hasOwn(call,'result')?(call.ok===false?'Error':'Resultado recibido'):'Sin resultado guardado'));
 }
-function downloadToolDraft(filename,text) {
-  const url=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));
-  const link=document.createElement('a');link.href=url;link.download=filename;link.click();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
+async function downloadToolDraft(filename,text,mime='text/plain;charset=utf-8',options={}) {
+  const content=String(text??'');
+  const invoke=window.__TAURI__?.core?.invoke;
+  if(invoke){
+    const savedPath=await invoke('save_export_file',{filename,content});
+    if(!savedPath)return null;
+    if(!options.silent)note(uiText('Guardado en')+' '+savedPath);
+    return savedPath;
+  }
+  const url=URL.createObjectURL(new Blob([content],{type:mime}));
+  const link=document.createElement('a');link.href=url;link.download=filename;link.hidden=true;
+  document.body.append(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  if(!options.silent)note(uiText('Archivo guardado.')+' ('+filename+')');
+  return filename;
 }
+window.downloadToolDraft=downloadToolDraft;
 function fileFromDraft(call) {
   if(!/^fs_write(?:$|[",])/.test(toolName(call)))return null;
   let args=call.args||{};
@@ -209,7 +221,7 @@ function draftActions(heading,call,text) {
     });
     action('Ver código',()=>openViewer(file.filename.split('.').at(-1),file.content));
     action('Copiar código',()=>copy(file.content));
-    action('Descargar archivo',()=>downloadToolDraft(file.filename,file.content));
+    action('Descargar archivo',()=>{downloadToolDraft(file.filename,file.content).catch(error=>note(error?.message||String(error)));});
   }
   if(call.draft_id&&call.status!=='completed')action('Continuar borrador',async()=>{
     if(busy||engineBusy){note('Detén la generación antes de continuar un borrador.');return;}
@@ -236,7 +248,7 @@ function draftActions(heading,call,text) {
     } catch(error) {button.disabled=false;button.textContent=uiText('Recuperar del disco');note(error.message);}
   });
   action('Copiar borrador',()=>copy(text));
-  action('Descargar borrador',()=>downloadToolDraft('llamada-borrador.txt',text));
+  action('Descargar borrador',()=>{downloadToolDraft('llamada-borrador.txt',text).catch(error=>note(error?.message||String(error)));});
   heading.append(actions);
 }
 async function openFileHistory(path){

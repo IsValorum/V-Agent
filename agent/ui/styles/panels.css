@@ -1218,7 +1218,8 @@ body[data-theme-mode=day]:not([data-ui-style=deco]){
 #sidebar .sidebar-chrome{padding:4px 4px 10px;gap:3px;min-height:36px;}
 #sidebar .sidebar-chrome .icon-btn{width:30px;height:30px;padding:6px;border-radius:var(--control-radius,8px)!important;}
 #sidebar .chrome-status{margin-left:auto;display:flex;align-items:center;min-width:0;max-width:100%;}
-#sidebar .chrome-status .connection{margin:0!important;display:inline-flex!important;align-items:center;gap:6px;padding:4px 9px;border-radius:999px;background:color-mix(in srgb,var(--text) 4.5%,transparent);border:1px solid var(--soft-line,var(--border));font-size:11px;line-height:1.2;max-width:132px;}
+#sidebar .chrome-status .connection{margin:0!important;display:inline-flex!important;align-items:center;gap:6px;padding:4px 9px;font-size:11px;line-height:1.2;max-width:132px;}
+:root:not([data-ui-style=deco]) #sidebar .chrome-status .connection{border-radius:999px;background:color-mix(in srgb,var(--text) 4.5%,transparent);border:1px solid var(--soft-line,var(--border));}
 #sidebar .chrome-status .connection #connectionText{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 #chatwrap .topbar{
@@ -1311,19 +1312,27 @@ body.desktop-frame.browser-open #chatwrap .topbar{padding-right:16px!important;}
 
 .compose-inner .project-strip{gap:8px;margin-bottom:8px;}
 #projectBtn{
-  min-height:30px;padding:4px 12px;font-size:12px;border-radius:999px;gap:6px;
+  min-height:30px;padding:4px 12px;font-size:12px;gap:6px;
+}
+:root:not([data-ui-style=deco]) #projectBtn{
+  border-radius:999px;
   border:1px solid var(--outside-border,var(--border));background:var(--outside-surface);
 }
 #projectBtn .control-chevron{overflow:visible!important;text-overflow:clip!important;flex:0 0 auto;font-size:12px;line-height:1;}
 #agentModeSegments{
-  min-height:30px;padding:3px;border-radius:999px;
+  min-height:30px;
+}
+:root:not([data-ui-style=deco]) #agentModeSegments{
+  padding:3px;border-radius:999px;
   border:1px solid var(--outside-border,var(--border));background:var(--outside-surface);
 }
 #agentModeSegments button{font-size:12px;padding:4px 11px;min-height:24px;}
 .compose-surface{
-  border-radius:max(16px,var(--panel-radius,16px))!important;
   padding:12px 14px 10px;
   transition:border-color .18s ease,box-shadow .18s ease;
+}
+:root:not([data-ui-style=deco]) .compose-surface{
+  border-radius:max(16px,var(--panel-radius,16px))!important;
 }
 .compose-surface:focus-within{
   border-color:color-mix(in srgb,var(--accent) 46%,var(--soft-line,var(--border)))!important;
@@ -1331,12 +1340,145 @@ body.desktop-frame.browser-open #chatwrap .topbar{padding-right:16px!important;}
 }
 #input{font-size:14px;line-height:1.55;}
 .composer-tools{margin-top:8px;padding-top:6px;gap:6px;}
-.composer-control{min-height:30px;padding:4px 10px;font-size:12px;border-radius:999px;gap:5px;}
-#send{width:34px;height:34px;border-radius:50%!important;}
+.composer-control{min-height:30px;padding:4px 10px;font-size:12px;gap:5px;}
+:root:not([data-ui-style=deco]) .composer-control{border-radius:999px;}
+#send{width:34px;height:34px;}
+:root:not([data-ui-style=deco]) #send{border-radius:50%!important;}
+
+/* Architectural refinement & subtle brass accents dedicated to Art Déco style */
+:root[data-ui-style=deco]{
+  --control-radius:min(var(--radius),3px);
+  --panel-radius:min(var(--radius),6px);
+}
+:root[data-ui-style=deco] #sidebar .chrome-status .connection{
+  border-radius:var(--control-radius);
+  border:1px solid color-mix(in srgb,var(--accent) 38%,var(--double-line));
+  background:color-mix(in srgb,var(--accent) 6%,var(--panel));
+}
+:root[data-ui-style=deco] #projectBtn,
+:root[data-ui-style=deco] #agentModeSegments{
+  border-radius:var(--control-radius);
+  border:1px solid color-mix(in srgb,var(--accent) 44%,var(--double-line));
+  background:var(--outside-surface);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 14%,transparent);
+}
+:root[data-ui-style=deco] #projectBtn:hover{
+  border-color:color-mix(in srgb,var(--accent) 75%,var(--double-line));
+}
+:root[data-ui-style=deco] #agentModeSegments{padding:2px;gap:2px;}
+:root[data-ui-style=deco] #agentModeSegments button{
+  border-radius:max(1px,calc(var(--control-radius) - 1px));
+  border:1px solid transparent;
+}
+:root[data-ui-style=deco] #agentModeSegments button[aria-pressed=true]{
+  background:color-mix(in srgb,var(--accent) 20%,var(--panel));
+  color:var(--text);
+  border-color:color-mix(in srgb,var(--accent) 45%,transparent);
+  box-shadow:inset 0 -2px 0 var(--accent);
+}
+:root[data-ui-style=deco] #chatwrap :is(.compose-surface,#composer){
+  border-radius:var(--panel-radius)!important;
+}
+:root[data-ui-style=deco] .compose-surface{
+  border-radius:var(--panel-radius)!important;
+  border:3px double color-mix(in srgb,var(--accent) 42%,var(--double-line))!important;
+  padding:12px 15px 10px;
+  background-image:
+    linear-gradient(var(--accent),var(--accent)),linear-gradient(var(--accent),var(--accent)),
+    linear-gradient(var(--accent),var(--accent)),linear-gradient(var(--accent),var(--accent)),
+    linear-gradient(var(--accent),var(--accent)),linear-gradient(var(--accent),var(--accent)),
+    linear-gradient(var(--accent),var(--accent)),linear-gradient(var(--accent),var(--accent));
+  background-size:9px 1px,1px 9px,9px 1px,1px 9px,9px 1px,1px 9px,9px 1px,1px 9px;
+  background-position:
+    5px 5px,5px 5px,
+    calc(100% - 5px) 5px,calc(100% - 5px) 5px,
+    5px calc(100% - 5px),5px calc(100% - 5px),
+    calc(100% - 5px) calc(100% - 5px),calc(100% - 5px) calc(100% - 5px);
+  background-repeat:no-repeat;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 12%,transparent),0 8px 26px rgb(0 0 0 / .14)!important;
+}
+:root[data-ui-style=deco] .compose-surface:focus-within{
+  border-color:color-mix(in srgb,var(--accent) 74%,var(--double-line))!important;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 28%,transparent),0 10px 28px rgb(0 0 0 / .18)!important;
+}
+:root[data-ui-style=deco] .compose-surface .composer-tools{
+  border-top:1px solid color-mix(in srgb,var(--accent) 20%,var(--double-line));
+  margin-top:8px;padding-top:7px;
+}
+:root[data-ui-style=deco] .composer-control{
+  border-radius:var(--control-radius);
+  border:1px solid color-mix(in srgb,var(--accent) 26%,var(--double-line));
+  background:color-mix(in srgb,var(--accent) 4%,transparent);
+}
+:root[data-ui-style=deco] .composer-control:hover:not(:disabled),
+:root[data-ui-style=deco] .composer-control[aria-expanded=true],
+:root[data-ui-style=deco] .composer-control[aria-pressed=true]{
+  border-color:color-mix(in srgb,var(--accent) 60%,var(--double-line));
+  background:color-mix(in srgb,var(--accent) 13%,transparent);
+}
+:root[data-ui-style=deco] #send{
+  border-radius:var(--control-radius)!important;
+  border:1px solid color-mix(in srgb,var(--accent) 72%,var(--border))!important;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent-ink,#111) 28%,transparent)!important;
+}
+:root[data-ui-style=deco] .welcome h2{
+  padding:7px 22px 9px!important;
+  border:2px double color-mix(in srgb,var(--accent) 52%,var(--double-line))!important;
+  border-radius:var(--panel-radius)!important;
+  background:color-mix(in srgb,var(--panel) 84%,transparent)!important;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 16%,transparent),0 4px 16px rgb(0 0 0 / .08)!important;
+}
+:root[data-ui-style=deco] #sidebar #newchat{
+  border-radius:var(--control-radius)!important;
+  border:1px solid color-mix(in srgb,var(--accent) 44%,var(--double-line))!important;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 12%,transparent)!important;
+}
+:root[data-ui-style=deco] #sidebar .conv.active,
+:root[data-ui-style=deco] #drawer #settingsNav button[aria-selected=true]{
+  border-radius:var(--control-radius)!important;
+  background:color-mix(in srgb,var(--accent) 16%,transparent)!important;
+  box-shadow:inset 3px 0 0 var(--accent);
+  color:var(--text);
+}
+:root[data-ui-style=deco] :is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw) :is(.drawer-head,.controls-head,.fw-head,.dlg-head){
+  border-bottom:3px double color-mix(in srgb,var(--accent) 42%,var(--double-line));
+}
+:root[data-ui-style=deco] #drawer .settings-group,
+:root[data-ui-style=deco] #sidebar .engine-card{
+  border-radius:var(--panel-radius);
+  border-color:color-mix(in srgb,var(--accent) 26%,var(--double-line));
+}
+:root[data-ui-style=deco] #drawer,
+:root[data-ui-style=deco] #composerControls,
+:root[data-ui-style=deco] #toolsWindow,
+:root[data-ui-style=deco] #modelsWindow,
+:root[data-ui-style=deco] #consoleWindow,
+:root[data-ui-style=deco] section.fw{
+  background:var(--panel)!important;
+}
+:root[data-ui-style=deco] :is(.model-source-tabs,.section-tabs,.load-mode,.mode-toggle)[data-segmented]{
+  border-radius:var(--control-radius);
+  border:1px solid color-mix(in srgb,var(--accent) 36%,var(--double-line));
+}
+:root[data-ui-style=deco] :is(.model-source-tabs,.section-tabs,.load-mode,.mode-toggle)[data-segmented]>button{
+  border-radius:var(--control-radius)!important;
+}
+:root[data-ui-style=deco] :is(.model-source-tabs,.section-tabs,.load-mode,.mode-toggle)[data-segmented]>button:is([aria-pressed=true],[aria-selected=true]){
+  box-shadow:inset 0 -2px 0 var(--accent);
+}
+:root[data-ui-style=deco] #toast{
+  border:2px double color-mix(in srgb,var(--accent) 50%,var(--double-line))!important;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 14%,transparent),var(--panel-shadow);
+}
+:root[data-ui-style=deco] #chatwrap .msg.user .bubble,
+:root[data-ui-style=deco] #chat .msg.user .bubble{
+  border-radius:var(--panel-radius)!important;
+  border:1px solid color-mix(in srgb,var(--accent) 40%,var(--double-line))!important;
+}
 #composerBox .composer-foot{font-size:11px;margin-top:7px;opacity:.78;}
 
 /* 5. Floating windows, Settings Drawer, & Comfort Typography (12.5px system) */
-:root:not([data-ui-style=glass]) :is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw,.val-confirm,.tool-approval){
+:root:not([data-ui-style=glass]):not([data-ui-style=deco]) :is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw,.val-confirm,.tool-approval){
   background:color-mix(in srgb,var(--panel) 97%,transparent)!important;
   backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
 }
@@ -1445,6 +1587,9 @@ body.desktop-frame.browser-open #chatwrap .topbar{padding-right:16px!important;}
 :root[data-density=compact] #drawer .setting-row{min-height:30px;padding:4px 0;}
 :root[data-density=compact] :is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw,dialog) :is(button:not(.icon-btn):not(.help-trigger):not(.window-control):not(.tool-remove):not(.conv-more),select,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),textarea){
   min-height:28px;font-size:12px;
+}
+:root[data-ui-style=deco] :is(#composerControls .model-card,#composerControls .context-block,#composerControls .context-compact-box,#composerControls .engine-quick,#toolsWindow .tool-group){
+  border-color:color-mix(in srgb,var(--accent) 26%,var(--double-line));
 }
 
 @media(max-width:700px){

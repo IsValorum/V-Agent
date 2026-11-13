@@ -75,9 +75,17 @@ async function pollMCP() {
   try {
     const selection=herramientasActivas(),profile=S.agentProfile||'balanced';const data = await requestJSON('/api/mcp?on=' + encodeURIComponent(selection)+'&agent_profile='+encodeURIComponent(profile));
     if(selection!==herramientasActivas()||profile!==(S.agentProfile||'balanced'))return;
+    const accessMode=data.access?.mode||pcAccess.mode;
+    const budgetKey=selection+'|'+profile+'|'+accessMode;
+    if(data.presupuesto&&!data.presupuesto.error){
+      presupuestoFirmado=budgetKey;
+      lastToolBudget={...data.presupuesto,signature:budgetKey};
+    }
     if (data.access && !accessChanging && (!S.pcAccessMode || data.access.mode === S.pcAccessMode)) {
-      pcAccess = {...data.access,isolation:data.access.isolation||pcAccess.isolation};
-      syncAccessControls();
+      const nextAccess = {...data.access,isolation:data.access.isolation||pcAccess.isolation};
+      const changed = nextAccess.mode!==pcAccess.mode || nextAccess.root!==pcAccess.root || nextAccess.isolation?.available!==pcAccess.isolation?.available;
+      pcAccess = nextAccess;
+      if(changed)syncAccessControls();
     } else if (data.access?.isolation) {
       pcAccess.isolation = data.access.isolation;
     }
@@ -132,11 +140,17 @@ $('#pcAccess').onchange=async()=>{
 syncAccessControls();
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pollMCP();});
 
+function budgetSignature() {
+  return herramientasActivas() + '|' + (S.agentProfile || 'balanced') + '|' + pcAccess.mode;
+}
 function updateToolCount() {
-  // El numero tiene que ser el de verdad: el grupo "Archivos" son 6 (listar, leer, escribir,
-  // editar por bloque, copiar/pegar por linea y comprobar en navegador). Si la cuenta no cuadra
-  // con la linea de presupuesto de abajo, esta de mas y confunde.
-  const CUENTA = {files:11, search:1, visit:1, sys:1, shell:pcAccess.mode==='full_pc'?5:1,hf:3,browser:1,console:1,web:2,autobrowser:16,computer:9,admin:4};
+  const signature = typeof budgetSignature === 'function' ? budgetSignature() : ((S.agentProfile || 'balanced') + '|' + pcAccess.mode);
+  if (lastToolBudget && (!('signature' in lastToolBudget) || lastToolBudget.signature === signature) && typeof lastToolBudget.tools === 'number') {
+    $("#toolCount").textContent = String(lastToolBudget.tools);
+    consultarPresupuesto();
+    return;
+  }
+  const CUENTA = {files:13, search:1, visit:1, sys:1, shell:pcAccess.mode==='full_pc'?5:1, hf:3, browser:1, console:1, web:2, autobrowser:15, computer:9, admin:4};
   const profile = S.agentProfile || 'balanced';
   $("#toolCount").textContent = Object.entries(S.functions).filter(([k,v]) =>
     k !== "date" && v &&
@@ -150,13 +164,13 @@ function updateToolCount() {
 function herramientasActivas(){return Object.entries(S.functions).filter(([k,v])=>k!=='date'&&v&&(k!=='shell'||pcAccess.mode==='full_pc'||pcAccess.isolation?.available)&&(k!=='console'||pcAccess.mode==='full_pc')).map(([k])=>k).sort().join(',');}
 async function consultarPresupuesto(){
   const activo=herramientasActivas(),profile=S.agentProfile||'balanced',signature=activo+'|'+profile+'|'+pcAccess.mode;
-  if(signature===presupuestoFirmado){if(lastToolBudget&&typeof lastToolBudget.tools==='number')$('#toolCount').textContent=String(lastToolBudget.tools);return;}            // same set: no volver a medir por cada ajuste de muestreo
-  presupuestoFirmado=signature;lastToolBudget=null;$('#mcpTokens').textContent=uiText(activo?'Calculando herramientas…':'Sin herramientas activas: no se inyecta bloque de tools.');
+  if(signature===presupuestoFirmado){if(lastToolBudget&&lastToolBudget.signature===signature&&typeof lastToolBudget.tools==='number')$('#toolCount').textContent=String(lastToolBudget.tools);return;}            // same set: no volver a medir por cada ajuste de muestreo
+  presupuestoFirmado=signature;$('#mcpTokens').textContent=uiText(activo?'Calculando herramientas…':'Sin herramientas activas: no se inyecta bloque de tools.');
   clearTimeout(presupuestoTimer);presupuestoTimer=setTimeout(async()=>{
-    try{const d=await requestJSON('/api/mcp?on='+encodeURIComponent(activo)+'&agent_profile='+encodeURIComponent(profile),{cache:'no-store',signal:AbortSignal.timeout(60000)});if(activo===herramientasActivas()&&profile===(S.agentProfile||'balanced'))pintarPresupuesto(d.presupuesto);}catch{}},500);
+    try{const d=await requestJSON('/api/mcp?on='+encodeURIComponent(activo)+'&agent_profile='+encodeURIComponent(profile),{cache:'no-store',signal:AbortSignal.timeout(60000)});if(activo===herramientasActivas()&&profile===(S.agentProfile||'balanced'))pintarPresupuesto(d.presupuesto,signature);}catch{}},500);
 }
-function pintarPresupuesto(p){
-  lastToolBudget=p;
+function pintarPresupuesto(p,signature=budgetSignature()){
+  lastToolBudget=p&&typeof p==='object'?{...p,signature}:p;
   const el=$('#mcpTokens');if(!el)return;
   if(!p||p.error){el.textContent=p&&p.error?('No se pudo medir el coste de las herramientas: '+p.error):'';el.dataset.bad=p&&p.error?'1':'';return;}
   const total=p.tools||0;$('#toolCount').textContent=String(total);const tokens=p.token_despues||p.token_antes||0,limite=p.limite||1000;
@@ -241,9 +255,9 @@ function setMode(mode){TH.mode=mode;applyTheme();syncThemeControls();}
 $('#themeBtn').onclick=()=>setMode(TH.mode==='night'?'day':'night');
 document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
 $('#resetTheme').onclick=()=>{TH[TH.mode]={...DEF_THEME[TH.mode]};applyTheme();syncThemeControls();};
-$('#exportTheme').onclick=()=>{
-  const url=URL.createObjectURL(new Blob([JSON.stringify({type:'strata-theme',version:2,theme:TH},null,2)],{type:'application/json'}));
-  const a=document.createElement('a');a.href=url;a.download='V-Agent-tema.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+$('#exportTheme').onclick=async()=>{
+  try{await downloadToolDraft('V-Agent-tema.json',JSON.stringify({type:'strata-theme',version:2,theme:TH},null,2),'application/json');}
+  catch(error){note(error?.message||String(error));}
 };
 $('#importTheme').onclick=()=>$('#themeFile').click();
 $('#themeFile').onchange=async e=>{

@@ -1,6 +1,6 @@
 
 let drawerFocus=null,chatControlsFocus=null;
-const CONTROL_LABELS={model:'Modelo y generación',response:'Modelo y generación',context:'Modelo y generación',tools:'Herramientas'};
+const CONTROL_LABELS={model:'Modelo y generación',response:'Modelo y generación',context:'Modelo y generación',tools:'Tools'};
 function chatControlsOpen(pane){return pane==='tools'?!!window.VALWindows?.isOpen('tools'):!!window.VALWindows?.isOpen('model');}
 function syncControlButtons(){
   for(const button of document.querySelectorAll('[data-controls]'))button.setAttribute('aria-expanded','false');

@@ -164,13 +164,19 @@ function syncKVSettings(){
   const id=$('#model').value,info=modelKV[id]||{},options=info.options||[];
   const value=modelPreferences[id]?.kv??info.current;
   select.replaceChildren(...options.map(option=>new Option(option.label,option.value)));
-  if(value&&!options.some(option=>option.value===value)){const item=new Option(value+' · no compatible',value);item.disabled=true;select.add(item);}
+  if(value&&!options.some(option=>option.value===value)){const item=new Option(value+' · '+uiText('no compatible'),value);item.disabled=true;select.add(item);}
   if(value)select.value=value;
   select.disabled=busy||engineBusy||!options.length;
   const option=options.find(option=>option.value===value);
   requestMemoryEstimate();
-  $('#kvStatus').textContent=option?option.description+(value!==info.current?' Se aplicará en la próxima carga manual.':''):info.error||'Selecciona un formato compatible.';
+  $('#kvStatus').textContent=option?uiText(option.description)+(value!==info.current?' '+uiText('Se aplicará en la próxima carga manual.'):''):uiText(info.error||'Selecciona un formato compatible.');
 }
+window.refreshModelPanelTranslations=()=>{
+  const memory=document.getElementById('contextMemory'),headline=document.getElementById('memoryHeadline');
+  if(memory&&headline){const text=(headline.textContent||'').trim();memory.textContent=text?uiText('Memoria')+' '+text:'';}
+  syncKVSettings();
+  updateCreatorNotice();
+};
 function queueModelPreferences(){
   const id=$('#model').value;if(!id)return;
   const settings={sampling:{...S.sampling},effort:S.effort,rounds:S.rounds,

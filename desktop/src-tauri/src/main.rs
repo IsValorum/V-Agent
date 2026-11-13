@@ -24,7 +24,7 @@ extern "system" {
  fn GetWindowThreadProcessId(hwnd:*mut std::ffi::c_void,pid:*mut u32)->u32;
  fn AllowSetForegroundWindow(pid:u32)->i32;
 }
-fn apply_taskbar_identity(window:&tauri::WebviewWindow)->Result<(),String>{
+fn apply_taskbar_identity(window:&tauri::Window)->Result<(),String>{
  let hwnd=window.hwnd().map_err(|e|e.to_string())?;
  unsafe{
   use windows::Win32::System::Com::{CoCreateInstance,CLSCTX_INPROC_SERVER};
@@ -40,7 +40,7 @@ fn caption_color(value:&str)->Result<u32,String>{
  let rgb=u32::from_str_radix(&value[1..],16).map_err(|_|"Color de ventana no válido.".to_string())?;
  Ok(((rgb>>16)&255)|(rgb&0xff00)|((rgb&255)<<16))
 }
-fn apply_window_appearance(window:&tauri::WebviewWindow,dark:bool,background:&str,radius:u32)->Result<(),String>{
+fn apply_window_appearance(window:&tauri::Window,dark:bool,background:&str,radius:u32)->Result<(),String>{
  let color=caption_color(background)?;
  window.set_theme(Some(if dark{tauri::Theme::Dark}else{tauri::Theme::Light})).map_err(|e|e.to_string())?;
  let hwnd=window.hwnd().map_err(|e|e.to_string())?;
@@ -57,7 +57,7 @@ fn apply_window_appearance(window:&tauri::WebviewWindow,dark:bool,background:&st
 #[tauri::command]
 fn window_appearance(app:AppHandle,dark:bool,background:String,radius:u32)->Result<(),String>{
  if radius>40{return Err("Redondez fuera de rango.".into());}
- let window=app.get_webview_window("main").ok_or("No se encontró la ventana principal.")?;
+ let window=app.get_window("main").ok_or("No se encontró la ventana principal.")?;
  apply_window_appearance(&window,dark,&background,radius)
 }
 
@@ -120,7 +120,7 @@ fn refresh_brand_shortcuts(icon:&std::path::Path)->Result<(),String>{
   }
  }}Ok(())
 }
-fn apply_brand(window:&tauri::WebviewWindow,logo:&str)->Result<(),String>{
+fn apply_brand(window:&tauri::Window,logo:&str)->Result<(),String>{
  use windows::Win32::{Foundation::HWND,UI::Shell::PropertiesSystem::{IPropertyStore,SHGetPropertyStoreForWindow}};
  let icon=brand_icon(logo)?;let ico=brand_ico(logo)?;let folder=user_data().join("branding");std::fs::create_dir_all(&folder).map_err(|e|e.to_string())?;
  let path=folder.join(format!("val-agent-{logo}-rounded-v2.ico"));if std::fs::read(&path).ok().as_deref()!=Some(ico){std::fs::write(&path,ico).map_err(|e|e.to_string())?;}
@@ -133,7 +133,7 @@ fn apply_brand(window:&tauri::WebviewWindow,logo:&str)->Result<(),String>{
 }
 #[tauri::command]
 fn window_brand_icon(app:AppHandle,logo:String)->Result<(),String>{
- let window=app.get_webview_window("main").ok_or("Main window unavailable.")?;apply_brand(&window,&logo)
+ let window=app.get_window("main").ok_or("No se encontró la ventana principal.")?;apply_brand(&window,&logo)
 }
 
 fn web_url(value:&str)->Result<Url,String>{
@@ -475,7 +475,7 @@ fn open_engine_folder(app:AppHandle,folder:String)->Result<(),String>{
 fn show_folder(app:&AppHandle,dir:&std::path::Path)->Result<(),String>{
  let file:Vec<u16>=dir.as_os_str().to_string_lossy().encode_utf16().chain(Some(0)).collect();
  let class:Vec<u16>="Shell_TrayWnd".encode_utf16().chain(Some(0)).collect();
- let owner=app.get_webview_window("main").ok_or("No se encontró la ventana principal.")?.hwnd().map_err(|e|e.to_string())?;
+ let owner=app.get_window("main").ok_or("No se encontró la ventana principal.")?.hwnd().map_err(|e|e.to_string())?;
  unsafe{
   // Explorer often reuses its existing process. Permit that process to take focus.
   let tray=FindWindowW(class.as_ptr(),std::ptr::null());let mut pid=0u32;
@@ -484,6 +484,48 @@ fn show_folder(app:&AppHandle,dir:&std::path::Path)->Result<(),String>{
   if result<=32{return Err(format!("No se pudo abrir la carpeta (Windows {result})."));}
  }
  Ok(())
+}
+
+#[tauri::command]
+async fn save_export_file(app:AppHandle,filename:String,content:String)->Result<Option<String>,String>{
+ let owner=app.get_window("main").ok_or("No se encontró la ventana principal.")?.hwnd().map_err(|e|e.to_string())?.0 as isize;
+ let chosen=tauri::async_runtime::spawn_blocking(move ||->Result<Option<PathBuf>,String>{
+  use windows::{core::{PCWSTR,PWSTR},Win32::{Foundation::HWND,UI::Controls::Dialogs::{CommDlgExtendedError,GetSaveFileNameW,OFN_EXPLORER,OFN_NOCHANGEDIR,OFN_OVERWRITEPROMPT,OFN_PATHMUSTEXIST,OPENFILENAMEW}}};
+  let raw_name=std::path::Path::new(&filename).file_name().and_then(|v|v.to_str()).unwrap_or("export.json");
+  let clean_name:String=raw_name.chars().map(|c|if matches!(c,'<'|'>'|':'|'"'|'/'|'\\'|'|'|'?'|'*')||c.is_control(){'-'}else{c}).collect();
+  let final_name=if clean_name.trim_matches('.').is_empty(){"export.json"}else{clean_name.as_str()};
+  let ext=std::path::Path::new(final_name).extension().and_then(|v|v.to_str()).unwrap_or("json");
+  let mut buf=[0u16;4096];
+  let name_u16:Vec<u16>=final_name.encode_utf16().collect();
+  let copy_len=name_u16.len().min(buf.len()-1);
+  buf[..copy_len].copy_from_slice(&name_u16[..copy_len]);
+  let filter_str=if ext.eq_ignore_ascii_case("json"){"JSON (*.json)\0*.json\0All files (*.*)\0*.*\0\0"}else{"Text (*.txt)\0*.txt\0All files (*.*)\0*.*\0\0"};
+  let filter_u16:Vec<u16>=filter_str.encode_utf16().collect();
+  let def_ext_u16:Vec<u16>=ext.encode_utf16().chain(Some(0)).collect();
+  let init_dir=std::env::var_os("USERPROFILE").map(|h|PathBuf::from(h).join("Downloads")).filter(|p|p.is_dir());
+  let init_u16:Option<Vec<u16>>=init_dir.map(|p|p.as_os_str().to_string_lossy().encode_utf16().chain(Some(0)).collect());
+  let mut ofn=OPENFILENAMEW::default();
+  ofn.lStructSize=std::mem::size_of::<OPENFILENAMEW>() as u32;
+  ofn.hwndOwner=HWND(owner as *mut std::ffi::c_void);
+  ofn.lpstrFilter=PCWSTR(filter_u16.as_ptr());
+  ofn.nFilterIndex=1;
+  ofn.lpstrFile=PWSTR(buf.as_mut_ptr());
+  ofn.nMaxFile=buf.len() as u32;
+  ofn.lpstrInitialDir=init_u16.as_ref().map(|v|PCWSTR(v.as_ptr())).unwrap_or(PCWSTR::null());
+  ofn.Flags=OFN_EXPLORER|OFN_NOCHANGEDIR|OFN_OVERWRITEPROMPT|OFN_PATHMUSTEXIST;
+  ofn.lpstrDefExt=PCWSTR(def_ext_u16.as_ptr());
+  let ok=unsafe{GetSaveFileNameW(&mut ofn)}.as_bool();
+  if !ok{
+   let err=unsafe{CommDlgExtendedError()}.0;
+   if err==0{return Ok(None);}
+   return Err("No se pudo abrir el diálogo para guardar el archivo.".into());
+  }
+  let end=buf.iter().position(|v|*v==0).unwrap_or(buf.len());
+  let path=PathBuf::from(String::from_utf16_lossy(&buf[..end]));
+  std::fs::write(&path,content.as_bytes()).map_err(|_|"No se pudo guardar el archivo.".to_string())?;
+  Ok(Some(path))
+ }).await.map_err(|e|e.to_string())??;
+ Ok(chosen.map(|p|p.to_string_lossy().into_owned()))
 }
 
 #[tauri::command]
@@ -503,8 +545,8 @@ fn main(){
  let owned:Arc<Mutex<Option<Child>>>=Arc::new(Mutex::new(None));
  let setup_child=owned.clone();
  let app=tauri::Builder::default()
- .plugin(tauri_plugin_single_instance::init(|app,_,_|{if let Some(window)=app.get_webview_window("main"){let _=window.show();let _=window.unminimize();let _=window.set_focus();}}))
- .invoke_handler(tauri::generate_handler![open_sandbox_folder,open_engine_folder,open_guide,open_uninstaller,window_appearance,window_brand_icon,browser_tab_open,browser_tab_bounds,browser_tab_show,browser_tab_hide,browser_tab_close,browser_tab_state,browser_tab_navigate,browser_tab_back,browser_tab_forward,browser_tab_reload,browser_tab_dom])
+ .plugin(tauri_plugin_single_instance::init(|app,_,_|{if let Some(window)=app.get_window("main"){let _=window.show();let _=window.unminimize();let _=window.set_focus();}}))
+ .invoke_handler(tauri::generate_handler![open_sandbox_folder,open_engine_folder,open_guide,open_uninstaller,save_export_file,window_appearance,window_brand_icon,browser_tab_open,browser_tab_bounds,browser_tab_show,browser_tab_hide,browser_tab_close,browser_tab_state,browser_tab_navigate,browser_tab_back,browser_tab_forward,browser_tab_reload,browser_tab_dom])
  .setup(move|app|{
   let (width,height)=app.primary_monitor()?.map(|monitor|{
    let area=monitor.work_area();let scale=monitor.scale_factor();
@@ -528,12 +570,13 @@ fn main(){
   if let Some(script)=migration{builder=builder.initialization_script(script);}
   builder=builder.on_page_load(|window,payload|{if matches!(payload.event(),PageLoadEvent::Finished){let _=window.show();let _=window.maximize();}});
   let _window=builder.build()?;
-  if let Err(error)=apply_taskbar_identity(&_window){eprintln!("Windows taskbar: {error}");}
-  if let Err(error)=apply_brand(&_window,icon_choice){eprintln!("Windows icon: {error}");}
+  let main_window=app.get_window("main").ok_or("No se encontró la ventana principal.")?;
+  if let Err(error)=apply_taskbar_identity(&main_window){eprintln!("Windows taskbar: {error}");}
+  if let Err(error)=apply_brand(&main_window,icon_choice){eprintln!("Windows icon: {error}");}
   if let Ok(text)=std::fs::read_to_string(user_data().join("settings/ui-preferences.json")){
    if let Ok(record)=serde_json::from_str::<serde_json::Value>(&text){
     let theme=&record["theme"];let mode=theme["mode"].as_str().unwrap_or("night");
-    if let Some(background)=theme[mode]["panel"].as_str(){let _=apply_window_appearance(&_window,mode!="day",background,theme[mode]["radius"].as_u64().unwrap_or(12).min(40) as u32);}
+    if let Some(background)=theme[mode]["panel"].as_str(){let _=apply_window_appearance(&main_window,mode!="day",background,theme[mode]["radius"].as_u64().unwrap_or(12).min(40) as u32);}
    }
   }
   let child=setup_child.clone();

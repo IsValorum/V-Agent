@@ -60,6 +60,12 @@
     if((m=text.match(/^Error: (.+)$/)))return t('Error: ')+m[1];
     if((m=text.match(/^Ningún modelo coincide con «(.+)»\.$/)))return t('Ningún modelo coincide con')+' «'+m[1]+'».';
     if((m=text.match(/^Aquí se conserva todo el resultado recibido\. El modelo recibió (.+)$/)))return t('Aquí se conserva todo el resultado recibido. El modelo recibió')+' '+m[1];
+    if((m=text.match(/^Memoria (.+)$/)))return t('Memoria')+' '+t(m[1]);
+    if((m=text.match(/^(.+) · no compatible$/)))return m[1]+' · '+t('no compatible');
+    if((m=text.match(/^Archivo guardado\. \((.+)\)$/)))return t('Archivo guardado.')+' ('+m[1]+')';
+    if((m=text.match(/^No se pudo abrir la carpeta \(Windows ([^)]+)\)\.$/)))return ({en:'Could not open folder (Windows ',pt:'Não foi possível abrir a pasta (Windows ',fr:'Impossible d’ouvrir le dossier (Windows ',de:'Ordner konnte nicht geöffnet werden (Windows '})[language]+m[1]+').';
+    if((m=text.match(/^No se pudo abrir la guía: (.+)$/)))return ({en:'Could not open the user guide: ',pt:'Não foi possível abrir o guia: ',fr:'Impossible d’ouvrir le guide : ',de:'Anleitung konnte nicht geöffnet werden: '})[language]+m[1];
+    if((m=text.match(/^No se pudo abrir el desinstalador: (.+)$/)))return ({en:'Could not open the uninstaller: ',pt:'Não foi possível abrir o desinstalador: ',fr:'Impossible d’ouvrir le programme de désinstallation : ',de:'Deinstallationsprogramm konnte nicht geöffnet werden: '})[language]+m[1];
     if(text.includes(' · '))return text.split(' · ').map(part=>t(part)).join(' · ');
     return raw;
   }

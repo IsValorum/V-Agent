@@ -16,7 +16,7 @@ const VAL_TOUR=(()=>{
     {sel:'#modelBtn',title:'Modelo',text:'Elige o importa un modelo GGUF, cárgalo, cambia el motor (llama.cpp, Strata, Strata Rust) o conecta una API compatible con OpenAI o Claude.'},
     {sel:'#responseBtn',title:'Pensamiento',text:'Cuánto razona el modelo antes de responder. Más pensamiento es más preciso pero más lento.'},
     {sel:'#scopeBtn',title:'Acceso y permisos',text:'Decide si el agente trabaja en su carpeta aislada o en todo tu equipo, y cuándo debe pedirte permiso.'},
-    {sel:'#mcpBtn',title:'Herramientas',text:'Activa lo que el agente puede usar: internet, archivos, comandos, navegador, información del equipo y más.'},
+    {sel:'#mcpBtn',title:'Tools',text:'Activa lo que el agente puede usar: internet, archivos, comandos, navegador, información del equipo y más.'},
     {sel:'#ctxBtn',title:'Contexto',text:'Cuánta memoria de la conversación usa el modelo. Al llenarse, conviene empezar un chat nuevo.'},
     {sel:'#send',title:'Enviar',text:'Envía el mensaje. Mientras el modelo responde, este botón lo detiene.'},
     {sel:'#openConsole',title:'Consola',text:'Una terminal compartida con el agente cuando le das acceso a todo el equipo.'},
