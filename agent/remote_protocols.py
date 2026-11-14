@@ -4,11 +4,26 @@ import re
 from urllib.parse import urlsplit
 
 
+def normalize_orphan_tool_messages(messages):
+    """Turn synthetic role='tool' notes (no tool_call_id) into role='user' at provider/template boundaries."""
+    if not isinstance(messages,list):
+        return messages
+    out=[]
+    for item in messages:
+        if isinstance(item,dict) and item.get('role')=='tool' and not item.get('tool_call_id'):
+            out.append({'role':'user','content':_content_text(item.get('content'))})
+        else:
+            out.append(item)
+    return out
+
+
 def openai_payload(body,base_url,send_sampling=False):
     body=dict(body)
     for field in ('seed','frequency_penalty','presence_penalty'):body.pop(field,None)
     if not send_sampling:
         body.pop('temperature',None);body.pop('top_p',None)
+    if isinstance(body.get('messages'),list):
+        body['messages']=normalize_orphan_tool_messages(body['messages'])
     host=(urlsplit(base_url).hostname or '').lower()
     if host=='api.openai.com' and 'max_tokens' in body:body['max_completion_tokens']=body.pop('max_tokens')
     effort=body.pop('reasoning_effort',None)
@@ -68,7 +83,10 @@ def claude_payload(payload,version,output_limit=None):
         role=message.get('role');content=claude_content(message.get('content'))
         if role in ('system','developer'):system.extend(content);continue
         if role=='tool':
-            content=[{'type':'tool_result','tool_use_id':message['tool_call_id'],'content':content}];role='user'
+            if not message.get('tool_call_id'):
+                role='user'
+            else:
+                content=[{'type':'tool_result','tool_use_id':message['tool_call_id'],'content':content}];role='user'
         elif role=='assistant':
             for call in message.get('tool_calls') or []:
                 function=call.get('function') or {};args=function.get('arguments') or '{}'
