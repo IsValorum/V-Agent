@@ -366,12 +366,11 @@ function setupAgentProfilesAndUpdates(){
     chips.append(hardwareChip(uiText('Sistema'),[profile.os?.product,profile.os?.display].filter(Boolean).join(' · ')||'—'));
     const summary=$('#hwSummary');if(summary)summary.textContent=uiParts(state.hardware_summary||'');
     const box=$('#engineRecommendations');if(!box)return;box.replaceChildren();
-    const visible=rows.filter(row=>row.recommended);
-    for(const row of visible){
+    for(const row of rows){
       const card=document.createElement('article');card.className='engine-recommendation';card.dataset.engine=row.key;
       const head=document.createElement('div');head.className='engine-recommendation-head';
       const name=document.createElement('strong');name.textContent=row.name;
-      const badge=document.createElement('span');badge.className='recommendation-badge';badge.textContent=uiText('Recomendado');head.append(name,badge);
+      const badge=document.createElement('span');badge.className='recommendation-badge';badge.textContent=uiText(row.recommended?'Recomendado':'Opcional');head.append(name,badge);
       const reason=document.createElement('p');reason.className='mini';reason.textContent=uiParts(row.reason);
       const asset=document.createElement('div');asset.className='engine-asset';
       const tag=document.createElement('code');tag.textContent=row.tag||uiText('Sin versión publicada');asset.append(tag);
@@ -423,9 +422,10 @@ function setupAgentProfilesAndUpdates(){
     const list=$('#engineUpdateList');list.replaceChildren();
     const names={'llama-cpu':'llama.cpp · CPU','llama-cuda':'llama.cpp · CUDA 12.4','llama-vulkan':'llama.cpp · Vulkan',strata:'Strata · PolyStrata',rust:'Strata Rust'};
     for(const [key,release] of Object.entries(state.releases||{})){
-      const row=document.createElement('div');row.className='engine-update-row';const name=document.createElement('strong');name.textContent=names[key]||key;const details=document.createElement('small');details.textContent=release.error||(release.message?uiText(release.message):'')||(release.tag+' · '+(release.available?uiText('Disponible'):uiText('Actualizado'))+(release.development?' · '+uiText('Desarrollo oficial'):''));row.append(name,details);
+      const installedHere=Boolean(release.current||state.installed?.[key]);
+      const row=document.createElement('div');row.className='engine-update-row';const name=document.createElement('strong');name.textContent=names[key]||key;const details=document.createElement('small');details.textContent=release.error||(release.message?uiText(release.message):'')||(release.tag+' · '+(installedHere?(release.available?uiText('Disponible'):uiText('Actualizado')):uiText('No instalado'))+(release.development?' · '+uiText('Desarrollo oficial'):''));row.append(name,details);
       if(release.url){const link=document.createElement('a');link.href=release.url;link.onclick=event=>{event.preventDefault();showReleaseNotes({...release,key});};link.textContent=uiText('Notas de versión');row.append(link);}
-      if(release.asset&&release.available){const button=document.createElement('button');button.textContent=uiText('Actualizar');button.disabled=state.busy||busy||!!loadedModel;button.onclick=()=>action('install',{engine:key});const actions=document.createElement('div');actions.className='engine-update-actions';actions.append(button);row.append(actions);}
+      if(release.asset&&(release.available||!installedHere)){const button=document.createElement('button');button.textContent=uiText(installedHere?'Actualizar':'Instalar');button.disabled=state.busy||busy||!!loadedModel;button.onclick=()=>action('install',{engine:key});const actions=document.createElement('div');actions.className='engine-update-actions';actions.append(button);row.append(actions);}
       if(Object.hasOwn(state.previous||{},key)){const rollback=document.createElement('button');rollback.textContent=uiText('Restaurar anterior');rollback.disabled=state.busy||!!loadedModel;rollback.onclick=()=>action('rollback',{engine:key});row.append(rollback);}
       list.append(row);
     }
@@ -446,7 +446,8 @@ function setupAgentProfilesAndUpdates(){
   }
   function renderUpdateStack(state){
     const names={'llama-cpu':'llama.cpp · CPU','llama-cuda':'llama.cpp · CUDA 12.4','llama-vulkan':'llama.cpp · Vulkan',strata:'Strata · PolyStrata',rust:'Strata Rust'};
-    let available=Object.entries(state.releases||{}).filter(([key,release])=>release.available&&release.asset&&!dismissed.has(key+':'+release.tag));
+    // Only notify about newer releases for engines the user actually installed (never push uninstalled engines).
+    let available=Object.entries(state.releases||{}).filter(([key,release])=>(Boolean(release.current)||Boolean(state.installed?.[key]))&&release.available&&release.asset&&!dismissed.has(key+':'+release.tag));
     const variant=document.getElementById('llamaVariant')?.value||'cuda';
     const preferred='llama-'+(['cpu','vulkan'].includes(variant)?variant:'cuda');
     const llama=available.find(([key])=>key===preferred);

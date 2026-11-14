@@ -9,7 +9,9 @@ class Fixture(BaseHTTPRequestHandler):
   self.send_response(200);self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw)
  def do_POST(self):
   body=json.loads(self.rfile.read(int(self.headers['Content-Length'])));claude=self.path.endswith('/messages')
-  assert self.headers.get('Authorization')=='Bearer fixture-key'
+  assert (self.headers.get('x-api-key')=='fixture-key' and self.headers.get('anthropic-version')=='2023-06-01') if claude else (self.headers.get('Authorization')=='Bearer fixture-key')
+  assert self.headers.get('Accept')=='text/event-stream' and self.headers.get('Cache-Control')=='no-cache' and self.headers.get('Accept-Encoding')=='identity'
+  assert self.headers.get('User-Agent','').startswith('V-Agent/')
   assert 'chat_template_kwargs' not in body and 'repetition_penalty' not in body
   self.send_response(200);self.send_header('Content-Type','text/event-stream');self.end_headers()
   if claude:

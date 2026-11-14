@@ -15,6 +15,9 @@ import uuid
 from remote_protocols import (
     model_info,positive_int,claude_payload,ClaudeStream,openai_payload,normalize_orphan_tool_messages,
     COMPACT_INSTRUCTIONS,compact_transcript,openai_responses_compact_payload,extract_responses_compact_summary,
+    DEFAULT_ANTHROPIC_VERSION,PROVIDER_PRESETS,AUTH_MODES,default_user_agent,infer_provider_preset,
+    parse_extra_headers,append_api_version_query,build_provider_headers,
+    extract_azure_deployment,decode_http_body,iter_http_lines,
 )
 from runtime_paths import DATA_ROOT,RUNTIME_ROOT,LOG_ROOT
 from ui_preferences import atomic_json
@@ -196,24 +199,35 @@ class EngineManager:
             previous=connections.get(identifier,{})
             protocol=str(body.get('protocol',previous.get('protocol','openai')))
             if protocol not in ('openai','anthropic'):raise ValueError('Elige OpenAI compatible o Claude.')
+            preset=str(body.get('provider_preset',previous.get('provider_preset','auto'))).strip().lower()
+            if preset not in PROVIDER_PRESETS:raise ValueError('Proveedor API desconocido.')
+            auth_mode=str(body.get('auth_mode',previous.get('auth_mode','auto'))).strip().lower()
+            if auth_mode not in AUTH_MODES:raise ValueError('Modo de autenticación API desconocido.')
             url=str(body.get('base_url',previous.get('base_url',''))).strip().rstrip('/');parsed=urllib.parse.urlsplit(url)
             if parsed.scheme not in ('https','http') or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:raise ValueError('Escribe una URL base sin credenciales ni parámetros.')
             if parsed.scheme!='https' and parsed.hostname not in ('127.0.0.1','localhost','::1'):raise ValueError('Las API externas requieren HTTPS; HTTP está permitido para conexiones locales.')
             key=str(body.get('api_key',''));file=self.credential_file(identifier)
-            version=str(body.get('api_version',previous.get('api_version','2026-10-21')))
+            version=str(body.get('api_version',previous.get('api_version',DEFAULT_ANTHROPIC_VERSION)))
             if not re.fullmatch(r'\d{4}-\d{2}-\d{2}',version):raise ValueError('Versión Claude: usa AAAA-MM-DD.')
             timeout=int(body.get('timeout',previous.get('timeout',180)))
             if not 10<=timeout<=1800:raise ValueError('Tiempo de espera: entre 10 y 1800 segundos.')
             name=str(body.get('name',previous.get('name','Claude' if protocol=='anthropic' else parsed.hostname))).strip()[:100] or parsed.hostname
-            extra={k:str(body.get(k,previous.get(k,''))).strip() for k in ('organization','project')}
+            extra={k:str(body.get(k,previous.get(k,''))).strip() for k in ('organization','project','user_agent','anthropic_beta','http_referer','x_title','azure_api_version')}
+            if len(extra['user_agent'])>200:raise ValueError('User-Agent demasiado largo (máximo 200 caracteres).')
+            extra_headers=parse_extra_headers(body['extra_headers'] if 'extra_headers' in body else previous.get('extra_headers'))
+            raw_session=body['send_session_id'] if 'send_session_id' in body else previous.get('send_session_id',None)
+            if raw_session not in (None,True,False,''):raise ValueError('Valor de sesión por conversación no válido.')
+            send_session_id=None if raw_session in (None,'') else bool(raw_session)
             if any('\n' in value or '\r' in value for value in [key,*extra.values()]):raise ValueError('Cabecera de conexión no válida.')
             changed=previous.get('base_url')!=url or previous.get('protocol','openai')!=protocol
             if (changed and not key) or body.get('clear_key'):file.unlink(missing_ok=True)
             if key:
                 file.parent.mkdir(exist_ok=True);file.write_bytes(protect(key.encode()))
-            cfg={**previous,'id':identifier,'name':name,'protocol':protocol,'base_url':url,'vision':bool(body.get('vision',previous.get('vision',False))),
+            cfg={**previous,'id':identifier,'name':name,'protocol':protocol,'provider_preset':preset,'auth_mode':auth_mode,'base_url':url,
+                 'vision':bool(body.get('vision',previous.get('vision',False))),
                  'api_version':version,'timeout':timeout,'include_usage':bool(body.get('include_usage',previous.get('include_usage',True))),
-                 'send_sampling':bool(body.get('send_sampling',previous.get('send_sampling',False))),**extra}
+                 'send_sampling':bool(body.get('send_sampling',previous.get('send_sampling',False))),
+                 'send_session_id':send_session_id,'extra_headers':extra_headers,**extra}
             if changed:cfg['models']=[];cfg['model_overrides']={};cfg.pop('selected_model',None)
             self.settings.setdefault('connections',{})[identifier]=cfg;self.settings['api']=dict(cfg)
             self.remote_models=list(cfg.get('models',[]))
@@ -229,36 +243,74 @@ class EngineManager:
         base=self.base()
         if not base:raise ValueError('Configura la dirección de la API.')
         if self.kind=='api' and urllib.parse.urlsplit(base).path in ('','/'):base+='/v1'
-        return base+path
-    def headers(self):
-        key=self.key() if self.kind=='api' else self.llama_key if self.kind in ('llama','rust') else ''
-        cfg=self.settings.get('api',{});headers={'Content-Type':'application/json'}
-        if self.kind=='api' and cfg.get('protocol')=='anthropic':
-            headers['anthropic-version']=cfg.get('api_version','2026-10-21')
-            if key:headers['Authorization' if headers['anthropic-version']>='2026-10-21' else 'x-api-key']=('Bearer '+key if headers['anthropic-version']>='2026-10-21' else key)
-        else:
-            if key:headers['Authorization']='Bearer '+key
-            for field,header in [('organization','OpenAI-Organization'),('project','OpenAI-Project')]:
-                if self.kind=='api' and cfg.get(field):headers[header]=cfg[field]
+        target=base+path
+        if self.kind=='api':
+            cfg=self.settings.get('api',{})
+            preset=infer_provider_preset(cfg.get('protocol','openai'),cfg.get('base_url',''),cfg.get('provider_preset','auto'))
+            target=append_api_version_query(target,cfg,preset)
+        return target
+    def session_uuid(self,conversation_id=None):
+        """Return a persistent UUID v4 for a given conversation_id (across turns & restarts)."""
+        if not conversation_id:return str(uuid.uuid4())
+        key=str(conversation_id)
+        store_path=DATA_ROOT/'provider-sessions.json'
+        with self.lock:
+            cache=getattr(self,'_session_uuids',None)
+            if cache is None:
+                try:
+                    loaded=json.loads(store_path.read_text(encoding='utf8'))
+                    cache=loaded if isinstance(loaded,dict) else {}
+                except (OSError,ValueError):cache={}
+                self._session_uuids=cache
+            existing=cache.get(key)
+            if existing:
+                try:
+                    if uuid.UUID(str(existing)).version==4:return str(existing)
+                except ValueError:pass
+            fresh=str(uuid.uuid4())
+            cache[key]=fresh
+            if len(cache)>500:
+                for old_key in list(cache.keys())[:-500]:cache.pop(old_key,None)
+            try:atomic_json(store_path,cache)
+            except OSError:pass
+            return fresh
+    def headers(self,stream=False,session_id=None,extra_headers=None):
+        import app_updates
+        default_ua=default_user_agent(app_updates.VERSION)
+        if self.kind=='api':
+            return build_provider_headers(self.settings.get('api',{}),self.key(),stream=stream,session_id=session_id,default_ua=default_ua,extra_headers=extra_headers)
+        key=self.llama_key if self.kind in ('llama','rust') else ''
+        headers={'Content-Type':'application/json','User-Agent':default_ua,'Accept':'text/event-stream' if stream else 'application/json','Accept-Encoding':'identity'}
+        if stream:headers['Cache-Control']='no-cache'
+        if key:headers['Authorization']='Bearer '+key
         return headers
     def get(self,path,timeout=8):
-        request=urllib.request.Request(self.url(path),headers=self.headers())
+        request=urllib.request.Request(self.url(path),headers=self.headers(stream=False))
         try:
             with urllib.request.build_opener(NoRedirect).open(request,timeout=timeout) as response:
-                try:return json.load(response)
-                except ValueError:raise ValueError('La API no devolvió una respuesta JSON válida.') from None
+                try:return json.loads(decode_http_body(response.read(),response.headers.get('Content-Encoding')).decode('utf-8'))
+                except (ValueError,UnicodeDecodeError,OSError):raise ValueError('La API no devolvió una respuesta JSON válida.') from None
         except urllib.error.HTTPError as error:
-            text=error.read(2048).decode('utf8',errors='replace');key=self.key() if self.kind=='api' else ''
+            raw_err=error.read(2048)
+            try:raw_err=decode_http_body(raw_err,error.headers.get('Content-Encoding'))
+            except OSError:pass
+            text=raw_err.decode('utf8',errors='replace');key=self.key() if self.kind=='api' else ''
             raise ValueError(provider_error(error.code,text,key)) from None
     def connect(self):
         cfg=self.settings.get('api',{});items=[];cursor=None;seen=set()
+        preset=infer_provider_preset(cfg.get('protocol','openai'),cfg.get('base_url',''),cfg.get('provider_preset'))
+        azure_dep=extract_azure_deployment(cfg.get('base_url','')) if preset=='azure' else ''
         self.online=False;deadline=time.monotonic()+60
         for _ in range(100):
             remaining=deadline-time.monotonic()
             if remaining<=0:raise ValueError('La lista de modelos tardó más de un minuto. Vuelve a conectar.')
             query=('limit=100'+('&after_id='+urllib.parse.quote(cursor,safe='') if cursor else '')) if cfg.get('protocol')=='anthropic' else ('after='+urllib.parse.quote(cursor,safe='') if cursor else '')
             path='/models'+('?' + query if query else '')
-            page=self.get(path,timeout=min(cfg.get('timeout',30),30,remaining));items.extend(page.get('data',[]))
+            try:page=self.get(path,timeout=min(cfg.get('timeout',30),30,remaining));items.extend(page.get('data',[]))
+            except ValueError as err:
+                if azure_dep and not items and '(404)' in str(err):
+                    items=[{'id':azure_dep}];break
+                raise
             if not page.get('has_more'):break
             cursor=page.get('last_id')
             if not cursor or cursor in seen:raise ValueError('La API devolvió una paginación de modelos no válida.')
@@ -338,7 +390,8 @@ class EngineManager:
             if cfg.get('id'):self.settings.setdefault('connections',{})[cfg['id']]=dict(cfg)
             self.save();return
         self.stop();exe=self.executable()
-        if not exe.is_file():raise ValueError('No se encuentra la compilación de llama.cpp seleccionada.')
+        engine='Strata Rust' if self.kind=='rust' else 'llama.cpp'
+        if not exe.is_file():raise ValueError('No se encuentra instalado '+engine+'. Instálalo desde Ajustes → General → Motor o usa una API externa.')
         # Never accidentally attach to or stop somebody else's server.
         import socket
         with socket.socket() as probe:
@@ -405,10 +458,11 @@ class EngineManager:
         try:return bool(self.get('/models',timeout=1).get('data'))
         except (OSError,ValueError):return False
 
-    def stream(self,payload,control):
+    def stream(self,payload,control,conversation_id=None):
         allowed={'model','messages','stream','temperature','top_p','max_tokens','seed','tools','tool_choice','presence_penalty','frequency_penalty'}
         if self.kind in ('llama','rust'):allowed|={'min_p','top_k','reasoning_effort','chat_template_kwargs'}
         if self.kind=='api':allowed.add('reasoning_effort')
+        conv_id=conversation_id if conversation_id is not None else payload.get('conversation_id')
         body={k:v for k,v in payload.items() if k in allowed}
         if body.get('max_tokens')==0:body.pop('max_tokens')
         if self.kind=='api':body=openai_payload(body,self.base(),self.settings.get('api',{}).get('send_sampling',False))
@@ -420,10 +474,12 @@ class EngineManager:
         cfg=self.settings.get('api',{});claude=self.kind=='api' and cfg.get('protocol')=='anthropic'
         if self.kind=='api' and not cfg.get('vision') and any(isinstance(m,dict) and isinstance(m.get('content'),list) and any(p.get('type')=='image_url' for p in m['content'] if isinstance(p,dict)) for m in payload.get('messages',[])):
             raise ValueError('Activa imágenes en esta conexión API antes de enviarlas al proveedor.')
-        if claude:body=claude_payload(body,cfg.get('api_version','2026-10-21'),(self.selected_remote() or {}).get('max_output_tokens'))
+        if claude:body=claude_payload(body,cfg.get('api_version',DEFAULT_ANTHROPIC_VERSION),(self.selected_remote() or {}).get('max_output_tokens'))
         elif self.kind=='rust' or self.kind=='api' and cfg.get('include_usage',True):body['stream_options']={'include_usage':True}
         target=urllib.parse.urlsplit(self.url('/messages' if claude else '/chat/completions'));decoder=ClaudeStream() if claude else None
         timeout=cfg.get('timeout',180) if self.kind=='api' else 1800
+        session_id=self.session_uuid(conv_id) if self.kind=='api' else None
+        req_headers=self.headers(stream=bool(body.get('stream',True)),session_id=session_id)
         connection=(http.client.HTTPSConnection(target.hostname,target.port or 443,timeout=timeout,context=ssl.create_default_context())
                     if target.scheme=='https' else http.client.HTTPConnection(target.hostname,target.port or 80,timeout=timeout))
         self.live=True;self.last_usage={}
@@ -443,15 +499,18 @@ class EngineManager:
                 raise
             control.attach(connection)
             req_path=(target.path or '/')+('?'+target.query if target.query else '')
-            connection.request('POST',req_path,json.dumps(body,ensure_ascii=False).encode(),self.headers());response=connection.getresponse()
+            connection.request('POST',req_path,json.dumps(body,ensure_ascii=False).encode(),req_headers);response=connection.getresponse()
             if connection.sock is None and response.fp is not None:connection.sock=getattr(getattr(response.fp,'raw',None),'_sock',None)
             if response.status!=200:
-                text=response.read(4096).decode('utf8',errors='replace');key=self.key() if self.kind=='api' else ''
+                raw_err=response.read(4096)
+                try:raw_err=decode_http_body(raw_err,response.getheader('Content-Encoding'))
+                except OSError:pass
+                text=raw_err.decode('utf8',errors='replace');key=self.key() if self.kind=='api' else ''
                 raise ValueError(provider_error(response.status,text,key))
             # Only llama-server reports its own speeds and live counts. For the others they are measured
             # here: each streamed delta is about one token, and reading lasts until the first one arrives.
             sent=time.monotonic();first=None;chunks=0;ended=False
-            for line in response:
+            for line in iter_http_lines(response):
                 if control.cancelled.is_set():return
                 if self.kind!='llama' and line.startswith(b'data: {') and b'"delta"' in line:
                     chunks+=1;first=first or time.monotonic();self.live_generated=chunks;self.live_reading=False
@@ -535,21 +594,24 @@ class EngineManager:
         state='reading' if self.live and self.kind!='llama' and getattr(self,'live_reading',False) else 'decoding' if self.live else 'idle'
         return {'engine':{'max_context':limit},'live':{'state':state,'prompt_tokens':prompt,'generated':generated,'tok_s':tok_s},'requests':last}
 
-    def _post_json(self,path,payload,extra_headers=None,timeout=120):
+    def _post_json(self,path,payload,extra_headers=None,timeout=120,session_id=None):
         target=urllib.parse.urlsplit(self.url(path))
-        headers={**self.headers(),**(extra_headers or {})}
+        headers=self.headers(stream=False,session_id=session_id,extra_headers=extra_headers)
         connection=(http.client.HTTPSConnection(target.hostname,target.port or 443,timeout=timeout,context=ssl.create_default_context())
                     if target.scheme=='https' else http.client.HTTPConnection(target.hostname,target.port or 80,timeout=timeout))
         try:
             req_path=(target.path or '/')+('?'+target.query if target.query else '')
             connection.request('POST',req_path,json.dumps(payload,ensure_ascii=False).encode(),headers)
             response=connection.getresponse()
-            raw=response.read(4*1024*1024).decode('utf8',errors='replace')
+            raw_bytes=response.read(4*1024*1024)
+            try:raw_bytes=decode_http_body(raw_bytes,response.getheader('Content-Encoding'))
+            except OSError:pass
+            raw=raw_bytes.decode('utf8',errors='replace')
             return response.status,raw
         finally:
             connection.close()
 
-    def compact_context(self,model_id,messages,instructions=None):
+    def compact_context(self,model_id,messages,instructions=None,conversation_id=None):
         transcript=compact_transcript(messages)
         if not transcript.strip():
             raise ValueError('No hay historial suficiente para comprimir.')
@@ -575,6 +637,8 @@ class EngineManager:
             raise ValueError('Selecciona y carga un modelo antes de comprimir el contexto.')
         timeout=min(int(cfg.get('timeout',180) or 180),180) if self.kind=='api' else 600
         key=self.key() if self.kind=='api' else ''
+        session_id=self.session_uuid(conversation_id) if (self.kind=='api' and conversation_id) else None
+        session_kw={'session_id':session_id} if session_id else {}
         prompt=instructions or COMPACT_INSTRUCTIONS
 
         if self.kind=='api' and protocol=='anthropic':
@@ -586,7 +650,7 @@ class EngineManager:
             if len(transcript)>=160000:
                 extra['anthropic-beta']='compact-2026-01-12'
                 req['context_management']={'edits':[{'type':'compact_20260112'}]}
-            status,raw=self._post_json('/messages',req,extra_headers=extra,timeout=timeout)
+            status,raw=self._post_json('/messages',req,extra_headers=extra,timeout=timeout,**session_kw)
             if status!=200:
                 raise ValueError(provider_error(status,raw[:2048],key))
             try:data=json.loads(raw)
@@ -603,7 +667,7 @@ class EngineManager:
         if self.kind=='api' and protocol!='anthropic':
             resp_payload=openai_responses_compact_payload(raw_model,messages,prompt)
             try:
-                status,raw=self._post_json('/responses/compact',resp_payload,timeout=min(timeout,90))
+                status,raw=self._post_json('/responses/compact',resp_payload,timeout=min(timeout,90),**session_kw)
             except OSError:
                 status,raw=404,''
             if status==200:
@@ -627,7 +691,7 @@ class EngineManager:
             chat_body=openai_payload(chat_body,self.base(),False)
             if 'thinking' in chat_body and 'reasoning_effort' not in chat_body:
                 chat_body['thinking']={'type':'disabled'}
-        status,raw=self._post_json('/chat/completions',chat_body,timeout=timeout)
+        status,raw=self._post_json('/chat/completions',chat_body,timeout=timeout,**session_kw)
         if status!=200:
             raise ValueError(provider_error(status,raw[:2048],key))
         try:data=json.loads(raw)

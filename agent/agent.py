@@ -825,7 +825,8 @@ def kill_server_tree():
 
 
 def compact_local_context(model_id, messages, instructions=None, engine_port=ENGINE_PORT):
-    from remote_protocols import COMPACT_INSTRUCTIONS, compact_transcript
+    from remote_protocols import COMPACT_INSTRUCTIONS, compact_transcript, default_user_agent
+    import app_updates
     transcript = compact_transcript(messages)
     if not transcript.strip():
         raise ValueError("No hay historial suficiente para comprimir.")
@@ -842,7 +843,8 @@ def compact_local_context(model_id, messages, instructions=None, engine_port=ENG
     connection = http.client.HTTPConnection("127.0.0.1", engine_port, timeout=600)
     try:
         connection.request("POST", "/v1/chat/completions", json.dumps(payload, ensure_ascii=False).encode(),
-                           {"Content-Type": "application/json"})
+                           {"Content-Type": "application/json", "Accept": "application/json",
+                            "Accept-Encoding": "identity", "User-Agent": default_user_agent(app_updates.VERSION)})
         response = connection.getresponse()
         raw = response.read(4 * 1024 * 1024).decode("utf-8", "replace")
         if response.status != 200:
@@ -1321,8 +1323,17 @@ def engine_chat_stream(payload, control):
         control.attach(connection)
         if control.cancelled.is_set():
             return
-        connection.request("POST", "/v1/chat/completions", json.dumps(payload).encode(),
-                           {"Content-Type": "application/json"})
+        import app_updates
+        from remote_protocols import default_user_agent
+        wire_payload = {k: v for k, v in payload.items() if k != "conversation_id"} if isinstance(payload, dict) else payload
+        wire_headers = {
+            "Content-Type": "application/json",
+            "User-Agent": default_user_agent(app_updates.VERSION),
+            "Accept": "text/event-stream" if (isinstance(wire_payload, dict) and wire_payload.get("stream", True)) else "application/json",
+            "Accept-Encoding": "identity",
+            **({"Cache-Control": "no-cache"} if (isinstance(wire_payload, dict) and wire_payload.get("stream", True)) else {}),
+        }
+        connection.request("POST", "/v1/chat/completions", json.dumps(wire_payload).encode(), wire_headers)
         response = connection.getresponse()
         # The engine sends Connection: close. Keep the response's socket available
         # after HTTPConnection transfers ownership, including while prefill blocks.
@@ -1549,6 +1560,7 @@ def _run_chat_stream(body, control=None):
             "model": model,
             "messages": messages,
             "stream": True,
+            "conversation_id": body.get("conversation_id"),
             "chat_template_kwargs": {"no_date": True, "enable_thinking": effort != "none", "preserve_thinking": True,
                                      "compact_tool_prompt": False, "strata_native_tools": True},
         }
@@ -1574,7 +1586,7 @@ def _run_chat_stream(body, control=None):
                 frame.append(raw)
                 if not raw.strip():
                     trozo = b"".join(frame)
-                    if b'"reasoning_content"' not in trozo and re.search(rb'"content"\s*:\s*"(?:(?:\\[nrt])|\s)*"',trozo):empty_frames+=1
+                    if b'"reasoning_content"' not in trozo and b'"reasoning"' not in trozo and re.search(rb'"content"\s*:\s*"(?:(?:\\[nrt])|\s)*"',trozo):empty_frames+=1
                     elif b'"content"' in trozo:empty_frames=0
                     if empty_frames>64:
                         control.bucle='repeated empty output'
@@ -1649,9 +1661,10 @@ def _run_chat_stream(body, control=None):
             ch = (obj.get("choices") or [{}])[0]
             finish_reason = ch.get("finish_reason") or finish_reason
             d = ch.get("delta") or {}
-            if d.get("reasoning_content"):
-                reasoning_parts.append(d["reasoning_content"])
-                show = f_reason.feed(d["reasoning_content"])
+            reason_chunk = d.get("reasoning_content") or d.get("reasoning")
+            if reason_chunk:
+                reasoning_parts.append(reason_chunk)
+                show = f_reason.feed(reason_chunk)
                 if show:
                     yield {"type": "reasoning", "text": show}
                 if tools and f_reason.empty_openers >= 3:

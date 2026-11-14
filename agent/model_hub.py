@@ -15,10 +15,11 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+import app_updates
 from runtime_paths import DATA_ROOT
 
 HUB = 'https://huggingface.co'
-USER_AGENT = 'V-Agent'
+USER_AGENT = 'V-Agent/' + app_updates.VERSION
 SETTINGS = DATA_ROOT / 'hub.json'
 REPO = re.compile(r'^[A-Za-z0-9][\w.-]{0,95}/[\w.-]{1,96}$')
 SPLIT = re.compile(r'^(?P<base>.+)-(?P<part>\d{5})-of-(?P<total>\d{5})\.gguf$', re.I)

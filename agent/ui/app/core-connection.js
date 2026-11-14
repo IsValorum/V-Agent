@@ -16,14 +16,17 @@ async function waitForCore(){
 }
 // Interface fixes published through the signed minor-updates channel: a stylesheet and a script
 // served by the core (empty when no update is applied), loaded on top of the bundled interface.
-function loadUiPatch(){
+function loadUiPatch(force=false){
   const base=window.VAL_CORE_BASE||'',stamp=Date.now();
   let style=document.getElementById('uiPatchCss');
   if(!style){style=document.createElement('link');style.rel='stylesheet';style.id='uiPatchCss';document.head.append(style);}
   style.href=base+'/assets/ui-patch.css?t='+stamp;
-  if(document.getElementById('uiPatchJs'))return;
-  fetch('/assets/ui-patch.js',{cache:'no-store'}).then(response=>response.ok?response.text():'').then(code=>{
-    if(!code.trim()||document.getElementById('uiPatchJs'))return;const script=document.createElement('script');script.id='uiPatchJs';script.src=base+'/assets/ui-patch.js?t='+stamp;document.body.append(script);
+  const existing=document.getElementById('uiPatchJs');
+  if(existing&&!force)return;
+  fetch('/assets/ui-patch.js?t='+stamp,{cache:'no-store'}).then(response=>response.ok?response.text():'').then(code=>{
+    if(existing&&force)existing.remove();
+    if(!code.trim()||(!force&&document.getElementById('uiPatchJs')))return;
+    const script=document.createElement('script');script.id='uiPatchJs';script.src=base+'/assets/ui-patch.js?t='+stamp;document.body.append(script);
   }).catch(()=>{});
 }
 // V-Agent applies signed minor updates by itself shortly after starting (see desktop_runtime): when one
@@ -91,17 +94,18 @@ async function watchAutomaticUpdates({requestJSON,uiText,note,setDrawer,selectSe
       if(c){
         if(start===null)start=c.revision||0;
         if((c.revision||0)>start){
-          start=c.revision;loadUiPatch();
+          start=c.revision;loadUiPatch(true);
           const version=u.version||'';
           const tag=(version?version+' ':'')+'C'+c.revision;
           const snippet=compactNotes(c.notes||'');
           lastMinor={revision:c.revision,version,notes:c.notes||'',restart:!!c.restart_needed};
           note(uiText('Actualización menor aplicada')+': '+tag+(snippet?' — '+snippet:''));
         }
+        document.dispatchEvent(new CustomEvent('v-agent-components-update',{detail:c}));
       }
       document.dispatchEvent(new CustomEvent('v-agent-app-update',{detail:u}));
       renderNotice();
-      delay=(c?.busy||u.busy||(c&&!c.checked_at)||!u.checked_at)?3000:60000;
+      delay=(c?.busy||u.busy||(c&&!c.checked_at)||!u.checked_at||(c&&c.error&&!c.revision))?3000:60000;
     }catch{delay=60000;}
   }
 }

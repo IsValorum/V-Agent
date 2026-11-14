@@ -65,9 +65,12 @@ class RemoteProvidersTests(unittest.TestCase):
    def detach(self,*args):pass
   try:
    m=self.manager;m.configure({'engine':'api','protocol':'anthropic','base_url':f'http://127.0.0.1:{server.server_port}/v1','api_key':'local-test'})
-   m.connect();self.assertEqual(len(m.remote_models),2);self.assertEqual(requests[0][1]['Authorization'],'Bearer local-test')
+   m.connect();self.assertEqual(len(m.remote_models),2);get_h={k.lower():v for k,v in requests[0][1].items()};self.assertEqual(get_h['x-api-key'],'local-test');self.assertEqual(get_h['anthropic-version'],'2023-06-01');self.assertTrue(get_h['user-agent'].startswith('V-Agent/'));self.assertEqual(get_h['accept-encoding'],'identity')
    identifier=m.remote_identifier(m.remote_models[0]);m.load({'id':identifier},None,None)
    output=b''.join(m.stream({'model':'c1','messages':[{'role':'user','content':'inspect'}],'temperature':.9},Control())).decode()
+   stream_headers=requests[-1][1]
+   self.assertEqual(stream_headers['x-api-key'],'local-test');self.assertEqual(stream_headers['anthropic-version'],'2023-06-01');self.assertTrue(stream_headers['User-Agent'].startswith('V-Agent/'))
+   self.assertEqual(stream_headers['Accept'],'text/event-stream');self.assertEqual(stream_headers['Cache-Control'],'no-cache');self.assertEqual(stream_headers['Accept-Encoding'],'identity');self.assertFalse(any(k.lower().startswith('x-stainless-') for k in stream_headers))
    self.assertIn('tool_calls',output);self.assertIn('[DONE]',output);self.assertEqual(requests[-1][0],'/v1/messages');self.assertNotIn('temperature',requests[-1][2]);self.assertEqual(m.last_usage['prompt_tokens'],15)
    m.remote_context(identifier,60000);self.assertEqual(m.metrics()['engine']['max_context'],60000);self.assertEqual(m.loaded,identifier);m.remote_context(identifier,None);self.assertEqual(m.metrics()['engine']['max_context'],120000)
    restarted=engine_manager.EngineManager()
@@ -102,3 +105,136 @@ class ProviderContextTests(unittest.TestCase):
   with tempfile.TemporaryDirectory() as d:
    store=ModelPreferences(Path(d)/'prefs.json');store.save('api--deepseek',{'context':1048576})
    self.assertEqual(store.records['api--deepseek']['context'],1048576)
+
+class ProviderProtocolHeadersTests(unittest.TestCase):
+ def setUp(self):
+  self.temp=tempfile.TemporaryDirectory();self.prev=engine_manager.DATA_ROOT;engine_manager.DATA_ROOT=Path(self.temp.name)
+  self.manager=engine_manager.EngineManager()
+ def tearDown(self):
+  engine_manager.DATA_ROOT=self.prev;self.temp.cleanup()
+ def test_presets_user_agent_opencode_session_openrouter_azure_and_betas(self):
+  import http.server,json,threading,uuid
+  from remote_protocols import DEFAULT_OPENROUTER_REFERER,build_provider_headers,infer_provider_preset,parse_extra_headers
+  self.assertEqual(infer_provider_preset('openai','https://openrouter.ai/api/v1'),'openrouter')
+  self.assertEqual(infer_provider_preset('openai','https://opencode.ai/zen/v1'),'opencode')
+  self.assertEqual(infer_provider_preset('openai','https://myres.openai.azure.com/openai/deployments/gpt4o'),'azure')
+  cleaned=parse_extra_headers({'X-Stainless-Lang':'python','x-stainless-os':'Windows','X-Custom':'ok'})
+  self.assertEqual(cleaned,{'X-Custom':'ok'})
+  captured=[]
+  class Handler(http.server.BaseHTTPRequestHandler):
+   def log_message(self,*_):pass
+   def do_GET(self):
+    captured.append(('GET',self.path,{k:v for k,v in self.headers.items()}))
+    self.send_response(200);self.send_header('Content-Type','application/json');self.end_headers()
+    self.wfile.write(json.dumps({'data':[{'id':'m1','context_length':32768}]}).encode())
+   def do_POST(self):
+    self.rfile.read(int(self.headers.get('Content-Length','0')))
+    captured.append(('POST',self.path,{k:v for k,v in self.headers.items()}))
+    self.send_response(200);self.send_header('Content-Type','text/event-stream');self.end_headers()
+    if self.path.endswith('/messages'):
+     self.wfile.write(b'event: content_block_delta\ndata: {"type":"content_block_delta","delta":{"type":"text_delta","text":"ok"}}\n\nevent: message_stop\ndata: {"type":"message_stop"}\n\n')
+    else:
+     self.wfile.write(b'data: {"choices":[{"delta":{"content":"ok"},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n')
+  server=http.server.ThreadingHTTPServer(('127.0.0.1',0),Handler)
+  threading.Thread(target=server.serve_forever,daemon=True).start()
+  class Control:
+   cancelled=threading.Event()
+   def attach(self,_):pass
+   def detach(self,_):pass
+  try:
+   base=f'http://127.0.0.1:{server.server_address[1]}/v1'
+   m=self.manager
+   m.configure({'engine':'api','provider_preset':'opencode','protocol':'openai','base_url':base,'api_key':'k-oc','user_agent':'opencode/1.0.0','extra_headers':{'X-Stainless-Runtime':'node','X-Proxy-Tag':'alpha'}})
+   m.connect();ident=m.remote_identifier(m.remote_models[0]);m.load({'id':ident},None,None)
+   b''.join(m.stream({'model':'m1','messages':[{'role':'user','content':'a'}]},Control(),conversation_id='conv-1'))
+   b''.join(m.stream({'model':'m1','messages':[{'role':'user','content':'b'}]},Control(),conversation_id='conv-1'))
+   b''.join(m.stream({'model':'m1','messages':[{'role':'user','content':'c'}]},Control(),conversation_id='conv-2'))
+   posts=[h for meth,_,h in captured if meth=='POST']
+   self.assertEqual(posts[0]['User-Agent'],'opencode/1.0.0')
+   self.assertEqual(posts[0]['X-Proxy-Tag'],'alpha')
+   self.assertFalse(any(k.lower().startswith('x-stainless-') for k in posts[0]))
+   s1_a,s1_b,s2=posts[0]['x-opencode-session'],posts[1]['x-opencode-session'],posts[2]['x-opencode-session']
+   self.assertEqual(uuid.UUID(s1_a).version,4);self.assertEqual(s1_a,s1_b);self.assertNotEqual(s1_a,s2)
+   reloaded=engine_manager.EngineManager();self.assertEqual(reloaded.session_uuid('conv-1'),s1_a)
+   or_h=build_provider_headers({'provider_preset':'openrouter','protocol':'openai','base_url':'https://openrouter.ai/api/v1'},'k-or',stream=True,extra_headers={'Accept':'application/json','Accept-Encoding':'gzip'})
+   self.assertEqual(or_h['HTTP-Referer'],DEFAULT_OPENROUTER_REFERER);self.assertEqual(or_h['X-Title'],'V-Agent')
+   self.assertEqual(or_h['Accept'],'text/event-stream');self.assertEqual(or_h['Cache-Control'],'no-cache');self.assertEqual(or_h['Accept-Encoding'],'identity')
+   m.configure({'engine':'api','provider_preset':'opencode','protocol':'openai','base_url':base,'api_key':'k-oc','send_session_id':False})
+   self.assertNotIn('x-opencode-session',m.headers(stream=True,session_id=s1_a))
+   m.configure({'engine':'api','provider_preset':'azure','protocol':'openai','base_url':base,'api_key':'k-az','azure_api_version':'2024-10-21'})
+   self.assertIn('api-version=2024-10-21',m.url('/chat/completions'))
+   az_h=m.headers(stream=True);self.assertEqual(az_h['api-key'],'k-az');self.assertNotIn('Authorization',az_h)
+   m.configure({'engine':'api','provider_preset':'anthropic','protocol':'anthropic','base_url':base,'api_key':'k-cl','anthropic_beta':'prompt-caching-2024-07-31,output-128k-2025-02-19','auth_mode':'bearer'})
+   cl_h=m.headers(stream=True);self.assertEqual(cl_h['Authorization'],'Bearer k-cl');self.assertNotIn('x-api-key',cl_h)
+   self.assertEqual(cl_h['anthropic-version'],'2023-06-01');self.assertEqual(cl_h['anthropic-beta'],'prompt-caching-2024-07-31,output-128k-2025-02-19')
+  finally:server.shutdown();server.server_close()
+
+ def test_gzip_fallback_classic_azure_compaction_session_and_latin1_guard(self):
+  import gzip,http.server,json,threading
+  from remote_protocols import build_provider_headers,extract_azure_deployment
+  self.assertEqual(extract_azure_deployment('https://res.openai.azure.com/openai/deployments/gpt4o'),'gpt4o')
+  with self.assertRaises(ValueError):
+   build_provider_headers({'protocol':'openai','base_url':'https://openrouter.ai/api/v1','x_title':'V-Agent — Español 🚀'},'k')
+  posts=[]
+  class ProxyHandler(http.server.BaseHTTPRequestHandler):
+   def log_message(self,*_):pass
+   def do_GET(self):
+    if '/openai/deployments/gpt4o/models' in self.path:
+     self.send_response(404);self.send_header('Content-Type','application/json');self.end_headers()
+     self.wfile.write(b'{"error":{"message":"Resource not found"}}');return
+    payload=gzip.compress(json.dumps({'data':[{'id':'gz-model','context_length':32768}]}).encode())
+    self.send_response(200);self.send_header('Content-Type','application/json');self.send_header('Content-Encoding','gzip');self.end_headers()
+    self.wfile.write(payload)
+   def do_POST(self):
+    self.rfile.read(int(self.headers.get('Content-Length','0')))
+    posts.append((self.path,{k:v for k,v in self.headers.items()}))
+    if self.path.endswith('/responses/compact'):
+     self.send_response(404);self.end_headers();return
+    # Simulate non-stream JSON response (e.g. compaction) compressed with gzip despite identity
+    if self.headers.get('Accept')!='text/event-stream':
+     body=gzip.compress(json.dumps({'choices':[{'message':{'content':'Resumen comprimido'}}]}).encode())
+     self.send_response(200);self.send_header('Content-Type','application/json');self.send_header('Content-Encoding','gzip');self.end_headers()
+     self.wfile.write(body);return
+    sse=gzip.compress(b'data: {"choices":[{"delta":{"content":"hola"},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n')
+    self.send_response(200);self.send_header('Content-Type','text/event-stream');self.send_header('Content-Encoding','gzip');self.end_headers()
+    self.wfile.write(sse)
+  srv=http.server.ThreadingHTTPServer(('127.0.0.1',0),ProxyHandler)
+  threading.Thread(target=srv.serve_forever,daemon=True).start()
+  class Control:
+   cancelled=threading.Event()
+   def attach(self,_):pass
+   def detach(self,_):pass
+  try:
+   root=f'http://127.0.0.1:{srv.server_address[1]}'
+   m=self.manager
+   # 1. Classic Azure deployment URL connects cleanly even if /models returns 404
+   m.configure({'engine':'api','protocol':'openai','base_url':root+'/openai/deployments/gpt4o','api_key':'k-az','azure_api_version':'2024-10-21'})
+   snap=m.connect();self.assertEqual([x['id'] for x in snap['api']['models']],['gpt4o'])
+   # 2. Gzip fallback on GET /models AND gzip-compressed SSE stream
+   m.configure({'engine':'api','provider_preset':'opencode','protocol':'openai','base_url':root+'/gzip-compact/v1','api_key':'k-oc'})
+   m.connect();ident=m.remote_identifier(m.remote_models[0]);m.load({'id':ident},None,None)
+   stream_out=b''.join(m.stream({'model':'gz-model','messages':[{'role':'user','content':'hi'}]},Control(),conversation_id='conv-z')).decode()
+   self.assertIn('hola',stream_out);self.assertIn('[DONE]',stream_out)
+   # 3. compact_context forwards x-opencode-session and decodes gzip response
+   res=m.compact_context(ident,[{'role':'user','content':'uno'},{'role':'assistant','content':'dos'}],conversation_id='conv-z')
+   self.assertEqual(res['summary'],'Resumen comprimido')
+   self.assertEqual(posts[-1][1]['x-opencode-session'],posts[0][1]['x-opencode-session'])
+  finally:srv.shutdown();srv.server_close()
+
+ def test_openrouter_reasoning_delta_field(self):
+  import agent,json,threading
+  from unittest import mock
+  chunks=[
+   b'data: {"choices":[{"delta":{"reasoning":"Paso 1. "}}]}\n\n',
+   b'data: {"choices":[{"delta":{"reasoning":"Paso 2."}}]}\n\n',
+   b'data: {"choices":[{"delta":{"content":"Respuesta final."},"finish_reason":"stop"}]}\n\n',
+   b'data: [DONE]\n\n',
+  ]
+  control=agent.GenerationControl()
+  with mock.patch.object(agent,'engine_chat_stream',return_value=(c for c in chunks)):
+   events=list(agent.run_chat_stream({'model':'test','messages':[{'role':'user','content':'hola'}],'reasoning_effort':'medium','functions':{}},control))
+  reasons=''.join(e['text'] for e in events if e.get('type')=='reasoning')
+  contents=''.join(e['text'] for e in events if e.get('type')=='content')
+  done=[e for e in events if e.get('type')=='done']
+  self.assertIn('Paso 1.',reasons);self.assertIn('Paso 2.',reasons);self.assertEqual(contents,'Respuesta final.')
+  self.assertTrue(done and 'Paso 1.' in done[0].get('reasoning_content',''))

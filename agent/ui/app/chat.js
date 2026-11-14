@@ -272,20 +272,43 @@ function renderToolTrace(row,trace) {
 }
 function updateToolTrace(section,trace) {
   section._trace=trace;
-  let overview=section.querySelector('.tool-overview');if(!overview){overview=document.createElement('div');overview.className='tool-overview';overview.title=uiText('Llamadas solicitadas. Cada bloque indica si se ejecutó y muestra su resultado.');section.prepend(overview);}
+  let group=section.querySelector(':scope > details.tool-trace-group');
+  if(!group){
+    group=document.createElement('details');group.className='tool-trace-group';group.open=false;
+    const overview=document.createElement('summary');overview.className='tool-overview';overview.title=uiText('Expandir o retraer el historial de herramientas');
+    const chevron=document.createElement('span');chevron.className='tool-overview-chevron';chevron.setAttribute('aria-hidden','true');chevron.textContent='▸';
+    const label=document.createElement('span');label.className='tool-overview-label';
+    const detail=document.createElement('span');detail.className='tool-overview-detail';
+    overview.append(chevron,label,detail);
+    const list=document.createElement('div');list.className='tool-trace-list';
+    group.append(overview,list);section.prepend(group);
+  }
+  const overview=group.querySelector(':scope > .tool-overview'),labelEl=overview.querySelector('.tool-overview-label'),detailEl=overview.querySelector('.tool-overview-detail'),list=group.querySelector(':scope > .tool-trace-list');
   const search=trace.filter(call=>toolName(call)==='web_search').length,visit=trace.filter(call=>toolName(call)==='web_visit').length;
-  const running=trace.some(call=>['running','drafting','validating'].includes(call.status));
+  const activeCall=[...trace].reverse().find(call=>['running','drafting','validating'].includes(call.status));
+  const running=Boolean(activeCall);
+  const failedCount=trace.filter(call=>call.ok===false||['error','blocked','interrupted','missing'].includes(call.status)).length;
   overview.dataset.running=String(running);
   if(running)section._started=section._started||Date.now();else delete section._started;
   const seconds=section._started?Math.max(0,Math.round((Date.now()-section._started)/1000)):0;
-  overview.textContent=running?uiText('Ejecutando')+' · '+seconds+' s':(search||visit)?`Web Search: ${search} · Web Visit: ${visit}`:trace.length+' '+uiText(trace.length===1?'herramienta':'herramientas');
+  labelEl.textContent=running?uiText('Ejecutando')+' · '+seconds+' s':(search||visit)?`Web Search: ${search} · Web Visit: ${visit}`:trace.length+' '+uiText(trace.length===1?'herramienta':'herramientas');
+  if(running&&activeCall){
+    const activeArgs=activeCall.args&&typeof activeCall.args==='object'?activeCall.args:{};
+    const activeHint=String(activeArgs.url||activeArgs.query||activeArgs.path||activeArgs.command||'');
+    detailEl.textContent=toolTitle(activeCall)+(activeHint?' · '+activeHint:'');
+  }else if(failedCount){
+    detailEl.textContent=failedCount+' '+uiText(failedCount===1?'error':'errores');
+  }else{
+    detailEl.textContent='';
+  }
+  detailEl.dataset.error=String(!running&&failedCount>0);
   trace.forEach((call,index)=>{
     const id=call.id||'legacy-'+index;
-    let card=[...section.querySelectorAll(':scope > .tool')].find(element=>element.dataset.traceId===id);
+    let card=[...list.querySelectorAll(':scope > .tool')].find(element=>element.dataset.traceId===id);
     if(!card){
       card=document.createElement('details');card.className='tool';card.dataset.traceId=id;card.open=false;
       const summary=document.createElement('summary'),name=document.createElement('strong'),hint=document.createElement('span'),state=document.createElement('span');name.className='tool-name';hint.className='tool-hint';state.className='tool-status';summary.append(name,hint,state);
-      const body=document.createElement('div');body.className='tool-body';card.append(summary,body);section.append(card);
+      const body=document.createElement('div');body.className='tool-body';card.append(summary,body);list.append(card);
     }
     card.dataset.status=call.status||'legacy';card.querySelector('.tool-name').dataset.uiLabel=toolTitle(call);card.querySelector('.tool-name').textContent=uiText(toolTitle(call));
     const args=call.args&&typeof call.args==='object'?call.args:{};
@@ -389,7 +412,7 @@ function updateToolTrace(section,trace) {
     banner.append(info,buttons);section.append(banner);
   }
 }
-if(!window.__valToolTicker)window.__valToolTicker=setInterval(()=>{for(const section of document.querySelectorAll('#chat .tool-trace')){if(!section._started)continue;const overview=section.querySelector('.tool-overview');if(overview)overview.textContent=uiText('Ejecutando')+' · '+Math.max(0,Math.round((Date.now()-section._started)/1000))+' s';}},1000);
+if(!window.__valToolTicker)window.__valToolTicker=setInterval(()=>{for(const section of document.querySelectorAll('#chat .tool-trace')){if(!section._started)continue;const label=section.querySelector('.tool-overview-label');if(label)label.textContent=uiText('Ejecutando')+' · '+Math.max(0,Math.round((Date.now()-section._started)/1000))+' s';}},1000);
 function recordToolEvent(trace,event) {
   let call=event.id?trace.find(item=>item.id===event.id):null;
   if(!call&&event.type==='tool_result')call=trace.findLast(item=>item.name===event.name&&!Object.hasOwn(item,'result'));
@@ -514,8 +537,8 @@ function updateComposerPosition(empty){
 function renderChat(skipIndex=-1) {
   syncContextMeter();
   updateComposerPosition(!messages.length);
-  const chat=$('#chat'),views=new Map();
-  for(const row of chat.querySelectorAll('.msg[data-index]'))for(const card of row.querySelectorAll('details.tool[open]'))views.set(row.dataset.index+':'+card.dataset.traceId,{sent:!!card.querySelector('.model-result[open]'),scroll:[...card.querySelectorAll('pre')].map(pre=>pre.scrollTop)});
+  const chat=$('#chat'),views=new Map(),traceGroups=new Map();
+  for(const row of chat.querySelectorAll('.msg[data-index]')){const grp=row.querySelector('.tool-trace-group');if(grp?.open)traceGroups.set(row.dataset.index,true);for(const card of row.querySelectorAll('details.tool[open]'))views.set(row.dataset.index+':'+card.dataset.traceId,{sent:!!card.querySelector('.model-result[open]'),scroll:[...card.querySelectorAll('pre')].map(pre=>pre.scrollTop)});}
   if(!messages.length){renderWelcome();return;}
   let position = 0;
   messages.forEach((message,index)=>{
@@ -553,6 +576,7 @@ function renderChat(skipIndex=-1) {
     if(!message.compacted)messageActions(row,message,index);
     const current = chat.childNodes[position++];
     if (current !== row) chat.insertBefore(row, current || null);
+    const grp=row.querySelector('.tool-trace-group');if(grp&&traceGroups.get(String(index)))grp.open=true;
     for(const card of row.querySelectorAll('details.tool')){const view=views.get(index+':'+card.dataset.traceId);if(view){card.open=true;const sent=card.querySelector('.model-result');if(sent)sent.open=view.sent;card.querySelectorAll('pre').forEach((pre,i)=>pre.scrollTop=view.scroll[i]||0);}}
   });
   while (chat.childNodes.length > position) chat.lastChild.remove();

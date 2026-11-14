@@ -290,17 +290,19 @@ def install(a):
         return manager.loaded
 
     def stream(payload,control):
-        model_id=payload.get('model') or (None if manager.kind=='strata' else manager.loaded)
+        conv_id=payload.get('conversation_id')
+        clean_payload={k:v for k,v in payload.items() if k!='conversation_id'}
+        model_id=clean_payload.get('model') or (None if manager.kind=='strata' else manager.loaded)
         info=thinking_policy.capability(selected(model_id),manager.kind)
-        kwargs=payload.get('chat_template_kwargs') if isinstance(payload.get('chat_template_kwargs'),dict) else {}
-        thinking_policy.apply(payload,payload.get('reasoning_effort') or ('none' if kwargs.get('enable_thinking') is False else info['default']),info)
-        if manager.kind=='strata':yield from original['engine_chat_stream'](payload,control)
+        kwargs=clean_payload.get('chat_template_kwargs') if isinstance(clean_payload.get('chat_template_kwargs'),dict) else {}
+        thinking_policy.apply(clean_payload,clean_payload.get('reasoning_effort') or ('none' if kwargs.get('enable_thinking') is False else info['default']),info)
+        if manager.kind=='strata':yield from original['engine_chat_stream'](clean_payload,control)
         else:
             if manager.kind=='api':
                 remote=manager.selected_remote()
                 if not remote:raise a.ModelStateError('Selecciona un modelo de la API antes de chatear.')
-                payload={**payload,'model':remote['id']}
-            yield from manager.stream(payload,control)
+                clean_payload={**clean_payload,'model':remote['id']}
+            yield from manager.stream(clean_payload,control,conversation_id=conv_id)
 
     def stats():
         if manager.kind=='strata':return system_metrics(original['stats']())
@@ -384,27 +386,40 @@ def install(a):
         return settings
 
     def automatic_updates():
-        """A few seconds after start: apply the newest signed minor update (1.0.0 C1, C2…) and fetch
-        a newer installer if there is one, so a fresh install always ends up on the latest release.
-        Both are verified against the maintainer's key; installing a full update still asks first."""
+        """Shortly after start: apply the newest signed minor update (1.0.0 C1, C2…) and fetch
+        a newer installer if there is one, retrying promptly on transient network errors."""
         import time
-        time.sleep(4)
-        def components_update():
+        time.sleep(1.5)
+        backoff=(20,45,90,180,300)
+        def run_loop(step,normal_interval):
+            failures=0
             while True:
+                ok=False
                 try:
-                    from components import COMPONENTS
-                    if COMPONENTS.check().get('available'):COMPONENTS.apply()
-                except Exception:pass
-                time.sleep(6*60*60)
-        def app_update():
-            while True:
-                try:
-                    from app_updates import UPDATES
-                    state=UPDATES.check()
-                    if state.get('available') and not state.get('ready'):UPDATES.download()
-                except Exception:pass
-                time.sleep(6*60*60)
-        for work in (components_update,app_update):threading.Thread(target=work,daemon=True).start()
+                    ok=bool(step())
+                except Exception:
+                    ok=False
+                if ok:
+                    failures=0
+                    time.sleep(normal_interval)
+                else:
+                    delay=backoff[min(failures,len(backoff)-1)]
+                    failures+=1
+                    time.sleep(delay)
+        def components_step():
+            from components import COMPONENTS
+            state=COMPONENTS.check()
+            if state.get('error'):return False
+            if state.get('available'):COMPONENTS.apply()
+            return True
+        def app_step():
+            from app_updates import UPDATES
+            state=UPDATES.check()
+            if state.get('error'):return False
+            if state.get('available') and not state.get('ready'):UPDATES.download()
+            return True
+        for step,interval in ((components_step,30*60),(app_step,6*60*60)):
+            threading.Thread(target=run_loop,args=(step,interval),daemon=True).start()
     threading.Thread(target=follow_desktop,name='v-agent-desktop-watch',daemon=True).start()
     if os.environ.get('V_AGENT_NO_AUTO_UPDATE')!='1':
         threading.Thread(target=automatic_updates,name='v-agent-auto-updates',daemon=True).start()
@@ -524,7 +539,7 @@ def install(a):
                     msgs=body.get('messages')
                     if not isinstance(msgs,list) or not msgs:raise ValueError('No hay mensajes suficientes para comprimir.')
                     instructions=body.get('instructions')
-                    result=a.compact_local_context(model_id,msgs,instructions) if manager.kind=='strata' else manager.compact_context(model_id,msgs,instructions)
+                    result=a.compact_local_context(model_id,msgs,instructions) if manager.kind=='strata' else manager.compact_context(model_id,msgs,instructions,conversation_id=body.get('conversation_id'))
                     self._json(200,result)
                 except a.ModelStateError as error:self._json(error.status,{'error':str(error)})
                 except (ValueError,OSError,KeyError,TypeError) as error:self._json(400,{'error':str(error)})

@@ -1567,7 +1567,10 @@ def execute_request(params):
             policy = PROJECTS.workspace(POLICY,chat_id)
         return ok(call(params.get('name'), args, full_access=full_access, policy=policy))
     except Exception as error:
-        result = ok(str(error))
+        # A missing argument raised KeyError and reached the model as just "'path'": say what to fix.
+        message = (f'Missing required argument "{error.args[0]}". Call the tool again with it.'
+                   if isinstance(error, KeyError) and error.args else str(error))
+        result = ok(message)
         result['isError'] = True
         return result
 

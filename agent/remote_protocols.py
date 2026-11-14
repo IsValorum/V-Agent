@@ -1,6 +1,8 @@
 """Translate provider wire formats at the transport boundary, never in the tool loop."""
+import gzip
 import json
 import re
+import zlib
 from urllib.parse import urlsplit
 
 
@@ -246,4 +248,232 @@ def extract_responses_compact_summary(data):
         if isinstance(inp, int) and isinstance(out, int):
             usage = {'prompt_tokens': inp, 'completion_tokens': out}
     return '\n\n'.join(t for t in texts if t.strip()), compaction_item, usage
+
+
+DEFAULT_ANTHROPIC_VERSION = '2023-06-01'
+DEFAULT_OPENROUTER_REFERER = 'https://github.com/IsValorum/V-Agent'
+DEFAULT_OPENROUTER_TITLE = 'V-Agent'
+PROVIDER_PRESETS = ('auto', 'openai', 'anthropic', 'openrouter', 'opencode', 'azure')
+AUTH_MODES = ('auto', 'bearer', 'x-api-key', 'api-key', 'none')
+_HEADER_NAME_RE = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
+
+
+def default_user_agent(version='1.1.0'):
+    clean = re.sub(r'[^0-9A-Za-z._+-]', '', str(version or '1.1.0')).strip() or '1.1.0'
+    return f'V-Agent/{clean}'
+
+
+def infer_provider_preset(protocol, base_url='', preset='auto'):
+    chosen = str(preset or 'auto').strip().lower()
+    if chosen in PROVIDER_PRESETS and chosen != 'auto':
+        return chosen
+    host = (urlsplit(str(base_url or '')).hostname or '').lower()
+    path = (urlsplit(str(base_url or '')).path or '').lower()
+    if 'openrouter.ai' in host:
+        return 'openrouter'
+    if 'opencode' in host or '/zen/' in path:
+        return 'opencode'
+    if host.endswith('.openai.azure.com') or '.services.ai.azure.com' in host or '/openai/deployments/' in path:
+        return 'azure'
+    if protocol == 'anthropic' or 'anthropic.com' in host:
+        return 'anthropic'
+    return 'openai'
+
+
+def resolve_auth_mode(cfg, preset):
+    explicit = str((cfg or {}).get('auth_mode') or 'auto').strip().lower()
+    if explicit in AUTH_MODES and explicit != 'auto':
+        return explicit
+    protocol = str((cfg or {}).get('protocol') or 'openai').strip().lower()
+    if preset == 'anthropic' or (preset in ('auto', 'opencode') and protocol == 'anthropic'):
+        return 'x-api-key'
+    if preset == 'azure':
+        return 'api-key'
+    return 'bearer'
+
+
+def _clean_header_value(value):
+    text = str(value or '').strip()
+    if '\r' in text or '\n' in text:
+        raise ValueError('Cabecera HTTP no válida: contiene saltos de línea.')
+    try:
+        text.encode('latin-1')
+    except UnicodeEncodeError:
+        raise ValueError('Cabecera HTTP no válida: usa solo caracteres ASCII/Latin-1 en cabeceras HTTP.') from None
+    return text
+
+
+def extract_azure_deployment(base_url):
+    """Extract classic Azure OpenAI deployment name from /openai/deployments/<name> if present."""
+    match = re.search(r'/openai/deployments/([^/?#]+)', str(base_url or ''), re.I)
+    return match.group(1) if match else ''
+
+
+def decode_http_body(raw, content_encoding=''):
+    """Decompress gzip/deflate HTTP responses if an upstream proxy ignored Accept-Encoding: identity."""
+    enc = str(content_encoding or '').split(',')[0].strip().lower()
+    if not raw or not enc or enc == 'identity':
+        return raw
+    if enc in ('gzip', 'x-gzip'):
+        return gzip.decompress(raw)
+    if enc == 'deflate':
+        try:
+            return zlib.decompress(raw)
+        except zlib.error:
+            return zlib.decompress(raw, -zlib.MAX_WBITS)
+    return raw
+
+
+def iter_http_lines(response):
+    """Yield lines from an HTTP response, transparently decompressing gzip/deflate if a proxy forced it."""
+    enc = str((response.getheader('Content-Encoding') if hasattr(response, 'getheader') else '') or '').split(',')[0].strip().lower()
+    if enc not in ('gzip', 'x-gzip', 'deflate'):
+        yield from response
+        return
+    wbits = (16 + zlib.MAX_WBITS) if enc in ('gzip', 'x-gzip') else zlib.MAX_WBITS
+    dec = zlib.decompressobj(wbits)
+    buf = b''
+    while True:
+        chunk = response.read(8192)
+        if not chunk:
+            break
+        try:
+            buf += dec.decompress(chunk)
+        except zlib.error:
+            if enc == 'deflate' and wbits == zlib.MAX_WBITS:
+                dec = zlib.decompressobj(-zlib.MAX_WBITS)
+                buf += dec.decompress(chunk)
+            else:
+                raise
+        while b'\n' in buf:
+            line, buf = buf.split(b'\n', 1)
+            yield line + b'\n'
+    tail = buf + dec.flush()
+    if tail:
+        yield tail
+
+
+def parse_extra_headers(raw):
+    """Normalize custom headers from a dict or 'Name: Value' lines, blocking CRLF & telemetry leaks."""
+    if not raw:
+        return {}
+    items = []
+    if isinstance(raw, dict):
+        items = list(raw.items())
+    elif isinstance(raw, str):
+        for line in raw.splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith('#'):
+                continue
+            if ':' not in stripped:
+                raise ValueError('Cada cabecera personalizada debe tener el formato Nombre: Valor.')
+            k, v = stripped.split(':', 1)
+            items.append((k.strip(), v.strip()))
+    else:
+        raise ValueError('Formato de cabeceras personalizadas no válido.')
+    cleaned = {}
+    for raw_k, raw_v in items:
+        name = _clean_header_value(raw_k)
+        value = _clean_header_value(raw_v)
+        if not name or not _HEADER_NAME_RE.fullmatch(name):
+            raise ValueError(f'Nombre de cabecera no válido: {name!r}.')
+        if name.lower().startswith('x-stainless-'):
+            continue
+        cleaned[name] = value
+    return cleaned
+
+
+def _merge_csv_tokens(*values):
+    seen = set()
+    ordered = []
+    for raw in values:
+        for part in str(raw or '').split(','):
+            token = part.strip()
+            if token and token.lower() not in seen:
+                seen.add(token.lower())
+                ordered.append(token)
+    return ','.join(ordered)
+
+
+def _set_header_ci(headers, key, value):
+    for existing in [k for k in headers if k.lower() == key.lower()]:
+        if existing != key:
+            headers.pop(existing, None)
+    headers[key] = value
+
+
+def append_api_version_query(url, cfg, preset):
+    """Append ?api-version=... when targeting Azure OpenAI if configured and not already present."""
+    if preset != 'azure':
+        return url
+    api_ver = str((cfg or {}).get('azure_api_version') or '').strip()
+    if not api_ver or 'api-version=' in url.lower():
+        return url
+    from urllib.parse import quote
+    sep = '&' if '?' in url else '?'
+    return f'{url}{sep}api-version={quote(api_ver, safe="")}'
+
+
+def build_provider_headers(cfg, api_key='', *, stream=False, session_id=None, default_ua=None, extra_headers=None):
+    """Build hardened provider HTTP headers without Python/Stainless leaks and with SSE anti-buffering."""
+    cfg = cfg or {}
+    protocol = str(cfg.get('protocol') or 'openai').strip().lower()
+    base_url = str(cfg.get('base_url') or '')
+    preset = infer_provider_preset(protocol, base_url, cfg.get('provider_preset'))
+    ua = _clean_header_value(cfg.get('user_agent') or cfg.get('user_agent_override') or default_ua or default_user_agent())
+
+    headers = {
+        'Content-Type': 'application/json',
+        'User-Agent': ua,
+        'Accept': 'text/event-stream' if stream else 'application/json',
+        'Accept-Encoding': 'identity',
+    }
+    if stream:
+        headers['Cache-Control'] = 'no-cache'
+
+    auth_mode = resolve_auth_mode(cfg, preset)
+    if api_key:
+        if auth_mode == 'x-api-key':
+            headers['x-api-key'] = api_key
+        elif auth_mode == 'api-key':
+            headers['api-key'] = api_key
+        elif auth_mode == 'bearer':
+            headers['Authorization'] = 'Bearer ' + api_key
+
+    if protocol == 'anthropic':
+        headers['anthropic-version'] = str(cfg.get('api_version') or DEFAULT_ANTHROPIC_VERSION).strip() or DEFAULT_ANTHROPIC_VERSION
+        merged_beta = _merge_csv_tokens(cfg.get('anthropic_beta'), (extra_headers or {}).get('anthropic-beta'))
+        if merged_beta:
+            headers['anthropic-beta'] = merged_beta
+    else:
+        for field, header in (('organization', 'OpenAI-Organization'), ('project', 'OpenAI-Project')):
+            if cfg.get(field):
+                headers[header] = str(cfg[field]).strip()
+
+    send_session = cfg.get('send_session_id')
+    if send_session is None:
+        send_session = (preset == 'opencode')
+    if send_session and session_id:
+        headers['x-opencode-session'] = str(session_id)
+
+    referer = _clean_header_value(cfg.get('http_referer') or (DEFAULT_OPENROUTER_REFERER if preset == 'openrouter' else ''))
+    x_title = _clean_header_value(cfg.get('x_title') or (DEFAULT_OPENROUTER_TITLE if preset == 'openrouter' else ''))
+    if referer:
+        headers['HTTP-Referer'] = referer
+    if x_title:
+        headers['X-Title'] = x_title
+
+    for source in (parse_extra_headers(cfg.get('extra_headers')), parse_extra_headers(extra_headers)):
+        for k, v in source.items():
+            if k.lower() == 'anthropic-beta' and protocol == 'anthropic':
+                headers['anthropic-beta'] = _merge_csv_tokens(headers.get('anthropic-beta'), v)
+            else:
+                _set_header_ci(headers, k, v)
+
+    if stream:
+        _set_header_ci(headers, 'Accept', 'text/event-stream')
+        _set_header_ci(headers, 'Cache-Control', 'no-cache')
+        _set_header_ci(headers, 'Accept-Encoding', 'identity')
+
+    return headers
 

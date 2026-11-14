@@ -108,7 +108,8 @@ class Updates:
                 for key,(repo,pattern,exe) in FEEDS.items():
                     try:
                         if repo not in repos:
-                            req=urllib.request.Request('https://api.github.com/repos/'+repo+'/releases?per_page=8',headers={'User-Agent':'VAL-Agent','Accept':'application/vnd.github+json'})
+                            import app_updates
+                            req=urllib.request.Request('https://api.github.com/repos/'+repo+'/releases?per_page=8',headers={'User-Agent':'V-Agent/'+app_updates.VERSION,'Accept':'application/vnd.github+json','Accept-Encoding':'identity'})
                             with urllib.request.urlopen(req,timeout=15) as response:repos[repo]=json.load(response)
                         candidate=next(((release,asset) for release in repos[repo] if not release.get('draft') and (not release.get('prerelease') or key.startswith('llama-')) for asset in release.get('assets',[]) if re.fullmatch(pattern,asset['name'])),None)
                         if candidate is None:releases[key]={'available':False,'message':'No hay un precompilado compatible publicado.','repository':repo};continue
@@ -170,7 +171,8 @@ class Updates:
                     if parts.scheme!='https' or parts.hostname!='github.com' or not parts.path.startswith('/'+FEEDS[key][0]+'/releases/download/'):raise ValueError('Release URL is not official.')
                     with self.lock:self.progress['phase']='download'
                     path=folder/Path(asset['name']).name;digest=hashlib.sha256();size=0
-                    with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'VAL-Agent'}),timeout=60) as response,path.open('wb') as output:
+                    import app_updates
+                    with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'V-Agent/'+app_updates.VERSION}),timeout=60) as response,path.open('wb') as output:
                         while chunk:=response.read(2**20):
                             size+=len(chunk)
                             if size>2*2**30:raise ValueError('Download is too large.')

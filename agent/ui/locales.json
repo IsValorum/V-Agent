@@ -8662,5 +8662,221 @@
     "pt": "Não foi possível importar: ",
     "fr": "Impossible d’importer : ",
     "de": "Import fehlgeschlagen: "
+  },
+  "Expandir o retraer el historial de herramientas": {
+    "en": "Expand or collapse tool history",
+    "pt": "Expandir ou recolher histórico de ferramentas",
+    "fr": "Développer ou réduire l’historique des outils",
+    "de": "Werkzeugverlauf ein- oder ausklappen"
+  },
+  "error": {
+    "en": "error",
+    "pt": "erro",
+    "fr": "erreur",
+    "de": "Fehler"
+  },
+  "errores": {
+    "en": "errors",
+    "pt": "erros",
+    "fr": "erreurs",
+    "de": "Fehler"
+  },
+  "Motor o API (opcional)": {
+    "en": "Engine or API (optional)",
+    "pt": "Motor ou API (opcional)",
+    "fr": "Moteur ou API (facultatif)",
+    "de": "Engine oder API (optional)"
+  },
+  "Motor local opcional": {
+    "en": "Optional local engine",
+    "pt": "Motor local opcional",
+    "fr": "Moteur local facultatif",
+    "de": "Optionale lokale Engine"
+  },
+  "Instalar un motor local es opcional: elige llama.cpp, Strata o Strata Rust solo si vas a ejecutar modelos locales, conecta una API externa, o pulsa Siguiente para decidir luego.": {
+    "en": "Installing a local engine is optional: choose llama.cpp, Strata or Strata Rust only if you want to run local models, connect an external API, or click Next to decide later.",
+    "pt": "Instalar um motor local é opcional: escolha llama.cpp, Strata ou Strata Rust apenas se quiser executar modelos locais, conecte uma API externa ou clique em Seguinte para decidir depois.",
+    "fr": "L’installation d’un moteur local est facultative : choisissez llama.cpp, Strata ou Strata Rust uniquement pour des modèles locaux, connectez une API externe ou cliquez sur Suivant pour décider plus tard.",
+    "de": "Die Installation einer lokalen Engine ist optional: Wählen Sie llama.cpp, Strata oder Strata Rust nur für lokale Modelle, verbinden Sie eine externe API oder klicken Sie auf Weiter, um später zu entscheiden."
+  },
+  "Instalar elegido": {
+    "en": "Install selected",
+    "pt": "Instalar selecionado",
+    "fr": "Installer la sélection",
+    "de": "Ausgewählte installieren"
+  },
+  "Opcional": {
+    "en": "Optional",
+    "pt": "Opcional",
+    "fr": "Facultatif",
+    "de": "Optional"
+  },
+  "No instalado": {
+    "en": "Not installed",
+    "pt": "Não instalado",
+    "fr": "Non installé",
+    "de": "Nicht installiert"
+  },
+  "Opciones de conexión y cabeceras": {
+    "en": "Connection and header options",
+    "pt": "Opções de conexão e cabeçalhos",
+    "fr": "Options de connexion et d’en-têtes",
+    "de": "Verbindungs- und Header-Optionen"
+  },
+  "Proveedor / Preset": {
+    "en": "Provider / Preset",
+    "pt": "Provedor / Predefinição",
+    "fr": "Fournisseur / Préréglage",
+    "de": "Anbieter / Vorlage"
+  },
+  "Protocolo": {
+    "en": "Protocol",
+    "pt": "Protocolo",
+    "fr": "Protocole",
+    "de": "Protokoll"
+  },
+  "Auto (según URL)": {
+    "en": "Auto (by URL)",
+    "pt": "Auto (pela URL)",
+    "fr": "Auto (selon l’URL)",
+    "de": "Auto (nach URL)"
+  },
+  "Autenticación": {
+    "en": "Authentication",
+    "pt": "Autenticação",
+    "fr": "Authentification",
+    "de": "Authentifizierung"
+  },
+  "Automático según dialecto": {
+    "en": "Automatic by dialect",
+    "pt": "Automático por dialeto",
+    "fr": "Automatique selon le dialecte",
+    "de": "Automatisch je Dialekt"
+  },
+  "Sin cabecera de clave": {
+    "en": "No key header",
+    "pt": "Sem cabeçalho de chave",
+    "fr": "Sans en-tête de clé",
+    "de": "Kein Key-Header"
+  },
+  "Por defecto (V-Agent)": {
+    "en": "Default (V-Agent)",
+    "pt": "Padrão (V-Agent)",
+    "fr": "Par défaut (V-Agent)",
+    "de": "Standard (V-Agent)"
+  },
+  "Personalizado": {
+    "en": "Custom",
+    "pt": "Personalizado",
+    "fr": "Personnalisé",
+    "de": "Benutzerdefiniert"
+  },
+  "Sesión por conversación (x-opencode-session)": {
+    "en": "Per-conversation session (x-opencode-session)",
+    "pt": "Sessão por conversa (x-opencode-session)",
+    "fr": "Session par conversation (x-opencode-session)",
+    "de": "Sitzung pro Konversation (x-opencode-session)"
+  },
+  "Automático (OpenCode Go)": {
+    "en": "Automatic (OpenCode Go)",
+    "pt": "Automático (OpenCode Go)",
+    "fr": "Automatique (OpenCode Go)",
+    "de": "Automatisch (OpenCode Go)"
+  },
+  "Siempre enviar UUID v4": {
+    "en": "Always send UUID v4",
+    "pt": "Sempre enviar UUID v4",
+    "fr": "Toujours envoyer un UUID v4",
+    "de": "Immer UUID v4 senden"
+  },
+  "Desactivado": {
+    "en": "Disabled",
+    "pt": "Desativado",
+    "fr": "Désactivé",
+    "de": "Deaktiviert"
+  },
+  "Versión de la API (anthropic-version)": {
+    "en": "API version (anthropic-version)",
+    "pt": "Versão da API (anthropic-version)",
+    "fr": "Version de l’API (anthropic-version)",
+    "de": "API-Version (anthropic-version)"
+  },
+  "Cabecera anthropic-beta (opcional)": {
+    "en": "anthropic-beta header (optional)",
+    "pt": "Cabeçalho anthropic-beta (opcional)",
+    "fr": "En-tête anthropic-beta (facultatif)",
+    "de": "anthropic-beta-Header (optional)"
+  },
+  "Versión de Azure (api-version)": {
+    "en": "Azure version (api-version)",
+    "pt": "Versão do Azure (api-version)",
+    "fr": "Version Azure (api-version)",
+    "de": "Azure-Version (api-version)"
+  },
+  "Cabeceras personalizadas (Nombre: Valor)": {
+    "en": "Custom headers (Name: Value)",
+    "pt": "Cabeçalhos personalizados (Nome: Valor)",
+    "fr": "En-têtes personnalisés (Nom : Valeur)",
+    "de": "Benutzerdefinierte Header (Name: Wert)"
+  },
+  "En streaming siempre se envían Accept: text/event-stream, Cache-Control: no-cache y Accept-Encoding: identity. Clave cifrada en este equipo.": {
+    "en": "Streaming always sends Accept: text/event-stream, Cache-Control: no-cache and Accept-Encoding: identity. Key encrypted on this device.",
+    "pt": "No streaming são sempre enviados Accept: text/event-stream, Cache-Control: no-cache e Accept-Encoding: identity. Chave criptografada neste dispositivo.",
+    "fr": "En streaming, Accept: text/event-stream, Cache-Control: no-cache et Accept-Encoding: identity sont toujours envoyés. Clé chiffrée sur cet appareil.",
+    "de": "Beim Streaming werden immer Accept: text/event-stream, Cache-Control: no-cache und Accept-Encoding: identity gesendet. Schlüssel auf diesem Gerät verschlüsselt."
+  },
+  "Cada cabecera personalizada debe tener el formato Nombre: Valor.": {
+    "en": "Each custom header must follow the Name: Value format.",
+    "pt": "Cada cabeçalho personalizado deve ter o formato Nome: Valor.",
+    "fr": "Chaque en-tête personnalisé doit suivre le format Nom : Valeur.",
+    "de": "Jeder benutzerdefinierte Header muss dem Format Name: Wert entsprechen."
+  },
+  "Falta el nombre de la cabecera personalizada.": {
+    "en": "The custom header name is missing.",
+    "pt": "Falta o nome do cabeçalho personalizado.",
+    "fr": "Le nom de l’en-tête personnalisé est manquant.",
+    "de": "Der Name des benutzerdefinierten Headers fehlt."
+  },
+  "OpenRouter · HTTP-Referer y X-Title automáticos": {
+    "en": "OpenRouter · automatic HTTP-Referer and X-Title",
+    "pt": "OpenRouter · HTTP-Referer e X-Title automáticos",
+    "fr": "OpenRouter · HTTP-Referer et X-Title automatiques",
+    "de": "OpenRouter · automatisches HTTP-Referer und X-Title"
+  },
+  "OpenCode Go · sesión UUID v4 por conversación": {
+    "en": "OpenCode Go · per-conversation UUID v4 session",
+    "pt": "OpenCode Go · sessão UUID v4 por conversa",
+    "fr": "OpenCode Go · session UUID v4 par conversation",
+    "de": "OpenCode Go · UUID-v4-Sitzung pro Konversation"
+  },
+  "Azure OpenAI · cabecera api-key y versión": {
+    "en": "Azure OpenAI · api-key header and version",
+    "pt": "Azure OpenAI · cabeçalho api-key e versão",
+    "fr": "Azure OpenAI · en-tête api-key et version",
+    "de": "Azure OpenAI · api-key-Header und Version"
+  },
+  "Claude nativo · x-api-key + anthropic-version": {
+    "en": "Native Claude · x-api-key + anthropic-version",
+    "pt": "Claude nativo · x-api-key + anthropic-version",
+    "fr": "Claude natif · x-api-key + anthropic-version",
+    "de": "Natives Claude · x-api-key + anthropic-version"
+  },
+  "OpenAI compatible · Chat Completions": {
+    "en": "OpenAI compatible · Chat Completions",
+    "pt": "Compatível com OpenAI · Chat Completions",
+    "fr": "Compatible OpenAI · Chat Completions",
+    "de": "OpenAI-kompatibel · Chat Completions"
+  },
+  "ej. mi-cliente/1.0": {
+    "en": "e.g. my-client/1.0",
+    "pt": "ex. meu-cliente/1.0",
+    "fr": "ex. mon-client/1.0",
+    "de": "z. B. mein-client/1.0"
+  },
+  "X-Custom-Header: valor": {
+    "en": "X-Custom-Header: value",
+    "pt": "X-Custom-Header: valor",
+    "fr": "X-Custom-Header: valeur",
+    "de": "X-Custom-Header: Wert"
   }
 }

@@ -4,6 +4,16 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.1.0
+
+Release focused on cleaner tool-execution UI, automatic minor updates without manual intervention, optional local engine setup on fresh installs, hardened remote API compatibility, and clearer MCP parameter diagnostics.
+
+- **Collapsible tool execution trace:** Tool calls during assistant runs now group inside a `<details class="tool-trace-group">` container that starts collapsed by default, with an accessible toggle summary and individually expandable `<details class="tool">` entries for inspecting arguments, durations, and outputs without cluttering the conversation.
+- **Automatic minor component updates:** Minor updates (`components`) now check automatically shortly after startup (`1.5 s`), retry transient GitHub/network errors with progressive backoff (`20 s` to `300 s`) instead of sleeping for hours, fetch up to `100` releases per page with explicit signed-manifest validation, and hot-reload UI patches into the active window cleanly while emitting `v-agent-components-update`.
+- **Optional local engines on first run:** Onboarding step 2 lets new users configure a remote API or skip local engine installation instead of forcing `llama.cpp` or `Strata Rust` downloads up front; update stacks no longer push install banners for engines that are not installed, and missing-engine errors clearly distinguish `Strata Rust` from `llama.cpp`.
+- **Hardened remote API protocol support and UI controls:** Added `agent/remote_protocols.py` and per-connection UI controls (`engine-controls.js`) covering `V-Agent/<version>` global `User-Agent` (with per-provider override and `X-Stainless-*` removal), CRLF and Latin-1 header validation, provider presets and auth modes (`auto`, `openai`, `anthropic` `x-api-key` + `anthropic-version` + `anthropic-beta`, `azure` `api-key` + `api-version` + classic `/openai/deployments/` 404 fallback, `opencode` persistent per-conversation UUID v4 `x-opencode-session` across turns/compaction, and `openrouter` `HTTP-Referer` / `X-Title` / `delta.reasoning` / SSE comments), plus SSE anti-buffering headers (`Accept: text/event-stream`, `Cache-Control: no-cache`, `Accept-Encoding: identity`) and transparent `gzip`/`deflate` fallback decoding.
+- **MCP diagnostic improvements:** Improved `pc` MCP `KeyError` messages to identify the missing required argument cleanly, alongside updated remote-provider, UI, update-channel, and MCP recovery test coverage.
+
 ## 1.0.9
 
 Major release featuring a full UI redesign, major MCP and document-reading upgrades, English-only model-facing MCP standardization, accurate VRAM/GGUF memory estimation, and integrated browser/search fixes.

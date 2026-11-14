@@ -462,8 +462,8 @@ body.browser-open.browser-fullscreen #updateStack{right:16px;}
 #apiOptions .api-connection-row{display:flex;gap:6px;}#apiConnection{flex:1;min-width:0;width:100%;}#newApiConnection{flex:none;min-width:30px;}
 #apiConnectionEditor>summary,.api-extra>summary{font-size:11px;padding:8px 0;}
 .api-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}.api-form-grid label,.api-extra label{display:grid;gap:4px;font-size:10px;color:var(--muted);min-width:0;}.api-form-grid .api-wide{grid-column:1/-1;}
-#apiOptions input,#apiOptions select{width:100%;max-width:100%;min-width:0;box-sizing:border-box;font-size:11px;}#apiOptions .chk{display:flex;align-items:center;padding:8px 0;}#apiOptions input[type=checkbox]{width:auto;}
-#apiOptions #apiOpenAIFields{display:grid;gap:6px;}.api-extra{margin-top:6px;border-top:1px solid var(--border);}.api-connect-footer{display:flex;align-items:center;justify-content:space-between;gap:6px;padding-top:6px;}.api-connect-footer .mini{font-size:9px;}
+#apiOptions input,#apiOptions select,#apiOptions textarea{width:100%;max-width:100%;min-width:0;box-sizing:border-box;font-size:11px;}#apiOptions textarea{resize:vertical;min-height:46px;font:10.5px/1.4 Consolas,monospace;}#apiOptions .chk{display:flex;align-items:center;padding:8px 0;}#apiOptions input[type=checkbox]{width:auto;}
+#apiOptions #apiOpenAIFields,#apiOptions #apiClaudeFields,#apiOptions #apiAzureFields{display:grid;gap:6px;}.api-extra{margin-top:6px;border-top:1px solid var(--border);}.api-extra-grid{display:grid;gap:6px;padding-bottom:6px;}.api-connect-footer{display:flex;align-items:center;justify-content:space-between;gap:6px;padding-top:6px;}.api-connect-footer .mini{font-size:9px;}
 #remoteModelInfo{padding:10px;margin-block:8px;border:1px solid var(--border);border-radius:9px;background:color-mix(in srgb,var(--accent) 4%,transparent);}
 .remote-context-stats{display:grid;grid-template-columns:1fr auto;gap:4px;font-size:11px;}.remote-context-stats strong{color:var(--accent);}.remote-context-stats small{grid-column:1/-1;color:var(--muted);font-size:10px;}#remoteModelInfo summary{font-size:10px;padding-top:10px;}#remoteModelInfo input{width:100%;min-width:0;}#remoteModelInfo button{font-size:10px;padding:6px;margin-top:7px;}
 #modelResults.remote-models .model-option{padding:10px;border:1px solid var(--border);margin-bottom:5px;background:color-mix(in srgb,var(--panel) 85%,transparent);grid-template-columns:1fr auto;}
@@ -641,11 +641,20 @@ body[data-theme-mode=day] [data-logo-choice=ivory]{filter:none;}
 .sidebar-extra{min-height:31px;padding:5px 8px!important;}
 .sidebar-extra .extra-text small{display:none;}
 
-/* Tool trace as a quiet Qoder-style timeline, not a stack of boxes. */
-#chat .tool-trace{display:grid;gap:0;width:100%;min-width:0;margin:0 0 9px;padding:0 0 0 2px;border-left:1px solid var(--border);}
-#chat .tool-overview{display:flex;align-items:center;gap:7px;min-height:20px;padding:1px 0 6px 11px;font:11px/1.5 var(--ui-font);color:var(--muted);}
-#chat .tool-overview::before{content:"";width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:var(--accent);opacity:.7;}
-#chat .tool-overview[data-running=true]::before{width:9px;height:9px;flex-basis:9px;border:1.5px solid var(--accent);border-top-color:transparent;background:transparent;animation:tool-run 1s linear infinite;}
+/* Collapsible tool trace timeline: collapsed by default, expandable as a group and per tool. */
+#chat .tool-trace{display:grid;gap:4px;width:100%;min-width:0;margin:0 0 9px;padding:0;border-left:0;}
+#chat details.tool-trace-group{background:transparent!important;border:0!important;border-radius:0!important;width:100%;padding:0;}
+#chat summary.tool-overview{display:flex;align-items:center;gap:6px;min-height:22px;padding:2px 6px 2px 2px;border-radius:6px;font:11px/1.5 var(--ui-font);color:var(--muted);list-style:none;cursor:pointer;user-select:none;}
+#chat summary.tool-overview::-webkit-details-marker{display:none;}
+#chat summary.tool-overview:hover{background:color-mix(in srgb,var(--text) 4%,transparent);color:var(--text);}
+#chat .tool-overview-chevron{display:inline-flex;align-items:center;justify-content:center;width:12px;font-size:10px;line-height:1;transition:transform .14s ease;}
+#chat details.tool-trace-group[open]>summary.tool-overview .tool-overview-chevron{transform:rotate(90deg);}
+#chat summary.tool-overview::before{content:"";width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:var(--accent);opacity:.75;}
+#chat summary.tool-overview[data-running=true]::before{width:9px;height:9px;flex-basis:9px;border:1.5px solid var(--accent);border-top-color:transparent;background:transparent;animation:tool-run 1s linear infinite;}
+#chat .tool-overview-label{white-space:nowrap;font-weight:500;}
+#chat .tool-overview-detail{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:10.5px/1.4 Consolas,monospace;opacity:.8;}
+#chat .tool-overview-detail[data-error=true]{color:#d78f86;opacity:1;}
+#chat .tool-trace-list{display:grid;gap:0;margin:2px 0 2px 4px;padding:0 0 0 2px;border-left:1px solid var(--border);}
 @keyframes tool-run{to{transform:rotate(360deg);}}
 #chat details.tool{background:transparent!important;border:0!important;border-radius:0!important;width:100%;padding:0;color:var(--text);}
 #chat details.tool>summary{display:flex;align-items:center;gap:8px;padding:4px 0 4px 10px;font:11px/1.45 var(--ui-font);list-style:none;cursor:pointer;}
@@ -988,6 +997,7 @@ body.desktop-frame.browser-open.browser-fullscreen #windowControls{width:100vw;b
 .tour-card h3{margin:0 0 6px;font-size:15px;font-weight:600;}
 .tour-card p{margin:0 0 10px;font-size:13px;line-height:1.5;color:color-mix(in srgb,var(--text) 82%,transparent);}
 .tour-card .tour-status{color:var(--accent);min-height:1.2em;}
+.tour-engine-select{width:100%;margin:4px 0 8px;padding:7px 9px;border-radius:8px;border:1px solid var(--border);background:color-mix(in srgb,var(--panel) 80%,transparent);color:var(--text);font-size:12px;}
 .tour-engine-actions{display:flex;flex-direction:column;gap:8px;margin:4px 0 6px;}
 .tour-foot{display:flex;align-items:center;gap:6px;margin-top:6px;}
 .tour-foot .tour-count{margin-right:auto;font-size:11px;color:var(--muted);}

@@ -150,7 +150,7 @@ class Components:
                 return self.snapshot()
             self.state.update(busy=True, error='')
         try:
-            releases = json.loads(self._get('https://api.github.com/repos/%s/releases?per_page=30' % self.repository, 2**21))
+            releases = json.loads(self._get('https://api.github.com/repos/%s/releases?per_page=100' % self.repository, 2**22))
             prefix = 'components-%s-r' % app_updates.VERSION
             best = None
             for release in releases:
@@ -162,6 +162,8 @@ class Components:
             available = None
             if best:
                 assets = {a.get('name'): a for a in best.get('assets') or []}
+                if MANIFEST not in assets or (MANIFEST + '.sig') not in assets:
+                    raise ValueError('The component release has no signed manifest.')
                 manifest = self._get(assets[MANIFEST]['browser_download_url'], 256 * 1024)
                 signature = self._get(assets[MANIFEST + '.sig']['browser_download_url'], 4096).decode('ascii', 'replace')
                 data = validate(manifest, signature)

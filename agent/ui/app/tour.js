@@ -66,41 +66,50 @@ const VAL_TOUR=(()=>{
     card.querySelector('.tour-next').focus({preventScroll:true});
   }
 
-  // Engine step: recommend the official build for this hardware and install it on request.
+  // Engine step: optional choice of local engine or remote API; never force an engine install.
   async function renderEngine(body){
-    const h=document.createElement('h3');h.textContent=uiText('Tu motor de IA');
+    const h=document.createElement('h3');h.textContent=uiText('Motor o API (opcional)');
     const p=document.createElement('p');p.textContent=uiText('Comprobando tu equipo…');
+    const select=document.createElement('select');select.className='tour-engine-select';select.hidden=true;
+    select.setAttribute('aria-label',uiText('Motor local opcional'));
     const status=document.createElement('p');status.className='tour-status';status.setAttribute('role','status');
     const actions=document.createElement('div');actions.className='tour-engine-actions';
-    body.append(h,p,status,actions);
+    body.append(h,p,select,status,actions);
     const snapshot=await state();
     if(hasEngine(snapshot)){p.textContent=uiText('Ya tienes un motor instalado. Puedes cambiarlo cuando quieras desde Modelo → Cambiar motor.');return;}
     let hardware={};try{hardware=await requestJSON('/api/harness/hardware');}catch{}
-    const variant=snapshot?.recommended_variant||'cpu',key='llama-'+variant;
-    const label={cuda:'llama.cpp · CUDA (NVIDIA)',vulkan:'llama.cpp · Vulkan (AMD, Intel Arc, NVIDIA)',cpu:'llama.cpp · CPU'}[variant]||('llama.cpp · '+variant);
-    p.textContent=uiText('V-Agent no incluye motores: descarga la versión oficial más reciente que mejor encaja con tu equipo.')+' '+uiParts(hardware.hardware_summary||hardware.summary||'');
-    const install=document.createElement('button');install.type='button';install.className='soft-btn primary';install.textContent=uiText('Descargar e instalar')+' · '+label;
+    const variant=snapshot?.recommended_variant||'cpu',recommendedKey='llama-'+variant;
+    const labels={'llama-cuda':'llama.cpp · CUDA (NVIDIA)','llama-vulkan':'llama.cpp · Vulkan (AMD, Intel Arc, NVIDIA)','llama-cpu':'llama.cpp · CPU',strata:'Strata · PolyStrata',rust:'Strata Rust (Qwen3.5/3.6)'};
+    const choices=[recommendedKey,...['llama-cuda','llama-vulkan','llama-cpu','strata','rust'].filter(k=>k!==recommendedKey)];
+    for(const item of choices)select.add(new Option(labels[item]||item,item));
+    select.value=recommendedKey;select.hidden=false;
+    p.textContent=uiText('Instalar un motor local es opcional: elige llama.cpp, Strata o Strata Rust solo si vas a ejecutar modelos locales, conecta una API externa, o pulsa Siguiente para decidir luego.')+' '+uiParts(hardware.hardware_summary||hardware.summary||'');
+    const install=document.createElement('button');install.type='button';install.className='soft-btn primary';
+    const syncBtn=()=>{install.textContent=uiText('Instalar elegido')+' · '+(labels[select.value]||select.value);};
+    syncBtn();select.onchange=syncBtn;
     const api=document.createElement('button');api.type='button';api.className='soft-btn';api.textContent=uiText('Prefiero conectar una API');
-    api.onclick=()=>{close(false);document.querySelector('#modelBtn')?.click();setTimeout(()=>document.querySelector('#modelSourceTabs [data-source=api]')?.click(),400);};
+    api.onclick=()=>{close(true);document.querySelector('#modelBtn')?.click();setTimeout(()=>document.querySelector('#modelSourceTabs [data-source=api]')?.click(),400);};
     actions.append(install,api);
     install.onclick=async()=>{
-      install.disabled=api.disabled=true;
+      const chosenKey=select.value;
+      install.disabled=api.disabled=select.disabled=true;
       try{
         status.textContent=uiText('Buscando la versión oficial…');
         await requestJSON('/api/harness/updates/check',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
         let release=null;
-        for(let i=0;i<60&&!release;i++){await new Promise(r=>setTimeout(r,1000));const u=await requestJSON('/api/harness/updates');const item=u.releases?.[key];if(item?.asset)release=item;else if(item?.error||item?.message)throw new Error(item.error||item.message);}
+        for(let i=0;i<60&&!release;i++){await new Promise(r=>setTimeout(r,1000));const u=await requestJSON('/api/harness/updates');const item=u.releases?.[chosenKey];if(item?.asset)release=item;else if(item?.error||item?.message)throw new Error(item.error||item.message);}
         if(!release)throw new Error(uiText('No se pudo consultar GitHub. Revisa tu conexión.'));
-        await requestJSON('/api/harness/updates/install',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({engine:key})});
+        await requestJSON('/api/harness/updates/install',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({engine:chosenKey})});
         for(;;){
           await new Promise(r=>setTimeout(r,800));const u=await requestJSON('/api/harness/updates');const g=u.progress;
-          if(g&&g.engine===key)status.textContent=uiText({download:'Descargando',extract:'Extrayendo',verify:'Verificando'}[g.phase]||'Procesando')+(g.total?' · '+Math.round(g.received/g.total*100)+' % · '+(g.total/1048576).toFixed(0)+' MB':'');
+          if(g&&g.engine===chosenKey)status.textContent=uiText({download:'Descargando',extract:'Extrayendo',verify:'Verificando'}[g.phase]||'Procesando')+(g.total?' · '+Math.round(g.received/g.total*100)+' % · '+(g.total/1048576).toFixed(0)+' MB':'');
           if(u.error)throw new Error(u.error);
-          if(!u.busy){if(u.installed?.[key])break;throw new Error(uiText('No se pudo completar la instalación.'));}
+          if(!u.busy){if(u.installed?.[chosenKey])break;throw new Error(uiText('No se pudo completar la instalación.'));}
         }
-        await requestJSON('/api/harness/configure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({engine:'llama',variant,gpu_layers:'auto'})});
+        const engineCfg=chosenKey.startsWith('llama-')?{engine:'llama',variant:chosenKey.slice(6),gpu_layers:'auto'}:{engine:chosenKey};
+        await requestJSON('/api/harness/configure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(engineCfg)});
         status.textContent=uiText('Motor instalado y verificado. Ahora añade o carga un modelo desde Modelo.');
-      }catch(error){status.textContent=uiText('No se pudo instalar')+': '+error.message;install.disabled=api.disabled=false;}
+      }catch(error){status.textContent=uiText('No se pudo instalar')+': '+error.message;install.disabled=api.disabled=select.disabled=false;}
     };
   }
 
@@ -201,6 +210,7 @@ const VAL_TOUR=(()=>{
     requestJSON('/api/harness/app-update').then(paint).catch(()=>{});
     document.addEventListener('v-agent-app-update',event=>paint(event.detail));
     requestJSON('/api/harness/components').then(paintComponents).catch(()=>{});
+    document.addEventListener('v-agent-components-update',event=>paintComponents(event.detail));
   }
 
   async function boot(){

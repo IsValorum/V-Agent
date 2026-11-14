@@ -123,6 +123,12 @@ def toggle(name,enabled,hub,full_access):
         items[name]['enabled']=bool(enabled);_save_state(items)
     return public()
 
+def _registry_headers():
+    import app_updates
+    from remote_protocols import default_user_agent
+    return {'User-Agent': default_user_agent(app_updates.VERSION), 'Accept-Encoding': 'identity'}
+
+
 class Catalog:
     def __init__(self):self.busy=False;self.lock=threading.Lock();self.state=read('catalog.json',{'checked_at':0,'items':[],'errors':[]})
     def snapshot(self):
@@ -135,7 +141,7 @@ class Catalog:
             items=[];errors=[]
             for kind,url in SOURCES.items():
                 try:
-                    with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'VAL-Agent'}),timeout=15) as response:
+                    with urllib.request.urlopen(urllib.request.Request(url,headers=_registry_headers()),timeout=15) as response:
                         raw=response.read(4*1024*1024+1)
                     if len(raw)>4*1024*1024:raise ValueError('Catalog too large.')
                     data=json.loads(raw)
@@ -187,7 +193,7 @@ def prepare_plugin(item):
     else:raise ValueError('No portable MCP component found. Import its mcpServers JSON manually; JS hooks, skills and host APIs are not supported.')
     for suffix in ('/.mcp.json','/.claude-plugin/plugin.json'):
         try:
-            with urllib.request.urlopen(base+suffix,timeout=10) as response:raw=response.read(131073)
+            with urllib.request.urlopen(urllib.request.Request(base+suffix,headers=_registry_headers()),timeout=10) as response:raw=response.read(131073)
             if len(raw)>131072:continue
             data=json.loads(raw)
             block=(data.get('mcpServers') or (data if suffix=='/.mcp.json' else None)) if isinstance(data,dict) else None
@@ -198,7 +204,7 @@ def prepare_plugin(item):
 def search_registry(query):
     query=str(query).strip()[:160]
     url=SOURCES['mcp']+'&search='+urllib.parse.quote(query)
-    with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'VAL-Agent'}),timeout=15) as response:raw=response.read(4*1024*1024+1)
+    with urllib.request.urlopen(urllib.request.Request(url,headers=_registry_headers()),timeout=15) as response:raw=response.read(4*1024*1024+1)
     if len(raw)>4*1024*1024:raise ValueError('Catalog too large.')
     items=[]
     for entry in json.loads(raw).get('servers',[]):
