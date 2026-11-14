@@ -235,7 +235,7 @@ def _job(job_id):
     with JOBS_LOCK:
         job = JOBS.get(str(job_id))
     if job is None:
-        raise ValueError("job_id no existe")
+        raise ValueError("job_id does not exist.")
     return job
 
 
@@ -305,7 +305,7 @@ def shell_run(args, policy=None):
     policy = POLICY if policy is None else policy
     command = args.get("command")
     if not isinstance(command, str) or not command.strip():
-        raise ValueError("command debe contener un comando")
+        raise ValueError("command must contain a shell command.")
     mode = args.get("shell", "cmd")
     cwd = str(policy.root)
     timeout = max(5, min(int(args.get("timeout") or options("pc")["command_timeout"]), 300))
@@ -522,7 +522,7 @@ def comprueba_ejecucion(path):
         import render_check
         informe = render_check.resumen(path, espera_ms=espera,diagnostics=escena)
     except Exception as error:
-        return "\n(sin comprobacion en navegador: %s)" % str(error)[:90]
+        return "\n(browser check skipped: %s)" % str(error)[:90]
     if informe.get("error"):
         # No es la pagina rota: es el entorno que no llego a verla terminar. Decirlo como error
         # mandaria al modelo a arreglar algo que no esta mal.
@@ -594,8 +594,9 @@ def _rango(valor, por_defecto=None):
 
 
 def _corta_escribe(path, texto, prefijo, workspace=None):
-    if workspace is not None:VERSIONS.capture(path,workspace)
     """Escribir entero, atomico (temporal + replace + fsync), como fs_write/fs_edit."""
+    if workspace is not None:
+        VERSIONS.capture(path, workspace)
     parent = os.path.dirname(os.path.abspath(path))
     os.makedirs(parent, exist_ok=True)
     pending = None
@@ -886,6 +887,47 @@ def _console_tool(args, full_access, policy):
     raise ValueError('Unsupported console action.')
 
 
+def _draft_target_name(snapshot):
+    raw = (snapshot.get("args") or {}).get("path") or snapshot.get("file_path") or ""
+    name = pathlib.Path(str(raw).replace("\\", "/")).name
+    return re.sub(r"^[0-9a-f]{32}-", "", name, flags=re.I).lower()
+
+
+def _clear_resolved_drafts(policy, written_path):
+    """Discard older incomplete drafts once the target filename is successfully written."""
+    try:
+        rel = os.path.relpath(os.path.abspath(written_path), str(policy.root)).replace("\\", "/")
+    except ValueError:
+        return
+    if rel.startswith(("drafts/", "recuperados/")) or rel.startswith("../"):
+        return
+    target_name = pathlib.Path(written_path).name.lower()
+    if not target_name:
+        return
+    try:
+        folder = policy.path("drafts")
+        snapshots = list(folder.glob("*.json")) if folder.is_dir() else []
+    except (OSError, ValueError):
+        return
+    for snap_path in snapshots:
+        if not re.fullmatch(r"[0-9a-f]{32}", snap_path.stem):
+            continue
+        try:
+            snapshot = json.loads(snap_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if snapshot.get("name") in ("pc__fs_write", "mcp__draft") and _draft_target_name(snapshot) == target_name:
+            for copy in folder.glob(snap_path.stem + "-*"):
+                try:
+                    copy.unlink(missing_ok=True)
+                except OSError:
+                    pass
+            try:
+                snap_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+
+
 def call(name, args, *, full_access=False, policy=None):
     policy = POLICY if policy is None else policy
     policy.check_tool(name, args, full_access)
@@ -895,7 +937,13 @@ def call(name, args, *, full_access=False, policy=None):
         return _console_tool(args, full_access, policy)
     if name == "draft_resume":
         from draft_recovery import resume_draft
-        return json.dumps(resume_draft(policy), ensure_ascii=False)
+        try:
+            restored = resume_draft(policy)
+        except ValueError as error:
+            return json.dumps({'ok': False, 'error': str(error)}, ensure_ascii=False)
+        if not restored:
+            return json.dumps({'ok': False, 'error': 'No interrupted or pending draft was found to resume.'}, ensure_ascii=False)
+        return json.dumps({'ok': True, **restored}, ensure_ascii=False)
     if name == "project_map":
         from context_policy import project_map
         return project_map(policy,args.get('path') or '.',full_access)
@@ -935,7 +983,26 @@ def call(name, args, *, full_access=False, policy=None):
             rows.append(f"[Showing 200 of {len(entries)} entries]")
         return "\n".join(rows) or "(empty)"
     if name == "fs_read":
-        path = policy.path(args["path"], full_access)
+        raw_arg = str(args.get("path") or "").replace("\\", "/").lstrip("/")
+        prefix_note = ""
+        if not full_access:
+            draft_match = re.match(r"^drafts/([0-9a-f]{32})(?:[.-]|$)", raw_arg, re.I)
+            candidate_path = policy.path(args["path"], full_access)
+            if draft_match:
+                from draft_recovery import resume_draft
+                try:
+                    restored = resume_draft(policy, draft_match.group(1).lower())
+                except (ValueError, OSError):
+                    restored = None
+                if restored:
+                    path = policy.path(restored["path"], full_access)
+                    prefix_note = f"[Draft auto-restored to {restored['path']} (target: {restored.get('target_path') or 'output file'}). Read complete, edit, and write the final target file.]\n"
+                else:
+                    path = candidate_path
+            else:
+                path = candidate_path
+        else:
+            path = policy.path(args["path"], full_access)
         if os.path.isdir(path):
             raise ValueError(f"{path} is a directory, not a file; use fs_list to list its contents.")
         try:
@@ -981,7 +1048,7 @@ def call(name, args, *, full_access=False, policy=None):
                     "line text (without its line number) into old_text of fs_edit.]"
                     % (inicio, inicio + len(corte) - 1, total, siguiente) if siguiente <= total else
                     "\n[end of file: %d lines]" % total)
-            return (cuerpo or "(empty)") + guia
+            return prefix_note + (cuerpo or "(empty)") + guia
         if args.get("max_chars") is not None and int(args["max_chars"]) < 1:
             raise ValueError("max_chars must be >= 1.")
         if args.get("offset") is not None and int(args["offset"]) < 0:
@@ -990,7 +1057,7 @@ def call(name, args, *, full_access=False, policy=None):
         offset = max(0, int(args.get("offset") or 0))
         content = texto_completo[offset:offset + n]
         more = offset + len(content) < len(texto_completo)
-        return content + (f"\n[Continue: fs_read offset={offset + len(content)} max_chars={n}]" if more else "")
+        return prefix_note + content + (f"\n[Continue: fs_read offset={offset + len(content)} max_chars={n}]" if more else "")
     if name == "doc_read":
         path = policy.path(args["path"], full_access)
         from doc_extractor import extract_file
@@ -1029,6 +1096,7 @@ def call(name, args, *, full_access=False, policy=None):
         finally:
             if pending is not None:
                 os.unlink(pending)
+        _clear_resolved_drafts(policy, path)
         return f"written: {path} ({len(args['content'])} chars)" + (
             "\nThe file already existed and was replaced in full. For small follow-up changes, "
             "use fs_edit (exact, unique old_text) or fs_copy (move lines without retyping) instead of "
@@ -1202,7 +1270,6 @@ def call(name, args, *, full_access=False, policy=None):
         return texto
     if name == "fs_search":
         import fnmatch
-        import re
         base = policy.path(args.get("path") or ".", full_access)
         pattern = str(args.get("glob") or "**/*")
         needle = args.get("contains")
@@ -1363,7 +1430,7 @@ def call(name, args, *, full_access=False, policy=None):
         except Exception:
             pass
         return "\n".join(lines)
-    raise ValueError("herramienta desconocida: " + name)
+    raise ValueError("unknown tool: " + name)
 
 
 def execute_request(params):

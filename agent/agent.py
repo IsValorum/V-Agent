@@ -95,6 +95,27 @@ PARECIDO_MIN = 0.95           # similitud a partir de la cual dos contenidos son
 # que el freno tiene que ser de comportamiento: repetición + no escribir sin guardar.
 
 
+_CONT_RE = re.compile(
+    r"\b(?:sigue|contin[uú]a\w*|seguir|prosigue\w*|termina\w*|completa\w*|retoma\w*|borrador\w*|recupera\w*|"
+    r"continue\w*|resume|keep\s+going|go\s+on|go\s+ahead|finish\w*|draft\w*|recover\w*|"
+    r"weiter\w*|fortfahren|repren\w*|continuer)\b",
+    re.IGNORECASE,
+)
+
+
+def _is_continuation_request(text, target_name=""):
+    """True when a user prompt is asking to continue or finish an interrupted draft."""
+    clean = str(text or "").strip()
+    if not clean:
+        return False
+    low = clean.lower()
+    if target_name and Path(str(target_name)).name.lower() in low:
+        return True
+    if "drafts/" in low or "drafts\\" in low:
+        return True
+    return len(clean) <= 180 and bool(_CONT_RE.search(clean))
+
+
 def _parecido(a, b):
     """Si dos contenidos son la misma cosa con retoques (el caso de las 56 versiones).
 
@@ -1340,7 +1361,13 @@ def run_chat_stream(body, control=None):
                 journal.observe(event)
                 if event.get("type") == "done":
                     def base(record):
-                        return Path(str((record.get("args") or {}).get("path") or "").replace("\\", "/")).name
+                        raw_path = str((record.get("args") or {}).get("path") or "").replace("\\", "/")
+                        if raw_path:
+                            return Path(raw_path).name
+                        fp_name = Path(str(record.get("file_path") or "").replace("\\", "/")).name
+                        if len(fp_name) > 33 and fp_name[32] == "-" and all(c in "0123456789abcdefABCDEF" for c in fp_name[:32]):
+                            return fp_name[33:]
+                        return fp_name
                     # A failed attempt later saved under the same name is not a lost draft.
                     saved = {base(r) for r in journal.records.values()
                              if r["status"] == "completed" and r.get("name") == "pc__fs_write"}
@@ -1397,19 +1424,27 @@ def _run_chat_stream(body, control=None):
             raise RuntimeError('Las herramientas de este modelo no superaron la comprobación de plantilla: ' +
                                contract.get('error', 'protocolo incompatible') + '. El chat sin MCP sigue disponible.')
     if workspace is not ACCESS and any(t['function']['name'] == 'pc__draft_resume' for t in tools):
-        from draft_recovery import pending_draft, resume_draft
+        from draft_recovery import extract_file, pending_draft, resume_draft
         pending = pending_draft(workspace)
         recovery_state = ''
         if body.get('resume_draft'):
             restored = resume_draft(workspace, body['resume_draft'])
-            recovery_state = 'Recovered working file: ' + restored['path'] + '. ' + restored['note']
-        elif pending:
+            if restored:
+                recovery_state = (
+                    'Recovered working file: ' + restored['path'] + '. ' + restored['note'] +
+                    ' Immediately call pc__fs_read on `' + restored['path'] + '` (do not read `drafts/`), '
+                    'then finish and write the final target file with pc__fs_write / pc__fs_edit.'
+                )
+        if not recovery_state and pending:
             snapshot, (_, saved_content, complete) = pending
+            target_hint = extract_file(snapshot)[0] or 'target file'
             recovery_state = (
-                'Recovery state for this conversation: a saved file draft is available (' +
+                'Recovery state for this conversation: a saved file draft for `' + target_hint + '` is available (' +
                 str(len(saved_content)) + ' characters; ' + ('complete' if complete else 'interrupted prefix') +
-                '). If asked to continue or recover it, call pc__draft_resume() and work on the returned file. '
-                'Preserve saved code; read and edit the relevant sections. Ignore it for unrelated requests.')
+                '). If asked to continue or recover it (even with a brief prompt like "continue" or "sigue trabajando"), '
+                'do NOT reply with text alone and do NOT try to read `drafts/`: immediately call pc__draft_resume() '
+                'to restore a readable file, inspect its tail with pc__fs_read, and write/complete the target file. '
+                'Ignore it for unrelated requests.')
         if recovery_state:
             if messages and messages[0].get('role') == 'system':
                 messages[0] = {**messages[0], 'content': messages[0].get('content', '') + '\n' + recovery_state}
@@ -1443,6 +1478,8 @@ def _run_chat_stream(body, control=None):
     denegada = None               # herramienta que el usuario rechazo; corta el turno
     escrituras_fallidas = 0       # fs_write grandes que fallaron en este turno (1 reintento)
     archivo_recordado = False     # ya se pidió una vez crear el archivo que solo se mostró en el chat
+    draft_nudged = False
+    wrote_file = False
     llamadas_hechas = {}          # (herramienta, argumentos) ya ejecutados: la misma llamada
                                   # repetida es el bucle que se vio, y no aporta nada
     fallos_forma = 0              # fallos de FORMA seguidos (no se ejecuto nada): tope 3
@@ -1751,6 +1788,32 @@ def _run_chat_stream(body, control=None):
                 full.append("\n\n")
                 yield {"type": "content", "text": "\n\n"}
                 continue
+            if not draft_nudged and not wrote_file and rnd < rounds - 1 and workspace:
+                has_write_tool = any(
+                    ((t.get("function") or {}).get("name") or "") in ("pc__fs_write", "pc__draft_resume")
+                    for t in (tools or [])
+                )
+                if has_write_tool:
+                    from draft_recovery import pending_draft as _pending_draft
+                    pending_now = _pending_draft(workspace)
+                    if pending_now:
+                        last_user = next(
+                            (str(m.get("content") or "") for m in reversed(messages) if m.get("role") == "user"),
+                            "",
+                        )
+                        _, (target_hint, _, _) = pending_now
+                        target_hint = target_hint or "the target file"
+                        if bool(body.get("resume_draft")) or _is_continuation_request(last_user, target_hint):
+                            draft_nudged = True
+                            messages.append({"role": "assistant", "content": content, "reasoning_content": reasoning})
+                            messages.append({"role": "tool", "content": (
+                                "[Recovery: your reply called 0 tools while a pending interrupted draft still exists for %s. "
+                                "Do not narrate what you will do — call pc__draft_resume() or read the recovered file with "
+                                "pc__fs_read right now, then write the complete file with pc__fs_write.]" % target_hint
+                            )})
+                            full.append("\n\n")
+                            yield {"type": "content", "text": "\n\n"}
+                            continue
             yield {"type": "done", "content": "".join(full), "reasoning_content": reasoning}
             return
 
@@ -1887,6 +1950,8 @@ def _run_chat_stream(body, control=None):
                    "chars": len(text), "model_chars": len(model_text),
                    "truncated": len(text) > result_limit,
                    "source_truncated": source_truncated, "source_chars": source_chars}
+            if ok and status == "completed" and name == "pc__fs_write":
+                wrote_file = True
             file_content = args.get("content")
             if not ok and name == "pc__fs_write" and not denegada and (
                     trace_id in large_write_drafts or isinstance(file_content, str) and len(file_content) >= 512):

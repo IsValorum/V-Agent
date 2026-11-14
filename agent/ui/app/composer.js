@@ -255,6 +255,47 @@ async function waitForGenerationEnd() {
   const deadline=Date.now()+6000;
   while(Date.now()<deadline){try{const state=await requestJSON('/api/chat/status',{signal:AbortSignal.timeout(1500)});if(!state.busy)return;}catch{return;}await new Promise(resolve=>setTimeout(resolve,150));}
 }
+const DRAFT_CONTINUE_RE=/\b(?:sigue|contin[uú]a\w*|seguir|prosigue\w*|termina\w*|completa\w*|retoma\w*|borrador\w*|recupera\w*|continue\w*|resume|keep\s+going|go\s+on|go\s+ahead|finish\w*|draft\w*|recover\w*|weiter\w*|fortfahren|repren\w*|continuer)\b|drafts[\\/]/i;
+function autoResumeDraftId(history,functions){
+  const explicit=history.findLast(m=>m.role==='user')?.resume_draft;
+  if(explicit)return explicit;
+  if(!functions?.files)return undefined;
+  const lastUser=String(history.findLast(m=>m.role==='user')?.content||'').trim();
+  if(!lastUser)return undefined;
+  const done=new Set();
+  for(let i=history.length-1;i>=0;i--){
+    const m=history[i];
+    if(m.role!=='assistant')continue;
+    for(const c of (m.tool_trace||[])){
+      if((c.name==='pc__fs_write'||c.name==='fs_write')&&c.status==='completed'&&c.args?.path){
+        done.add(String(c.args.path).split(/[\\/]/).pop().toLowerCase());
+      }
+    }
+    for(let j=(m.tool_trace||[]).length-1;j>=0;j--){
+      const c=m.tool_trace[j];
+      const failed=c.ok===false||['error','blocked','interrupted','missing'].includes(c.status);
+      if(!failed||!c.draft_id||(c.name!=='pc__fs_write'&&c.name!=='fs_write'))continue;
+      const target=(c.args?.path?String(c.args.path):String(c.file_path||'').replace(/^[0-9a-f]{32}-/i,'')).split(/[\\/]/).pop().toLowerCase();
+      if(target&&done.has(target))continue;
+      if((target&&lastUser.toLowerCase().includes(target))||(lastUser.length<=240&&DRAFT_CONTINUE_RE.test(lastUser)))return c.draft_id;
+    }
+    const text=String(m.content||'');
+    const re=/drafts[\\/]([0-9a-f]{32})(?:-([^\s`.,;)\]]+))?/gi;
+    let match;
+    while((match=re.exec(text))!==null){
+      const draftId=match[1],target=String(match[2]||'').toLowerCase();
+      if(target&&done.has(target))continue;
+      if((target&&lastUser.toLowerCase().includes(target))||(lastUser.length<=240&&DRAFT_CONTINUE_RE.test(lastUser)))return draftId;
+    }
+  }
+  return undefined;
+}
+function cleanModelMessages(items,hasResume){
+  if(!hasResume)return items;
+  return items.map(m=>m.role==='assistant'&&typeof m.content==='string'
+    ?{...m,content:m.content.replace(/[^\n]*(?:Ábrelo en (?:la llamada )?Guardar archivo|Open it in the Save file call)[^\n]*\n?/gi,'').trim()}
+    :m);
+}
 async function sendMsg(resumeDraft=null) {
   const text=$('#input').value.trim();
   if((!text&&!attachments.length)||busy||engineBusy)return;
@@ -312,7 +353,9 @@ async function generateResponse(replaceIndex=null) {
     if(conflictedSessions.has(currentId))throw new Error('Vuelve a abrir el chat para usar la versión actual del disco. La copia en conflicto está conservada.');
     const functions=Object.fromEntries(Object.keys(DEF_FUNCS).map(key=>[key,!!S.functions[key]]));
     if(pcAccess.mode!=='full_pc'&&!pcAccess.isolation?.available)functions.shell=false;
-    const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},signal:generation.controller.signal,body:JSON.stringify({model:requestModel,model_name:modelNames[requestModel]||requestModel,context_limit:contextCapacity||modelContexts[requestModel],conversation_id:currentId,messages:conversationForModel(history),resume_draft:history.findLast(m=>m.role==='user')?.resume_draft,effort:requestSettings.effort,functions,sampling:requestSettings.sampling,profile:requestSettings.profile||"custom",rounds:requestSettings.rounds,permission_mode:S.permissionMode||"ask",agent_profile:S.agentProfile||"balanced",native_stream:true})});
+    const resumeDraftId=autoResumeDraftId(history,functions);
+    const modelMessages=cleanModelMessages(conversationForModel(history),Boolean(resumeDraftId));
+    const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},signal:generation.controller.signal,body:JSON.stringify({model:requestModel,model_name:modelNames[requestModel]||requestModel,context_limit:contextCapacity||modelContexts[requestModel],conversation_id:currentId,messages:modelMessages,resume_draft:resumeDraftId,effort:requestSettings.effort,functions,sampling:requestSettings.sampling,profile:requestSettings.profile||"custom",rounds:requestSettings.rounds,permission_mode:S.permissionMode||"ask",agent_profile:S.agentProfile||"balanced",native_stream:true})});
     if(!response.ok){let data;try{data=await response.json();}catch{}throw new Error(data?.error||'Error HTTP '+response.status);}
     if(!response.body||!response.headers.get('content-type')?.includes('text/event-stream'))throw new Error('El servidor no devolvió una respuesta de chat válida.');
     generation.runId=response.headers.get('X-Strata-Run-Id');

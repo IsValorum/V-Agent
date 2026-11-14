@@ -1957,7 +1957,7 @@
   },
   "Sin medida disponible": {
     "en": "No measurement available",
-    "pt": "Sem medição disponível",
+    "pt": "Nenhuma medição disponível",
     "fr": "Aucune mesure disponible",
     "de": "Keine Messung verfügbar"
   },
@@ -4651,8 +4651,8 @@
   },
   "Sin medida para este chat y modelo.": {
     "en": "No measurement for this chat and model.",
-    "pt": "Sem medição para esta conversa e modelo.",
-    "fr": "Aucune mesure pour cette conversation et ce modèle.",
+    "pt": "Nenhuma medição para este chat e modelo.",
+    "fr": "Aucune mesure pour cette discussion et ce modèle.",
     "de": "Keine Messung für diesen Chat und dieses Modell."
   },
   "Se aplicará en la próxima carga manual del modelo.": {
@@ -5850,10 +5850,10 @@
     "de": "ursprüngliche Zeichen"
   },
   "Aquí se conserva todo el resultado recibido. El modelo recibió": {
-    "en": "The full received result is kept here. The model received",
+    "en": "The full received output is preserved here. The model received",
     "pt": "Todo o resultado recebido é mantido aqui. O modelo recebeu",
-    "fr": "Le résultat complet reçu est conservé ici. Le modèle a reçu",
-    "de": "Das vollständig empfangene Ergebnis wird hier aufbewahrt. Das Modell erhielt"
+    "fr": "Tout le résultat reçu est conservé ici. Le modèle a reçu",
+    "de": "Die gesamte erhaltene Ausgabe ist hier gespeichert. Das Modell erhielt"
   },
   "Ver lo enviado al modelo": {
     "en": "View what was sent to the model",
@@ -7367,231 +7367,1300 @@
     "fr": "Le modèle a",
     "de": "Das Modell hat"
   },
-  "Ver actualización": {"en":"View update","pt":"Ver atualização","fr":"Voir la mise à jour","de":"Update anzeigen"},
-  "Desinstalar V-Agent": {"en":"Uninstall V-Agent","pt":"Desinstalar V-Agent","fr":"Désinstaller V-Agent","de":"V-Agent deinstallieren"},
-  "Abrir desinstalador": {"en":"Open uninstaller","pt":"Abrir desinstalador","fr":"Ouvrir le programme de désinstallation","de":"Deinstallationsprogramm öffnen"},
-  "Se abrirá el desinstalador y se cerrará V-Agent. Puedes elegir si conservar tus datos.": {"en":"The uninstaller will open and V-Agent will close. You can choose whether to keep your data.","pt":"O desinstalador será aberto e o V-Agent será fechado. Você poderá escolher se deseja manter seus dados.","fr":"Le programme de désinstallation s’ouvrira et V-Agent se fermera. Vous pourrez choisir de conserver vos données.","de":"Das Deinstallationsprogramm wird geöffnet und V-Agent geschlossen. Du kannst wählen, ob deine Daten erhalten bleiben."},
-  "Detén la operación actual antes de desinstalar.": {"en":"Stop the current operation before uninstalling.","pt":"Interrompa a operação atual antes de desinstalar.","fr":"Arrêtez l’opération en cours avant de désinstaller.","de":"Beende den aktuellen Vorgang vor der Deinstallation."},
+  "Ver actualización": {
+    "en": "View update",
+    "pt": "Ver atualização",
+    "fr": "Voir la mise à jour",
+    "de": "Update anzeigen"
+  },
+  "Desinstalar V-Agent": {
+    "en": "Uninstall V-Agent",
+    "pt": "Desinstalar V-Agent",
+    "fr": "Désinstaller V-Agent",
+    "de": "V-Agent deinstallieren"
+  },
+  "Abrir desinstalador": {
+    "en": "Open uninstaller",
+    "pt": "Abrir desinstalador",
+    "fr": "Ouvrir le programme de désinstallation",
+    "de": "Deinstallationsprogramm öffnen"
+  },
+  "Se abrirá el desinstalador y se cerrará V-Agent. Puedes elegir si conservar tus datos.": {
+    "en": "The uninstaller will open and V-Agent will close. You can choose whether to keep your data.",
+    "pt": "O desinstalador será aberto e o V-Agent será fechado. Você poderá escolher se deseja manter seus dados.",
+    "fr": "Le programme de désinstallation s’ouvrira et V-Agent se fermera. Vous pourrez choisir de conserver vos données.",
+    "de": "Das Deinstallationsprogramm wird geöffnet und V-Agent geschlossen. Du kannst wählen, ob deine Daten erhalten bleiben."
+  },
+  "Detén la operación actual antes de desinstalar.": {
+    "en": "Stop the current operation before uninstalling.",
+    "pt": "Interrompa a operação atual antes de desinstalar.",
+    "fr": "Arrêtez l’opération en cours avant de désinstaller.",
+    "de": "Beende den aktuellen Vorgang vor der Deinstallation."
+  },
   "Parte de los expertos MoE se queda en la RAM (--n-cpu-moe).": {
     "en": "Part of the MoE experts stays in RAM (--n-cpu-moe).",
     "pt": "Parte dos especialistas MoE fica na RAM (--n-cpu-moe).",
     "fr": "Une partie des experts MoE reste en RAM (--n-cpu-moe).",
     "de": "Ein Teil der MoE-Experten bleibt im RAM (--n-cpu-moe)."
   },
-  "sin instalar": {"en":"not installed","pt":"não instalado","fr":"non installé","de":"nicht installiert"},
-  "No se detectó una GPU dedicada": {"en":"No dedicated GPU detected","pt":"Nenhuma GPU dedicada detectada","fr":"Aucun GPU dédié détecté","de":"Keine dedizierte GPU erkannt"},
-  "necesita el controlador NVIDIA {n} o posterior": {"en":"needs NVIDIA driver {n} or newer","pt":"requer o driver NVIDIA {n} ou mais recente","fr":"nécessite le pilote NVIDIA {n} ou plus récent","de":"benötigt NVIDIA-Treiber {n} oder neuer"},
-  "necesita una GPU NVIDIA": {"en":"needs an NVIDIA GPU","pt":"requer uma GPU NVIDIA","fr":"nécessite un GPU NVIDIA","de":"benötigt eine NVIDIA-GPU"},
-  "Vulkan funciona en GPU AMD, Intel Arc y NVIDIA": {"en":"Vulkan runs on AMD, Intel Arc and NVIDIA GPUs","pt":"Vulkan funciona em GPUs AMD, Intel Arc e NVIDIA","fr":"Vulkan fonctionne sur les GPU AMD, Intel Arc et NVIDIA","de":"Vulkan läuft auf AMD-, Intel-Arc- und NVIDIA-GPUs"},
-  "Alternativa para GPU AMD, Intel Arc y NVIDIA (Vulkan)": {"en":"Alternative GPU build for AMD, Intel Arc and NVIDIA (Vulkan)","pt":"Alternativa para GPUs AMD, Intel Arc e NVIDIA (Vulkan)","fr":"Alternative pour GPU AMD, Intel Arc et NVIDIA (Vulkan)","de":"Alternative für AMD-, Intel-Arc- und NVIDIA-GPUs (Vulkan)"},
-  "Funciona en cualquier PC con Windows x64": {"en":"Works on any Windows x64 PC","pt":"Funciona em qualquer PC com Windows x64","fr":"Fonctionne sur tout PC Windows x64","de":"Läuft auf jedem Windows-x64-PC"},
-  "la mejor opción sin GPU dedicada": {"en":"best choice without a dedicated GPU","pt":"melhor opção sem GPU dedicada","fr":"meilleur choix sans GPU dédié","de":"beste Wahl ohne dedizierte GPU"},
-  "alternativa de respaldo": {"en":"fallback","pt":"alternativa de reserva","fr":"solution de repli","de":"Ausweichlösung"},
-  "Strata Poly necesita una GPU NVIDIA y un controlador CUDA 13": {"en":"Strata Poly needs an NVIDIA GPU and a CUDA 13 driver","pt":"Strata Poly requer uma GPU NVIDIA e um driver CUDA 13","fr":"Strata Poly nécessite un GPU NVIDIA et un pilote CUDA 13","de":"Strata Poly benötigt eine NVIDIA-GPU und einen CUDA-13-Treiber"},
-  "no recomendado para esta GPU o controlador": {"en":"not recommended for this GPU or driver","pt":"não recomendado para esta GPU ou driver","fr":"non recommandé pour ce GPU ou ce pilote","de":"für diese GPU oder diesen Treiber nicht empfohlen"},
-  "Strata Rust es el motor para Qwen3.5/3.6; instálalo si usas esas familias de modelos": {"en":"Strata Rust is the Qwen3.5/3.6 engine; install it if you use those model families","pt":"Strata Rust é o motor para Qwen3.5/3.6; instale-o se usar essas famílias de modelos","fr":"Strata Rust est le moteur pour Qwen3.5/3.6 ; installez-le si vous utilisez ces familles de modèles","de":"Strata Rust ist die Engine für Qwen3.5/3.6; installiere sie, wenn du diese Modellfamilien nutzt"},
-  "llama.cpp CUDA recomendado": {"en":"llama.cpp CUDA recommended","pt":"llama.cpp CUDA recomendado","fr":"llama.cpp CUDA recommandé","de":"llama.cpp CUDA empfohlen"},
-  "llama.cpp Vulkan recomendado": {"en":"llama.cpp Vulkan recommended","pt":"llama.cpp Vulkan recomendado","fr":"llama.cpp Vulkan recommandé","de":"llama.cpp Vulkan empfohlen"},
-  "llama.cpp CPU recomendado": {"en":"llama.cpp CPU recommended","pt":"llama.cpp CPU recomendado","fr":"llama.cpp CPU recommandé","de":"llama.cpp CPU empfohlen"},
-  "Elegir modelo": {"en":"Choose model","pt":"Escolher modelo","fr":"Choisir le modèle","de":"Modell wählen"},
-  "Avanzado": {"en":"Advanced","pt":"Avançado","fr":"Avancé","de":"Erweitert"},
-  "En uso": {"en":"In use","pt":"Em uso","fr":"En cours d’utilisation","de":"In Verwendung"},
-  "Sin cargar": {"en":"Not loaded","pt":"Não carregado","fr":"Non chargé","de":"Nicht geladen"},
-  "En memoria:": {"en":"In memory:","pt":"Na memória:","fr":"En mémoire :","de":"Im Speicher:"},
-  "Cambiar a este modelo": {"en":"Switch to this model","pt":"Mudar para este modelo","fr":"Passer à ce modèle","de":"Zu diesem Modell wechseln"},
-  "Pulsa Aplicar y recargar para usarlo ahora.": {"en":"Press Apply and reload to use it now.","pt":"Clique em Aplicar e recarregar para usá-lo agora.","fr":"Appuyez sur Appliquer et recharger pour l’utiliser maintenant.","de":"Klicke auf Übernehmen und neu laden, um ihn jetzt zu verwenden."},
-  "desde caché": {"en":"from cache","pt":"do cache","fr":"depuis le cache","de":"aus dem Cache"},
-  "Compactar historial": {"en":"Compact history","pt":"Compactar histórico","fr":"Compacter l’historique","de":"Verlauf komprimieren"},
-  "Comprimir contexto": {"en":"Compress context","pt":"Comprimir contexto","fr":"Compresser le contexte","de":"Kontext komprimieren"},
-  "Comprimiendo…": {"en":"Compressing…","pt":"Comprimindo…","fr":"Compression…","de":"Komprimiere…"},
-  "Comprimiendo historial con el método nativo…": {"en":"Compressing history with the native method…","pt":"Compactando histórico com o método nativo…","fr":"Compression de l’historique avec la méthode native…","de":"Komprimiere Verlauf mit der nativen Methode…"},
-  "Comprimiendo historial con el modelo local…": {"en":"Compressing history with the local model…","pt":"Compactando histórico com o modelo local…","fr":"Compression de l’historique avec le modèle local…","de":"Komprimiere Verlauf mit dem lokalen Modell…"},
-  "Resumen con modelo local": {"en":"Summary with local model","pt":"Resumo com modelo local","fr":"Résumé avec modèle local","de":"Zusammenfassung mit lokalem Modell"},
-  "API nativa (/chat/completions)": {"en":"Native API (/chat/completions)","pt":"API nativa (/chat/completions)","fr":"API native (/chat/completions)","de":"Native API (/chat/completions)"},
-  "API nativa (/responses/compact)": {"en":"Native API (/responses/compact)","pt":"API nativa (/responses/compact)","fr":"API native (/responses/compact)","de":"Native API (/responses/compact)"},
-  "API nativa (Anthropic /messages)": {"en":"Native API (Anthropic /messages)","pt":"API nativa (Anthropic /messages)","fr":"API native (Anthropic /messages)","de":"Native API (Anthropic /messages)"},
-  "Web Search / Web Visit": {"en":"Web Search / Web Visit","pt":"Web Search / Web Visit","fr":"Web Search / Web Visit","de":"Web Search / Web Visit"},
-  "Hugging Face": {"en":"Hugging Face","pt":"Hugging Face","fr":"Hugging Face","de":"Hugging Face"},
-  "Actividad de herramientas": {"en":"Tool activity","pt":"Atividade de ferramentas","fr":"Activité des outils","de":"Werkzeugaktivität"},
-  "Comprobando archivo y plantilla…": {"en":"Checking file and template…","pt":"Verificando arquivo e modelo…","fr":"Vérification du fichier et du modèle…","de":"Datei und Vorlage werden geprüft…"},
-  "Elige el archivo en la ventana de Windows…": {"en":"Choose the file in the Windows dialog…","pt":"Escolha o arquivo na janela do Windows…","fr":"Choisissez le fichier dans la fenêtre Windows…","de":"Wähle die Datei im Windows-Dialog…"},
-  "Preparando el modelo…": {"en":"Preparing the model…","pt":"Preparando o modelo…","fr":"Préparation du modèle…","de":"Modell wird vorbereitet…"},
-  "No se pudo leer la lista de modelos:": {"en":"Could not read the model list:","pt":"Não foi possível ler a lista de modelos:","fr":"Impossible de lire la liste des modèles :","de":"Modellliste konnte nicht gelesen werden:"},
-  "No se pudo leer la lista": {"en":"Could not read the list","pt":"Não foi possível ler a lista","fr":"Impossible de lire la liste","de":"Liste konnte nicht gelesen werden"},
-  "Aplicando…": {"en":"Applying…","pt":"Aplicando…","fr":"Application…","de":"Wird angewendet…"},
-  "Se aplicará al cargar este modelo.": {"en":"Will apply when loading this model.","pt":"Será aplicado ao carregar este modelo.","fr":"Sera appliqué lors du chargement de ce modèle.","de":"Wird beim Laden dieses Modells angewendet."},
-  "Buscar modelo": {"en":"Search model","pt":"Buscar modelo","fr":"Rechercher un modèle","de":"Modell suchen"},
-  "Buscar modelo…": {"en":"Search model…","pt":"Buscar modelo…","fr":"Rechercher un modèle…","de":"Modell suchen…"},
-  "Modelos instalados": {"en":"Installed models","pt":"Modelos instalados","fr":"Modèles installés","de":"Installierte Modelle"},
-  "Modelos de la API": {"en":"API models","pt":"Modelos da API","fr":"Modèles de l’API","de":"API-Modelle"},
-  "Seleccionado": {"en":"Selected","pt":"Selecionado","fr":"Sélectionné","de":"Ausgewählt"},
-  "Tus valores personalizados.": {"en":"Your custom values.","pt":"Seus valores personalizados.","fr":"Vos valeurs personnalisées.","de":"Deine benutzerdefinierten Werte."},
-  "No se pudo comprobar la conexión con los servidores.": {"en":"Could not check connection to the servers.","pt":"Não foi possível verificar a conexão com os servidores.","fr":"Impossible de vérifier la connexion aux serveurs.","de":"Verbindung zu den Servern konnte nicht geprüft werden."},
-  "Reconectando…": {"en":"Reconnecting…","pt":"Reconectando…","fr":"Reconnexion…","de":"Verbindung wird wiederhergestellt…"},
-  "Guardado por modelo. Se aplicará en la próxima carga manual.": {"en":"Saved per model. Will apply on the next manual load.","pt":"Salvo por modelo. Será aplicado no próximo carregamento manual.","fr":"Enregistré par modèle. Sera appliqué au prochain chargement manuel.","de":"Pro Modell gespeichert. Wird beim nächsten manuellen Laden angewendet."},
-  "Sin conexión local": {"en":"No local connection","pt":"Sem conexão local","fr":"Pas de connexion locale","de":"Keine lokale Verbindung"},
-  "El servicio local no respondió. Revisa data/logs/agent.log.": {"en":"The local service did not respond. Check data/logs/agent.log.","pt":"O serviço local não respondeu. Verifique data/logs/agent.log.","fr":"Le service local n’a pas répondu. Vérifiez data/logs/agent.log.","de":"Der lokale Dienst hat nicht geantwortet. Prüfe data/logs/agent.log."},
-  "No se pudieron guardar los cambios. Revisa el espacio disponible del navegador.": {"en":"Could not save changes. Check available browser storage space.","pt":"Não foi possível salvar as alterações. Verifique o espaço disponível do navegador.","fr":"Impossible d’enregistrer les modifications. Vérifiez l’espace disponible du navigateur.","de":"Änderungen konnten nicht gespeichert werden. Prüfe den verfügbaren Browserspeicher."},
-  "Activa Acceso completo en la ventana de Herramientas antes de ejecutar comandos.": {"en":"Enable Full PC access in the Tools window before running commands.","pt":"Ative o Acesso completo na janela Tools antes de executar comandos.","fr":"Activez l’Accès complet dans la fenêtre Tools avant d’exécuter des commandes.","de":"Aktiviere Vollzugriff im Tools-Fenster, bevor du Befehle ausführst."},
-  "Activa Acceso completo en la ventana de Tools antes de ejecutar comandos.": {"en":"Enable Full PC access in the Tools window before running commands.","pt":"Ative o Acesso completo na janela Tools antes de executar comandos.","fr":"Activez l’Accès complet dans la fenêtre Tools avant d’exécuter des commandes.","de":"Aktiviere Vollzugriff im Tools-Fenster, bevor du Befehle ausführst."},
-  "Las descargas del navegador integrado se gestionan en Windows. Los archivos se guardan en tu carpeta de descargas.": {"en":"Built-in browser downloads are handled by Windows. Files are saved to your downloads folder.","pt":"Os downloads do navegador integrado são gerenciados pelo Windows. Os arquivos são salvos na sua pasta de downloads.","fr":"Les téléchargements du navigateur intégré sont gérés par Windows. Les fichiers sont enregistrés dans votre dossier de téléchargements.","de":"Downloads des integrierten Browsers werden von Windows verwaltet. Dateien werden in deinem Downloads-Ordner gespeichert."},
-  "Contexto comprimido": {"en":"Compressed context","pt":"Contexto comprimido","fr":"Contexte compressé","de":"Komprimierter Kontext"},
-  "Contexto comprimido.": {"en":"Context compressed.","pt":"Contexto comprimido.","fr":"Contexte compressé.","de":"Kontext komprimiert."},
-  "Comprimido · ": {"en":"Compressed · ","pt":"Comprimido · ","fr":"Compressé · ","de":"Komprimiert · "},
-  "Comprimido": {"en":"Compressed","pt":"Comprimido","fr":"Compressé","de":"Komprimiert"},
-  "mensajes": {"en":"messages","pt":"mensagens","fr":"messages","de":"Nachrichten"},
-  "No hay mensajes suficientes para comprimir.": {"en":"Not enough messages to compress.","pt":"Não há mensagens suficientes para comprimir.","fr":"Pas assez de messages à compresser.","de":"Nicht genügend Nachrichten zum Komprimieren."},
-  "Error: ": {"en":"Error: ","pt":"Erro: ","fr":"Erreur : ","de":"Fehler: "},
-  "Copiado": {"en":"Copied","pt":"Copiado","fr":"Copié","de":"Kopiert"},
-  "Copiar resultado de ": {"en":"Copy result from ","pt":"Copiar resultado de ","fr":"Copier le résultat de ","de":"Ergebnis kopieren von "},
-  "Descarga el modelo antes de actualizar.": {"en":"Unload the model before updating.","pt":"Descarregue o modelo antes de atualizar.","fr":"Déchargez le modèle avant de mettre à jour.","de":"Entlade das Modell vor dem Aktualisieren."},
-  "GPU": {"en":"GPU","pt":"GPU","fr":"GPU","de":"GPU"},
-  "Modelo que generó la respuesta: ": {"en":"Model that generated the response: ","pt":"Modelo que gerou a resposta: ","fr":"Modèle ayant généré la réponse : ","de":"Modell, das die Antwort erzeugt hat: "},
-  "No se pudo completar la respuesta: ": {"en":"Could not complete the response: ","pt":"Não foi possível concluir a resposta: ","fr":"Impossible de terminer la réponse : ","de":"Antwort konnte nicht abgeschlossen werden: "},
-  "No se pudo completar la instalación.": {"en":"Could not complete installation.","pt":"Não foi possível concluir a instalação.","fr":"Impossible de terminer l’installation.","de":"Installation konnte nicht abgeschlossen werden."},
-  "Web Visit · tokens por página ≈ (0 = sin límite)": {"en":"Web Visit · tokens per page ≈ (0 = unlimited)","pt":"Web Visit · tokens por página ≈ (0 = sem limite)","fr":"Web Visit · jetons par page ≈ (0 = illimité)","de":"Web Visit · Tokens pro Seite ≈ (0 = unbegrenzt)"},
-  "Límite de salida (caracteres, 0 = sin límite)": {"en":"Output limit (characters, 0 = unlimited)","pt":"Limite de saída (caracteres, 0 = sem limite)","fr":"Limite de sortie (caractères, 0 = illimité)","de":"Ausgabelimit (Zeichen, 0 = unbegrenzt)"},
+  "sin instalar": {
+    "en": "not installed",
+    "pt": "não instalado",
+    "fr": "non installé",
+    "de": "nicht installiert"
+  },
+  "No se detectó una GPU dedicada": {
+    "en": "No dedicated GPU detected",
+    "pt": "Nenhuma GPU dedicada detectada",
+    "fr": "Aucun GPU dédié détecté",
+    "de": "Keine dedizierte GPU erkannt"
+  },
+  "necesita el controlador NVIDIA {n} o posterior": {
+    "en": "needs NVIDIA driver {n} or newer",
+    "pt": "requer o driver NVIDIA {n} ou mais recente",
+    "fr": "nécessite le pilote NVIDIA {n} ou plus récent",
+    "de": "benötigt NVIDIA-Treiber {n} oder neuer"
+  },
+  "necesita una GPU NVIDIA": {
+    "en": "needs an NVIDIA GPU",
+    "pt": "requer uma GPU NVIDIA",
+    "fr": "nécessite un GPU NVIDIA",
+    "de": "benötigt eine NVIDIA-GPU"
+  },
+  "Vulkan funciona en GPU AMD, Intel Arc y NVIDIA": {
+    "en": "Vulkan runs on AMD, Intel Arc and NVIDIA GPUs",
+    "pt": "Vulkan funciona em GPUs AMD, Intel Arc e NVIDIA",
+    "fr": "Vulkan fonctionne sur les GPU AMD, Intel Arc et NVIDIA",
+    "de": "Vulkan läuft auf AMD-, Intel-Arc- und NVIDIA-GPUs"
+  },
+  "Alternativa para GPU AMD, Intel Arc y NVIDIA (Vulkan)": {
+    "en": "Alternative GPU build for AMD, Intel Arc and NVIDIA (Vulkan)",
+    "pt": "Alternativa para GPUs AMD, Intel Arc e NVIDIA (Vulkan)",
+    "fr": "Alternative pour GPU AMD, Intel Arc et NVIDIA (Vulkan)",
+    "de": "Alternative für AMD-, Intel-Arc- und NVIDIA-GPUs (Vulkan)"
+  },
+  "Funciona en cualquier PC con Windows x64": {
+    "en": "Works on any Windows x64 PC",
+    "pt": "Funciona em qualquer PC com Windows x64",
+    "fr": "Fonctionne sur tout PC Windows x64",
+    "de": "Läuft auf jedem Windows-x64-PC"
+  },
+  "la mejor opción sin GPU dedicada": {
+    "en": "best choice without a dedicated GPU",
+    "pt": "melhor opção sem GPU dedicada",
+    "fr": "meilleur choix sans GPU dédié",
+    "de": "beste Wahl ohne dedizierte GPU"
+  },
+  "alternativa de respaldo": {
+    "en": "fallback",
+    "pt": "alternativa de reserva",
+    "fr": "solution de repli",
+    "de": "Ausweichlösung"
+  },
+  "Strata Poly necesita una GPU NVIDIA y un controlador CUDA 13": {
+    "en": "Strata Poly needs an NVIDIA GPU and a CUDA 13 driver",
+    "pt": "Strata Poly requer uma GPU NVIDIA e um driver CUDA 13",
+    "fr": "Strata Poly nécessite un GPU NVIDIA et un pilote CUDA 13",
+    "de": "Strata Poly benötigt eine NVIDIA-GPU und einen CUDA-13-Treiber"
+  },
+  "no recomendado para esta GPU o controlador": {
+    "en": "not recommended for this GPU or driver",
+    "pt": "não recomendado para esta GPU ou driver",
+    "fr": "non recommandé pour ce GPU ou ce pilote",
+    "de": "für diese GPU oder diesen Treiber nicht empfohlen"
+  },
+  "Strata Rust es el motor para Qwen3.5/3.6; instálalo si usas esas familias de modelos": {
+    "en": "Strata Rust is the Qwen3.5/3.6 engine; install it if you use those model families",
+    "pt": "Strata Rust é o motor para Qwen3.5/3.6; instale-o se usar essas famílias de modelos",
+    "fr": "Strata Rust est le moteur pour Qwen3.5/3.6 ; installez-le si vous utilisez ces familles de modèles",
+    "de": "Strata Rust ist die Engine für Qwen3.5/3.6; installiere sie, wenn du diese Modellfamilien nutzt"
+  },
+  "llama.cpp CUDA recomendado": {
+    "en": "llama.cpp CUDA recommended",
+    "pt": "llama.cpp CUDA recomendado",
+    "fr": "llama.cpp CUDA recommandé",
+    "de": "llama.cpp CUDA empfohlen"
+  },
+  "llama.cpp Vulkan recomendado": {
+    "en": "llama.cpp Vulkan recommended",
+    "pt": "llama.cpp Vulkan recomendado",
+    "fr": "llama.cpp Vulkan recommandé",
+    "de": "llama.cpp Vulkan empfohlen"
+  },
+  "llama.cpp CPU recomendado": {
+    "en": "llama.cpp CPU recommended",
+    "pt": "llama.cpp CPU recomendado",
+    "fr": "llama.cpp CPU recommandé",
+    "de": "llama.cpp CPU empfohlen"
+  },
+  "Elegir modelo": {
+    "en": "Choose model",
+    "pt": "Escolher modelo",
+    "fr": "Choisir le modèle",
+    "de": "Modell wählen"
+  },
+  "Avanzado": {
+    "en": "Advanced",
+    "pt": "Avançado",
+    "fr": "Avancé",
+    "de": "Erweitert"
+  },
+  "En uso": {
+    "en": "In use",
+    "pt": "Em uso",
+    "fr": "En cours d’utilisation",
+    "de": "In Verwendung"
+  },
+  "Sin cargar": {
+    "en": "Not loaded",
+    "pt": "Não carregado",
+    "fr": "Non chargé",
+    "de": "Nicht geladen"
+  },
+  "En memoria:": {
+    "en": "In memory:",
+    "pt": "Na memória:",
+    "fr": "En mémoire :",
+    "de": "Im Speicher:"
+  },
+  "Cambiar a este modelo": {
+    "en": "Switch to this model",
+    "pt": "Mudar para este modelo",
+    "fr": "Passer à ce modèle",
+    "de": "Zu diesem Modell wechseln"
+  },
+  "Pulsa Aplicar y recargar para usarlo ahora.": {
+    "en": "Press Apply and reload to use it now.",
+    "pt": "Clique em Aplicar e recarregar para usá-lo agora.",
+    "fr": "Appuyez sur Appliquer et recharger pour l’utiliser maintenant.",
+    "de": "Klicke auf Übernehmen und neu laden, um ihn jetzt zu verwenden."
+  },
+  "desde caché": {
+    "en": "from cache",
+    "pt": "do cache",
+    "fr": "depuis le cache",
+    "de": "aus dem Cache"
+  },
+  "Compactar historial": {
+    "en": "Compact history",
+    "pt": "Compactar histórico",
+    "fr": "Compacter l’historique",
+    "de": "Verlauf komprimieren"
+  },
+  "Comprimir contexto": {
+    "en": "Compress context",
+    "pt": "Comprimir contexto",
+    "fr": "Compresser le contexte",
+    "de": "Kontext komprimieren"
+  },
+  "Comprimiendo…": {
+    "en": "Compressing…",
+    "pt": "Comprimindo…",
+    "fr": "Compression…",
+    "de": "Komprimiere…"
+  },
+  "Comprimiendo historial con el método nativo…": {
+    "en": "Compressing history with the native method…",
+    "pt": "Compactando histórico com o método nativo…",
+    "fr": "Compression de l’historique avec la méthode native…",
+    "de": "Komprimiere Verlauf mit der nativen Methode…"
+  },
+  "Comprimiendo historial con el modelo local…": {
+    "en": "Compressing history with the local model…",
+    "pt": "Compactando histórico com o modelo local…",
+    "fr": "Compression de l’historique avec le modèle local…",
+    "de": "Komprimiere Verlauf mit dem lokalen Modell…"
+  },
+  "Resumen con modelo local": {
+    "en": "Summary with local model",
+    "pt": "Resumo com modelo local",
+    "fr": "Résumé avec modèle local",
+    "de": "Zusammenfassung mit lokalem Modell"
+  },
+  "API nativa (/chat/completions)": {
+    "en": "Native API (/chat/completions)",
+    "pt": "API nativa (/chat/completions)",
+    "fr": "API native (/chat/completions)",
+    "de": "Native API (/chat/completions)"
+  },
+  "API nativa (/responses/compact)": {
+    "en": "Native API (/responses/compact)",
+    "pt": "API nativa (/responses/compact)",
+    "fr": "API native (/responses/compact)",
+    "de": "Native API (/responses/compact)"
+  },
+  "API nativa (Anthropic /messages)": {
+    "en": "Native API (Anthropic /messages)",
+    "pt": "API nativa (Anthropic /messages)",
+    "fr": "API native (Anthropic /messages)",
+    "de": "Native API (Anthropic /messages)"
+  },
+  "Web Search / Web Visit": {
+    "en": "Web Search / Web Visit",
+    "pt": "Web Search / Web Visit",
+    "fr": "Web Search / Web Visit",
+    "de": "Web Search / Web Visit"
+  },
+  "Hugging Face": {
+    "en": "Hugging Face",
+    "pt": "Hugging Face",
+    "fr": "Hugging Face",
+    "de": "Hugging Face"
+  },
+  "Actividad de herramientas": {
+    "en": "Tool activity",
+    "pt": "Atividade de ferramentas",
+    "fr": "Activité des outils",
+    "de": "Werkzeugaktivität"
+  },
+  "Comprobando archivo y plantilla…": {
+    "en": "Checking file and template…",
+    "pt": "Verificando arquivo e modelo…",
+    "fr": "Vérification du fichier et du modèle…",
+    "de": "Datei und Vorlage werden geprüft…"
+  },
+  "Elige el archivo en la ventana de Windows…": {
+    "en": "Choose the file in the Windows dialog…",
+    "pt": "Escolha o arquivo na janela do Windows…",
+    "fr": "Choisissez le fichier dans la fenêtre Windows…",
+    "de": "Wähle die Datei im Windows-Dialog…"
+  },
+  "Preparando el modelo…": {
+    "en": "Preparing the model…",
+    "pt": "Preparando o modelo…",
+    "fr": "Préparation du modèle…",
+    "de": "Modell wird vorbereitet…"
+  },
+  "No se pudo leer la lista de modelos:": {
+    "en": "Could not read the model list:",
+    "pt": "Não foi possível ler a lista de modelos:",
+    "fr": "Impossible de lire la liste des modèles :",
+    "de": "Modellliste konnte nicht gelesen werden:"
+  },
+  "Aplicando…": {
+    "en": "Applying…",
+    "pt": "Aplicando…",
+    "fr": "Application…",
+    "de": "Wird angewendet…"
+  },
+  "Se aplicará al cargar este modelo.": {
+    "en": "Will apply when loading this model.",
+    "pt": "Será aplicado ao carregar este modelo.",
+    "fr": "Sera appliqué lors du chargement de ce modèle.",
+    "de": "Wird beim Laden dieses Modells angewendet."
+  },
+  "Buscar modelo": {
+    "en": "Search model",
+    "pt": "Buscar modelo",
+    "fr": "Rechercher un modèle",
+    "de": "Modell suchen"
+  },
+  "Buscar modelo…": {
+    "en": "Search model…",
+    "pt": "Buscar modelo…",
+    "fr": "Rechercher un modèle…",
+    "de": "Modell suchen…"
+  },
+  "Modelos instalados": {
+    "en": "Installed models",
+    "pt": "Modelos instalados",
+    "fr": "Modèles installés",
+    "de": "Installierte Modelle"
+  },
+  "Modelos de la API": {
+    "en": "API models",
+    "pt": "Modelos da API",
+    "fr": "Modèles de l’API",
+    "de": "API-Modelle"
+  },
+  "Seleccionado": {
+    "en": "Selected",
+    "pt": "Selecionado",
+    "fr": "Sélectionné",
+    "de": "Ausgewählt"
+  },
+  "Tus valores personalizados.": {
+    "en": "Your custom values.",
+    "pt": "Seus valores personalizados.",
+    "fr": "Vos valeurs personnalisées.",
+    "de": "Deine benutzerdefinierten Werte."
+  },
+  "No se pudo comprobar la conexión con los servidores.": {
+    "en": "Could not check connection to the servers.",
+    "pt": "Não foi possível verificar a conexão com os servidores.",
+    "fr": "Impossible de vérifier la connexion aux serveurs.",
+    "de": "Verbindung zu den Servern konnte nicht geprüft werden."
+  },
+  "Reconectando…": {
+    "en": "Reconnecting…",
+    "pt": "Reconectando…",
+    "fr": "Reconnexion…",
+    "de": "Verbindung wird wiederhergestellt…"
+  },
+  "Guardado por modelo. Se aplicará en la próxima carga manual.": {
+    "en": "Saved per model. Will apply on the next manual load.",
+    "pt": "Salvo por modelo. Será aplicado no próximo carregamento manual.",
+    "fr": "Enregistré par modèle. Sera appliqué au prochain chargement manuel.",
+    "de": "Pro Modell gespeichert. Wird beim nächsten manuellen Laden angewendet."
+  },
+  "Sin conexión local": {
+    "en": "No local connection",
+    "pt": "Sem conexão local",
+    "fr": "Pas de connexion locale",
+    "de": "Keine lokale Verbindung"
+  },
+  "El servicio local no respondió. Revisa data/logs/agent.log.": {
+    "en": "The local service did not respond. Check data/logs/agent.log.",
+    "pt": "O serviço local não respondeu. Verifique data/logs/agent.log.",
+    "fr": "Le service local n’a pas répondu. Vérifiez data/logs/agent.log.",
+    "de": "Der lokale Dienst hat nicht geantwortet. Prüfe data/logs/agent.log."
+  },
+  "No se pudieron guardar los cambios. Revisa el espacio disponible del navegador.": {
+    "en": "Could not save changes. Check available browser storage space.",
+    "pt": "Não foi possível salvar as alterações. Verifique o espaço disponível do navegador.",
+    "fr": "Impossible d’enregistrer les modifications. Vérifiez l’espace disponible du navigateur.",
+    "de": "Änderungen konnten nicht gespeichert werden. Prüfe den verfügbaren Browserspeicher."
+  },
+  "Activa Acceso completo en la ventana de Herramientas antes de ejecutar comandos.": {
+    "en": "Enable Full PC access in the Tools window before running commands.",
+    "pt": "Ative o Acesso completo na janela Tools antes de executar comandos.",
+    "fr": "Activez l’Accès complet dans la fenêtre Tools avant d’exécuter des commandes.",
+    "de": "Aktiviere Vollzugriff im Tools-Fenster, bevor du Befehle ausführst."
+  },
+  "Activa Acceso completo en la ventana de Tools antes de ejecutar comandos.": {
+    "en": "Enable Full PC access in the Tools window before running commands.",
+    "pt": "Ative o Acesso completo na janela Tools antes de executar comandos.",
+    "fr": "Activez l’Accès complet dans la fenêtre Tools avant d’exécuter des commandes.",
+    "de": "Aktiviere Vollzugriff im Tools-Fenster, bevor du Befehle ausführst."
+  },
+  "Las descargas del navegador integrado se gestionan en Windows. Los archivos se guardan en tu carpeta de descargas.": {
+    "en": "Built-in browser downloads are handled by Windows. Files are saved to your downloads folder.",
+    "pt": "Os downloads do navegador integrado são gerenciados pelo Windows. Os arquivos são salvos na sua pasta de downloads.",
+    "fr": "Les téléchargements du navigateur intégré sont gérés par Windows. Les fichiers sont enregistrés dans votre dossier de téléchargements.",
+    "de": "Downloads des integrierten Browsers werden von Windows verwaltet. Dateien werden in deinem Downloads-Ordner gespeichert."
+  },
+  "Contexto comprimido": {
+    "en": "Compressed context",
+    "pt": "Contexto comprimido",
+    "fr": "Contexte compressé",
+    "de": "Komprimierter Kontext"
+  },
+  "Contexto comprimido.": {
+    "en": "Context compressed.",
+    "pt": "Contexto comprimido.",
+    "fr": "Contexte compressé.",
+    "de": "Kontext komprimiert."
+  },
+  "Comprimido · ": {
+    "en": "Compressed · ",
+    "pt": "Comprimido · ",
+    "fr": "Compressé · ",
+    "de": "Komprimiert · "
+  },
+  "Comprimido": {
+    "en": "Compressed",
+    "pt": "Comprimido",
+    "fr": "Compressé",
+    "de": "Komprimiert"
+  },
+  "mensajes": {
+    "en": "messages",
+    "pt": "mensagens",
+    "fr": "messages",
+    "de": "Nachrichten"
+  },
+  "No hay mensajes suficientes para comprimir.": {
+    "en": "Not enough messages to compress.",
+    "pt": "Não há mensagens suficientes para comprimir.",
+    "fr": "Pas assez de messages à compresser.",
+    "de": "Nicht genügend Nachrichten zum Komprimieren."
+  },
+  "Error: ": {
+    "en": "Error: ",
+    "pt": "Erro: ",
+    "fr": "Erreur : ",
+    "de": "Fehler: "
+  },
+  "Copiado": {
+    "en": "Copied",
+    "pt": "Copiado",
+    "fr": "Copié",
+    "de": "Kopiert"
+  },
+  "Copiar resultado de ": {
+    "en": "Copy result from ",
+    "pt": "Copiar resultado de ",
+    "fr": "Copier le résultat de ",
+    "de": "Ergebnis kopieren von "
+  },
+  "Descarga el modelo antes de actualizar.": {
+    "en": "Unload the model before updating.",
+    "pt": "Descarregue o modelo antes de atualizar.",
+    "fr": "Déchargez le modèle avant de mettre à jour.",
+    "de": "Entlade das Modell vor dem Aktualisieren."
+  },
+  "GPU": {
+    "en": "GPU",
+    "pt": "GPU",
+    "fr": "GPU",
+    "de": "GPU"
+  },
+  "Modelo que generó la respuesta: ": {
+    "en": "Model that generated the response: ",
+    "pt": "Modelo que gerou a resposta: ",
+    "fr": "Modèle ayant généré la réponse : ",
+    "de": "Modell, das die Antwort erzeugt hat: "
+  },
+  "No se pudo completar la respuesta: ": {
+    "en": "Could not complete the response: ",
+    "pt": "Não foi possível concluir a resposta: ",
+    "fr": "Impossible de terminer la réponse : ",
+    "de": "Antwort konnte nicht abgeschlossen werden: "
+  },
+  "No se pudo completar la instalación.": {
+    "en": "Could not complete installation.",
+    "pt": "Não foi possível concluir a instalação.",
+    "fr": "Impossible de terminer l’installation.",
+    "de": "Installation konnte nicht abgeschlossen werden."
+  },
+  "Web Visit · tokens por página ≈ (0 = sin límite)": {
+    "en": "Web Visit · tokens per page ≈ (0 = unlimited)",
+    "pt": "Web Visit · tokens por página ≈ (0 = sem limite)",
+    "fr": "Web Visit · jetons par page ≈ (0 = illimité)",
+    "de": "Web Visit · Tokens pro Seite ≈ (0 = unbegrenzt)"
+  },
+  "Límite de salida (caracteres, 0 = sin límite)": {
+    "en": "Output limit (characters, 0 = unlimited)",
+    "pt": "Limite de saída (caracteres, 0 = sem limite)",
+    "fr": "Limite de sortie (caractères, 0 = illimité)",
+    "de": "Ausgabelimit (Zeichen, 0 = unbegrenzt)"
+  },
   "El buscador combina país e idioma. Otro idioma puede usar su región principal. Web Visit usa un presupuesto aproximado: 4 caracteres por token. Pon 0 = sin límite para extraer la página completa. Los resultados ya son orgánicos; se excluyen anuncios marcados.": {
     "en": "Search combines country and language. Another language may use its primary region. Web Visit uses an approximate budget of 4 characters per token. Set 0 = unlimited to extract the entire page. Results are already organic; marked ads are excluded.",
     "pt": "O buscador combina país e idioma. Outro idioma pode usar sua região principal. O Web Visit usa um orçamento aproximado: 4 caracteres por token. Defina 0 = sem limite para extrair a página inteira. Os resultados já são orgânicos; anúncios marcados são excluídos.",
     "fr": "Le moteur combine pays et langue. Une autre langue peut utiliser sa région principale. Web Visit utilise un budget approximatif : 4 caractères par jeton. Mettez 0 = illimité pour extraire toute la page. Les résultats sont déjà organiques ; les annonces marquées sont exclues.",
     "de": "Die Suche kombiniert Land und Sprache. Eine andere Sprache kann ihre Hauptregion verwenden. Web Visit nutzt ein ungefähres Budget von 4 Zeichen pro Token. Setze 0 = unbegrenzt, um die gesamte Seite zu extrahieren. Ergebnisse sind bereits organisch; markierte Anzeigen werden ausgeschlossen."
   },
-  "Extractor de PDF y documentos": {"en":"PDF & document extractor","pt":"Extrator de PDF e documentos","fr":"Extracteur de PDF et documents","de":"PDF- und Dokumentextraktor"},
-  "Leer documento": {"en":"Read document","pt":"Ler documento","fr":"Lire le document","de":"Dokument lesen"},
-  "Modo de extracción predeterminado": {"en":"Default extraction mode","pt":"Modo de extração padrão","fr":"Mode d’extraction par défaut","de":"Standard-Extraktionsmodus"},
-  "Automático (Markdown + tablas)": {"en":"Automatic (Markdown + tables)","pt":"Automático (Markdown + tabelas)","fr":"Automatique (Markdown + tableaux)","de":"Automatisch (Markdown + Tabellen)"},
-  "Markdown estructurado": {"en":"Structured Markdown","pt":"Markdown estruturado","fr":"Markdown structuré","de":"Strukturiertes Markdown"},
-  "Texto plano": {"en":"Plain text","pt":"Texto simples","fr":"Texte brut","de":"Klartext"},
-  "Solo tablas": {"en":"Tables only","pt":"Apenas tabelas","fr":"Tableaux uniquement","de":"Nur Tabellen"},
-  "Páginas máx. en PDF (0 = sin límite)": {"en":"Max PDF pages (0 = unlimited)","pt":"Páginas máx. em PDF (0 = sem limite)","fr":"Pages max. en PDF (0 = illimité)","de":"Max. PDF-Seiten (0 = unbegrenzt)"},
-  "Caracteres máx. por lectura (0 = sin límite)": {"en":"Max characters per read (0 = unlimited)","pt":"Caracteres máx. por leitura (0 = sem limite)","fr":"Caractères max. par lecture (0 = illimité)","de":"Max. Zeichen pro Lesevorgang (0 = unbegrenzt)"},
-  "Extraer tablas como Markdown": {"en":"Extract tables as Markdown","pt":"Extrair tabelas como Markdown","fr":"Extraire les tableaux en Markdown","de":"Tabellen als Markdown extrahieren"},
-  "OCR en páginas escaneadas (Windows OCR)": {"en":"OCR on scanned pages (Windows OCR)","pt":"OCR em páginas digitalizadas (Windows OCR)","fr":"OCR sur pages numérisées (Windows OCR)","de":"OCR auf gescannten Seiten (Windows OCR)"},
-  "Incluir metadatos del documento": {"en":"Include document metadata","pt":"Incluir metadados do documento","fr":"Inclure les métadonnées du document","de":"Dokumentmetadaten einschließen"},
+  "Extractor de PDF y documentos": {
+    "en": "PDF & document extractor",
+    "pt": "Extrator de PDF e documentos",
+    "fr": "Extracteur de PDF et documents",
+    "de": "PDF- und Dokumentextraktor"
+  },
+  "Leer documento": {
+    "en": "Read document",
+    "pt": "Ler documento",
+    "fr": "Lire le document",
+    "de": "Dokument lesen"
+  },
+  "Modo de extracción predeterminado": {
+    "en": "Default extraction mode",
+    "pt": "Modo de extração padrão",
+    "fr": "Mode d’extraction par défaut",
+    "de": "Standard-Extraktionsmodus"
+  },
+  "Automático (Markdown + tablas)": {
+    "en": "Automatic (Markdown + tables)",
+    "pt": "Automático (Markdown + tabelas)",
+    "fr": "Automatique (Markdown + tableaux)",
+    "de": "Automatisch (Markdown + Tabellen)"
+  },
+  "Markdown estructurado": {
+    "en": "Structured Markdown",
+    "pt": "Markdown estruturado",
+    "fr": "Markdown structuré",
+    "de": "Strukturiertes Markdown"
+  },
+  "Texto plano": {
+    "en": "Plain text",
+    "pt": "Texto simples",
+    "fr": "Texte brut",
+    "de": "Klartext"
+  },
+  "Solo tablas": {
+    "en": "Tables only",
+    "pt": "Apenas tabelas",
+    "fr": "Tableaux uniquement",
+    "de": "Nur Tabellen"
+  },
+  "Páginas máx. en PDF (0 = sin límite)": {
+    "en": "Max PDF pages (0 = unlimited)",
+    "pt": "Páginas máx. em PDF (0 = sem limite)",
+    "fr": "Pages max. en PDF (0 = illimité)",
+    "de": "Max. PDF-Seiten (0 = unbegrenzt)"
+  },
+  "Caracteres máx. por lectura (0 = sin límite)": {
+    "en": "Max characters per read (0 = unlimited)",
+    "pt": "Caracteres máx. por leitura (0 = sem limite)",
+    "fr": "Caractères max. par lecture (0 = illimité)",
+    "de": "Max. Zeichen pro Lesevorgang (0 = unbegrenzt)"
+  },
+  "Extraer tablas como Markdown": {
+    "en": "Extract tables as Markdown",
+    "pt": "Extrair tabelas como Markdown",
+    "fr": "Extraire les tableaux en Markdown",
+    "de": "Tabellen als Markdown extrahieren"
+  },
+  "OCR en páginas escaneadas (Windows OCR)": {
+    "en": "OCR on scanned pages (Windows OCR)",
+    "pt": "OCR em páginas digitalizadas (Windows OCR)",
+    "fr": "OCR sur pages numérisées (Windows OCR)",
+    "de": "OCR auf gescannten Seiten (Windows OCR)"
+  },
+  "Incluir metadatos del documento": {
+    "en": "Include document metadata",
+    "pt": "Incluir metadados do documento",
+    "fr": "Inclure les métadonnées du document",
+    "de": "Dokumentmetadaten einschließen"
+  },
   "Admite PDF (texto, tablas y OCR opcional), Word (.docx), Excel (.xlsx), PowerPoint (.pptx), OpenDocument, EPUB, RTF, HTML, XML y CSV. Pon 0 = sin límite en páginas o caracteres. También se aplica cuando Web Visit abre un PDF o documento remoto.": {
     "en": "Supports PDF (text, tables, and optional OCR), Word (.docx), Excel (.xlsx), PowerPoint (.pptx), OpenDocument, EPUB, RTF, HTML, XML, and CSV. Set 0 = unlimited for pages or characters. Also applies when Web Visit opens a remote PDF or document.",
     "pt": "Suporta PDF (texto, tabelas e OCR opcional), Word (.docx), Excel (.xlsx), PowerPoint (.pptx), OpenDocument, EPUB, RTF, HTML, XML e CSV. Defina 0 = sem limite em páginas ou caracteres. Também se aplica quando o Web Visit abre um PDF ou documento remoto.",
     "fr": "Prend en charge PDF (texte, tableaux et OCR en option), Word (.docx), Excel (.xlsx), PowerPoint (.pptx), OpenDocument, EPUB, RTF, HTML, XML et CSV. Mettez 0 = illimité pour les pages ou caractères. S’applique aussi lorsque Web Visit ouvre un PDF ou document distant.",
     "de": "Unterstützt PDF (Text, Tabellen und optional OCR), Word (.docx), Excel (.xlsx), PowerPoint (.pptx), OpenDocument, EPUB, RTF, HTML, XML und CSV. Setze 0 = unbegrenzt für Seiten oder Zeichen. Gilt auch, wenn Web Visit ein entferntes PDF oder Dokument öffnet."
   },
-  "Adelante": {"en":"Forward","pt":"Avançar","fr":"Suivant","de":"Vorwärts"},
-  "Recargar": {"en":"Reload","pt":"Recarregar","fr":"Recharger","de":"Neu laden"},
-  "Ejecutar": {"en":"Run","pt":"Executar","fr":"Exécuter","de":"Ausführen"},
-  "Detener": {"en":"Stop","pt":"Parar","fr":"Arrêter","de":"Stoppen"},
-  "Inactiva": {"en":"Idle","pt":"Inativa","fr":"Inactif","de":"Inaktiv"},
-  "Editar mensaje": {"en":"Edit message","pt":"Editar mensagem","fr":"Modifier le message","de":"Nachricht bearbeiten"},
-  "Comprobando aspecto…": {"en":"Checking appearance…","pt":"Verificando aparência…","fr":"Vérification de l’apparence…","de":"Darstellung wird geprüft…"},
-  "↓ Seguir leyendo": {"en":"↓ Follow output","pt":"↓ Seguir lendo","fr":"↓ Suivre la lecture","de":"↓ Ausgabe folgen"},
-  "0 = aleatoria": {"en":"0 = random","pt":"0 = aleatória","fr":"0 = aléatoire","de":"0 = zufällig"},
-  "Carpeta de trabajo de esta conversación": {"en":"Working folder for this conversation","pt":"Pasta de trabalho desta conversa","fr":"Dossier de travail de cette conversation","de":"Arbeitsordner für diese Unterhaltung"},
-  "Busca o escribe una URL": {"en":"Search or enter a URL","pt":"Pesquise ou digite uma URL","fr":"Rechercher ou saisir une URL","de":"Suchen oder URL eingeben"},
-  "Escribe un comando y pulsa Enter": {"en":"Type a command and press Enter","pt":"Digite um comando e pressione Enter","fr":"Saisissez une commande et appuyez sur Entrée","de":"Befehl eingeben und Eingabetaste drücken"},
-  "Botones a la izquierda": {"en":"Left-side buttons","pt":"Botões à esquerda","fr":"Boutons à gauche","de":"Schaltflächen links"},
-  "Botones a la derecha": {"en":"Right-side buttons","pt":"Botões à direita","fr":"Boutons à droite","de":"Schaltflächen rechts"},
-  "Comando": {"en":"Command","pt":"Comando","fr":"Commande","de":"Befehl"},
-  "Historial de conversaciones": {"en":"Conversation history","pt":"Histórico de conversas","fr":"Historique des conversations","de":"Unterhaltungsverlauf"},
-  "Mensajes": {"en":"Messages","pt":"Mensagens","fr":"Messages","de":"Nachrichten"},
-  "Modo": {"en":"Mode","pt":"Modo","fr":"Mode","de":"Modus"},
-  "Salida de la consola": {"en":"Console output","pt":"Saída do console","fr":"Sortie de la console","de":"Konsolenausgabe"},
-  "modelos": {"en":"models","pt":"modelos","fr":"modèles","de":"Modelle"},
-  "Sin coincidencias. Se conserva el modelo seleccionado.": {"en":"No matches. Keeping selected model.","pt":"Sem correspondências. O modelo selecionado foi mantido.","fr":"Aucune correspondance. Le modèle sélectionné est conservé.","de":"Keine Treffer. Ausgewähltes Modell wird beibehalten."},
-  "Ningún modelo coincide con": {"en":"No model matches","pt":"Nenhum modelo corresponde a","fr":"Aucun modèle ne correspond à","de":"Kein Modell stimmt überein mit"},
-  "Aplicando y recargando el modelo…": {"en":"Applying and reloading model…","pt":"Aplicando e recarregando o modelo…","fr":"Application et rechargement du modèle…","de":"Wird angewendet und Modell neu geladen…"},
-  "Guardado contexto…": {"en":"Saving context…","pt":"Salvando contexto…","fr":"Enregistrement du contexte…","de":"Kontext wird gespeichert…"},
-  "Contexto aplicado.": {"en":"Context applied.","pt":"Contexto aplicado.","fr":"Contexte appliqué.","de":"Kontext angewendet."},
-  "Guardado para la próxima carga.": {"en":"Saved for the next load.","pt":"Salvo para o próximo carregamento.","fr":"Enregistré pour le prochain chargement.","de":"Für den nächsten Ladevorgang gespeichert."},
-  "Motor apagado. Puedes encenderlo cuando lo necesites.": {"en":"Engine off. You can turn it on whenever needed.","pt":"Motor desligado. Você pode ligá-lo quando precisar.","fr":"Moteur arrêté. Vous pouvez le démarrer si besoin.","de":"Engine aus. Du kannst sie bei Bedarf einschalten."},
-  "Motor encendido. Pulsa Cargar modelo para preparar el modelo seleccionado.": {"en":"Engine started. Press Load model to prepare the selected model.","pt":"Motor ligado. Clique em Carregar modelo para preparar o modelo selecionado.","fr":"Moteur démarré. Cliquez sur Charger le modèle pour préparer le modèle sélectionné.","de":"Engine gestartet. Klicke auf Modell laden, um das gewählte Modell vorzubereiten."},
-  "Sin medida disponible": {"en":"No measurement available","pt":"Nenhuma medição disponível","fr":"Aucune mesure disponible","de":"Keine Messung verfügbar"},
-  "Sin medida para este chat y modelo.": {"en":"No measurement for this chat and model.","pt":"Nenhuma medição para este chat e modelo.","fr":"Aucune mesure pour cette discussion et ce modèle.","de":"Keine Messung für diesen Chat und dieses Modell."},
-  "Chat nuevo.": {"en":"New chat.","pt":"Novo chat.","fr":"Nouvelle discussion.","de":"Neuer Chat."},
-  "Petición en curso": {"en":"Current request","pt":"Solicitação em andamento","fr":"Requête en cours","de":"Laufende Anfrage"},
-  "Última medida de este chat": {"en":"Last measurement in this chat","pt":"Última medição deste chat","fr":"Dernière mesure de cette discussion","de":"Letzte Messung dieses Chats"},
-  "tokens de entrada": {"en":"input tokens","pt":"tokens de entrada","fr":"jetons d’entrée","de":"Eingabe-Tokens"},
-  "de salida, incluido el razonamiento. Incluye la plantilla y las herramientas activadas. No cuenta el texto aún sin enviar.": {"en":"output tokens, including reasoning. Includes prompt template and enabled tools. Unsent draft text is excluded.","pt":"de saída, incluindo o raciocínio. Inclui o template e as ferramentas ativadas. Não inclui texto ainda não enviado.","fr":"de sortie, raisonnement inclus. Inclut le modèle et les outils activés. N’inclut pas le texte non envoyé.","de":"Ausgabe-Tokens, einschließlich Denkschritte. Enthält Template und aktive Werkzeuge. Ungesendeter Text zählt nicht."},
-  "Conversación": {"en":"Conversation","pt":"Conversa","fr":"Discussion","de":"Unterhaltung"},
-  "edición": {"en":"edit","pt":"edição","fr":"édition","de":"Bearbeitung"},
-  "Deteniendo…": {"en":"Stopping…","pt":"Parando…","fr":"Arrêt…","de":"Wird gestoppt…"},
-  "Quitar": {"en":"Remove","pt":"Remover","fr":"Retirer","de":"Entfernen"},
-  "es demasiado grande (máx. 400 KB).": {"en":"is too large (max. 400 KB).","pt":"é grande demais (máx. 400 KB).","fr":"est trop volumineux (max. 400 Ko).","de":"ist zu groß (max. 400 KB)."},
-  "adjunta un archivo de texto, código, CSV o Markdown.": {"en":"attach a text, code, CSV, or Markdown file.","pt":"anexe um arquivo de texto, código, CSV ou Markdown.","fr":"joignez un fichier texte, code, CSV ou Markdown.","de":"hänge eine Text-, Code-, CSV- oder Markdown-Datei an."},
-  "No se pudo leer": {"en":"Could not read","pt":"Não foi possível ler","fr":"Impossible de lire","de":"Konnte nicht gelesen werden:"},
-  "No hay páginas en el historial.": {"en":"No pages in history.","pt":"Não há páginas no histórico.","fr":"Aucune page dans l’historique.","de":"Keine Seiten im Verlauf."},
-  "Visión no verificada para esta arquitectura.": {"en":"Vision unverified for this architecture.","pt":"Visão não verificada para esta arquitetura.","fr":"Vision non vérifiée pour cette architecture.","de":"Vision für diese Architektur nicht verifiziert."},
-  "Deja de usar el modelo actual antes de cambiar la conexión.": {"en":"Stop using the current model before switching connections.","pt":"Pare de usar o modelo atual antes de trocar a conexão.","fr":"Cessez d’utiliser le modèle actuel avant de changer de connexion.","de":"Beende das aktuelle Modell, bevor du die Verbindung wechselst."},
-  "Strata Rust: modelos Qwen3.5/3.6. Para otras familias, elige llama.cpp.": {"en":"Strata Rust: Qwen3.5/3.6 models. For other families, choose llama.cpp.","pt":"Strata Rust: modelos Qwen3.5/3.6. Para outras famílias, escolha llama.cpp.","fr":"Strata Rust : modèles Qwen3.5/3.6. Pour les autres familles, choisissez llama.cpp.","de":"Strata Rust: Qwen3.5/3.6-Modelle. Für andere Familien llama.cpp wählen."},
-  "Aquí se conserva todo el resultado recibido. El modelo recibió": {"en":"The full received output is preserved here. The model received","pt":"Todo o resultado recebido é mantido aqui. O modelo recebeu","fr":"Tout le résultat reçu est conservé ici. Le modèle a reçu","de":"Die gesamte erhaltene Ausgabe ist hier gespeichert. Das Modell erhielt"},
-  "Sin MTP integrado": {"en":"No built-in MTP","pt":"Sem MTP integrado","fr":"Sans MTP intégré","de":"Kein integriertes MTP"},
-  "Configuración aplicada.": {"en":"Settings applied.","pt":"Configuração aplicada.","fr":"Paramètres appliqués.","de":"Einstellungen angewendet."},
-  "Este modelo ya está en tu lista.": {"en":"This model is already in your list.","pt":"Este modelo já está na sua lista.","fr":"Ce modèle est déjà dans votre liste.","de":"Dieses Modell ist bereits in deiner Liste."},
-  "Ayuda": {"en":"Help","pt":"Ajuda","fr":"Aide","de":"Hilfe"},
-  "Las notas de esta versión todavía no están en la caché. Pulsa «Comprobar actualizaciones» para obtenerlas.": {"en":"Release notes for this version are not cached yet. Click Check updates to fetch them.","pt":"As notas desta versão ainda não estão em cache. Clique em Verificar atualizações para obtê-las.","fr":"Les notes de cette version ne sont pas encore en cache. Cliquez sur Vérifier les mises à jour pour les récupérer.","de":"Die Versionshinweise sind noch nicht zwischengespeichert. Klicke auf Nach Updates suchen, um sie abzurufen."},
-  "Carpeta limita los archivos al proyecto o chat. CMD puede ejecutarse con aislamiento de Windows si está disponible. Toda la PC permite usar otras rutas y comandos con tus permisos. Al reiniciar vuelve a Carpeta.": {"en":"Sandbox limits file tools to the chat or project folder. CMD can run with Windows isolation when available. Full PC allows other paths and commands with your permissions. Resets to Sandbox on restart.","pt":"Sandbox limita arquivos ao projeto ou chat. CMD pode rodar com isolamento do Windows se disponível. PC completo permite outros caminhos e comandos com suas permissões. Volta para Sandbox ao reiniciar.","fr":"Le bac à sable limite les fichiers au projet ou à la discussion. CMD peut s’exécuter avec l’isolation Windows si disponible. Tout le PC autorise d’autres chemins et commandes avec vos droits. Réinitialisé sur Bac à sable au redémarrage.","de":"Sandbox beschränkt Dateien auf Projekt oder Chat. CMD kann mit Windows-Isolation laufen, falls verfügbar. Vollzugriff erlaubt andere Pfade und Befehle mit deinen Rechten. Wird beim Neustart zurückgesetzt."},
-  "En Carpeta ejecuta CMD aislado, sin red y solo si la comprobación de Windows tiene éxito. En Toda la PC permite CMD y PowerShell con tus permisos.": {"en":"In Sandbox, runs isolated CMD without network only if Windows isolation passes. In Full PC, allows CMD and PowerShell with your user permissions.","pt":"Em Sandbox, executa CMD isolado e sem rede apenas se a verificação do Windows passar. Em PC completo, permite CMD e PowerShell com suas permissões.","fr":"En bac à sable, exécute CMD isolé sans réseau uniquement si la vérification Windows réussit. Sur tout le PC, autorise CMD et PowerShell avec vos droits.","de":"In der Sandbox wird isoliertes CMD ohne Netzwerk ausgeführt, wenn die Windows-Prüfung erfolgreich ist. Bei Vollzugriff sind CMD und PowerShell mit deinen Rechten erlaubt."},
-  "El agente usa la misma ventana de navegador que ves: puede abrir páginas, leer su texto, pulsar elementos y escribir en formularios. Tú puedes seguir usando la barra y la ventana. No es un iframe; las páginas no se incrustan dentro del chat.": {"en":"The agent shares the browser window you see: it can open pages, read text, click elements, and fill forms. You can keep using the address bar and window. Pages are not embedded inside the chat.","pt":"O agente usa a mesma janela de navegador que você vê: pode abrir páginas, ler texto, clicar e preencher formulários. Você continua podendo usar a barra e a janela.","fr":"L’agent utilise la même fenêtre de navigateur que vous voyez : il peut ouvrir des pages, lire du texte, cliquer et remplir des formulaires. Vous pouvez continuer à utiliser la barre et la fenêtre.","de":"Der Agent nutzt dasselbe Browserfenster, das du siehst: Seiten öffnen, Text lesen, klicken und Formulare ausfüllen. Du kannst Leiste und Fenster weiter verwenden."},
-  "Abre un Edge headless propio para navegar, extraer, descargar, capturar pantalla y leer red/consola sin ocupar tu ventana. Usa su propio perfil; no ve tus pestañas personales salvo que se importen.": {"en":"Launches a dedicated headless Edge instance to browse, extract, download, capture screenshots, and inspect network/console logs without taking over your browser window.","pt":"Abre uma instância própria do Edge headless para navegar, extrair, baixar, capturar telas e ler rede/console sem ocupar sua janela.","fr":"Lance une instance dédiée d’Edge sans tête pour naviguer, extraire, télécharger, capturer l’écran et lire réseau/console sans occuper votre fenêtre.","de":"Startet eine eigene Headless-Edge-Instanz zum Surfen, Extrahieren, Herunterladen, für Screenshots und Netzwerk-/Konsolenlogs ohne dein Fenster zu blockieren."},
-  "Peticiones HTTP reales con cabeceras, cookies y cuerpo; descarga y guarda archivos; extrae HTML a Markdown. Solo en Agente estándar o completo.": {"en":"Performs real HTTP requests with headers, cookies, and request bodies; downloads and saves files; extracts HTML as Markdown. Available in Standard or Full Agent modes.","pt":"Faz requisições HTTP reais com cabeçalhos, cookies e corpo; baixa e salva arquivos; extrai HTML para Markdown. Apenas em Agente padrão ou completo.","fr":"Effectue de vraies requêtes HTTP avec en-têtes, cookies et corps ; télécharge et enregistre des fichiers ; extrait le HTML en Markdown. Uniquement en mode Agent standard ou complet.","de":"Führt echte HTTP-Anfragen mit Headern, Cookies und Body aus; lädt Dateien herunter und speichert sie; wandelt HTML in Markdown um. Nur im Standard- oder Vollagenten-Modus."},
-  "El modelo se añadió, pero no aparece en la lista. Pulsa Actualizar.": {"en":"Model added, though it does not show in the list yet. Click Refresh.","pt":"O modelo foi adicionado, mas não aparece na lista. Clique em Atualizar.","fr":"Le modèle a été ajouté, mais n’apparaît pas encore dans la liste. Cliquez sur Actualiser.","de":"Das Modell wurde hinzugefügt, erscheint aber noch nicht in der Liste. Klicke auf Aktualisieren."},
-  "Modelo añadido. Pulsa Cargar para usarlo.": {"en":"Model added. Click Load to use it.","pt":"Modelo adicionado. Clique em Carregar para usá-lo.","fr":"Modèle ajouté. Cliquez sur Charger pour l’utiliser.","de":"Modell hinzugefügt. Klicke auf Laden, um es zu verwenden."},
-  "El mmproj convierte imágenes para el modelo y debe ser compatible con él. Se guarda por modelo. Activarlo se aplica en la próxima carga manual; elegir un archivo no carga nada. El codificador trabaja en CPU cuando adjuntas una imagen.": {"en":"The mmproj encodes images for the model and must match its architecture. Saved per model. Enabling takes effect on the next manual load; picking a file does not load anything. The encoder runs on CPU when an image is attached.","pt":"O mmproj converte imagens para o modelo e deve ser compatível com ele. Salvo por modelo. Ativar aplica no próximo carregamento manual. O codificador trabalha na CPU ao anexar uma imagem.","fr":"Le mmproj convertit les images pour le modèle et doit être compatible. Enregistré par modèle. L’activation prend effet au prochain chargement manuel. L’encodeur s’exécute sur CPU.","de":"Das mmproj kodiert Bilder für das Modell und muss kompatibel sein. Pro Modell gespeichert. Wird beim nächsten manuellen Laden aktiv. Der Encoder läuft auf der CPU."},
-  "Activa imágenes en la conexión API y selecciona un modelo compatible.": {"en":"Enable vision in the API connection and select a compatible model.","pt":"Ative imagens na conexão API e selecione um modelo compatível.","fr":"Activez les images dans la connexion API et sélectionnez un modèle compatible.","de":"Aktiviere Bilder in der API-Verbindung und wähle ein kompatibles Modell."},
-  "Activa un mmproj compatible en Modelo y carga ese modelo antes de adjuntar imágenes.": {"en":"Enable a compatible mmproj in Model and load that model before attaching images.","pt":"Ative um mmproj compatível em Modelo e carregue esse modelo antes de anexar imagens.","fr":"Activez un mmproj compatible dans Modèle et chargez ce modèle avant de joindre des images.","de":"Aktiviere ein passendes mmproj unter Modell und lade es, bevor du Bilder anhängst."},
-  "Vuelve a abrir el chat para usar la versión actual del disco. La copia en conflicto está conservada.": {"en":"Reopen the chat to use the current version on disk. The conflicting copy has been preserved.","pt":"Reabra o chat para usar a versão atual do disco. A cópia em conflito foi preservada.","fr":"Rouvrez la discussion pour utiliser la version actuelle sur le disque. La copie en conflit est conservée.","de":"Öffne den Chat erneut, um die aktuelle Version auf der Festplatte zu nutzen. Die Konfliktkopie wurde behalten."},
-  "El servidor no devolvió una respuesta de chat válida.": {"en":"The server did not return a valid chat response.","pt":"O servidor não retornou uma resposta de chat válida.","fr":"Le serveur n’a pas renvoyé de réponse de discussion valide.","de":"Der Server hat keine gültige Chat-Antwort zurückgegeben."},
-  "El chat ya no está disponible.": {"en":"This chat is no longer available.","pt":"Este chat não está mais disponível.","fr":"Cette discussion n’est plus disponible.","de":"Dieser Chat ist nicht mehr verfügbar."},
-  "Guardado por recuperación del borrador. ": {"en":"Saved via draft recovery. ","pt":"Salvo por recuperação de rascunho. ","fr":"Enregistré via récupération de brouillon. ","de":"Durch Entwurfswiederherstellung gespeichert. "},
-  "Guardado. La comprobación encontró errores en ": {"en":"Saved. Verification found errors in ","pt":"Salvo. A verificação encontrou erros em ","fr":"Enregistré. La vérification a trouvé des erreurs dans ","de":"Gespeichert. Prüfung fand Fehler in "},
-  "La aplicación de escritorio no está disponible.": {"en":"The desktop app API is unavailable.","pt":"O aplicativo de desktop não está disponível.","fr":"L’application de bureau n’est pas disponible.","de":"Die Desktop-Anwendung ist nicht verfügbar."},
-  " · código ": {"en":" · code ","pt":" · código ","fr":" · code ","de":" · Code "},
-  "Escribe una dirección http o https válida.": {"en":"Enter a valid http or https URL.","pt":"Digite um endereço http ou https válido.","fr":"Saisissez une adresse http ou https valide.","de":"Gib eine gültige http- oder https-Adresse ein."},
-  "El uso del navegador por el agente está desactivado.": {"en":"Browser control by the agent is disabled.","pt":"O uso do navegador pelo agente está desativado.","fr":"L’utilisation du navigateur par l’agent est désactivée.","de":"Die Browsersteuerung durch den Agenten ist deaktiviert."},
-  "La ventana de escritorio no está disponible.": {"en":"The desktop window is unavailable.","pt":"A janela de desktop não está disponível.","fr":"La fenêtre de bureau est indisponible.","de":"Das Desktopfenster ist nicht verfügbar."},
-  "No se pudo abrir la página.": {"en":"Could not open the page.","pt":"Não foi possível abrir a página.","fr":"Impossible d’ouvrir la page.","de":"Seite konnte nicht geöffnet werden."},
-  "No hay una página abierta en el navegador integrado.": {"en":"There is no page open in the built-in browser.","pt":"Não há página aberta no navegador integrado.","fr":"Aucune page n’est ouverte dans le navigateur intégré.","de":"Im integrierten Browser ist keine Seite geöffnet."},
-  "Acción de navegador no admitida.": {"en":"Unsupported browser action.","pt":"Ação de navegador não suportada.","fr":"Action de navigateur non prise en charge.","de":"Nicht unterstützte Browseraktion."},
-  "no compatible": {"en":"incompatible","pt":"incompatível","fr":"incompatible","de":"nicht kompatibel"},
-  "No compatible": {"en":"Incompatible","pt":"Incompatível","fr":"Incompatible","de":"Nicht kompatibel"},
-  "16 bits; mayor precisión y consumo de memoria.": {"en":"16-bit precision; highest accuracy and memory usage.","pt":"16 bits; maior precisão e consumo de memória.","fr":"16 bits ; précision et consommation mémoire maximales.","de":"16 Bit; höchste Genauigkeit und höchster Speicherverbrauch."},
-  "8 bits para claves y valores; reduce el consumo de memoria.": {"en":"8-bit keys and values; reduces memory usage.","pt":"8 bits para chaves e valores; reduz o consumo de memória.","fr":"8 bits pour clés et valeurs ; réduit la consommation mémoire.","de":"8 Bit für Schlüssel und Werte; reduziert den Speicherverbrauch."},
-  "Claves y valores de 8 bits; implementación propia de esta arquitectura.": {"en":"8-bit keys and values; custom implementation for this architecture.","pt":"Chaves e valores de 8 bits; implementação própria desta arquitetura.","fr":"Clés et valeurs sur 8 bits ; implémentation propre à cette architecture.","de":"8-Bit-Schlüssel und -Werte; eigene Implementierung dieser Architektur."},
-  "Claves de 8 bits y valores FP16; consumo intermedio.": {"en":"8-bit keys and FP16 values; intermediate memory usage.","pt":"Chaves de 8 bits e valores FP16; consumo intermediário.","fr":"Clés sur 8 bits et valeurs FP16 ; consommation intermédiaire.","de":"8-Bit-Schlüssel und FP16-Werte; mittlerer Speicherverbrauch."},
-  "4 bits con rotación Hadamard; menor memoria y precisión.": {"en":"4-bit with Hadamard rotation; lowest memory usage and accuracy.","pt":"4 bits com rotação Hadamard; menor memória e precisão.","fr":"4 bits avec rotation de Hadamard ; mémoire et précision réduites.","de":"4 Bit mit Hadamard-Rotation; geringster Speicherbedarf und geringere Genauigkeit."},
-  "Claves INT8 y valores Q4_0; formato híbrido.": {"en":"INT8 keys and Q4_0 values; hybrid format.","pt":"Chaves INT8 e valores Q4_0; formato híbrido.","fr":"Clés INT8 et valeurs Q4_0 ; format hybride.","de":"INT8-Schlüssel und Q4_0-Werte; Hybridformat."},
-  "No se pudo comprobar la compatibilidad KV.": {"en":"Could not verify KV compatibility.","pt":"Não foi possível verificar a compatibilidade KV.","fr":"Impossible de vérifier la compatibilité KV.","de":"KV-Kompatibilität konnte nicht geprüft werden."},
-  "Formato de caché KV no admitido por este modelo y motor.": {"en":"KV cache format not supported by this model and engine.","pt":"Formato de cache KV não suportado por este modelo e motor.","fr":"Format de cache KV non pris en charge par ce modèle et ce moteur.","de":"KV-Cache-Format wird von diesem Modell und dieser Engine nicht unterstützt."},
-  "Selecciona un formato compatible.": {"en":"Select a compatible format.","pt":"Selecione um formato compatível.","fr":"Sélectionnez un format compatible.","de":"Wähle ein kompatibles Format."},
-  "No se encontró la ventana principal.": {"en":"Main window was not found.","pt":"A janela principal não foi encontrada.","fr":"La fenêtre principale est introuvable.","de":"Das Hauptfenster wurde nicht gefunden."},
-  "Identificador de conversación no válido.": {"en":"Invalid conversation ID.","pt":"Identificador de conversa inválido.","fr":"Identifiant de conversation non valide.","de":"Ungültige Konversations-ID."},
-  "No existe la carpeta del Sandbox.": {"en":"Sandbox folder does not exist.","pt":"A pasta do Sandbox não existe.","fr":"Le dossier Sandbox n’existe pas.","de":"Der Sandbox-Ordner existiert nicht."},
-  "No existe la carpeta de esta conversación.": {"en":"Folder for this conversation does not exist.","pt":"A pasta desta conversa não existe.","fr":"Le dossier de cette conversation n’existe pas.","de":"Der Ordner für diese Konversation existiert nicht."},
-  "La carpeta del Sandbox no es válida.": {"en":"Sandbox folder path is invalid.","pt":"O caminho da pasta do Sandbox não é válido.","fr":"Le dossier Sandbox n’est pas valide.","de":"Der Sandbox-Ordnerpfad ist ungültig."},
-  "No se encontró la carpeta del ejecutable.": {"en":"Executable folder was not found.","pt":"A pasta do executável não foi encontrada.","fr":"Le dossier de l’exécutable est introuvable.","de":"Der Programmordner wurde nicht gefunden."},
-  "Carpeta desconocida.": {"en":"Unknown folder.","pt":"Pasta desconhecida.","fr":"Dossier inconnu.","de":"Unbekannter Ordner."},
-  "La carpeta de motores no está disponible.": {"en":"Engines folder is unavailable.","pt":"A pasta de motores não está disponível.","fr":"Le dossier des moteurs est indisponible.","de":"Der Engine-Ordner ist nicht verfügbar."},
-  "No se encontró la carpeta de V-Agent.": {"en":"V-Agent folder was not found.","pt":"A pasta do V-Agent não foi encontrada.","fr":"Le dossier de V-Agent est introuvable.","de":"Der V-Agent-Ordner wurde nicht gefunden."},
-  "No se encontró el desinstalador. Esta instalación puede ser portátil.": {"en":"Uninstaller was not found. This installation may be portable.","pt":"O desinstalador não foi encontrado. Esta instalação pode ser portátil.","fr":"Le programme de désinstallation est introuvable. Cette installation est peut-être portable.","de":"Deinstallationsprogramm nicht gefunden. Dies könnte eine portable Installation sein."},
-  "Color de ventana no válido.": {"en":"Invalid window color.","pt":"Cor de janela inválida.","fr":"Couleur de fenêtre non valide.","de":"Ungültige Fensterfarbe."},
-  "Redondez fuera de rango.": {"en":"Corner radius out of range.","pt":"Arredondamento fora do intervalo.","fr":"Rayon d’angle hors plage.","de":"Eckenradius außerhalb des gültigen Bereichs."},
-  "No se pudo abrir el diálogo para guardar el archivo.": {"en":"Could not open the save file dialog.","pt":"Não foi possível abrir a caixa de diálogo para salvar o arquivo.","fr":"Impossible d’ouvrir la boîte de dialogue d’enregistrement.","de":"Der Speicherdialog konnte nicht geöffnet werden."},
-  "No se pudo guardar el archivo.": {"en":"Could not save the file.","pt":"Não foi possível salvar o arquivo.","fr":"Impossible d’enregistrer le fichier.","de":"Die Datei konnte nicht gespeichert werden."},
-  "Archivo guardado.": {"en":"File saved.","pt":"Arquivo salvo.","fr":"Fichier enregistré.","de":"Datei gespeichert."},
-  "Exportación cancelada.": {"en":"Export cancelled.","pt":"Exportação cancelada.","fr":"Exportation annulée.","de":"Export abgebrochen."},
-  "Usa los controles de V-Agent para abrir la carpeta.": {"en":"Use V-Agent controls to open the folder.","pt":"Use os controles do V-Agent para abrir a pasta.","fr":"Utilisez les contrôles de V-Agent pour ouvrir le dossier.","de":"Verwende die V-Agent-Steuerelemente, um den Ordner zu öffnen."},
-  "Primero abre o guarda una conversación.": {"en":"Open or save a conversation first.","pt":"Abra ou salve uma conversa primeiro.","fr":"Ouvrez ou enregistrez d’abord une conversation.","de":"Öffne oder speichere zuerst eine Konversation."},
-  "Conecta una API para ver sus modelos.": {"en":"Connect an API to see its models.","pt":"Conecte uma API para ver os modelos.","fr":"Connectez une API pour voir ses modèles.","de":"Verbinde eine API, um ihre Modelle anzuzeigen."},
-  "Guardando contexto…": {"en":"Saving context…","pt":"Salvando contexto…","fr":"Enregistrement du contexte…","de":"Kontext wird gespeichert…"},
-  "No hay modelos instalados.": {"en":"No installed models found.","pt":"Não há modelos instalados.","fr":"Aucun modèle installé.","de":"Keine installierten Modelle gefunden."},
-  "Cargando con": {"en":"Loading with","pt":"Carregando com","fr":"Chargement avec","de":"Wird geladen mit"},
-  "Pesos leídos. Preparando el motor…": {"en":"Weights read. Preparing the engine…","pt":"Pesos lidos. Preparando o motor…","fr":"Poids lus. Préparation du moteur…","de":"Gewichte geladen. Engine wird vorbereitet…"},
-  "Leyendo pesos antes de cargar…": {"en":"Reading weights before loading…","pt":"Lendo pesos antes de carregar…","fr":"Lecture des poids avant le chargement…","de":"Gewichte werden vor dem Laden eingelesen…"},
-  "RAM insuficiente para precargar todos los pesos; lectura bajo demanda.": {"en":"Insufficient RAM to preload all weights; reading on demand.","pt":"RAM insuficiente para pré-carregar todos os pesos; leitura sob demanda.","fr":"RAM insuffisante pour précharger tous les poids ; lecture à la demande.","de":"Nicht genügend RAM zum Vorabladen aller Gewichte; Laden bei Bedarf."},
-  "Memoria libre limitada; el resto de pesos se leerá bajo demanda.": {"en":"Limited free memory; remaining weights will be read on demand.","pt":"Memória livre limitada; os demais pesos serão lidos sob demanda.","fr":"Mémoire libre limitée ; les poids restants seront lus à la demande.","de":"Begrenzter freier Speicher; übrige Gewichte werden bei Bedarf gelesen."},
-  "No se pudo comprobar la preparación de la memoria del motor.": {"en":"Could not verify engine memory preparation.","pt":"Não foi possível verificar a preparação de memória do motor.","fr":"Impossible de vérifier la préparation mémoire du moteur.","de":"Die Speichervorbereitung der Engine konnte nicht überprüft werden."},
-  "Terminando la preparación en RAM…": {"en":"Finishing RAM preparation…","pt":"Concluindo preparação na RAM…","fr":"Finalisation de la préparation en RAM…","de":"Vorbereitung im RAM wird abgeschlossen…"},
-  "El motor sigue preparando pesos en segundo plano; lectura bajo demanda.": {"en":"Engine is still preparing weights in the background; reading on demand.","pt":"O motor continua preparando os pesos em segundo plano; leitura sob demanda.","fr":"Le moteur continue de préparer les poids en arrière-plan ; lecture à la demande.","de":"Die Engine bereitet Gewichte noch im Hintergrund vor; Laden bei Bedarf."},
-  "Modelo preparado.": {"en":"Model ready.","pt":"Modelo preparado.","fr":"Modèle prêt.","de":"Modell bereit."},
-  "Modelo cargado; parte de los pesos se leerá bajo demanda.": {"en":"Model loaded; some weights will be read on demand.","pt":"Modelo carregado; parte dos pesos será lida sob demanda.","fr":"Modèle chargé ; une partie des poids sera lue à la demande.","de":"Modell geladen; ein Teil der Gewichte wird bei Bedarf gelesen."},
-  "MTP": {"en":"MTP","pt":"MTP","fr":"MTP","de":"MTP"},
-  "El agente puede ejecutar comandos en la misma consola persistente que ves, conservando carpeta y variables. Requiere Acceso completo. No es un terminal interactivo completo: los programas que piden entrada no funcionan.": {"en":"The agent can run commands in the same persistent console you see, preserving the folder and variables. Requires Full access. It is not a full interactive terminal: programs that ask for input do not work.","pt":"O agente pode executar comandos na mesma consola persistente que você vê, preservando a pasta e as variáveis. Requer Acesso completo. Não é um terminal interativo completo: programas que pedem entrada não funcionam.","fr":"L’agent peut exécuter des commandes dans la même console persistante que vous voyez, en conservant le dossier et les variables. Nécessite Accès complet. Ce n’est pas un terminal interactif complet : les programmes qui demandent une saisie ne fonctionnent pas.","de":"Der Agent kann Befehle in derselben persistenten Konsole ausführen, die Sie sehen, und behält Ordner und Variablen bei. Erfordert Vollzugriff. Es ist kein vollständiges interaktives Terminal: Programme mit Eingabeaufforderung funktionieren nicht."}
+  "Adelante": {
+    "en": "Forward",
+    "pt": "Avançar",
+    "fr": "Suivant",
+    "de": "Vorwärts"
+  },
+  "Recargar": {
+    "en": "Reload",
+    "pt": "Recarregar",
+    "fr": "Recharger",
+    "de": "Neu laden"
+  },
+  "Ejecutar": {
+    "en": "Run",
+    "pt": "Executar",
+    "fr": "Exécuter",
+    "de": "Ausführen"
+  },
+  "Detener": {
+    "en": "Stop",
+    "pt": "Parar",
+    "fr": "Arrêter",
+    "de": "Stoppen"
+  },
+  "Inactiva": {
+    "en": "Idle",
+    "pt": "Inativa",
+    "fr": "Inactif",
+    "de": "Inaktiv"
+  },
+  "Editar mensaje": {
+    "en": "Edit message",
+    "pt": "Editar mensagem",
+    "fr": "Modifier le message",
+    "de": "Nachricht bearbeiten"
+  },
+  "Comprobando aspecto…": {
+    "en": "Checking appearance…",
+    "pt": "Verificando aparência…",
+    "fr": "Vérification de l’apparence…",
+    "de": "Darstellung wird geprüft…"
+  },
+  "↓ Seguir leyendo": {
+    "en": "↓ Follow output",
+    "pt": "↓ Seguir lendo",
+    "fr": "↓ Suivre la lecture",
+    "de": "↓ Ausgabe folgen"
+  },
+  "0 = aleatoria": {
+    "en": "0 = random",
+    "pt": "0 = aleatória",
+    "fr": "0 = aléatoire",
+    "de": "0 = zufällig"
+  },
+  "Carpeta de trabajo de esta conversación": {
+    "en": "Working folder for this conversation",
+    "pt": "Pasta de trabalho desta conversa",
+    "fr": "Dossier de travail de cette conversation",
+    "de": "Arbeitsordner für diese Unterhaltung"
+  },
+  "Busca o escribe una URL": {
+    "en": "Search or enter a URL",
+    "pt": "Pesquise ou digite uma URL",
+    "fr": "Rechercher ou saisir une URL",
+    "de": "Suchen oder URL eingeben"
+  },
+  "Escribe un comando y pulsa Enter": {
+    "en": "Type a command and press Enter",
+    "pt": "Digite um comando e pressione Enter",
+    "fr": "Saisissez une commande et appuyez sur Entrée",
+    "de": "Befehl eingeben und Eingabetaste drücken"
+  },
+  "Botones a la izquierda": {
+    "en": "Left-side buttons",
+    "pt": "Botões à esquerda",
+    "fr": "Boutons à gauche",
+    "de": "Schaltflächen links"
+  },
+  "Botones a la derecha": {
+    "en": "Right-side buttons",
+    "pt": "Botões à direita",
+    "fr": "Boutons à droite",
+    "de": "Schaltflächen rechts"
+  },
+  "Comando": {
+    "en": "Command",
+    "pt": "Comando",
+    "fr": "Commande",
+    "de": "Befehl"
+  },
+  "Historial de conversaciones": {
+    "en": "Conversation history",
+    "pt": "Histórico de conversas",
+    "fr": "Historique des conversations",
+    "de": "Unterhaltungsverlauf"
+  },
+  "Mensajes": {
+    "en": "Messages",
+    "pt": "Mensagens",
+    "fr": "Messages",
+    "de": "Nachrichten"
+  },
+  "Modo": {
+    "en": "Mode",
+    "pt": "Modo",
+    "fr": "Mode",
+    "de": "Modus"
+  },
+  "Salida de la consola": {
+    "en": "Console output",
+    "pt": "Saída do console",
+    "fr": "Sortie de la console",
+    "de": "Konsolenausgabe"
+  },
+  "Sin coincidencias. Se conserva el modelo seleccionado.": {
+    "en": "No matches. Keeping selected model.",
+    "pt": "Sem correspondências. O modelo selecionado foi mantido.",
+    "fr": "Aucune correspondance. Le modèle sélectionné est conservé.",
+    "de": "Keine Treffer. Ausgewähltes Modell wird beibehalten."
+  },
+  "Ningún modelo coincide con": {
+    "en": "No model matches",
+    "pt": "Nenhum modelo corresponde a",
+    "fr": "Aucun modèle ne correspond à",
+    "de": "Kein Modell stimmt überein mit"
+  },
+  "Aplicando y recargando el modelo…": {
+    "en": "Applying and reloading model…",
+    "pt": "Aplicando e recarregando o modelo…",
+    "fr": "Application et rechargement du modèle…",
+    "de": "Wird angewendet und Modell neu geladen…"
+  },
+  "Guardado contexto…": {
+    "en": "Saving context…",
+    "pt": "Salvando contexto…",
+    "fr": "Enregistrement du contexte…",
+    "de": "Kontext wird gespeichert…"
+  },
+  "Contexto aplicado.": {
+    "en": "Context applied.",
+    "pt": "Contexto aplicado.",
+    "fr": "Contexte appliqué.",
+    "de": "Kontext angewendet."
+  },
+  "Guardado para la próxima carga.": {
+    "en": "Saved for the next load.",
+    "pt": "Salvo para o próximo carregamento.",
+    "fr": "Enregistré pour le prochain chargement.",
+    "de": "Für den nächsten Ladevorgang gespeichert."
+  },
+  "Motor apagado. Puedes encenderlo cuando lo necesites.": {
+    "en": "Engine off. You can turn it on whenever needed.",
+    "pt": "Motor desligado. Você pode ligá-lo quando precisar.",
+    "fr": "Moteur arrêté. Vous pouvez le démarrer si besoin.",
+    "de": "Engine aus. Du kannst sie bei Bedarf einschalten."
+  },
+  "Motor encendido. Pulsa Cargar modelo para preparar el modelo seleccionado.": {
+    "en": "Engine started. Press Load model to prepare the selected model.",
+    "pt": "Motor ligado. Clique em Carregar modelo para preparar o modelo selecionado.",
+    "fr": "Moteur démarré. Cliquez sur Charger le modèle pour préparer le modèle sélectionné.",
+    "de": "Engine gestartet. Klicke auf Modell laden, um das gewählte Modell vorzubereiten."
+  },
+  "Chat nuevo.": {
+    "en": "New chat.",
+    "pt": "Novo chat.",
+    "fr": "Nouvelle discussion.",
+    "de": "Neuer Chat."
+  },
+  "Petición en curso": {
+    "en": "Current request",
+    "pt": "Solicitação em andamento",
+    "fr": "Requête en cours",
+    "de": "Laufende Anfrage"
+  },
+  "Última medida de este chat": {
+    "en": "Last measurement in this chat",
+    "pt": "Última medição deste chat",
+    "fr": "Dernière mesure de cette discussion",
+    "de": "Letzte Messung dieses Chats"
+  },
+  "tokens de entrada": {
+    "en": "input tokens",
+    "pt": "tokens de entrada",
+    "fr": "jetons d’entrée",
+    "de": "Eingabe-Tokens"
+  },
+  "de salida, incluido el razonamiento. Incluye la plantilla y las herramientas activadas. No cuenta el texto aún sin enviar.": {
+    "en": "output tokens, including reasoning. Includes prompt template and enabled tools. Unsent draft text is excluded.",
+    "pt": "de saída, incluindo o raciocínio. Inclui o template e as ferramentas ativadas. Não inclui texto ainda não enviado.",
+    "fr": "de sortie, raisonnement inclus. Inclut le modèle et les outils activés. N’inclut pas le texte non envoyé.",
+    "de": "Ausgabe-Tokens, einschließlich Denkschritte. Enthält Template und aktive Werkzeuge. Ungesendeter Text zählt nicht."
+  },
+  "Conversación": {
+    "en": "Conversation",
+    "pt": "Conversa",
+    "fr": "Discussion",
+    "de": "Unterhaltung"
+  },
+  "edición": {
+    "en": "edit",
+    "pt": "edição",
+    "fr": "édition",
+    "de": "Bearbeitung"
+  },
+  "es demasiado grande (máx. 400 KB).": {
+    "en": "is too large (max. 400 KB).",
+    "pt": "é grande demais (máx. 400 KB).",
+    "fr": "est trop volumineux (max. 400 Ko).",
+    "de": "ist zu groß (max. 400 KB)."
+  },
+  "adjunta un archivo de texto, código, CSV o Markdown.": {
+    "en": "attach a text, code, CSV, or Markdown file.",
+    "pt": "anexe um arquivo de texto, código, CSV ou Markdown.",
+    "fr": "joignez un fichier texte, code, CSV ou Markdown.",
+    "de": "hänge eine Text-, Code-, CSV- oder Markdown-Datei an."
+  },
+  "No se pudo leer": {
+    "en": "Could not read",
+    "pt": "Não foi possível ler",
+    "fr": "Impossible de lire",
+    "de": "Konnte nicht gelesen werden:"
+  },
+  "No hay páginas en el historial.": {
+    "en": "No pages in history.",
+    "pt": "Não há páginas no histórico.",
+    "fr": "Aucune page dans l’historique.",
+    "de": "Keine Seiten im Verlauf."
+  },
+  "Visión no verificada para esta arquitectura.": {
+    "en": "Vision unverified for this architecture.",
+    "pt": "Visão não verificada para esta arquitetura.",
+    "fr": "Vision non vérifiée pour cette architecture.",
+    "de": "Vision für diese Architektur nicht verifiziert."
+  },
+  "Deja de usar el modelo actual antes de cambiar la conexión.": {
+    "en": "Stop using the current model before switching connections.",
+    "pt": "Pare de usar o modelo atual antes de trocar a conexão.",
+    "fr": "Cessez d’utiliser le modèle actuel avant de changer de connexion.",
+    "de": "Beende das aktuelle Modell, bevor du die Verbindung wechselst."
+  },
+  "Strata Rust: modelos Qwen3.5/3.6. Para otras familias, elige llama.cpp.": {
+    "en": "Strata Rust: Qwen3.5/3.6 models. For other families, choose llama.cpp.",
+    "pt": "Strata Rust: modelos Qwen3.5/3.6. Para outras famílias, escolha llama.cpp.",
+    "fr": "Strata Rust : modèles Qwen3.5/3.6. Pour les autres familles, choisissez llama.cpp.",
+    "de": "Strata Rust: Qwen3.5/3.6-Modelle. Für andere Familien llama.cpp wählen."
+  },
+  "Sin MTP integrado": {
+    "en": "No built-in MTP",
+    "pt": "Sem MTP integrado",
+    "fr": "Sans MTP intégré",
+    "de": "Kein integriertes MTP"
+  },
+  "Configuración aplicada.": {
+    "en": "Settings applied.",
+    "pt": "Configuração aplicada.",
+    "fr": "Paramètres appliqués.",
+    "de": "Einstellungen angewendet."
+  },
+  "Este modelo ya está en tu lista.": {
+    "en": "This model is already in your list.",
+    "pt": "Este modelo já está na sua lista.",
+    "fr": "Ce modèle est déjà dans votre liste.",
+    "de": "Dieses Modell ist bereits in deiner Liste."
+  },
+  "Ayuda": {
+    "en": "Help",
+    "pt": "Ajuda",
+    "fr": "Aide",
+    "de": "Hilfe"
+  },
+  "Las notas de esta versión todavía no están en la caché. Pulsa «Comprobar actualizaciones» para obtenerlas.": {
+    "en": "Release notes for this version are not cached yet. Click Check updates to fetch them.",
+    "pt": "As notas desta versão ainda não estão em cache. Clique em Verificar atualizações para obtê-las.",
+    "fr": "Les notes de cette version ne sont pas encore en cache. Cliquez sur Vérifier les mises à jour pour les récupérer.",
+    "de": "Die Versionshinweise sind noch nicht zwischengespeichert. Klicke auf Nach Updates suchen, um sie abzurufen."
+  },
+  "Carpeta limita los archivos al proyecto o chat. CMD puede ejecutarse con aislamiento de Windows si está disponible. Toda la PC permite usar otras rutas y comandos con tus permisos. Al reiniciar vuelve a Carpeta.": {
+    "en": "Sandbox limits file tools to the chat or project folder. CMD can run with Windows isolation when available. Full PC allows other paths and commands with your permissions. Resets to Sandbox on restart.",
+    "pt": "Sandbox limita arquivos ao projeto ou chat. CMD pode rodar com isolamento do Windows se disponível. PC completo permite outros caminhos e comandos com suas permissões. Volta para Sandbox ao reiniciar.",
+    "fr": "Le bac à sable limite les fichiers au projet ou à la discussion. CMD peut s’exécuter avec l’isolation Windows si disponible. Tout le PC autorise d’autres chemins et commandes avec vos droits. Réinitialisé sur Bac à sable au redémarrage.",
+    "de": "Sandbox beschränkt Dateien auf Projekt oder Chat. CMD kann mit Windows-Isolation laufen, falls verfügbar. Vollzugriff erlaubt andere Pfade und Befehle mit deinen Rechten. Wird beim Neustart zurückgesetzt."
+  },
+  "En Carpeta ejecuta CMD aislado, sin red y solo si la comprobación de Windows tiene éxito. En Toda la PC permite CMD y PowerShell con tus permisos.": {
+    "en": "In Sandbox, runs isolated CMD without network only if Windows isolation passes. In Full PC, allows CMD and PowerShell with your user permissions.",
+    "pt": "Em Sandbox, executa CMD isolado e sem rede apenas se a verificação do Windows passar. Em PC completo, permite CMD e PowerShell com suas permissões.",
+    "fr": "En bac à sable, exécute CMD isolé sans réseau uniquement si la vérification Windows réussit. Sur tout le PC, autorise CMD et PowerShell avec vos droits.",
+    "de": "In der Sandbox wird isoliertes CMD ohne Netzwerk ausgeführt, wenn die Windows-Prüfung erfolgreich ist. Bei Vollzugriff sind CMD und PowerShell mit deinen Rechten erlaubt."
+  },
+  "El agente usa la misma ventana de navegador que ves: puede abrir páginas, leer su texto, pulsar elementos y escribir en formularios. Tú puedes seguir usando la barra y la ventana. No es un iframe; las páginas no se incrustan dentro del chat.": {
+    "en": "The agent shares the browser window you see: it can open pages, read text, click elements, and fill forms. You can keep using the address bar and window. Pages are not embedded inside the chat.",
+    "pt": "O agente usa a mesma janela de navegador que você vê: pode abrir páginas, ler texto, clicar e preencher formulários. Você continua podendo usar a barra e a janela.",
+    "fr": "L’agent utilise la même fenêtre de navigateur que vous voyez : il peut ouvrir des pages, lire du texte, cliquer et remplir des formulaires. Vous pouvez continuer à utiliser la barre et la fenêtre.",
+    "de": "Der Agent nutzt dasselbe Browserfenster, das du siehst: Seiten öffnen, Text lesen, klicken und Formulare ausfüllen. Du kannst Leiste und Fenster weiter verwenden."
+  },
+  "Abre un Edge headless propio para navegar, extraer, descargar, capturar pantalla y leer red/consola sin ocupar tu ventana. Usa su propio perfil; no ve tus pestañas personales salvo que se importen.": {
+    "en": "Launches a dedicated headless Edge instance to browse, extract, download, capture screenshots, and inspect network/console logs without taking over your browser window.",
+    "pt": "Abre uma instância própria do Edge headless para navegar, extrair, baixar, capturar telas e ler rede/console sem ocupar sua janela.",
+    "fr": "Lance une instance dédiée d’Edge sans tête pour naviguer, extraire, télécharger, capturer l’écran et lire réseau/console sans occuper votre fenêtre.",
+    "de": "Startet eine eigene Headless-Edge-Instanz zum Surfen, Extrahieren, Herunterladen, für Screenshots und Netzwerk-/Konsolenlogs ohne dein Fenster zu blockieren."
+  },
+  "Peticiones HTTP reales con cabeceras, cookies y cuerpo; descarga y guarda archivos; extrae HTML a Markdown. Solo en Agente estándar o completo.": {
+    "en": "Performs real HTTP requests with headers, cookies, and request bodies; downloads and saves files; extracts HTML as Markdown. Available in Standard or Full Agent modes.",
+    "pt": "Faz requisições HTTP reais com cabeçalhos, cookies e corpo; baixa e salva arquivos; extrai HTML para Markdown. Apenas em Agente padrão ou completo.",
+    "fr": "Effectue de vraies requêtes HTTP avec en-têtes, cookies et corps ; télécharge et enregistre des fichiers ; extrait le HTML en Markdown. Uniquement en mode Agent standard ou complet.",
+    "de": "Führt echte HTTP-Anfragen mit Headern, Cookies und Body aus; lädt Dateien herunter und speichert sie; wandelt HTML in Markdown um. Nur im Standard- oder Vollagenten-Modus."
+  },
+  "El modelo se añadió, pero no aparece en la lista. Pulsa Actualizar.": {
+    "en": "Model added, though it does not show in the list yet. Click Refresh.",
+    "pt": "O modelo foi adicionado, mas não aparece na lista. Clique em Atualizar.",
+    "fr": "Le modèle a été ajouté, mais n’apparaît pas encore dans la liste. Cliquez sur Actualiser.",
+    "de": "Das Modell wurde hinzugefügt, erscheint aber noch nicht in der Liste. Klicke auf Aktualisieren."
+  },
+  "Modelo añadido. Pulsa Cargar para usarlo.": {
+    "en": "Model added. Click Load to use it.",
+    "pt": "Modelo adicionado. Clique em Carregar para usá-lo.",
+    "fr": "Modèle ajouté. Cliquez sur Charger pour l’utiliser.",
+    "de": "Modell hinzugefügt. Klicke auf Laden, um es zu verwenden."
+  },
+  "El mmproj convierte imágenes para el modelo y debe ser compatible con él. Se guarda por modelo. Activarlo se aplica en la próxima carga manual; elegir un archivo no carga nada. El codificador trabaja en CPU cuando adjuntas una imagen.": {
+    "en": "The mmproj encodes images for the model and must match its architecture. Saved per model. Enabling takes effect on the next manual load; picking a file does not load anything. The encoder runs on CPU when an image is attached.",
+    "pt": "O mmproj converte imagens para o modelo e deve ser compatível com ele. Salvo por modelo. Ativar aplica no próximo carregamento manual. O codificador trabalha na CPU ao anexar uma imagem.",
+    "fr": "Le mmproj convertit les images pour le modèle et doit être compatible. Enregistré par modèle. L’activation prend effet au prochain chargement manuel. L’encodeur s’exécute sur CPU.",
+    "de": "Das mmproj kodiert Bilder für das Modell und muss kompatibel sein. Pro Modell gespeichert. Wird beim nächsten manuellen Laden aktiv. Der Encoder läuft auf der CPU."
+  },
+  "Activa imágenes en la conexión API y selecciona un modelo compatible.": {
+    "en": "Enable vision in the API connection and select a compatible model.",
+    "pt": "Ative imagens na conexão API e selecione um modelo compatível.",
+    "fr": "Activez les images dans la connexion API et sélectionnez un modèle compatible.",
+    "de": "Aktiviere Bilder in der API-Verbindung und wähle ein kompatibles Modell."
+  },
+  "Activa un mmproj compatible en Modelo y carga ese modelo antes de adjuntar imágenes.": {
+    "en": "Enable a compatible mmproj in Model and load that model before attaching images.",
+    "pt": "Ative um mmproj compatível em Modelo e carregue esse modelo antes de anexar imagens.",
+    "fr": "Activez un mmproj compatible dans Modèle et chargez ce modèle avant de joindre des images.",
+    "de": "Aktiviere ein passendes mmproj unter Modell und lade es, bevor du Bilder anhängst."
+  },
+  "Vuelve a abrir el chat para usar la versión actual del disco. La copia en conflicto está conservada.": {
+    "en": "Reopen the chat to use the current version on disk. The conflicting copy has been preserved.",
+    "pt": "Reabra o chat para usar a versão atual do disco. A cópia em conflito foi preservada.",
+    "fr": "Rouvrez la discussion pour utiliser la version actuelle sur le disque. La copie en conflit est conservée.",
+    "de": "Öffne den Chat erneut, um die aktuelle Version auf der Festplatte zu nutzen. Die Konfliktkopie wurde behalten."
+  },
+  "El servidor no devolvió una respuesta de chat válida.": {
+    "en": "The server did not return a valid chat response.",
+    "pt": "O servidor não retornou uma resposta de chat válida.",
+    "fr": "Le serveur n’a pas renvoyé de réponse de discussion valide.",
+    "de": "Der Server hat keine gültige Chat-Antwort zurückgegeben."
+  },
+  "El chat ya no está disponible.": {
+    "en": "This chat is no longer available.",
+    "pt": "Este chat não está mais disponível.",
+    "fr": "Cette discussion n’est plus disponible.",
+    "de": "Dieser Chat ist nicht mehr verfügbar."
+  },
+  "Guardado por recuperación del borrador. ": {
+    "en": "Saved via draft recovery. ",
+    "pt": "Salvo por recuperação de rascunho. ",
+    "fr": "Enregistré via récupération de brouillon. ",
+    "de": "Durch Entwurfswiederherstellung gespeichert. "
+  },
+  "Guardado. La comprobación encontró errores en ": {
+    "en": "Saved. Verification found errors in ",
+    "pt": "Salvo. A verificação encontrou erros em ",
+    "fr": "Enregistré. La vérification a trouvé des erreurs dans ",
+    "de": "Gespeichert. Prüfung fand Fehler in "
+  },
+  "La aplicación de escritorio no está disponible.": {
+    "en": "The desktop app API is unavailable.",
+    "pt": "O aplicativo de desktop não está disponível.",
+    "fr": "L’application de bureau n’est pas disponible.",
+    "de": "Die Desktop-Anwendung ist nicht verfügbar."
+  },
+  " · código ": {
+    "en": " · code ",
+    "pt": " · código ",
+    "fr": " · code ",
+    "de": " · Code "
+  },
+  "Escribe una dirección http o https válida.": {
+    "en": "Enter a valid http or https URL.",
+    "pt": "Digite um endereço http ou https válido.",
+    "fr": "Saisissez une adresse http ou https valide.",
+    "de": "Gib eine gültige http- oder https-Adresse ein."
+  },
+  "El uso del navegador por el agente está desactivado.": {
+    "en": "Browser control by the agent is disabled.",
+    "pt": "O uso do navegador pelo agente está desativado.",
+    "fr": "L’utilisation du navigateur par l’agent est désactivée.",
+    "de": "Die Browsersteuerung durch den Agenten ist deaktiviert."
+  },
+  "La ventana de escritorio no está disponible.": {
+    "en": "The desktop window is unavailable.",
+    "pt": "A janela de desktop não está disponível.",
+    "fr": "La fenêtre de bureau est indisponible.",
+    "de": "Das Desktopfenster ist nicht verfügbar."
+  },
+  "No se pudo abrir la página.": {
+    "en": "Could not open the page.",
+    "pt": "Não foi possível abrir a página.",
+    "fr": "Impossible d’ouvrir la page.",
+    "de": "Seite konnte nicht geöffnet werden."
+  },
+  "No hay una página abierta en el navegador integrado.": {
+    "en": "There is no page open in the built-in browser.",
+    "pt": "Não há página aberta no navegador integrado.",
+    "fr": "Aucune page n’est ouverte dans le navigateur intégré.",
+    "de": "Im integrierten Browser ist keine Seite geöffnet."
+  },
+  "Acción de navegador no admitida.": {
+    "en": "Unsupported browser action.",
+    "pt": "Ação de navegador não suportada.",
+    "fr": "Action de navigateur non prise en charge.",
+    "de": "Nicht unterstützte Browseraktion."
+  },
+  "no compatible": {
+    "en": "incompatible",
+    "pt": "incompatível",
+    "fr": "incompatible",
+    "de": "nicht kompatibel"
+  },
+  "No compatible": {
+    "en": "Incompatible",
+    "pt": "Incompatível",
+    "fr": "Incompatible",
+    "de": "Nicht kompatibel"
+  },
+  "16 bits; mayor precisión y consumo de memoria.": {
+    "en": "16-bit precision; highest accuracy and memory usage.",
+    "pt": "16 bits; maior precisão e consumo de memória.",
+    "fr": "16 bits ; précision et consommation mémoire maximales.",
+    "de": "16 Bit; höchste Genauigkeit und höchster Speicherverbrauch."
+  },
+  "8 bits para claves y valores; reduce el consumo de memoria.": {
+    "en": "8-bit keys and values; reduces memory usage.",
+    "pt": "8 bits para chaves e valores; reduz o consumo de memória.",
+    "fr": "8 bits pour clés et valeurs ; réduit la consommation mémoire.",
+    "de": "8 Bit für Schlüssel und Werte; reduziert den Speicherverbrauch."
+  },
+  "Claves y valores de 8 bits; implementación propia de esta arquitectura.": {
+    "en": "8-bit keys and values; custom implementation for this architecture.",
+    "pt": "Chaves e valores de 8 bits; implementação própria desta arquitetura.",
+    "fr": "Clés et valeurs sur 8 bits ; implémentation propre à cette architecture.",
+    "de": "8-Bit-Schlüssel und -Werte; eigene Implementierung dieser Architektur."
+  },
+  "Claves de 8 bits y valores FP16; consumo intermedio.": {
+    "en": "8-bit keys and FP16 values; intermediate memory usage.",
+    "pt": "Chaves de 8 bits e valores FP16; consumo intermediário.",
+    "fr": "Clés sur 8 bits et valeurs FP16 ; consommation intermédiaire.",
+    "de": "8-Bit-Schlüssel und FP16-Werte; mittlerer Speicherverbrauch."
+  },
+  "4 bits con rotación Hadamard; menor memoria y precisión.": {
+    "en": "4-bit with Hadamard rotation; lowest memory usage and accuracy.",
+    "pt": "4 bits com rotação Hadamard; menor memória e precisão.",
+    "fr": "4 bits avec rotation de Hadamard ; mémoire et précision réduites.",
+    "de": "4 Bit mit Hadamard-Rotation; geringster Speicherbedarf und geringere Genauigkeit."
+  },
+  "Claves INT8 y valores Q4_0; formato híbrido.": {
+    "en": "INT8 keys and Q4_0 values; hybrid format.",
+    "pt": "Chaves INT8 e valores Q4_0; formato híbrido.",
+    "fr": "Clés INT8 et valeurs Q4_0 ; format hybride.",
+    "de": "INT8-Schlüssel und Q4_0-Werte; Hybridformat."
+  },
+  "No se pudo comprobar la compatibilidad KV.": {
+    "en": "Could not verify KV compatibility.",
+    "pt": "Não foi possível verificar a compatibilidade KV.",
+    "fr": "Impossible de vérifier la compatibilité KV.",
+    "de": "KV-Kompatibilität konnte nicht geprüft werden."
+  },
+  "Formato de caché KV no admitido por este modelo y motor.": {
+    "en": "KV cache format not supported by this model and engine.",
+    "pt": "Formato de cache KV não suportado por este modelo e motor.",
+    "fr": "Format de cache KV non pris en charge par ce modèle et ce moteur.",
+    "de": "KV-Cache-Format wird von diesem Modell und dieser Engine nicht unterstützt."
+  },
+  "Selecciona un formato compatible.": {
+    "en": "Select a compatible format.",
+    "pt": "Selecione um formato compatível.",
+    "fr": "Sélectionnez un format compatible.",
+    "de": "Wähle ein kompatibles Format."
+  },
+  "No se encontró la ventana principal.": {
+    "en": "Main window was not found.",
+    "pt": "A janela principal não foi encontrada.",
+    "fr": "La fenêtre principale est introuvable.",
+    "de": "Das Hauptfenster wurde nicht gefunden."
+  },
+  "Identificador de conversación no válido.": {
+    "en": "Invalid conversation ID.",
+    "pt": "Identificador de conversa inválido.",
+    "fr": "Identifiant de conversation non valide.",
+    "de": "Ungültige Konversations-ID."
+  },
+  "No existe la carpeta del Sandbox.": {
+    "en": "Sandbox folder does not exist.",
+    "pt": "A pasta do Sandbox não existe.",
+    "fr": "Le dossier Sandbox n’existe pas.",
+    "de": "Der Sandbox-Ordner existiert nicht."
+  },
+  "No existe la carpeta de esta conversación.": {
+    "en": "Folder for this conversation does not exist.",
+    "pt": "A pasta desta conversa não existe.",
+    "fr": "Le dossier de cette conversation n’existe pas.",
+    "de": "Der Ordner für diese Konversation existiert nicht."
+  },
+  "La carpeta del Sandbox no es válida.": {
+    "en": "Sandbox folder path is invalid.",
+    "pt": "O caminho da pasta do Sandbox não é válido.",
+    "fr": "Le dossier Sandbox n’est pas valide.",
+    "de": "Der Sandbox-Ordnerpfad ist ungültig."
+  },
+  "No se encontró la carpeta del ejecutable.": {
+    "en": "Executable folder was not found.",
+    "pt": "A pasta do executável não foi encontrada.",
+    "fr": "Le dossier de l’exécutable est introuvable.",
+    "de": "Der Programmordner wurde nicht gefunden."
+  },
+  "Carpeta desconocida.": {
+    "en": "Unknown folder.",
+    "pt": "Pasta desconhecida.",
+    "fr": "Dossier inconnu.",
+    "de": "Unbekannter Ordner."
+  },
+  "La carpeta de motores no está disponible.": {
+    "en": "Engines folder is unavailable.",
+    "pt": "A pasta de motores não está disponível.",
+    "fr": "Le dossier des moteurs est indisponible.",
+    "de": "Der Engine-Ordner ist nicht verfügbar."
+  },
+  "No se encontró la carpeta de V-Agent.": {
+    "en": "V-Agent folder was not found.",
+    "pt": "A pasta do V-Agent não foi encontrada.",
+    "fr": "Le dossier de V-Agent est introuvable.",
+    "de": "Der V-Agent-Ordner wurde nicht gefunden."
+  },
+  "No se encontró el desinstalador. Esta instalación puede ser portátil.": {
+    "en": "Uninstaller was not found. This installation may be portable.",
+    "pt": "O desinstalador não foi encontrado. Esta instalação pode ser portátil.",
+    "fr": "Le programme de désinstallation est introuvable. Cette installation est peut-être portable.",
+    "de": "Deinstallationsprogramm nicht gefunden. Dies könnte eine portable Installation sein."
+  },
+  "Color de ventana no válido.": {
+    "en": "Invalid window color.",
+    "pt": "Cor de janela inválida.",
+    "fr": "Couleur de fenêtre non valide.",
+    "de": "Ungültige Fensterfarbe."
+  },
+  "Redondez fuera de rango.": {
+    "en": "Corner radius out of range.",
+    "pt": "Arredondamento fora do intervalo.",
+    "fr": "Rayon d’angle hors plage.",
+    "de": "Eckenradius außerhalb des gültigen Bereichs."
+  },
+  "No se pudo abrir el diálogo para guardar el archivo.": {
+    "en": "Could not open the save file dialog.",
+    "pt": "Não foi possível abrir a caixa de diálogo para salvar o arquivo.",
+    "fr": "Impossible d’ouvrir la boîte de dialogue d’enregistrement.",
+    "de": "Der Speicherdialog konnte nicht geöffnet werden."
+  },
+  "No se pudo guardar el archivo.": {
+    "en": "Could not save the file.",
+    "pt": "Não foi possível salvar o arquivo.",
+    "fr": "Impossible d’enregistrer le fichier.",
+    "de": "Die Datei konnte nicht gespeichert werden."
+  },
+  "Archivo guardado.": {
+    "en": "File saved.",
+    "pt": "Arquivo salvo.",
+    "fr": "Fichier enregistré.",
+    "de": "Datei gespeichert."
+  },
+  "Exportación cancelada.": {
+    "en": "Export cancelled.",
+    "pt": "Exportação cancelada.",
+    "fr": "Exportation annulée.",
+    "de": "Export abgebrochen."
+  },
+  "Usa los controles de V-Agent para abrir la carpeta.": {
+    "en": "Use V-Agent controls to open the folder.",
+    "pt": "Use os controles do V-Agent para abrir a pasta.",
+    "fr": "Utilisez les contrôles de V-Agent pour ouvrir le dossier.",
+    "de": "Verwende die V-Agent-Steuerelemente, um den Ordner zu öffnen."
+  },
+  "Primero abre o guarda una conversación.": {
+    "en": "Open or save a conversation first.",
+    "pt": "Abra ou salve uma conversa primeiro.",
+    "fr": "Ouvrez ou enregistrez d’abord une conversation.",
+    "de": "Öffne oder speichere zuerst eine Konversation."
+  },
+  "Conecta una API para ver sus modelos.": {
+    "en": "Connect an API to see its models.",
+    "pt": "Conecte uma API para ver os modelos.",
+    "fr": "Connectez une API pour voir ses modèles.",
+    "de": "Verbinde eine API, um ihre Modelle anzuzeigen."
+  },
+  "Guardando contexto…": {
+    "en": "Saving context…",
+    "pt": "Salvando contexto…",
+    "fr": "Enregistrement du contexte…",
+    "de": "Kontext wird gespeichert…"
+  },
+  "No hay modelos instalados.": {
+    "en": "No installed models found.",
+    "pt": "Não há modelos instalados.",
+    "fr": "Aucun modèle installé.",
+    "de": "Keine installierten Modelle gefunden."
+  },
+  "Cargando con": {
+    "en": "Loading with",
+    "pt": "Carregando com",
+    "fr": "Chargement avec",
+    "de": "Wird geladen mit"
+  },
+  "Pesos leídos. Preparando el motor…": {
+    "en": "Weights read. Preparing the engine…",
+    "pt": "Pesos lidos. Preparando o motor…",
+    "fr": "Poids lus. Préparation du moteur…",
+    "de": "Gewichte geladen. Engine wird vorbereitet…"
+  },
+  "Leyendo pesos antes de cargar…": {
+    "en": "Reading weights before loading…",
+    "pt": "Lendo pesos antes de carregar…",
+    "fr": "Lecture des poids avant le chargement…",
+    "de": "Gewichte werden vor dem Laden eingelesen…"
+  },
+  "RAM insuficiente para precargar todos los pesos; lectura bajo demanda.": {
+    "en": "Insufficient RAM to preload all weights; reading on demand.",
+    "pt": "RAM insuficiente para pré-carregar todos os pesos; leitura sob demanda.",
+    "fr": "RAM insuffisante pour précharger tous les poids ; lecture à la demande.",
+    "de": "Nicht genügend RAM zum Vorabladen aller Gewichte; Laden bei Bedarf."
+  },
+  "Memoria libre limitada; el resto de pesos se leerá bajo demanda.": {
+    "en": "Limited free memory; remaining weights will be read on demand.",
+    "pt": "Memória livre limitada; os demais pesos serão lidos sob demanda.",
+    "fr": "Mémoire libre limitée ; les poids restants seront lus à la demande.",
+    "de": "Begrenzter freier Speicher; übrige Gewichte werden bei Bedarf gelesen."
+  },
+  "No se pudo comprobar la preparación de la memoria del motor.": {
+    "en": "Could not verify engine memory preparation.",
+    "pt": "Não foi possível verificar a preparação de memória do motor.",
+    "fr": "Impossible de vérifier la préparation mémoire du moteur.",
+    "de": "Die Speichervorbereitung der Engine konnte nicht überprüft werden."
+  },
+  "Terminando la preparación en RAM…": {
+    "en": "Finishing RAM preparation…",
+    "pt": "Concluindo preparação na RAM…",
+    "fr": "Finalisation de la préparation en RAM…",
+    "de": "Vorbereitung im RAM wird abgeschlossen…"
+  },
+  "El motor sigue preparando pesos en segundo plano; lectura bajo demanda.": {
+    "en": "Engine is still preparing weights in the background; reading on demand.",
+    "pt": "O motor continua preparando os pesos em segundo plano; leitura sob demanda.",
+    "fr": "Le moteur continue de préparer les poids en arrière-plan ; lecture à la demande.",
+    "de": "Die Engine bereitet Gewichte noch im Hintergrund vor; Laden bei Bedarf."
+  },
+  "Modelo preparado.": {
+    "en": "Model ready.",
+    "pt": "Modelo preparado.",
+    "fr": "Modèle prêt.",
+    "de": "Modell bereit."
+  },
+  "Modelo cargado; parte de los pesos se leerá bajo demanda.": {
+    "en": "Model loaded; some weights will be read on demand.",
+    "pt": "Modelo carregado; parte dos pesos será lida sob demanda.",
+    "fr": "Modèle chargé ; une partie des poids sera lue à la demande.",
+    "de": "Modell geladen; ein Teil der Gewichte wird bei Bedarf gelesen."
+  },
+  "MTP": {
+    "en": "MTP",
+    "pt": "MTP",
+    "fr": "MTP",
+    "de": "MTP"
+  },
+  "El agente puede ejecutar comandos en la misma consola persistente que ves, conservando carpeta y variables. Requiere Acceso completo. No es un terminal interactivo completo: los programas que piden entrada no funcionan.": {
+    "en": "The agent can run commands in the same persistent console you see, preserving the folder and variables. Requires Full access. It is not a full interactive terminal: programs that ask for input do not work.",
+    "pt": "O agente pode executar comandos na mesma consola persistente que você vê, preservando a pasta e as variáveis. Requer Acesso completo. Não é um terminal interativo completo: programas que pedem entrada não funcionam.",
+    "fr": "L’agent peut exécuter des commandes dans la même console persistante que vous voyez, en conservant le dossier et les variables. Nécessite Accès complet. Ce n’est pas un terminal interactif complet : les programmes qui demandent une saisie ne fonctionnent pas.",
+    "de": "Der Agent kann Befehle in derselben persistenten Konsole ausführen, die Sie sehen, und behält Ordner und Variablen bei. Erfordert Vollzugriff. Es ist kein vollständiges interaktives Terminal: Programme mit Eingabeaufforderung funktionieren nicht."
+  },
+  "Borrador disponible": {
+    "en": "Draft available",
+    "pt": "Rascunho disponível",
+    "fr": "Brouillon disponible",
+    "de": "Entwurf verfügbar"
+  },
+  "Ver borrador": {
+    "en": "View draft",
+    "pt": "Ver rascunho",
+    "fr": "Voir le brouillon",
+    "de": "Entwurf ansehen"
+  },
+  "Guardar borrador": {
+    "en": "Save draft",
+    "pt": "Salvar rascunho",
+    "fr": "Enregistrer le brouillon",
+    "de": "Entwurf speichern"
+  },
+  "Hay un borrador pendiente sin guardar en el archivo final.": {
+    "en": "There is an unfinished draft not yet saved to the final file.",
+    "pt": "Há um rascunho pendente ainda não salvo no arquivo final.",
+    "fr": "Un brouillon inachevé n’a pas encore été enregistré dans le fichier final.",
+    "de": "Es gibt einen unvollständigen Entwurf, der noch nicht in der Zieldatei gespeichert wurde."
+  },
+  "No hay un precompilado compatible publicado.": {
+    "en": "No compatible prebuilt release is published.",
+    "pt": "Não há uma versão pré-compilada compatível publicada.",
+    "fr": "Aucune version précompilée compatible n’est publiée.",
+    "de": "Es ist keine kompatible vorkompilierte Version veröffentlicht."
+  },
+  "Restaurado": {
+    "en": "Restored",
+    "pt": "Restaurado",
+    "fr": "Restauré",
+    "de": "Wiederhergestellt"
+  },
+  "No se pudo adjuntar la imagen: ": {
+    "en": "Could not attach image: ",
+    "pt": "Não foi possível anexar a imagem: ",
+    "fr": "Impossible de joindre l’image : ",
+    "de": "Bild konnte nicht angehängt werden: "
+  },
+  "No se pudo cancelar: ": {
+    "en": "Could not cancel: ",
+    "pt": "Não foi possível cancelar: ",
+    "fr": "Impossible d’annuler : ",
+    "de": "Abbrechen fehlgeschlagen: "
+  },
+  "Plantilla jinja: ": {
+    "en": "Jinja template: ",
+    "pt": "Modelo Jinja: ",
+    "fr": "Modèle Jinja : ",
+    "de": "Jinja-Vorlage: "
+  },
+  "Guardado pendiente; mantén la pestaña abierta. ": {
+    "en": "Save pending; keep this tab open. ",
+    "pt": "Salvamento pendente; mantenha esta aba aberta. ",
+    "fr": "Enregistrement en attente ; gardez cet onglet ouvert. ",
+    "de": "Speichern ausstehend; Tab geöffnet lassen. "
+  },
+  "No se pudo importar: ": {
+    "en": "Could not import: ",
+    "pt": "Não foi possível importar: ",
+    "fr": "Impossible d’importer : ",
+    "de": "Import fehlgeschlagen: "
+  }
 }

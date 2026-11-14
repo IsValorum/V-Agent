@@ -342,7 +342,8 @@ def _snapshot_js(max_chars: int, max_items: int = 50) -> str:
         if (!visible(el)) continue;
         const tag = el.tagName.toLowerCase();
         const type = clean(el.getAttribute('type') || el.getAttribute('role') || '');
-        const text = clean(el.getAttribute('aria-label') || el.getAttribute('title') || el.innerText || el.getAttribute('placeholder') || '').slice(0, 120);
+        const btnVal = (tag === 'input' && /^(submit|button|reset)$/i.test(type)) ? (el.value || '') : '';
+        const text = clean(el.getAttribute('aria-label') || el.getAttribute('title') || el.innerText || btnVal || el.getAttribute('placeholder') || '').slice(0, 120);
         const name = clean(el.getAttribute('name') || '');
         const href = el.href ? cleanHref(String(el.href)) : '';
         if (tag === 'a' && !text && !name) continue;
@@ -495,12 +496,22 @@ def _with_gate_hint(payload: dict, body_head: str = "", link_count: int | None =
     return payload
 
 
+def _require_http_url(url: str) -> str:
+    cleaned = str(url or "").strip()
+    parsed = urllib.parse.urlparse(cleaned)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        raise ValueError("Only http/https URLs are allowed.")
+    return cleaned
+
+
 @mcp.tool(annotations=WRITE)
 def open(url: str, new_tab: bool = False) -> str:
     """Open a URL in the autonomous browser; new_tab=true opens and activates a new tab (returns active_index)."""
     if new_tab:
-        port = _start().target and STATE["port"]
-        target = _http_json(f"http://127.0.0.1:{port}/json/new?url=" + urllib.parse.quote(url, safe=""), method="PUT")
+        _require_http_url(url)
+        _start()
+        port = STATE["port"]
+        target = _http_json(f"http://127.0.0.1:{port}/json/new?url=about:blank", method="PUT")
         _connect_target(target)
     page = _navigate(url)
     active_idx, tab_count = _active_tab_meta()
@@ -892,9 +903,7 @@ def tabs(action: str = "list", url: str | None = None, index: int | None = None,
         return _result({"ok": True, "active_index": active_idx, "count": len(rows), "tabs": rows})
     if action == "new":
         if url:
-            parsed = urllib.parse.urlparse(str(url).strip())
-            if parsed.scheme not in ("http", "https"):
-                raise ValueError("Only http/https URLs are allowed.")
+            _require_http_url(url)
         prev_target = STATE.get("target")
         _start()
         port = STATE["port"]
@@ -927,7 +936,11 @@ def tabs(action: str = "list", url: str | None = None, index: int | None = None,
             cached.close()
         with urllib.request.urlopen(f"http://127.0.0.1:{port}/json/close/" + str(closed_id), timeout=5) as response:
             response.read(1024)
+        deadline = time.monotonic() + 1.5
         remaining = _list_pages()
+        while closed_id and any(p.get("id") == closed_id for p in remaining) and time.monotonic() < deadline:
+            time.sleep(0.03)
+            remaining = _list_pages()
         if not remaining:
             STATE["cdp"] = None
             STATE["target"] = None

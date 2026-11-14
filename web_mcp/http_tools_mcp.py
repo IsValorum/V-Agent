@@ -56,6 +56,28 @@ def _redirect_guard(allow_private):
     return check
 
 
+def _fallback_name(url: str, default: str = "download.bin") -> str:
+    raw_name = Path(urlparse(url).path).name or default
+    clean = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in raw_name)[:160].strip("._")
+    return clean or default
+
+
+def _is_text_response(raw: bytes, content_type: str) -> bool:
+    ct = (content_type or "").lower()
+    if ct.startswith("text/") or any(token in ct for token in ("json", "xml", "javascript", "x-www-form-urlencoded")):
+        return True
+    if ct or not raw:
+        return False
+    sample = raw[:4096]
+    if any(b < 9 or (13 < b < 32) for b in sample):
+        return False
+    try:
+        sample.decode("utf-8")
+        return True
+    except UnicodeDecodeError:
+        return False
+
+
 def _target(value: str | None, fallback: str, root: str | None = None) -> Path:
     root = Path(root) if root else DATA_ROOT / "downloads"
     root.mkdir(parents=True, exist_ok=True)
@@ -195,27 +217,24 @@ def http_request(url: str, method: str = "GET", headers: dict | None = None,
                     break
             raw = bytes(chunks[:max_bytes])
             saved = None
+            text_like = _is_text_response(raw, content_type)
             if save_path:
                 if byte_truncated:
                     raise ValueError(f"Response exceeded {max_bytes} bytes before save; use download or increase max_bytes.")
-                name = Path(urlparse(response.url).path).name or "response.bin"
-                destination = _target(save_path, name, download_dir)
+                destination = _target(save_path, _fallback_name(response.url, "response.bin"), download_dir)
                 destination.write_bytes(raw)
                 saved = str(destination)
-            elif fmt == "auto" and not ext and not (
-                    content_type.startswith("text/") or "json" in content_type
-                    or "xml" in content_type or "javascript" in content_type):
-                name = Path(urlparse(response.url).path).name or "response.bin"
-                destination = _target(None, name, download_dir)
+            elif fmt == "auto" and not ext and not text_like:
+                destination = _target(None, _fallback_name(response.url, "response.bin"), download_dir)
                 destination.write_bytes(raw)
                 saved = str(destination)
             text = ""
             if not saved:
                 if fmt == "base64":
                     text = base64.b64encode(raw).decode("ascii")
-                elif "json" in content_type and fmt in ("auto", "json") and not ext:
+                elif "json" in content_type.lower() and fmt in ("auto", "json") and not ext:
                     text = raw.decode(response.encoding or "utf-8", errors="replace")
-                elif content_type.startswith("text/") or "xml" in content_type or "javascript" in content_type or ext or fmt in ("readability", "markdown"):
+                elif text_like or ext or fmt in ("readability", "markdown"):
                     if ext in ("readability", "markdown") or fmt in ("auto", "markdown", "readability"):
                         text = _decode_text(raw, content_type, response.encoding)
                         if not text and byte_truncated:
@@ -253,7 +272,7 @@ def download(url: str, path: str | None = None, headers: dict | None = None,
     target = _url(url, allow_private)
     timeout = max(1, min(int(timeout), 1800))
     max_bytes = max(1024, min(int(max_bytes), 2_000_000_000))
-    destination = _target(path, Path(urlparse(target).path).name or "download.bin")
+    destination = _target(path, _fallback_name(target))
     digest = hashlib.sha256()
     total = 0
     request_headers = _build_headers(headers)

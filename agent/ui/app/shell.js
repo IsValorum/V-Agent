@@ -391,7 +391,12 @@ function setupAgentProfilesAndUpdates(){
     window.VALI18n?.observe(updates);
   }
   $('#copyHardware').onclick=async()=>{try{const data=await requestJSON('/api/harness/hardware');await navigator.clipboard.writeText(JSON.stringify({hardware:data.hardware,recommendations:data.recommendations,summary:data.hardware_summary},null,2));note(uiText('Informe copiado.'));}catch(error){note(error.message);}};
-  let signature='',installedSignature='';
+  let signature='',installedSignature='',lastUpdateState=null;
+  const noteSummaryCache=new Map();
+  const compactReleaseSummary=(notes,limit=160)=>{
+    const clean=String(notes||'').replace(/\[([^\]]+)\]\([^)]+\)/g,'$1').replace(/^\s*(?:#{1,6}\s*|[-*+]\s+|\d+\.\s+)/gm,'').replace(/[`*_>~]+/g,'').replace(/\s+/g,' ').trim();
+    return !clean?'':clean.length<=limit?clean:clean.slice(0,limit-1).trimEnd()+'…';
+  };
   function paintStackProgress(progress){
     const card=stack.querySelector(':scope > .update-card');if(!card)return;
     let box=card.querySelector('.update-progress');
@@ -407,25 +412,27 @@ function setupAgentProfilesAndUpdates(){
     bar.value=percent;
   }
   function paintUpdates(state){
+    lastUpdateState=state;
     // Progress ticks must not rebuild the card: that made the notification blink.
+    const lang=window.VALI18n?.language||'es';
     const progress=state.progress?{engine:state.progress.engine,phase:state.progress.phase,total:state.progress.total||0}:null;
-    const current=JSON.stringify({...state,progress});if(current===signature){lastUpdateInstalling=!!state.installing;paintDownloadProgress(state.progress);paintStackProgress(state.progress);return;}signature=current;
+    const current=JSON.stringify({...state,progress,lang});if(current===signature){lastUpdateInstalling=!!state.installing;paintDownloadProgress(state.progress);paintStackProgress(state.progress);return;}signature=current;
     const installed=JSON.stringify(state.installed||{});if(installed!==installedSignature&&!state.busy){installedSignature=installed;requestJSON('/api/harness/state').then(snapshot=>{engineSnapshot=snapshot;syncEngineVersions();syncSettingsSummary();}).catch(()=>{});}
-    $('#engineUpdateStatus').textContent=state.error||state.operation||(state.busy?uiText('Comprobando…'):'');$('#checkEngineUpdates').disabled=state.busy;
+    $('#engineUpdateStatus').textContent=state.error||(state.operation?uiText(state.operation):'')||(state.busy?uiText('Comprobando…'):'');$('#checkEngineUpdates').disabled=state.busy;
     lastUpdateInstalling=!!state.installing;paintDownloadProgress(state.progress);paintHardware(state);
     const list=$('#engineUpdateList');list.replaceChildren();
     const names={'llama-cpu':'llama.cpp · CPU','llama-cuda':'llama.cpp · CUDA 12.4','llama-vulkan':'llama.cpp · Vulkan',strata:'Strata · PolyStrata',rust:'Strata Rust'};
     for(const [key,release] of Object.entries(state.releases||{})){
-      const row=document.createElement('div');row.className='engine-update-row';const name=document.createElement('strong');name.textContent=names[key]||key;const details=document.createElement('small');details.textContent=release.error||release.message||(release.tag+' · '+(release.available?uiText('Disponible'):uiText('Actualizado'))+(release.development?' · '+uiText('Desarrollo oficial'):''));row.append(name,details);
+      const row=document.createElement('div');row.className='engine-update-row';const name=document.createElement('strong');name.textContent=names[key]||key;const details=document.createElement('small');details.textContent=release.error||(release.message?uiText(release.message):'')||(release.tag+' · '+(release.available?uiText('Disponible'):uiText('Actualizado'))+(release.development?' · '+uiText('Desarrollo oficial'):''));row.append(name,details);
       if(release.url){const link=document.createElement('a');link.href=release.url;link.onclick=event=>{event.preventDefault();showReleaseNotes({...release,key});};link.textContent=uiText('Notas de versión');row.append(link);}
       if(release.asset&&release.available){const button=document.createElement('button');button.textContent=uiText('Actualizar');button.disabled=state.busy||busy||!!loadedModel;button.onclick=()=>action('install',{engine:key});const actions=document.createElement('div');actions.className='engine-update-actions';actions.append(button);row.append(actions);}
       if(Object.hasOwn(state.previous||{},key)){const rollback=document.createElement('button');rollback.textContent=uiText('Restaurar anterior');rollback.disabled=state.busy||!!loadedModel;rollback.onclick=()=>action('rollback',{engine:key});row.append(rollback);}
       list.append(row);
     }
-    const available=Object.entries(state.releases||{}).filter(([,r])=>r.available).map(([k,r])=>k+':'+r.tag).join('|');
     renderUpdateStack(state);
     window.VALI18n?.observe(updates);window.VALI18n?.observe(stack);
   }
+  window.VALI18n?.onChange?.(()=>{if(lastUpdateState){hardwareSignature='';signature='';delete stack.dataset.signature;paintUpdates(lastUpdateState);positionUpdateStack();}});
   function positionUpdateStack(){
     if(stack.hidden)return;
     const composer=document.getElementById('composerBox'),measured=composer&&composer.getBoundingClientRect();
@@ -453,7 +460,8 @@ function setupAgentProfilesAndUpdates(){
     const progressFor=key=>state.progress&&state.progress.engine===key?state.progress:null;
     const progressText=progress=>{const percent=progress.total?Math.min(100,progress.received/progress.total*100):0;return [percent,uiText({download:'Descargando',extract:'Extrayendo',verify:'Verificando',complete:'Completado',error:'Error'}[progress.phase]||'Procesando')+' · '+percent.toFixed(1)+' % · '+(progress.received/1048576).toFixed(1)+' / '+(progress.total/1048576).toFixed(1)+' MB'];};
     const installDisabled=!!state.busy||busy||!!loadedModel;
-    const signature=JSON.stringify([shown.map(([key,release])=>[key,release.tag,release.current,!!progressFor(key)]),remaining]);
+    const lang=window.VALI18n?.language||'es';
+    const signature=JSON.stringify([shown.map(([key,release])=>[key,release.tag,release.current,release.summary||'',!!progressFor(key)]),remaining,lang]);
     if(stack.dataset.signature===signature&&stack.children.length){
       for(const [key] of shown){
         const card=stack.querySelector('.update-card'),progress=progressFor(key);if(!card)continue;
@@ -465,15 +473,27 @@ function setupAgentProfilesAndUpdates(){
     stack.dataset.signature=signature;
     stack.hidden=false;stack.replaceChildren();
     for(const [key,release] of shown){
+      const cacheKey=key+':'+(release.tag||'');
       const card=document.createElement('article');card.className='update-card';
       const close=document.createElement('button');close.type='button';close.className='update-card-close';close.setAttribute('aria-label',uiText('Descartar aviso'));close.textContent='×';
-      close.onclick=()=>{dismissed.add(key+':'+release.tag);delete stack.dataset.signature;renderUpdateStack(state);};
+      close.onclick=()=>{dismissed.add(cacheKey);delete stack.dataset.signature;renderUpdateStack(state);};
       const head=document.createElement('div');head.className='update-card-head';
       const icon=document.createElement('span');icon.className='update-card-icon';icon.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 21h14"/></svg>';
       const text=document.createElement('div');text.className='update-card-text';
-      const title=document.createElement('h4');title.textContent=uiText('Nueva versión de')+' '+(names[key]||key);
+      const title=document.createElement('h4');const titlePrefix=document.createElement('span');titlePrefix.textContent=uiText('Nueva versión de');title.append(titlePrefix,' '+(names[key]||key));
       const version=document.createElement('p');version.className='update-card-version';version.textContent=(release.current?String(release.current)+' → ':'')+(release.tag||'');
       text.append(title,version);head.append(icon,text);card.append(close,head);
+      const summaryText=release.summary||compactReleaseSummary(release.notes)||noteSummaryCache.get(cacheKey)||'';
+      const notesPreview=document.createElement('p');notesPreview.className='update-card-notes';notesPreview.textContent=summaryText;notesPreview.hidden=!summaryText;
+      card.append(notesPreview);
+      if(!summaryText&&release.url&&!noteSummaryCache.has(cacheKey)){
+        noteSummaryCache.set(cacheKey,'');
+        requestJSON('/api/harness/updates/notes?engine='+encodeURIComponent(key)).then(data=>{
+          const fetched=compactReleaseSummary(data?.notes);
+          noteSummaryCache.set(cacheKey,fetched);
+          if(fetched&&notesPreview.isConnected){notesPreview.textContent=fetched;notesPreview.hidden=false;requestAnimationFrame(positionUpdateStack);}
+        }).catch(()=>{});
+      }
       if(state.progress&&state.progress.engine===key){
         const [percent,labelText]=progressText(state.progress);
         const box=document.createElement('div');box.className='update-progress';
@@ -482,6 +502,11 @@ function setupAgentProfilesAndUpdates(){
         box.append(label,bar);card.append(box);
       }
       const actions=document.createElement('div');actions.className='update-actions';
+      if(release.url||release.summary||release.notes){
+        const notesBtn=document.createElement('button');notesBtn.type='button';notesBtn.className='update-notes-btn';notesBtn.textContent=uiText('Notas de versión');
+        notesBtn.onclick=()=>showReleaseNotes({...release,key});
+        actions.append(notesBtn);
+      }
       const install=document.createElement('button');install.type='button';install.className='update-install';install.textContent=uiText('Actualizar');
       install.disabled=installDisabled;
       if(loadedModel)install.title=uiText('Descarga el modelo antes de actualizar.');
@@ -517,12 +542,14 @@ async function showReleaseNotes(release){
   if(!release.notes&&release.key){try{release={...release,notes:(await requestJSON('/api/harness/updates/notes?engine='+encodeURIComponent(release.key))).notes};}catch{}}
   let dialog=document.getElementById('releaseNotesDialog');
   if(!dialog){dialog=document.createElement('dialog');dialog.id='releaseNotesDialog';dialog.innerHTML='<header><strong></strong><button type="button" aria-label="Cerrar">×</button></header><div class="release-notes-content"></div><p></p>';document.body.append(dialog);dialog.querySelector('button').onclick=()=>dialog.close();dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close();});window.VALI18n?.observe(dialog);}
+  dialog.querySelector('button').setAttribute('aria-label',uiText('Cerrar'));
   dialog.querySelector('strong').textContent=uiText('Notas de versión')+' · '+release.tag;
   const notes=release.notes||uiText('Las notas de esta versión todavía no están en la caché. Pulsa «Comprobar actualizaciones» para obtenerlas.');
   dialog.querySelector('.release-notes-content').innerHTML=mdHTML(notes.replace(/<\/?(?:details|summary)\b[^>]*>/gi,'').replace(/\n{3,}/g,'\n\n').replace(/<(https?:\/\/[^<>\s]+)>/g,'[$1]($1)'));
   dialog.querySelector('p').textContent=release.url||'';
   dialog.showModal();
 }
+document.addEventListener('v-agent-show-notes',event=>{if(event.detail)showReleaseNotes(event.detail);});
 function paintDownloadProgress(progress){
   let box=document.getElementById('engineDownloadProgress');
   if(!box){box=document.createElement('div');box.id='engineDownloadProgress';box.setAttribute('role','status');box.innerHTML='<label></label><progress max="100"></progress>';document.getElementById('engineUpdateStatus').after(box);}

@@ -107,7 +107,7 @@ setupModelWindow();
 setupCompactSections();
 setupSettingsHub();
 window.VALModels?.setupTransfer();
-watchAutomaticUpdates({requestJSON,uiText,note,setDrawer,selectSettingsCategory});
+watchAutomaticUpdates({requestJSON,uiText,note,setDrawer,selectSettingsCategory,showReleaseNotes});
 setupLoadSettings();
 setupPluginManager();
 await restoreEngine();

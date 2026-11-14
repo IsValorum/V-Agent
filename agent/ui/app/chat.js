@@ -226,8 +226,7 @@ function draftActions(heading,call,text) {
   if(call.draft_id&&call.status!=='completed')action('Continuar borrador',async()=>{
     if(busy||engineBusy){note('Detén la generación antes de continuar un borrador.');return;}
     if(!S.functions.files){note('Activa Archivos en MCPs para continuar el borrador.');return;}
-    if($('#input').value.trim()){note('Envía o guarda primero el texto que tienes escrito.');return;}
-    $('#input').value='Continue from the recovered draft. Preserve the existing work and fix or complete only what is needed.';
+    if(!$('#input').value.trim())$('#input').value='Continue from the recovered draft. Preserve the existing work and fix or complete only what is needed.';
     await sendMsg(call.draft_id);
   });
   if(call.draft_id)action('Recuperar del disco',async button=>{
@@ -356,6 +355,39 @@ function updateToolTrace(section,trace) {
       const pending=document.createElement('p');pending.className='tool-note';pending.textContent=uiText(call.status==='running'?'Esperando resultado…':call.status==='interrupted'?'Se detuvo la respuesta antes de recibir el resultado.':call.status==='missing'?'No llegó el resultado de esta llamada.':'Este chat no guardó el resultado. Regenera la respuesta para registrar nuevas llamadas.');body.append(pending);
     }
   });
+  const completedTargets=new Set(trace.filter(c=>toolName(c)==='fs_write'&&c.status==='completed'&&c.args?.path).map(c=>String(c.args.path).split(/[\\/]/).pop().toLowerCase()));
+  const callTarget=c=>c.args?.path?String(c.args.path).split(/[\\/]/).pop():c.file_path?String(c.file_path).split(/[\\/]/).pop().replace(/^[0-9a-f]{32}-/i,''):'';
+  const pendingCall=!running?trace.findLast(c=>{
+    const failed=c.ok===false||['error','blocked','interrupted','missing'].includes(c.status);
+    if(!failed||toolName(c)!=='fs_write')return false;
+    const t=callTarget(c).toLowerCase();
+    return (!t||!completedTargets.has(t))&&Boolean(c.draft_id||fileFromDraft(c));
+  }):null;
+  section.querySelector('.draft-recovery-banner')?.remove();
+  if(pendingCall){
+    const file=fileFromDraft(pendingCall),target=callTarget(pendingCall)||file?.filename||'';
+    const banner=document.createElement('div');banner.className='draft-recovery-banner';
+    const info=document.createElement('div');info.className='draft-recovery-info';
+    const label=document.createElement('span');label.textContent=uiText('Borrador disponible');info.append(label);
+    if(target){const code=document.createElement('code');code.textContent=target;info.append(code);}
+    const buttons=document.createElement('div');buttons.className='draft-recovery-buttons';
+    if(pendingCall.draft_id){
+      const cont=document.createElement('button');cont.type='button';cont.className='soft-btn primary';cont.textContent=uiText('Continuar borrador');
+      cont.onclick=async()=>{
+        if(busy||engineBusy){note('Detén la generación antes de continuar un borrador.');return;}
+        if(!S.functions.files){note('Activa Archivos en MCPs para continuar el borrador.');return;}
+        if(!$('#input').value.trim())$('#input').value='Continue from the recovered draft. Preserve the existing work and fix or complete only what is needed.';
+        await sendMsg(pendingCall.draft_id);
+      };
+      buttons.append(cont);
+    }
+    if(file){
+      const view=document.createElement('button');view.type='button';view.className='soft-btn';view.textContent=uiText('Ver código');
+      view.onclick=()=>openViewer(file.filename.split('.').at(-1),file.content);
+      buttons.append(view);
+    }
+    banner.append(info,buttons);section.append(banner);
+  }
 }
 if(!window.__valToolTicker)window.__valToolTicker=setInterval(()=>{for(const section of document.querySelectorAll('#chat .tool-trace')){if(!section._started)continue;const overview=section.querySelector('.tool-overview');if(overview)overview.textContent=uiText('Ejecutando')+' · '+Math.max(0,Math.round((Date.now()-section._started)/1000))+' s';}},1000);
 function recordToolEvent(trace,event) {

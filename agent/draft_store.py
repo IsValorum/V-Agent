@@ -6,8 +6,38 @@ import secrets
 
 
 def _target(record):
-    path = (record.get("args") or {}).get("path")
-    return Path(str(path).replace("\\", "/")).name.lower() if path else ""
+    path = (record.get("args") or {}).get("path") or record.get("file_path") or ""
+    if not path:
+        return ""
+    name = Path(str(path).replace("\\", "/")).name
+    return re.sub(r"^[0-9a-f]{32}-", "", name, flags=re.I).lower()
+
+
+def _discard_disk_target(workspace, target):
+    if workspace is None or not target:
+        return
+    try:
+        folder = workspace.path("drafts")
+        snapshots = list(folder.glob("*.json")) if folder.is_dir() else []
+    except (OSError, ValueError):
+        return
+    for snap_path in snapshots:
+        if not re.fullmatch(r"[0-9a-f]{32}", snap_path.stem):
+            continue
+        try:
+            snapshot = json.loads(snap_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if snapshot.get("name") in RECOVERABLE and _target(snapshot) == target:
+            for copy in folder.glob(snap_path.stem + "-*"):
+                try:
+                    copy.unlink(missing_ok=True)
+                except OSError:
+                    pass
+            try:
+                snap_path.unlink(missing_ok=True)
+            except OSError:
+                pass
 
 
 # Only an unfinished file write can be recovered (draft_recovery.pending_draft); "mcp__draft" is a
@@ -92,6 +122,7 @@ class DraftStore:
                 if key == trace or (other["name"] == record["name"] and target and _target(other) == target):
                     self._discard(other)
                     self.records.pop(key, None)
+            _discard_disk_target(self.workspace, target)
             return
         event["draft_id"] = record["id"]
         if event["type"] == "tool_result" or record["dirty_chars"] >= 65536:

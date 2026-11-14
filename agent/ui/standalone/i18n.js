@@ -27,6 +27,10 @@
     if((m=text.match(/^Subir (.+)$/)))return ({en:'Move up: ',pt:'Mover para cima: ',fr:'Monter : ',de:'Nach oben: '})[language]+t(m[1]);
     if((m=text.match(/^Bajar (.+)$/)))return ({en:'Move down: ',pt:'Mover para baixo: ',fr:'Descendre : ',de:'Nach unten: '})[language]+t(m[1]);
     if((m=text.match(/^Nueva versión de (.+)$/)))return t('Nueva versión de')+' '+m[1];
+    if((m=text.match(/^Actualización menor aplicada: (.+)$/)))return t('Actualización menor aplicada')+': '+m[1];
+    if((m=text.match(/^Actualizado: (.+)$/)))return ({en:'Updated: ',pt:'Atualizado: ',fr:'Mis à jour : ',de:'Aktualisiert: '})[language]+m[1];
+    if((m=text.match(/^Restaurado: (.+)$/)))return ({en:'Restored: ',pt:'Restaurado: ',fr:'Restauré : ',de:'Wiederhergestellt: '})[language]+m[1];
+    if((m=text.match(/^Borrador disponible: (.+)$/)))return t('Borrador disponible')+': '+m[1];
     if((m=text.match(/^(\d+) actualizaci(?:ón|ones) más del runtime$/)))return ({en:(m[1]==='1'?'{n} more runtime update':'{n} more runtime updates'),pt:(m[1]==='1'?'{n} atualização adicional do runtime':'{n} atualizações adicionais do runtime'),fr:(m[1]==='1'?'{n} mise à jour supplémentaire du runtime':'{n} mises à jour supplémentaires du runtime'),de:(m[1]==='1'?'{n} weitere Runtime-Aktualisierung':'{n} weitere Runtime-Aktualisierungen')})[language].replace('{n}',m[1]);
     if((m=text.match(/^(\d+) entradas$/)))return m[1]+' '+t('entradas');
     if((m=text.match(/^(\d+) comandos?$/)))return m[1]+' '+t('comandos');

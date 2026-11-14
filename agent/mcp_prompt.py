@@ -3,7 +3,7 @@ import copy
 
 DESCRIPTIONS = {
     'pc__code_check': 'File: check syntax by default (returns structured JSON with ok:false when syntax issues exist). Directory: list project checks without executing. Run a listed check ID with run=true (full-PC only). Report verification scope; passing syntax or one check does not prove the task is complete.',
-    'pc__draft_resume': 'Resume the latest saved draft in this conversation. Takes no arguments; returns a working file without regenerating code.',
+    'pc__draft_resume': 'Resume the latest saved draft (drafts/) in this conversation. Takes no arguments; restores a readable file path (recuperados/...) without regenerating code. Do not read drafts/ directly with fs_read.',
     'duckduckgo__web_search': 'Search the web; returns titles, URLs and snippets. When results look relevant, visit the 1–3 most promising URLs with web_visit before answering; snippets may be stale or incomplete.',
     'duckduckgo__web_visit': 'Read a URL. Use it on relevant search results instead of answering from snippets alone. Continue only as needed: reuse page_id and set offset=next_offset.',
     'pc__fs_list': 'List a directory; "." is the working folder, or pass any relative or absolute directory path.',
