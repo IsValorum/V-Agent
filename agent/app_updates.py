@@ -193,6 +193,8 @@ class AppUpdates:
                 raise ValueError('The installer published on GitHub does not match the signed manifest.')
             data['installer']['url'] = installer['browser_download_url']
             data['release_url'] = release.get('html_url', '')
+            if not str(data.get('notes') or '').strip() and release.get('body'):
+                data['notes'] = str(release.get('body') or '')[:100000]
             with self.lock:
                 previous=self.state.get('available') or {}
                 previous_hash=(previous.get('installer') or {}).get('sha256')

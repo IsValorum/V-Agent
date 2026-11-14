@@ -121,40 +121,69 @@ const VAL_TOUR=(()=>{
   function setupUpdates(){
     const general=document.getElementById('settings-general');if(!general||document.getElementById('appUpdateBox'))return;
     const box=document.createElement('section');box.id='appUpdateBox';box.className='app-update';
-    box.innerHTML='<h4></h4><p class="mini" id="appUpdateStatus" role="status"></p><div class="app-update-actions"><button type="button" class="soft-btn" id="appUpdateCheck"></button><button type="button" class="soft-btn primary" id="appUpdateGo" hidden></button><button type="button" class="soft-btn" id="tourAgain"></button></div><p class="mini" id="componentStatus" role="status" hidden></p><div class="app-update-actions" id="componentActions" hidden><button type="button" class="soft-btn primary" id="componentApply" hidden></button><button type="button" class="soft-btn" id="componentReset" hidden></button></div>';
+    box.innerHTML='<h4></h4><p class="mini" id="appUpdateStatus" role="status"></p><div class="app-update-actions"><button type="button" class="soft-btn" id="appUpdateCheck"></button><button type="button" class="soft-btn" id="appUpdateNotes" hidden></button><button type="button" class="soft-btn primary" id="appUpdateGo" hidden></button><button type="button" class="soft-btn" id="tourAgain"></button></div><p class="mini" id="componentStatus" role="status" hidden></p><div class="app-update-actions" id="componentActions" hidden><button type="button" class="soft-btn primary" id="componentApply" hidden></button><button type="button" class="soft-btn" id="componentReset" hidden></button></div>';
     box.querySelector('h4').textContent=uiText('Actualizaciones de V-Agent');
     box.querySelector('#appUpdateCheck').textContent=uiText('Buscar actualizaciones');
     box.querySelector('#tourAgain').textContent=uiText('Ver el tutorial');
     general.append(box);
-    const status=box.querySelector('#appUpdateStatus'),go=box.querySelector('#appUpdateGo');
+    const status=box.querySelector('#appUpdateStatus'),go=box.querySelector('#appUpdateGo'),notesBtn=box.querySelector('#appUpdateNotes');
+    notesBtn.textContent=uiText('Notas de versión');
     // Minor updates never change the version number: they show as "1.0.0 C1", "1.0.0 C2"…
-    let componentRevision=0,lastApp=null;
+    let componentRevision=0,lastApp=null,lastComponents=null;
     const label=version=>version+(componentRevision?' C'+componentRevision:'');
+    const syncNotesButton=()=>{
+      const avail=lastApp?.available;
+      const appNotes=String(avail?.notes||'').trim();
+      const compNotes=String(lastComponents?.available?.notes||lastComponents?.notes||'').trim();
+      if(avail&&appNotes){
+        notesBtn.hidden=false;
+        notesBtn.onclick=()=>document.dispatchEvent(new CustomEvent('v-agent-show-notes',{detail:{tag:'V-Agent '+avail.version,notes:appNotes,url:avail.release_url||avail.url||''}}));
+      }else if(compNotes){
+        const rev=lastComponents?.available?.revision||lastComponents?.revision||componentRevision;
+        const ver=lastApp?.version||'';
+        notesBtn.hidden=false;
+        notesBtn.onclick=()=>document.dispatchEvent(new CustomEvent('v-agent-show-notes',{detail:{tag:'V-Agent '+(ver?ver+' ':'')+'C'+rev,notes:compNotes,url:''}}));
+      }else{
+        notesBtn.hidden=true;
+      }
+    };
     const paint=s=>{
       if(!s)return;lastApp=s;
-      if(!s.configured){status.textContent=uiText('Versión')+' '+label(s.version)+' · '+uiText('Las actualizaciones automáticas se activarán cuando se publique el repositorio oficial.');go.hidden=true;return;}
+      if(!s.configured){status.textContent=uiText('Versión')+' '+label(s.version)+' · '+uiText('Las actualizaciones automáticas se activarán cuando se publique el repositorio oficial.');go.hidden=true;syncNotesButton();return;}
       if(s.error){status.textContent=uiText('No se pudo comprobar')+': '+s.error;}
-      else if(s.ready){status.textContent=uiText('Actualización descargada y verificada.');go.textContent=uiText('Instalar y reiniciar');go.hidden=false;go.dataset.action='launch';}
+      else if(s.ready){status.textContent=uiText('Actualización descargada y verificada.')+(s.available?.notes?' · '+s.available.notes.slice(0,140):'');go.textContent=uiText('Instalar y reiniciar');go.hidden=false;go.dataset.action='launch';}
       else if(s.busy&&s.progress){status.textContent=uiText('Descargando')+(s.progress.total?' · '+Math.round(s.progress.received/s.progress.total*100)+' %':'');}
       else if(s.available){status.textContent=uiText('Nueva versión disponible')+': '+s.available.version+(s.available.notes?' · '+s.available.notes.slice(0,140):'');go.textContent=uiText('Descargar')+' '+s.available.version;go.hidden=false;go.dataset.action='download';}
       else status.textContent=uiText('Versión')+' '+label(s.version)+(s.checked_at?' · '+uiText('Estás al día.'):'');
+      syncNotesButton();
     };
     const post=action=>requestJSON('/api/harness/app-update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})});
     // Minor updates channel (MCP servers, tools): signed components for this exact version.
     const cStatus=box.querySelector('#componentStatus'),cActions=box.querySelector('#componentActions'),cApply=box.querySelector('#componentApply'),cReset=box.querySelector('#componentReset');
-    cApply.textContent=uiText('Aplicar mejoras');cReset.textContent=uiText('Volver a los originales');
     const cPost=action=>requestJSON('/api/harness/components',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})});
     const paintComponents=c=>{
       if(!c||!c.configured){cStatus.hidden=cActions.hidden=true;return;}
+      lastComponents=c;
+      cApply.textContent=uiText('Aplicar mejoras');cReset.textContent=uiText('Volver a los originales');
       cStatus.hidden=cActions.hidden=false;
       const version=lastApp?.version||'';
       if(componentRevision!==(c.revision||0)){componentRevision=c.revision||0;if(lastApp)paint(lastApp);}
       let text=uiText('Actualizaciones menores')+': '+(c.revision?version+' C'+c.revision:uiText('ninguna instalada'));
       if(c.restart_needed)text+=' · '+uiText('Se aplicarán al reiniciar V-Agent.');
       else if(c.available)text+=' · '+uiText('Disponible')+': '+version+' C'+c.available.revision+(c.available.notes?' — '+c.available.notes.slice(0,140):'');
+      else if(c.revision&&c.notes)text+=' — '+c.notes.slice(0,140);
       if(c.error)text+=' · '+c.error;
       cStatus.textContent=text;cApply.hidden=!c.available||c.restart_needed;cReset.hidden=!c.revision;
+      syncNotesButton();
     };
+    window.VALI18n?.onChange?.(()=>{
+      box.querySelector('h4').textContent=uiText('Actualizaciones de V-Agent');
+      box.querySelector('#appUpdateCheck').textContent=uiText('Buscar actualizaciones');
+      notesBtn.textContent=uiText('Notas de versión');
+      box.querySelector('#tourAgain').textContent=uiText('Ver el tutorial');
+      if(lastApp)paint(lastApp);
+      if(lastComponents)paintComponents(lastComponents);
+    });
     cApply.onclick=async()=>{cApply.disabled=true;try{paintComponents(await cPost('apply'));}catch(e){cStatus.textContent=e.message;}finally{cApply.disabled=false;}};
     cReset.onclick=async()=>{if(!await valConfirm({title:'¿Volver a los componentes originales?',message:'Se quitarán las mejoras menores instaladas. Se aplicará al reiniciar V-Agent.',confirm:'Volver a los originales'}))return;try{paintComponents(await cPost('reset'));}catch(e){cStatus.textContent=e.message;}};
     box.querySelector('#appUpdateCheck').onclick=async()=>{status.textContent=uiText('Comprobando…');try{paint(await post('check'));paintComponents(await cPost('check'));}catch(e){status.textContent=e.message;}};

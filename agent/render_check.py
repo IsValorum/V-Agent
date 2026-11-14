@@ -183,7 +183,7 @@ class Sesion:
     def abre(self):
         ruta = navegador()
         if not ruta:
-            self.fallo = "no hay navegador sin cabeza: instala chrome-headless-shell o activa Edge"
+            self.fallo = "No headless browser found: install chrome-headless-shell or enable Edge."
             return False
         PERFIL.mkdir(parents=True, exist_ok=True)
         self.puerto = _puerto_libre()
@@ -197,7 +197,7 @@ class Sesion:
             self.proceso = subprocess.Popen(argumentos, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             threading.Thread(target=_vigilante, name="render-inactivo", daemon=True).start()
         except OSError as error:
-            self.fallo = "no se pudo lanzar %s: %s" % (pathlib.Path(ruta).name, str(error)[:120])
+            self.fallo = "Could not launch %s: %s" % (pathlib.Path(ruta).name, str(error)[:120])
             return False
         self.ruta = ruta
         # 15 s, no 40: si el navegador no expone DevTools en ese margen es que no va a exponerlos,
@@ -210,7 +210,7 @@ class Sesion:
                 return True
             except (urllib.error.URLError, OSError, ValueError):
                 time.sleep(.08)
-        self.fallo = "el navegador no abrio DevTools en el puerto %d" % self.puerto
+        self.fallo = "Browser did not expose DevTools on port %d" % self.puerto
         self.cierra()
         return False
 
@@ -604,14 +604,14 @@ def sintaxis_js(codigo, module=False, mantener=False):
         if not (MANTENER or mantener):
             _SESION.cierra()
     if not isinstance(resultado, dict) or "_error" in resultado:
-        return {"comprobado": False, "error": (resultado or {}).get("_error", "sin respuesta") if isinstance(resultado, dict) else "sin respuesta"}
+        return {"comprobado": False, "error": (resultado or {}).get("_error", "no response") if isinstance(resultado, dict) else "no response"}
     return resultado
 
 
 def render_de_archivo(ruta, espera_ms=TIEMPO_CARGA_MS, captura=False, pintura=False, mantener=None, diagnostics=False):
     p = pathlib.Path(ruta)
     if not p.exists():
-        return {"ok": False, "error": "no existe %s" % ruta}
+        return {"ok": False, "error": "file does not exist: %s" % ruta}
     return render(p.resolve().as_uri(), espera_ms=espera_ms, captura=captura, pintura=pintura,
                   mantener=mantener,diagnostics=diagnostics)
 

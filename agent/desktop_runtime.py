@@ -6,6 +6,7 @@ the conversation, tools, drafts and UI protocols are shared.
 import hashlib
 import json
 import os
+import re
 import threading
 import urllib.parse
 from pathlib import Path
@@ -148,6 +149,15 @@ def install(a):
     import thinking_policy
     preferences=AppPreferences()
     manager=EngineManager();updates=Updates(manager.builds);updates.check();a.PROVIDERS=manager;strata_auto=a.VRAM_AUTO;a.VRAM_AUTO=strata_auto and manager.kind=='strata'
+    def _notes_summary(notes,limit=160):
+        text=str(notes or '').strip()
+        if not text:return ''
+        text=re.sub(r'\[([^\]]+)\]\([^)]+\)',r'\1',text)
+        text=re.sub(r'(?m)^\s*(?:#{1,6}\s*|[-*+]\s+|\d+\.\s+)','',text)
+        text=re.sub(r'[`*_>~]+','',text)
+        text=re.sub(r'\s+',' ',text).strip()
+        return text if len(text)<=limit else text[:limit-1].rstrip()+'…'
+
     def update_payload(state=None):
         state=updates.check() if state is None else state
         try:
@@ -157,9 +167,14 @@ def install(a):
             state={**state,'hardware':profile,'recommendations':recommended['engines'],'hardware_summary':recommended['summary']}
         except Exception:
             state={**state,'hardware':{},'recommendations':[],'hardware_summary':''}
-        # Release notes (up to 100 KB per engine) travelled in every 10 s poll; they are fetched
-        # only when someone opens them (/api/harness/updates/notes?engine=...).
-        state['releases']={key:{k:v for k,v in (release or {}).items() if k!='notes'} for key,release in (state.get('releases') or {}).items()}
+        # Release notes (up to 100 KB per engine) travelled in every 10 s poll; keep full notes
+        # out of the poll and expose only a compact plain-text summary for notification cards.
+        def _public_release(release):
+            out={k:v for k,v in (release or {}).items() if k!='notes'}
+            summary=_notes_summary((release or {}).get('notes'))
+            if summary:out['summary']=summary
+            return out
+        state['releases']={key:_public_release(release) for key,release in (state.get('releases') or {}).items()}
         return state
     original={name:getattr(a,name) for name in ('installed_models','selected_model','engine_health','current_model','load_agent_model','unload_agent_model',
         'change_context','start_engine','stop_engine','stats','require_loaded_model','engine_context','engine_chat_stream','tokenizer_del_modelo','configure_model_draft')}

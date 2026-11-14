@@ -68,8 +68,8 @@ def hf_public_profile(url):
             data = json.loads(raw)
         if not isinstance(data, dict) or str(data.get('user', '')).casefold() != handle.casefold():
             return ''
-        fields = {'numFollowers': 'seguidores', 'numFollowing': 'usuarios seguidos',
-                  'numFollowingOrgs': 'organizaciones seguidas', 'numModels': 'modelos',
+        fields = {'numFollowers': 'followers', 'numFollowing': 'following',
+                  'numFollowingOrgs': 'following orgs', 'numModels': 'models',
                   'numDatasets': 'datasets', 'numSpaces': 'Spaces'}
         counts = [f'{label}: {data[key]}' for key, label in fields.items()
                   if type(data.get(key)) is int and data[key] >= 0]
@@ -97,7 +97,7 @@ def read_public_page(url, find_in_page=None):
                 url_path = urlparse(current).path
                 doc_ext = _infer_doc_ext(url_path, content_type)
                 is_binary_doc = doc_ext in ('.pdf', '.docx', '.xlsx', '.xlsm', '.pptx', '.odt', '.ods', '.odp', '.epub', '.rtf')
-                is_text_like = any(t in content_type for t in ('text/', 'html', 'xml', 'json'))
+                is_text_like = not content_type or any(t in content_type for t in ('text/', 'html', 'xml', 'json', 'javascript'))
                 if not is_binary_doc and not is_text_like and doc_ext not in _DOC_EXTS:
                     raise ValueError('Only text/HTML pages or supported documents (PDF, DOCX, XLSX, PPTX, ODF, EPUB, RTF) can be read.')
 
@@ -112,10 +112,15 @@ def read_public_page(url, find_in_page=None):
                     chunks.append(chunk)
 
                 raw = b''.join(chunks)
+                if not is_binary_doc and not content_type:
+                    sample = raw[:4096]
+                    if any(b < 9 or (13 < b < 32) for b in sample):
+                        raise ValueError('Only text/HTML pages or supported documents (PDF, DOCX, XLSX, PPTX, ODF, EPUB, RTF) can be read.')
+                looks_html = 'html' in content_type or raw.lstrip()[:64].lower().startswith((b'<!doctype html', b'<html'))
                 if is_binary_doc:
                     extracted = _extract_doc_bytes(raw, url_path, content_type)
                     text = extracted.get('text', '')
-                elif 'html' in content_type:
+                elif looks_html:
                     text = trafilatura.extract(raw, url=url, output_format='markdown',
                                                include_links=settings['include_links'], include_tables=settings['include_tables'])
                     if not text:

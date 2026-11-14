@@ -27,7 +27,7 @@ SHORT_DESCRIPTIONS = {
     'hf__hf_account': 'Read the authenticated HF account; never returns tokens.',
     'hf__hf_cli': 'Run official HF CLI args without hf. Inspect syntax with --help; use hf_transfer for files. No auth tokens/login/logout.',
     'hf__hf_transfer': 'Upload/download HF repo files; path is conversation-relative locally; filename is the remote file/path.',
-    'pc__draft_resume': 'Resume the latest saved draft. No arguments.',
+    'pc__draft_resume': 'Restore latest saved draft (drafts/) into an editable workspace file; call with no args instead of reading drafts/.',
     'pc__fs_list': 'List a directory ("." or any relative/absolute directory path).',
     'pc__fs_read': 'Read a UTF-8 file (use fs_list for directories); linea=first line, ventana=line count; offset=character offset.',
     'pc__doc_read': 'Extract text and tables from PDF, DOCX, XLSX, PPTX, ODF, EPUB, RTF, HTML, XML and CSV.',
@@ -41,9 +41,20 @@ SHORT_DESCRIPTIONS = {
     'duckduckgo__web_visit': 'Read URL; reuse page_id with offset=next_offset to continue.',
 }
 
-from mcp_prompt import DESCRIPTIONS as _CONTRACTS
-for _name in ('pc__fs_edit','pc__fs_copy','pc__fs_manage','pc__console','pc__shell_run','pc__code_check','pc__web_render','web__http_request','web__download','autobrowser__open'):
-    SHORT_DESCRIPTIONS[_name]=_CONTRACTS[_name]
+_SHORT_CONTRACTS = {
+    'pc__fs_edit': 'Replace unique old_text (must appear once) or pass edits=[...]; use fs_write to rewrite.',
+    'pc__fs_copy': 'Copy or cut lines from desde (linea..hasta) to destino (ancla/modo).',
+    'pc__fs_manage': 'mkdir, move, copy, or delete workspace files/folders via action.',
+    'pc__console': 'Run or inspect commands in shared persistent console (action=run|status|stop|clear).',
+    'pc__shell_run': 'Execute a shell command (command, optional timeout/cwd).',
+    'pc__code_check': 'Check file syntax or run project checks via code_check.',
+    'pc__web_render': 'Render local HTML in headless browser and report console/WebGL errors.',
+    'web__http_request': 'Send HTTP request (method, url, headers, body, format, save_path).',
+    'web__download': 'Download a URL to disk (path optional); returns path, bytes, sha256.',
+    'autobrowser__open': 'Open public http/https URL in headless browser (optional new_tab).',
+}
+for _name, _short in _SHORT_CONTRACTS.items():
+    SHORT_DESCRIPTIONS[_name] = _short
 
 
 def estimacion(tools):

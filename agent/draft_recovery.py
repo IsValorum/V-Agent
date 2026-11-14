@@ -95,7 +95,7 @@ def resume_draft(workspace, draft_id=None):
             file.write(content)
     except FileExistsError:
         pass  # A later resume must preserve edits already made to this copy.
-    return {'draft_id': snapshot['id'], 'path': relative, 'complete': complete,
+    return {'draft_id': snapshot['id'], 'path': relative, 'target_path': filename, 'complete': complete,
             'chars': len(target.read_text(encoding='utf-8')),
-            'note': 'Continue working on this file; read and edit only what is needed.' if complete else
-                    'Generation interrupted: this file contains only the partial prefix received so far. Read the end and complete it instead of rewriting everything.'}
+            'note': 'Continue working on this file; read and edit only what is needed, then write the final target file (' + filename + ').' if complete else
+                    'Generation interrupted: this file contains only the partial prefix received so far. Read the end with pc__fs_read and write/complete the final target file (' + filename + ') instead of rewriting from scratch.'}

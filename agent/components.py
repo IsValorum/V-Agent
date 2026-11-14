@@ -117,16 +117,23 @@ class Components:
     def __init__(self, repository=None):
         self.repository = app_updates.REPOSITORY if repository is None else repository
         self.lock = threading.RLock()
-        self.state = {'revision': self.installed_revision(), 'available': None, 'error': '', 'busy': False,
+        installed = self.installed_manifest()
+        self.state = {'revision': installed['revision'], 'notes': installed['notes'],
+                      'available': None, 'error': '', 'busy': False,
                       'checked_at': 0, 'configured': bool(self.repository), 'restart_needed': False}
 
     @staticmethod
-    def installed_revision():
+    def installed_manifest():
         try:
             record = json.loads(_active_file().read_text(encoding='utf-8'))
-            return validate(record['manifest'].encode('utf-8'), record['signature'])['revision']
+            data = validate(record['manifest'].encode('utf-8'), record['signature'])
+            return {'revision': data['revision'], 'notes': str(data.get('notes') or '')}
         except Exception:
-            return 0
+            return {'revision': 0, 'notes': ''}
+
+    @staticmethod
+    def installed_revision():
+        return Components.installed_manifest()['revision']
 
     def snapshot(self):
         with self.lock:
@@ -205,7 +212,8 @@ class Components:
             with self.lock:
                 # Interface patches load in the open window; only modules (MCP servers, tools) need a restart.
                 restart = any(not item['name'].startswith('ui-patch.') for item in data['files'])
-                self.state.update(revision=data['revision'], available=None, restart_needed=restart, error='')
+                self.state.update(revision=data['revision'], notes=str(data.get('notes') or ''),
+                                  available=None, restart_needed=restart, error='')
         except Exception as error:
             with self.lock:
                 self.state['error'] = str(error)[:300]
@@ -221,7 +229,7 @@ class Components:
             _active_file().unlink(missing_ok=True)
             for old in ROOT.glob('r*'):
                 shutil.rmtree(old, ignore_errors=True)
-            self.state.update(revision=0, restart_needed=True)
+            self.state.update(revision=0, notes='', restart_needed=True)
         return self.snapshot()
 
 
