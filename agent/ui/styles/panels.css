@@ -365,10 +365,11 @@ body.browser-open.browser-fullscreen #updateStack{right:16px;}
 .update-progress{display:grid;grid-column:1/-1;gap:4px;font-size:10px;color:var(--muted);}
 .update-progress progress{width:100%;height:5px;accent-color:var(--accent);}
 .update-actions{grid-column:1/-1;display:flex;justify-content:flex-end;align-items:center;gap:6px;flex-wrap:wrap;}
-.draft-recovery-banner{margin-top:8px;padding:8px 10px;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border));border-radius:9px;background:color-mix(in srgb,var(--accent) 8%,var(--panel));display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;}
+.draft-recovery-banner{margin-top:6px;padding:5px 9px;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border));border-radius:7px;background:color-mix(in srgb,var(--accent) 8%,var(--panel));display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;font-size:11.5px;}
 .draft-recovery-info{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0;color:var(--text);}
-.draft-recovery-info code{font-size:11px;padding:1px 5px;border-radius:5px;background:color-mix(in srgb,var(--text) 8%,transparent);}
-.draft-recovery-buttons{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.draft-recovery-info code{font-size:11px;padding:1px 5px;border-radius:4px;background:color-mix(in srgb,var(--text) 8%,transparent);}
+.draft-recovery-buttons{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.draft-recovery-buttons .soft-btn{padding:3px 9px;font-size:11px;line-height:1.25;border-radius:5px;min-height:0;}
 .update-install{background:var(--accent);color:var(--bg);border-color:transparent;font-size:10px;font-weight:600;padding:4px 8px;white-space:nowrap;}
 .update-install:disabled{opacity:.5;}
 .update-more-row{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 8px;border:2px double var(--double-line);border-radius:8px;background:color-mix(in srgb,var(--panel) 88%,transparent);font-size:9px;color:var(--muted);animation:updateToastIn calc(var(--motion-duration) * .28) ease-out both;}

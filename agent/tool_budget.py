@@ -19,42 +19,13 @@ CHARS_POR_TOKEN = 4.09
 UMBRAL_MEDICION = 0.80
 _TOKENIZADORES, _PLANTILLAS, _MEMORIA = {}, {}, {}
 
-# Whole instructions, never sliced through a JSON/XML example or parameter name.
-SHORT_DESCRIPTIONS = {
-    'pc__file_history': 'List versions by path; pass a listed revision ID to restore.',
-    'pc__code_check': 'Check syntax or list project checks; run=true needs full-PC access.',
-    'pc__project_map': 'List project files and symbols.',
-    'hf__hf_account': 'Read the authenticated HF account; never returns tokens.',
-    'hf__hf_cli': 'Run official HF CLI args without hf. Inspect syntax with --help; use hf_transfer for files. No auth tokens/login/logout.',
-    'hf__hf_transfer': 'Upload/download HF repo files; path is conversation-relative locally; filename is the remote file/path.',
-    'pc__draft_resume': 'Restore latest saved draft (drafts/) into an editable workspace file; call with no args instead of reading drafts/.',
-    'pc__fs_list': 'List a directory ("." or any relative/absolute directory path).',
-    'pc__fs_read': 'Read a UTF-8 file (use fs_list for directories); linea=first line, ventana=line count; offset=character offset.',
-    'pc__doc_read': 'Extract text and tables from PDF, DOCX, XLSX, PPTX, ODF, EPUB, RTF, HTML, XML and CSV.',
-    'pc__fs_write': 'Write UTF-8 text to a relative or absolute file path; creates parents and replaces existing files.',
-    'pc__fs_edit': 'Replace old_text with new_text, or apply edits atomically.',
-    'pc__fs_copy': 'Copy desde to destino; linea/hasta select lines; ancla sets insertion; cortar moves.',
-    'pc__web_render': 'Run HTML; report console errors and WebGL, not visual quality.',
-    'pc__shell_run': 'Run cmd or PowerShell; return exit code and output.',
-    'pc__sys_info': 'Read CPU, OS, RAM, disks and GPU.',
-    'duckduckgo__web_search': 'Search the web; return titles, URLs and snippets.',
-    'duckduckgo__web_visit': 'Read URL; reuse page_id with offset=next_offset to continue.',
-}
+from mcp_prompt import DESCRIPTIONS as _FULL_DESCRIPTIONS
 
-_SHORT_CONTRACTS = {
-    'pc__fs_edit': 'Replace unique old_text (must appear once) or pass edits=[...]; use fs_write to rewrite.',
-    'pc__fs_copy': 'Copy or cut lines from desde (linea..hasta) to destino (ancla/modo).',
-    'pc__fs_manage': 'mkdir, move, copy, or delete workspace files/folders via action.',
-    'pc__console': 'Run or inspect commands in shared persistent console (action=run|status|stop|clear).',
-    'pc__shell_run': 'Execute a shell command (command, optional timeout/cwd).',
-    'pc__code_check': 'Check file syntax or run project checks via code_check.',
-    'pc__web_render': 'Render local HTML in headless browser and report console/WebGL errors.',
-    'web__http_request': 'Send HTTP request (method, url, headers, body, format, save_path).',
-    'web__download': 'Download a URL to disk (path optional); returns path, bytes, sha256.',
-    'autobrowser__open': 'Open public http/https URL in headless browser (optional new_tab).',
-}
-for _name, _short in _SHORT_CONTRACTS.items():
-    SHORT_DESCRIPTIONS[_name] = _short
+# Keep complete tool instructions everywhere (including 1.0.9 Light mode); never replace them with short stubs.
+SHORT_DESCRIPTIONS = dict(_FULL_DESCRIPTIONS)
+SHORT_DESCRIPTIONS.setdefault('pc__fs_edit', _FULL_DESCRIPTIONS['pc__fs_edit'])
+SHORT_DESCRIPTIONS.setdefault('pc__draft_resume', _FULL_DESCRIPTIONS['pc__draft_resume'])
+_SHORT_CONTRACTS = {}
 
 
 def estimacion(tools):
@@ -129,73 +100,19 @@ def coste(mensajes, tools, tpath):
 
 
 def _sin_ruido(schema):
-    """Remove display annotations while preserving parameter instructions."""
+    """Preserve complete parameter descriptions and schema fields without stripping instructions."""
     if not isinstance(schema, dict):
         return schema
-    salida = {}
-    for k, v in schema.items():
-        if k in ("title", "examples", "$comment"):
-            continue
-        if k in ("properties", "$defs", "definitions"):
-            salida[k] = {nombre: _sin_ruido(prop) for nombre, prop in v.items()}
-        elif k in ("items", "additionalProperties"):
-            salida[k] = _sin_ruido(v)
-        else:
-            salida[k] = v
-    return salida
+    return json.loads(json.dumps(schema))
 
 
 def escalera(tools, mensajes, tpath, limite=None):
-    """(tools, informe), targeting `limite` without changing functional contracts.
-
-    Mientras la estimacion por caracteres quede lejos del limite no se carga el tokenizador (719 ms
-    y +144 MB de RAM en la laptop): con los 8 MCP de hoy esto cuesta 0 en la conversacion.
-    """
+    """Return (tools, informe) with full MCP instructions preserved (never shortened to save tokens)."""
     limite = LIMITE if limite is None else int(limite)
     herramientas = json.loads(json.dumps(tools))
-    informe = {"limite": limite, "nivel": 0, "token_antes": 0, "token_despues": 0,
-               "recortes": "", "fuera": [], "aproximado": True}
-    if limite <= 0 or not herramientas:
-        informe["token_antes"] = informe["token_despues"] = estimacion(herramientas)
-        return herramientas, informe
     estimado = estimacion(herramientas)
-    informe["token_antes"] = estimado
-    if estimado < limite * UMBRAL_MEDICION:
-        informe["token_despues"] = estimado
-        return herramientas, informe
-    if not tpath or not (Path(tpath) / "vocab.json").exists():
-        informe["token_despues"] = estimado
-        informe["recortes"] = ("el bloque va justo de presupuesto y no hay tokenizador del modelo "
-                               "para medirlo: revisa las descripciones de las tools")
-        return herramientas, informe
-
-    def n_tokens(lista):
-        return coste([{"role": "user", "content": "hola"}], [t["function"] for t in lista], tpath)
-
-    # Medida real antes de tocar nada: la estimacion por caracteres es conservadora y aqui puede
-    # resultar que el bloque ya quepa, en cuyo caso no se recorta ni un campo.
-    actual = n_tokens(herramientas)
-    informe["token_antes"], informe["token_despues"], informe["aproximado"] = actual, actual, False
-    if actual <= limite:
-        return herramientas, informe
-
-    for t in herramientas:
-        fn = t["function"]
-        fn["parameters"] = _sin_ruido(fn.get("parameters") or {})
-    actual = n_tokens(herramientas)
-    informe["nivel"], informe["recortes"] = 1, "anotaciones visuales fuera; instrucciones de parámetros conservadas"
-    informe["token_despues"] = actual
-    if actual > limite:
-        for t in herramientas:
-            d = str(t["function"].get("description") or "")
-            t["function"]["description"] = SHORT_DESCRIPTIONS.get(t['function']['name'], d)
-        informe["nivel"] = 2
-        informe["recortes"] += " | instrucciones breves completas, sin cortar ejemplos"
-        actual = n_tokens(herramientas)
-    if actual > limite:
-        informe['over_budget'] = True
-        informe["recortes"] += " | presupuesto superado para conservar todas las funciones seleccionadas"
-    informe["token_despues"] = actual
+    informe = {"limite": limite, "nivel": 0, "token_antes": estimado, "token_despues": estimado,
+               "recortes": "", "fuera": [], "aproximado": True}
     return herramientas, informe
 
 

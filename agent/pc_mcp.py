@@ -705,6 +705,7 @@ def fs_copy(args, full_access, policy=None):
                                                  if not si_mismo else "")
     if not texto:
         salida += "\nDestination file created."
+    _clear_resolved_drafts(policy, destino)
     recibo = recibo_diff(texto, candidato) if texto else "\nreceipt: new file (%d lines)." % (
         candidato.count(chr(10)) + 1)
     return salida + recibo + comprueba_ejecucion(destino) + syntax_report(destino)
@@ -893,6 +894,75 @@ def _draft_target_name(snapshot):
     return re.sub(r"^[0-9a-f]{32}-", "", name, flags=re.I).lower()
 
 
+def _restored_target_name(restored, fallback_path=""):
+    """Derive a clean target filename for a restored or recuperados draft."""
+    explicit = ""
+    if isinstance(restored, dict):
+        explicit = str(restored.get("target_path") or "").strip()
+    if explicit:
+        return explicit
+    raw = str((restored.get("path") if isinstance(restored, dict) else "") or fallback_path or "").replace("\\", "/")
+    name = pathlib.Path(raw).name if raw else ""
+    cleaned = re.sub(r"^[0-9a-f]{32}-", "", name, flags=re.I).strip()
+    return cleaned or "output file"
+
+
+def _numbered_tail(texto, max_chars=1500, max_lines=32):
+    """Format the trailing lines of text with 1-based line numbers within a character budget."""
+    if not texto:
+        return 1, 0, "(empty)"
+    lines = texto.splitlines()
+    total = len(lines)
+    width = max(4, len(str(total)))
+    picked = []
+    used = 0
+    for idx in range(total, max(0, total - max_lines), -1):
+        row = "%*d\t%s" % (width, idx, lines[idx - 1])
+        extra = len(row) + (1 if picked else 0)
+        if picked and used + extra > max_chars:
+            break
+        if not picked and len(row) > max_chars:
+            keep = max(40, max_chars - width - 8)
+            row = "%*d\t[...] %s" % (width, idx, lines[idx - 1][-keep:])
+            picked.append((idx, row))
+            break
+        picked.append((idx, row))
+        used += extra
+    picked.reverse()
+    start_line = picked[0][0] if picked else total
+    return start_line, total, "\n".join(row for _, row in picked)
+
+
+def _draft_recovery_view(source_rel, target_name, texto, restored_from=False):
+    """Summarize a large draft (size, lines, head, numbered tail, fs_copy hint) under 3400 chars."""
+    total_chars = len(texto)
+    total_lines = texto.count("\n") + 1 if texto else 0
+    header = (
+        f"[Draft auto-restored to {source_rel} (target: {target_name}). Complete and write the final target file.]"
+        if restored_from
+        else f"[Draft file: {source_rel} (target: {target_name})]"
+    )
+    guide = (
+        f"\n[Size: {total_chars} chars, {total_lines} lines. To finish fast without reading every chunk: "
+        f"call fs_copy(desde={json.dumps(source_rel)}, destino={json.dumps(target_name)}, modo=\"nuevo\"), "
+        f"then inspect/complete the cut ending on {json.dumps(target_name)} with fs_edit.]"
+    )
+    head = texto[:360].rstrip()
+    if len(texto) > 360:
+        head += "\n..."
+    start_line, line_count, tail = _numbered_tail(texto, max_chars=1600, max_lines=32)
+    footer = (
+        f"\n[Tail lines {start_line}-{line_count} of {line_count}:]\n{tail}"
+        f"\n[Read specific slice if needed: fs_read(path={json.dumps(source_rel)}, linea=N, ventana=60) or offset=N max_chars=3000]"
+    )
+    out = f"{header}{guide}\n[Head:]\n{head}{footer}"
+    if len(out) <= 3400:
+        return out
+    head = texto[:220].rstrip() + ("\n..." if len(texto) > 220 else "")
+    _, line_count, tail = _numbered_tail(texto, max_chars=1100, max_lines=22)
+    return f"{header}{guide}\n[Head:]\n{head}\n[Tail lines of {line_count}:]\n{tail}"[:3400]
+
+
 def _clear_resolved_drafts(policy, written_path):
     """Discard older incomplete drafts once the target filename is successfully written."""
     try:
@@ -943,7 +1013,26 @@ def call(name, args, *, full_access=False, policy=None):
             return json.dumps({'ok': False, 'error': str(error)}, ensure_ascii=False)
         if not restored:
             return json.dumps({'ok': False, 'error': 'No interrupted or pending draft was found to resume.'}, ensure_ascii=False)
-        return json.dumps({'ok': True, **restored}, ensure_ascii=False)
+        payload = dict(restored)
+        target_name = _restored_target_name(payload)
+        payload["target_path"] = target_name
+        try:
+            restored_file = policy.path(payload["path"], full_access)
+            with open(restored_file, "r", encoding="utf-8-sig", errors="replace") as f:
+                texto_borrador = f.read()
+        except (OSError, ValueError):
+            texto_borrador = ""
+        if texto_borrador:
+            start_line, total_lines, tail = _numbered_tail(texto_borrador, max_chars=1200, max_lines=24)
+            payload["chars"] = len(texto_borrador)
+            payload["lines"] = total_lines
+            payload["tail_lines"] = f"{start_line}-{total_lines}"
+            payload["tail_preview"] = tail
+        payload["recommended_action"] = (
+            f"Call pc__fs_copy(desde={payload['path']!r}, destino={target_name!r}, modo='nuevo'), "
+            f"then inspect/complete the ending on {target_name!r} with pc__fs_edit."
+        )
+        return json.dumps({'ok': True, **payload}, ensure_ascii=False)
     if name == "project_map":
         from context_policy import project_map
         return project_map(policy,args.get('path') or '.',full_access)
@@ -985,8 +1074,11 @@ def call(name, args, *, full_access=False, policy=None):
     if name == "fs_read":
         raw_arg = str(args.get("path") or "").replace("\\", "/").lstrip("/")
         prefix_note = ""
+        draft_restored_rel = ""
+        draft_target_hint = ""
         if not full_access:
             draft_match = re.match(r"^drafts/([0-9a-f]{32})(?:[.-]|$)", raw_arg, re.I)
+            rec_match = re.match(r"^recuperados/([0-9a-f]{32})-([^/]+)$", raw_arg, re.I)
             candidate_path = policy.path(args["path"], full_access)
             if draft_match:
                 from draft_recovery import resume_draft
@@ -996,11 +1088,16 @@ def call(name, args, *, full_access=False, policy=None):
                     restored = None
                 if restored:
                     path = policy.path(restored["path"], full_access)
-                    prefix_note = f"[Draft auto-restored to {restored['path']} (target: {restored.get('target_path') or 'output file'}). Read complete, edit, and write the final target file.]\n"
+                    draft_restored_rel = str(restored["path"]).replace("\\", "/")
+                    draft_target_hint = _restored_target_name(restored, raw_arg)
+                    prefix_note = f"[Draft auto-restored to {restored['path']} (target: {draft_target_hint}). Read complete, edit, and write the final target file.]\n"
                 else:
                     path = candidate_path
             else:
                 path = candidate_path
+                if rec_match:
+                    draft_restored_rel = raw_arg
+                    draft_target_hint = rec_match.group(2)
         else:
             path = policy.path(args["path"], full_access)
         if os.path.isdir(path):
@@ -1013,6 +1110,20 @@ def call(name, args, *, full_access=False, policy=None):
             if is_document_path(str(path)):
                 raise ValueError(f"{path} is a formatted/binary document ({os.path.getsize(path)} bytes); use doc_read instead of fs_read.")
             raise ValueError(f"{path} is a binary or non-UTF-8 file ({os.path.getsize(path)} bytes); inspect it with python/shell instead of fs_read.")
+        if (
+            draft_restored_rel
+            and args.get("linea") is None
+            and args.get("ventana") is None
+            and args.get("offset") is None
+            and args.get("max_chars") is None
+            and len(texto_completo) > 3000
+        ):
+            return _draft_recovery_view(
+                draft_restored_rel,
+                draft_target_hint or "output file",
+                texto_completo,
+                restored_from=bool(prefix_note),
+            )
         if args.get("linea") is not None or args.get("ventana") is not None:
             if args.get("linea") is not None and int(args["linea"]) < 1:
                 raise ValueError("linea is 1-based and must be >= 1.")
@@ -1027,7 +1138,8 @@ def call(name, args, *, full_access=False, policy=None):
             n = max(1, min(int(args.get("ventana") or 100), 240))
             corte = lineas[inicio - 1:inicio - 1 + n]
             ancho = max(4, len(str(total)))
-            limit = options('pc')['max_result_chars'] - 260
+            cap = int(options('pc').get('max_result_chars') or 12000)
+            limit = max(300, min(cap - 260, 3200) if draft_restored_rel else cap - 260)
             rows = []
             for k, line in enumerate(corte, inicio):
                 row = "%*d\t%s" % (ancho, k, line)
@@ -1053,7 +1165,8 @@ def call(name, args, *, full_access=False, policy=None):
             raise ValueError("max_chars must be >= 1.")
         if args.get("offset") is not None and int(args["offset"]) < 0:
             raise ValueError("offset must be >= 0.")
-        n = max(1, min(int(args.get("max_chars") or 6000), options('pc')['max_result_chars'] - 200))
+        cap = int(options('pc').get('max_result_chars') or 12000)
+        n = max(1, min(int(args.get("max_chars") or 3000), max(300, cap - 200)))
         offset = max(0, int(args.get("offset") or 0))
         content = texto_completo[offset:offset + n]
         more = offset + len(content) < len(texto_completo)
@@ -1234,6 +1347,7 @@ def call(name, args, *, full_access=False, policy=None):
         finally:
             if pending is not None:
                 os.unlink(pending)
+        _clear_resolved_drafts(policy, path)
         delta = candidato.count("\n") - texto.count("\n")
         return ("edited: %s (%d replacement(s)%s, matched via %s, %+d lines, %d chars)%s%s%s"
                 % (path, aplicadas, "" if len(detalles) == 1 else " across %d edits" % len(detalles),

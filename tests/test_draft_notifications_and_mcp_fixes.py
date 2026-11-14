@@ -2,6 +2,7 @@
 import io
 import json
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -146,15 +147,125 @@ class DraftRecoveryAndAgentTests(unittest.TestCase):
             }))
         self.assertEqual(calls['n'], 1)
 
+    def test_large_draft_view_stays_within_light_budget_and_fs_copy_edit_clean(self):
+        lines = [f'line {i}: <section id="s{i}">content {i}</section>' for i in range(1, 221)]
+        big_html = '<!doctype html>\n<html>\n<body>\n' + '\n'.join(lines) + '\n<div id="faq">Cut here'
+        rel = self._seed_disk_draft('landing-page.html', args={'path': 'landing-page.html', 'content': big_html})
+
+        # Default fs_read on a large draft must stay <= 3400 chars (below Light 4000 limit) and show tail + target
+        view = pc_mcp.call('fs_read', {'path': rel}, full_access=False, policy=self.policy)
+        self.assertLessEqual(len(view), 3400)
+        self.assertIn('landing-page.html', view)
+        self.assertIn('fs_copy', view)
+        self.assertIn('<div id="faq">Cut here', view)
+
+        # Even if draft_recovery omits target_path (legacy 1.0.9 behavior), target filename is still derived
+        real_resume = draft_recovery.resume_draft
+        def legacy_resume(ws, did=None):
+            res = real_resume(ws, did)
+            res.pop('target_path', None)
+            return res
+        with patch.object(draft_recovery, 'resume_draft', legacy_resume):
+            resume_json = json.loads(pc_mcp.call('draft_resume', {}, full_access=False, policy=self.policy))
+        self.assertEqual(resume_json['target_path'], 'landing-page.html')
+        self.assertIn('<div id="faq">Cut here', resume_json['tail_preview'])
+        self.assertIn('fs_copy', resume_json['recommended_action'])
+
+        # Default fs_read without max_chars stays below Light's 4000-char limit
+        chunk = pc_mcp.call('fs_read', {'path': f'recuperados/{self.draft_id}-landing-page.html', 'offset': 0}, full_access=False, policy=self.policy)
+        self.assertLessEqual(len(chunk), 3500)
+
+        # fs_copy into landing-page.html cleans up resolved drafts/ snapshot automatically
+        copied = pc_mcp.call('fs_copy', {
+            'desde': f'recuperados/{self.draft_id}-landing-page.html',
+            'destino': 'landing-page.html',
+            'modo': 'nuevo',
+        }, full_access=False, policy=self.policy)
+        self.assertIn('landing-page.html', copied)
+        self.assertFalse((self.root / 'drafts' / f'{self.draft_id}.json').exists())
+
+        # Re-seed draft and verify fs_edit on target also cleans up resolved drafts/
+        self._seed_disk_draft('landing-page.html', args={'path': 'landing-page.html', 'content': big_html})
+        edited = pc_mcp.call('fs_edit', {
+            'path': 'landing-page.html',
+            'old_text': '<div id="faq">Cut here',
+            'new_text': '<div id="faq">FAQ</div></body></html>',
+        }, full_access=False, policy=self.policy)
+        self.assertTrue(str(edited).startswith('edited: '))
+        self.assertFalse((self.root / 'drafts' / f'{self.draft_id}.json').exists())
+
+    def test_agent_recovers_in_turn_from_rejected_large_write_and_promise_stub(self):
+        prompts = []
+        calls = {'n': 0}
+
+        def stream(payload, control):
+            calls['n'] += 1
+            prompts.append(list(payload.get('messages') or []))
+            if calls['n'] == 1:
+                # Truncated large fs_write draft (>512 chars, incomplete JSON)
+                partial_args = '{"path":"landing-page.html","content":"<html>' + ('x' * 700)
+                yield ('data: ' + json.dumps({'choices': [{'delta': {'tool_calls': [
+                    {'index': 0, 'id': 'call_cut', 'type': 'function', 'function': {'name': 'pc__fs_write', 'arguments': partial_args}}
+                ]}}]})).encode()
+                yield ('data: ' + json.dumps({'choices': [{'delta': {}, 'finish_reason': 'length'}]})).encode()
+                yield b'data: [DONE]'
+            elif calls['n'] == 2:
+                # Model emits an intermediate promise-to-act stub without calling any tool
+                yield ('data: ' + json.dumps({'choices': [{'delta': {'content': 'El borrador está incompleto. Voy a escribir el archivo completo ahora.'}}]})).encode()
+                yield ('data: ' + json.dumps({'choices': [{'delta': {}, 'finish_reason': 'stop'}]})).encode()
+                yield b'data: [DONE]'
+            else:
+                yield ('data: ' + json.dumps({'choices': [{'delta': {'content': 'Archivo completado correctamente.'}}]})).encode()
+                yield b'data: [DONE]'
+
+        tools = [
+            {'type': 'function', 'function': {'name': 'pc__fs_write', 'description': 'Write file', 'parameters': {'type': 'object', 'properties': {'path': {'type': 'string'}}}}},
+            {'type': 'function', 'function': {'name': 'pc__draft_resume', 'description': 'Resume draft', 'parameters': {'type': 'object', 'properties': {}}}},
+        ]
+        with patch.object(agent, 'VRAM_AUTO', False), \
+             patch.object(agent, 'tokenizer_del_modelo', lambda _: None), \
+             patch.object(agent, 'tools_for', lambda *a: tools), \
+             patch.object(agent, 'engine_context', lambda *a: 8192), \
+             patch.object(agent, 'engine_chat_stream', stream), \
+             patch.object(agent.PROJECTS, 'workspace', lambda *a: self.policy):
+            events = list(agent._run_chat_stream({
+                'model': 'test',
+                'conversation_id': 'c1',
+                'messages': [{'role': 'user', 'content': 'Crea una landing page completa en landing-page.html'}],
+                'rounds': 6,
+            }))
+        self.assertEqual(calls['n'], 3)
+        final = [e for e in events if e.get('type') == 'done'][-1]['content']
+        self.assertNotIn('El archivo quedó como borrador', final)
+        self.assertIn('Archivo completado correctamente.', final)
+        self.assertTrue(any('pc__draft_resume()' in str(m.get('content')) for m in prompts[1] if m.get('role') == 'tool'))
+        self.assertTrue(any('0 tool calls' in str(m.get('content')) for m in prompts[2] if m.get('role') == 'tool'))
+
 
 class ToolBudgetAndMcpAuditTests(unittest.TestCase):
-    def test_short_contracts_stay_compact_without_inflating_descriptions(self):
-        for name, short in tool_budget._SHORT_CONTRACTS.items():
-            full = mcp_prompt.DESCRIPTIONS.get(name, '')
-            self.assertLessEqual(len(short), len(full))
+    def test_mcp_instructions_are_never_shortened_to_save_tokens(self):
+        tools = [
+            {'type': 'function', 'function': {
+                'name': 'pc__fs_edit',
+                'description': mcp_prompt.DESCRIPTIONS['pc__fs_edit'],
+                'parameters': {'type': 'object', 'properties': {
+                    'path': {'type': 'string', 'description': 'Relative or absolute path.', 'examples': ['app.py']},
+                }},
+            }},
+            {'type': 'function', 'function': {
+                'name': 'pc__draft_resume',
+                'description': mcp_prompt.DESCRIPTIONS['pc__draft_resume'],
+                'parameters': {'type': 'object', 'properties': {}},
+            }},
+        ]
+        budgeted, info = tool_budget.escalera(tools, [{'role': 'user', 'content': 'hi'}], None, limite=1)
+        self.assertEqual(info['nivel'], 0)
+        self.assertEqual(budgeted[0]['function']['description'], mcp_prompt.DESCRIPTIONS['pc__fs_edit'])
+        self.assertEqual(budgeted[0]['function']['parameters']['properties']['path']['examples'], ['app.py'])
         self.assertIn('appear once', tool_budget.SHORT_DESCRIPTIONS['pc__fs_edit'])
         self.assertIn('drafts/', tool_budget.SHORT_DESCRIPTIONS['pc__draft_resume'])
         self.assertIn('recuperados/', mcp_prompt.DESCRIPTIONS['pc__draft_resume'])
+        self.assertEqual(tool_budget.SHORT_DESCRIPTIONS['pc__fs_edit'], mcp_prompt.DESCRIPTIONS['pc__fs_edit'])
 
     def test_browser_mcp_scheme_validation_snapshot_value_and_tab_close_wait(self):
         with self.assertRaises(ValueError):
@@ -289,6 +400,16 @@ class ComponentsAndUpdateNotificationTests(unittest.TestCase):
             self.assertIn(key, locales)
             for lang in ('en', 'pt', 'fr', 'de'):
                 self.assertTrue(locales[key][lang], f'{key}:{lang}')
+
+    def test_composer_draft_regex_preserves_full_extension(self):
+        src = (ROOT / 'agent' / 'ui' / 'app' / 'composer.js').read_text(encoding='utf-8')
+        match = re.search(r'const re=(/drafts[^;]+;/gi|[^\n]+/gi);', src)
+        self.assertIsNotNone(match)
+        sample = 'Borrador conservado en `drafts/5b8c0e71bbc7fbeabb63b3b0991a31e1-landing-page.html`.'
+        js_re = re.compile(r'drafts[\\/]([0-9a-f]{32})(?:-([^\s`"\'<>,;)\]]+))?', re.I)
+        found = js_re.search(sample)
+        self.assertEqual(found.group(2).rstrip('.,;:!?'), 'landing-page.html')
+        self.assertIn(r'''[^\s`"'<>,;)\]]+''', src)
 
 
 if __name__ == '__main__':
