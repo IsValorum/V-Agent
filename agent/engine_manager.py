@@ -13,7 +13,7 @@ import urllib.request
 import urllib.parse
 import uuid
 from remote_protocols import (
-    model_info,positive_int,claude_payload,ClaudeStream,openai_payload,
+    model_info,positive_int,claude_payload,ClaudeStream,openai_payload,normalize_orphan_tool_messages,
     COMPACT_INSTRUCTIONS,compact_transcript,openai_responses_compact_payload,extract_responses_compact_summary,
 )
 from runtime_paths import DATA_ROOT,RUNTIME_ROOT,LOG_ROOT
@@ -412,6 +412,8 @@ class EngineManager:
         body={k:v for k,v in payload.items() if k in allowed}
         if body.get('max_tokens')==0:body.pop('max_tokens')
         if self.kind=='api':body=openai_payload(body,self.base(),self.settings.get('api',{}).get('send_sampling',False))
+        if self.kind in ('llama','rust') and isinstance(body.get('messages'),list):
+            body['messages']=normalize_orphan_tool_messages(body['messages'])
         if self.kind=='llama':
             body['repeat_penalty']=payload.get('repetition_penalty',1.0)
             body['chat_template_kwargs']=dict(payload.get('chat_template_kwargs') or {})

@@ -87,7 +87,7 @@ def coste(mensajes, tools, tpath):
         from templates import formato_llamada
         template_tools = [{'type':'function','function':t} for t in tools] if formato_llamada(tpath,native=True)=='gemma' else tools
         con = tpl.render(mensajes, tools=template_tools, add_generation_prompt=True,
-                         compact_tool_prompt=True, strata_native_tools=True, no_date=True, enable_thinking=False)
+                         compact_tool_prompt=False, strata_native_tools=True, no_date=True, enable_thinking=False)
         sin = tpl.render(mensajes, tools=None, add_generation_prompt=True,
                          no_date=True, enable_thinking=False)
         n = len(tok.encode(con, parse_special=True)) - len(tok.encode(sin, parse_special=True))

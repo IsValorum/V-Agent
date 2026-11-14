@@ -6,7 +6,8 @@ import secrets
 
 
 def _target(record):
-    path = (record.get("args") or {}).get("path") or record.get("file_path") or ""
+    args = record.get("args") or {}
+    path = args.get("path") or args.get("destino") or record.get("file_path") or ""
     if not path:
         return ""
     name = Path(str(path).replace("\\", "/")).name
@@ -110,6 +111,14 @@ class DraftStore:
                     self._discard(other)
                     self.records.pop(key, None)
             return
+        if event["type"] == "tool_result" and event.get("ok") is not False and record["status"] == "completed" and record["name"] in ("pc__fs_copy", "pc__fs_edit"):
+            target = _target(record)
+            if target:
+                for key, other in list(self.records.items()):
+                    if key != trace and other.get("name") in RECOVERABLE and _target(other) == target:
+                        self._discard(other)
+                        self.records.pop(key, None)
+                _discard_disk_target(self.workspace, target)
         if record["name"] and record["name"] not in RECOVERABLE:
             # Nothing to recover from a read, a listing or a command: keep no file for it.
             if event["type"] == "tool_result":

@@ -105,11 +105,12 @@ _CONT_RE = re.compile(
 
 _PROMISE_TO_ACT_RE = re.compile(
     r"\b(?:"
-    r"voy\s+a\s+(?:escribir|crear|editar|modificar|corregir|completar|leer|revisar|guardar|ejecutar|verificar|probar|copiar|continuar\s+con)|"
-    r"ahora\s+(?:escribo|creo|edito|completo|guardo|copio|verifico)|"
-    r"i['’]?ll\s+(?:write|create|edit|fix|complete|read|save|run|check|copy|finish)|"
-    r"i\s+(?:will|am\s+going\s+to)\s+(?:write|create|edit|fix|complete|read|save|run|check|copy|finish)|"
-    r"let\s+me\s+(?:write|create|edit|fix|complete|read|save|run|check|copy|finish)"
+    r"voy\s+a\s+(?:escribir|crear|editar|modificar|corregir|completar|leer|revisar|guardar|ejecutar|verificar|probar|copiar|buscar|investigar|intentar|reintentar|comprobar|actualizar|a[ñn]adir|abrir|reparar|terminar|continuar\s+con)|"
+    r"ahora\s+(?:escribo|creo|edito|completo|guardo|copio|verifico|busco|intento|reintento|actualizo|ejecuto|pruebo|reviso)|"
+    r"(?:procedo\s+a|intentar[eé]|reintentar[eé]|a\s+continuaci[oó]n\s+(?:voy\s+a|escribir[eé]|crear[eé]|editar[eé]|verificar[eé]|ejecutar[eé]))|"
+    r"i['’]?ll\s+(?:write|create|edit|fix|complete|read|save|run|check|copy|finish|search|try|retry|inspect|update|open|verify|test)|"
+    r"i(?:\s+will|\s+am\s+going\s+to|['’]m\s+going\s+to)\s+(?:write|create|edit|fix|complete|read|save|run|check|copy|finish|search|try|retry|inspect|update|open|verify|test)|"
+    r"let\s+me\s+(?:write|create|edit|fix|complete|read|save|run|check|copy|finish|search|try|retry|inspect|update|open|verify|test)"
     r")\b",
     re.IGNORECASE,
 )
@@ -158,7 +159,7 @@ def _should_nudge_incomplete_turn(content, messages, tools, workspace, wrote_fil
                 return True, "draft", target_hint
     if _PROMISE_TO_ACT_RE.search(clean):
         return True, "promise", ""
-    if last_round_failed and not clean:
+    if last_round_failed:
         return True, "failed", ""
     return False, "", ""
 
@@ -1409,7 +1410,8 @@ def run_chat_stream(body, control=None):
                 journal.observe(event)
                 if event.get("type") == "done":
                     def base(record):
-                        raw_path = str((record.get("args") or {}).get("path") or "").replace("\\", "/")
+                        args = record.get("args") or {}
+                        raw_path = str(args.get("path") or args.get("destino") or "").replace("\\", "/")
                         if raw_path:
                             return Path(raw_path).name
                         fp_name = Path(str(record.get("file_path") or "").replace("\\", "/")).name
@@ -1418,7 +1420,7 @@ def run_chat_stream(body, control=None):
                         return fp_name
                     # A failed attempt later saved under the same name is not a lost draft.
                     saved = {base(r) for r in journal.records.values()
-                             if r["status"] == "completed" and r.get("name") == "pc__fs_write"}
+                             if r["status"] == "completed" and r.get("name") in ("pc__fs_write", "pc__fs_copy", "pc__fs_edit")}
                     files = [r["file_path"] for r in journal.records.values()
                              if r.get("file_path") and r["status"] != "completed" and base(r) not in saved]
                     if files:
@@ -1872,6 +1874,7 @@ def _run_chat_stream(body, control=None):
                 )
                 if should_nudge:
                     action_nudges += 1
+                    last_round_failed = False
                     if nudge_kind == "draft":
                         draft_nudged = True
                         msg_nudge = (
@@ -2038,7 +2041,7 @@ def _run_chat_stream(body, control=None):
                 escrituras_fallidas = 0
             elif ok and status == "completed" and name == "pc__draft_resume":
                 escrituras_fallidas = 0
-            if not ok:
+            if not ok and not denegada and status == "error":
                 round_had_failure = True
             file_content = args.get("content")
             if not ok and name == "pc__fs_write" and not denegada and (

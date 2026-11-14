@@ -412,5 +412,312 @@ class ComponentsAndUpdateNotificationTests(unittest.TestCase):
         self.assertIn(r'''[^\s`"'<>,;)\]]+''', src)
 
 
+class CrossModelAndProfileTests(unittest.TestCase):
+    def test_all_profiles_preserve_full_descriptions_and_non_compact_budget(self):
+        import asyncio
+        import agent_profiles
+        import engine_manager
+        import hf_mcp
+
+        sys.path[:0] = [str(ROOT / 'web_mcp')]
+        import buscador_mcp
+        import http_tools_mcp
+
+        async def _build_tools():
+            items = [
+                {'type': 'function', 'function': {'name': 'pc__' + t['name'], 'description': t['description'], 'parameters': t['inputSchema']}}
+                for t in pc_mcp.TOOLS
+            ] + [
+                {'type': 'function', 'function': {'name': 'hf__' + t['name'], 'description': t['description'], 'parameters': t['inputSchema']}}
+                for t in hf_mcp.TOOLS
+            ]
+            for prefix, mod in (('duckduckgo', buscador_mcp), ('web', http_tools_mcp)):
+                for t in await mod.mcp.list_tools():
+                    items.append({'type': 'function', 'function': {'name': prefix + '__' + t.name, 'description': t.description or '', 'parameters': t.inputSchema}})
+            return items
+
+        raw_tools = asyncio.run(_build_tools())
+
+        raw_by_name = {t['function']['name']: t for t in raw_tools}
+        routing_dynamic = {'pc__shell_run', 'web__http_request', 'web__download', 'autobrowser__open'}
+
+        class FakeHub:
+            def wait(self, timeout=None):
+                return True
+
+            def openai_tools(self):
+                return json.loads(json.dumps(raw_tools))
+
+        fn_all = {k: True for k in ('search', 'visit', 'files', 'shell', 'console', 'sys', 'hf', 'web', 'browser', 'autobrowser', 'admin', 'computer')}
+        for full_pc in (False, True):
+            by_profile = {}
+            with patch.object(agent, 'HUB', FakeHub()), \
+                 patch.object(agent.ACCESS, 'snapshot', lambda f=full_pc: {'mode': 'full_pc' if f else 'sandbox', 'root': str(ROOT)}), \
+                 patch('extensions.enabled_configs', return_value={}):
+                for profile in ('light', 'balanced', 'advanced'):
+                    offered = agent.tools_for(fn_all, tpath=None, agent_profile=profile)
+                    self.assertTrue(offered)
+                    self.assertEqual(agent.ULTIMO_PRESUPUESTO.get('nivel'), 0)
+                    expected_same_set = {
+                        t['function']['name']: t['function']
+                        for t in mcp_prompt.compact_tools([json.loads(json.dumps(raw_by_name[i['function']['name']])) for i in offered])
+                    }
+                    by_profile[profile] = {t['function']['name']: t['function'] for t in offered}
+                    for item in offered:
+                        fn = item['function']
+                        name = fn['name']
+                        self.assertGreaterEqual(len(fn['description']), len(expected_same_set[name]['description']), f'{profile}/{name} shortened below compact_tools')
+                        if name != 'pc__shell_run':
+                            self.assertGreaterEqual(len(fn['description'].strip()), len(raw_by_name[name]['function']['description'].strip()), f'{profile}/{name} shorter than raw')
+                        if name == 'pc__fs_edit':
+                            self.assertIn('appear once', fn['description'])
+                        if name == 'duckduckgo__web_visit':
+                            self.assertIn('find_in_page', fn['parameters']['properties'])
+            for name, light_fn in by_profile['light'].items():
+                if name not in routing_dynamic:
+                    self.assertEqual(light_fn['description'], by_profile['balanced'][name]['description'])
+                    self.assertEqual(light_fn['description'], by_profile['advanced'][name]['description'])
+                self.assertEqual(light_fn['parameters'], by_profile['balanced'][name]['parameters'])
+                self.assertEqual(light_fn['parameters'], by_profile['advanced'][name]['parameters'])
+
+        seen_kwargs = {}
+
+        class FakeTpl:
+            def render(self, msgs, **kwargs):
+                seen_kwargs.update(kwargs)
+                return json.dumps(msgs)
+
+        class FakeTok:
+            def encode(self, s, parse_special=True):
+                return list(s)
+
+        with patch.object(tool_budget, '_template_fingerprint', return_value='fp1'), \
+             patch.object(tool_budget, '_tokenizer', return_value=FakeTok()), \
+             patch.object(tool_budget, '_plantilla', return_value=FakeTpl()), \
+             patch('templates.formato_llamada', return_value='xml'):
+            tool_budget._MEMORIA.clear()
+            n = tool_budget.coste([{'role': 'user', 'content': 'hi'}], raw_tools[:2], ROOT)
+        self.assertGreaterEqual(n, 0)
+        self.assertIs(seen_kwargs.get('compact_tool_prompt'), False)
+        self.assertEqual(agent_profiles.tools_for_profile(raw_tools, 'light'), raw_tools)
+        self.assertEqual(agent_profiles.tools_for_profile(raw_tools, 'balanced'), raw_tools)
+        self.assertEqual(agent_profiles.tools_for_profile(raw_tools, 'advanced'), raw_tools)
+
+    def test_transport_boundary_normalizes_orphan_tool_messages_across_models(self):
+        import threading
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        import engine_manager
+        from remote_protocols import ClaudeStream, claude_payload, openai_payload
+
+        msgs = [
+            {'role': 'user', 'content': 'Fix app.py'},
+            {'role': 'assistant', 'content': '', 'tool_calls': [{'id': 'c1', 'type': 'function', 'function': {'name': 'pc__fs_read', 'arguments': '{"path":"app.py"}'}}]},
+            {'role': 'tool', 'tool_call_id': 'c1', 'content': 'ok'},
+            {'role': 'assistant', 'content': 'Voy a editar app.py ahora.'},
+            {'role': 'tool', 'content': '[Recovery: invoke pc__fs_edit right now.]'},
+        ]
+
+        # OpenAI + DeepSeek remote payloads convert orphan role=tool -> user while keeping real tool outputs
+        for url, model in (('https://api.openai.com/v1', 'gpt-5'), ('https://api.deepseek.com/v1', 'deepseek-reasoner')):
+            out = openai_payload({'model': model, 'messages': msgs, 'max_tokens': 512, 'reasoning_effort': 'high'}, url)
+            self.assertEqual(out['messages'][2]['role'], 'tool')
+            self.assertEqual(out['messages'][2]['tool_call_id'], 'c1')
+            self.assertEqual(out['messages'][4], {'role': 'user', 'content': '[Recovery: invoke pc__fs_edit right now.]'})
+
+        # Claude API converts orphan role=tool without KeyError
+        cbody = claude_payload({'model': 'claude-sonnet', 'messages': msgs, 'tools': []}, '2026-10-21', 4096)
+        self.assertEqual(cbody['messages'][-1]['role'], 'user')
+        self.assertEqual(cbody['messages'][-1]['content'][0]['text'], '[Recovery: invoke pc__fs_edit right now.]')
+
+        # Local llama/rust transport normalizes orphan role=tool before POSTing
+        captured = []
+
+        class H(BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+
+            def do_POST(self):
+                captured.append(json.loads(self.rfile.read(int(self.headers['Content-Length']))))
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b'data: {"choices":[{"delta":{"content":"done"},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n')
+
+        srv = ThreadingHTTPServer(('127.0.0.1', 0), H)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        self.addCleanup(srv.shutdown)
+        self.addCleanup(srv.server_close)
+
+        class Ctrl:
+            cancelled = threading.Event()
+            def attach(self, *a): pass
+            def detach(self, *a): pass
+
+        with tempfile.TemporaryDirectory() as tmp, patch.object(engine_manager, 'DATA_ROOT', Path(tmp)):
+            mgr = engine_manager.EngineManager()
+            for kind in ('llama', 'rust'):
+                mgr.kind = kind
+                with patch.object(mgr, 'url', lambda path='/chat/completions': f'http://127.0.0.1:{srv.server_port}{path}'):
+                    out_bytes = b''.join(mgr.stream({'model': 'local-test', 'messages': msgs}, Ctrl()))
+                self.assertIn(b'done', out_bytes)
+                self.assertEqual(captured[-1]['messages'][-1]['role'], 'user')
+                self.assertEqual(captured[-1]['messages'][2]['role'], 'tool')
+
+    def test_run_chat_stream_fs_copy_and_edit_clear_superseded_drafts_in_same_turn(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            policy = AccessPolicy(root)
+            calls = {'n': 0}
+
+            def stream(payload, control):
+                calls['n'] += 1
+                if calls['n'] == 1:
+                    partial_args = '{"path":"landing-page.html","content":"<html><body>' + ('x' * 700)
+                    yield ('data: ' + json.dumps({'choices': [{'delta': {'tool_calls': [
+                        {'index': 0, 'id': 'call_cut', 'type': 'function', 'function': {'name': 'pc__fs_write', 'arguments': partial_args}}
+                    ]}}]})).encode()
+                    yield ('data: ' + json.dumps({'choices': [{'delta': {}, 'finish_reason': 'length'}]})).encode()
+                    yield b'data: [DONE]'
+                elif calls['n'] == 2:
+                    yield ('data: ' + json.dumps({'choices': [{'delta': {'tool_calls': [
+                        {'index': 0, 'id': 'call_resume', 'type': 'function', 'function': {'name': 'pc__draft_resume', 'arguments': '{}'}}
+                    ]}, 'finish_reason': 'tool_calls'}]})).encode()
+                    yield b'data: [DONE]'
+                elif calls['n'] == 3:
+                    rec_name = next((p.name for p in (root / 'recuperados').glob('*landing-page.html')), '')
+                    self.assertTrue(rec_name)
+                    yield ('data: ' + json.dumps({'choices': [{'delta': {'tool_calls': [
+                        {'index': 0, 'id': 'call_copy', 'type': 'function', 'function': {'name': 'pc__fs_copy', 'arguments': json.dumps({'desde': 'recuperados/' + rec_name, 'destino': 'landing-page.html', 'modo': 'nuevo'})}},
+                        {'index': 1, 'id': 'call_edit', 'type': 'function', 'function': {'name': 'pc__fs_edit', 'arguments': json.dumps({'path': 'landing-page.html', 'old_text': '<html><body>', 'new_text': '<html><body><h1>Fixed</h1></body></html>'})}}
+                    ]}, 'finish_reason': 'tool_calls'}]})).encode()
+                    yield b'data: [DONE]'
+                else:
+                    yield ('data: ' + json.dumps({'choices': [{'delta': {'content': 'Archivo creado correctamente.'}, 'finish_reason': 'stop'}]})).encode()
+                    yield b'data: [DONE]'
+
+            class LocalHub:
+                def routes(self):
+                    return {
+                        'pc__fs_write': ('pc', 'fs_write'),
+                        'pc__draft_resume': ('pc', 'draft_resume'),
+                        'pc__fs_copy': ('pc', 'fs_copy'),
+                        'pc__fs_edit': ('pc', 'fs_edit'),
+                    }
+
+                def call(self, name, args, cancel=None):
+                    return {'ok': True, 'text': pc_mcp.call(name.split('__', 1)[1], args, policy=policy, full_access=False)}
+
+            tools = [
+                {'type': 'function', 'function': {'name': 'pc__' + t['name'], 'description': mcp_prompt.DESCRIPTIONS['pc__' + t['name']], 'parameters': t['inputSchema']}}
+                for t in pc_mcp.TOOLS if t['name'] in ('fs_write', 'draft_resume', 'fs_copy', 'fs_edit')
+            ]
+            with patch.object(agent, 'VRAM_AUTO', False), \
+                 patch.object(agent, 'tokenizer_del_modelo', lambda _: None), \
+                 patch.object(agent, 'tools_for', lambda *a: tools), \
+                 patch.object(agent, 'engine_context', lambda *a: 8192), \
+                 patch.object(agent, 'engine_chat_stream', stream), \
+                 patch.object(agent, 'HUB', LocalHub()), \
+                 patch.object(agent.PROJECTS, 'workspace', lambda *a: policy):
+                events = list(agent.run_chat_stream({
+                    'model': 'test',
+                    'conversation_id': 'c-same-turn',
+                    'agent_profile': 'light',
+                    'permission_mode': 'run',
+                    'messages': [{'role': 'user', 'content': 'Create landing-page.html'}],
+                }))
+
+            done = next(e for e in events if e.get('type') == 'done')
+            self.assertNotIn('Borrador conservado', done.get('content', ''))
+            self.assertFalse(any(e.get('type') == 'draft' for e in events))
+            self.assertFalse(list((root / 'drafts').glob('*.json')) if (root / 'drafts').exists() else False)
+            self.assertIn('Fixed', (root / 'landing-page.html').read_text(encoding='utf-8'))
+
+    def test_recoverable_error_nudges_once_and_blocked_error_does_not_loop_across_profiles(self):
+        from access_policy import AccessDenied
+
+        tools = [{'type': 'function', 'function': {'name': 'pc__shell_run', 'description': 'Run command', 'parameters': {'type': 'object', 'properties': {'command': {'type': 'string'}}}}}]
+        with tempfile.TemporaryDirectory() as tmp:
+            policy = AccessPolicy(Path(tmp))
+            for profile in ('light', 'balanced', 'advanced'):
+                calls = {'n': 0}
+
+                class ErrHub:
+                    def routes(self):
+                        return {'pc__shell_run': ('pc', 'shell_run')}
+
+                    def call(self, name, args, cancel=None):
+                        if 'bad' in args.get('command', ''):
+                            return {'ok': False, 'text': 'exit code 2'}
+                        return {'ok': True, 'text': 'all tests ok'}
+
+                def stream_err(payload, control, c=calls):
+                    c['n'] += 1
+                    if c['n'] == 1:
+                        yield ('data: ' + json.dumps({'choices': [{'delta': {'tool_calls': [{'index': 0, 'id': 'e1', 'type': 'function', 'function': {'name': 'pc__shell_run', 'arguments': '{"command":"bad"}'}}]}, 'finish_reason': 'tool_calls'}]})).encode()
+                        yield b'data: [DONE]'
+                    elif c['n'] == 2:
+                        # Stops with plain apology after recoverable failure -> should be nudged once!
+                        yield ('data: ' + json.dumps({'choices': [{'delta': {'content': 'El comando falló con código 2.'}, 'finish_reason': 'stop'}]})).encode()
+                        yield b'data: [DONE]'
+                    elif c['n'] == 3:
+                        yield ('data: ' + json.dumps({'choices': [{'delta': {'tool_calls': [{'index': 0, 'id': 'e2', 'type': 'function', 'function': {'name': 'pc__shell_run', 'arguments': '{"command":"good"}'}}]}, 'finish_reason': 'tool_calls'}]})).encode()
+                        yield b'data: [DONE]'
+                    else:
+                        yield ('data: ' + json.dumps({'choices': [{'delta': {'content': 'Corregido: todos los tests pasaron.'}, 'finish_reason': 'stop'}]})).encode()
+                        yield b'data: [DONE]'
+
+                with patch.object(agent, 'VRAM_AUTO', False), \
+                     patch.object(agent, 'tokenizer_del_modelo', lambda _: None), \
+                     patch.object(agent, 'tools_for', lambda *a: tools), \
+                     patch.object(agent, 'engine_context', lambda *a: 8192), \
+                     patch.object(agent, 'engine_chat_stream', stream_err), \
+                     patch.object(agent, 'HUB', ErrHub()), \
+                     patch.object(agent.PROJECTS, 'workspace', lambda *a: policy):
+                    events = list(agent._run_chat_stream({
+                        'model': 'test',
+                        'conversation_id': f'c-err-{profile}',
+                        'agent_profile': profile,
+                        'permission_mode': 'run',
+                        'messages': [{'role': 'user', 'content': 'Run tests'}],
+                    }))
+                self.assertEqual(calls['n'], 4, f'{profile} should nudge after recoverable error then stop cleanly')
+                done = next(e for e in events if e.get('type') == 'done')
+                self.assertIn('Corregido', done['content'])
+
+                # AccessDenied / blocked errors must NOT trigger retry loop
+                bcalls = {'n': 0}
+
+                class BlockedHub:
+                    def routes(self):
+                        return {'pc__shell_run': ('pc', 'shell_run')}
+
+                    def call(self, name, args, cancel=None):
+                        raise AccessDenied('Outside sandbox')
+
+                def stream_blocked(payload, control, c=bcalls):
+                    c['n'] += 1
+                    if c['n'] == 1:
+                        yield ('data: ' + json.dumps({'choices': [{'delta': {'tool_calls': [{'index': 0, 'id': 'b1', 'type': 'function', 'function': {'name': 'pc__shell_run', 'arguments': '{"command":"x"}'}}]}, 'finish_reason': 'tool_calls'}]})).encode()
+                        yield b'data: [DONE]'
+                    else:
+                        yield ('data: ' + json.dumps({'choices': [{'delta': {'content': 'Operación bloqueada fuera del sandbox.'}, 'finish_reason': 'stop'}]})).encode()
+                        yield b'data: [DONE]'
+
+                with patch.object(agent, 'VRAM_AUTO', False), \
+                     patch.object(agent, 'tokenizer_del_modelo', lambda _: None), \
+                     patch.object(agent, 'tools_for', lambda *a: tools), \
+                     patch.object(agent, 'engine_context', lambda *a: 8192), \
+                     patch.object(agent, 'engine_chat_stream', stream_blocked), \
+                     patch.object(agent, 'HUB', BlockedHub()), \
+                     patch.object(agent.PROJECTS, 'workspace', lambda *a: policy):
+                    list(agent._run_chat_stream({
+                        'model': 'test',
+                        'conversation_id': f'c-blk-{profile}',
+                        'agent_profile': profile,
+                        'permission_mode': 'run',
+                        'messages': [{'role': 'user', 'content': 'Run'}],
+                    }))
+                self.assertEqual(bcalls['n'], 2, f'{profile} blocked error must not loop')
+
+
 if __name__ == '__main__':
     unittest.main()
