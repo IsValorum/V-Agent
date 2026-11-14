@@ -355,7 +355,7 @@ function updateToolTrace(section,trace) {
       const pending=document.createElement('p');pending.className='tool-note';pending.textContent=uiText(call.status==='running'?'Esperando resultado…':call.status==='interrupted'?'Se detuvo la respuesta antes de recibir el resultado.':call.status==='missing'?'No llegó el resultado de esta llamada.':'Este chat no guardó el resultado. Regenera la respuesta para registrar nuevas llamadas.');body.append(pending);
     }
   });
-  const completedTargets=new Set(trace.filter(c=>toolName(c)==='fs_write'&&c.status==='completed'&&c.args?.path).map(c=>String(c.args.path).split(/[\\/]/).pop().toLowerCase()));
+  const completedTargets=new Set(trace.filter(c=>c.status==='completed'&&c.ok!==false&&(['fs_write','fs_edit'].includes(toolName(c))&&c.args?.path||toolName(c)==='fs_copy'&&c.args?.destino)).map(c=>String(toolName(c)==='fs_copy'?c.args.destino:c.args.path).split(/[\\/]/).pop().toLowerCase()));
   const callTarget=c=>c.args?.path?String(c.args.path).split(/[\\/]/).pop():c.file_path?String(c.file_path).split(/[\\/]/).pop().replace(/^[0-9a-f]{32}-/i,''):'';
   const pendingCall=!running?trace.findLast(c=>{
     const failed=c.ok===false||['error','blocked','interrupted','missing'].includes(c.status);

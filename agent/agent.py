@@ -79,11 +79,11 @@ VRAM_AUTO = os.environ.get("STRATA_AGENT_VRAM_AUTO", "1") != "0"   # ver agent/v
 # caracteres) hasta llenar los 65.536 tokens de contexto. Con el tope de salida quitado por
 # pedido del usuario hace falta esto, que es una barrera de comportamiento y no un limite de
 # longitud: si repite el trabajo o sigue escribiendo despues de haberlo guardado, se corta.
-REFLEXIONES_MAX = 3           # fallos de FORMA seguidos (el harness no ejecuto nada) antes de parar
-COMPROBACIONES_MAX = 5        # fallos de CONTENIDO seguidos (la herramienta se ejecuto y devolvio
+REFLEXIONES_MAX = 5           # fallos de FORMA seguidos (el harness no ejecuto nada) antes de parar
+COMPROBACIONES_MAX = 10       # fallos de CONTENIDO seguidos (la herramienta se ejecuto y devolvio
                               # un error con la prueba delante: old_text repetido, NO APLICADO por el
                               # lint, consola rota). Aqui el modelo SI que avanza: cada ronda descarta
-                              # una hipotesis, y cortarlo a la 3 era dejar a medias lo que se ve en
+                              # una hipotesis, y cortarlo antes era dejar a medias lo que se ve en
                               # SWE-agent (sus "requeries" tambien son sobre el fichero ya tocado).
 PARECIDO_MIN = 0.95           # similitud a partir de la cual dos contenidos son "la misma version"
 
@@ -103,6 +103,18 @@ _CONT_RE = re.compile(
 )
 
 
+_PROMISE_TO_ACT_RE = re.compile(
+    r"\b(?:"
+    r"voy\s+a\s+(?:escribir|crear|editar|modificar|corregir|completar|leer|revisar|guardar|ejecutar|verificar|probar|copiar|continuar\s+con)|"
+    r"ahora\s+(?:escribo|creo|edito|completo|guardo|copio|verifico)|"
+    r"i['’]?ll\s+(?:write|create|edit|fix|complete|read|save|run|check|copy|finish)|"
+    r"i\s+(?:will|am\s+going\s+to)\s+(?:write|create|edit|fix|complete|read|save|run|check|copy|finish)|"
+    r"let\s+me\s+(?:write|create|edit|fix|complete|read|save|run|check|copy|finish)"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
 def _is_continuation_request(text, target_name=""):
     """True when a user prompt is asking to continue or finish an interrupted draft."""
     clean = str(text or "").strip()
@@ -114,6 +126,41 @@ def _is_continuation_request(text, target_name=""):
     if "drafts/" in low or "drafts\\" in low:
         return True
     return len(clean) <= 180 and bool(_CONT_RE.search(clean))
+
+
+def _should_nudge_incomplete_turn(content, messages, tools, workspace, wrote_file,
+                                  llamadas, last_round_failed, resume_draft_flag, action_nudges,
+                                  draft_nudged=False):
+    """Decide whether a 0-tool assistant turn stopped mid-task and should be nudged to act."""
+    if action_nudges >= 3 or not tools:
+        return False, "", ""
+    clean = str(content or "").strip()
+    if clean.endswith("?"):
+        return False, "", ""
+    has_draft_tools = any(
+        ((t.get("function") or {}).get("name") or "") in ("pc__fs_write", "pc__draft_resume")
+        for t in (tools or [])
+    )
+    if not wrote_file and workspace and has_draft_tools:
+        from draft_recovery import pending_draft as _pending_draft
+        pending_now = _pending_draft(workspace)
+        if pending_now:
+            last_user = next(
+                (str(m.get("content") or "") for m in reversed(messages) if m.get("role") == "user"),
+                "",
+            )
+            _, (target_hint, _, _) = pending_now
+            target_hint = target_hint or "the target file"
+            promised = bool(_PROMISE_TO_ACT_RE.search(clean))
+            if promised or llamadas > 0 or last_round_failed:
+                return True, "draft", target_hint
+            if not draft_nudged and (resume_draft_flag or _is_continuation_request(last_user, target_hint)):
+                return True, "draft", target_hint
+    if _PROMISE_TO_ACT_RE.search(clean):
+        return True, "promise", ""
+    if last_round_failed and not clean:
+        return True, "failed", ""
+    return False, "", ""
 
 
 def _parecido(a, b):
@@ -1130,23 +1177,24 @@ def tools_for(fn, tpath=None, agent_profile="balanced"):
     HUB.wait(None)
     tools = compact_tools([t for t in HUB.openai_tools() if (t["function"]["name"].split("__")[-1] in enabled and t["function"]["name"].split("__")[0] in ("pc","hf","duckduckgo","web","autobrowser","admin","computer")) or t["function"]["name"].split("__")[0] in external])
     if not full_access:
-        descriptions = {'pc__fs_list': 'List sandbox files; use relative paths.',
-                        'pc__fs_read': 'Read sandbox UTF-8 text; offset continues by character; linea is a 1-based line, ventana is the line count.',
-                        'pc__doc_read': 'Extract text, tables and metadata from PDF, Word, Excel, PowerPoint, ODF, EPUB, RTF, HTML, XML and CSV in the sandbox.',
-                        'pc__fs_write': 'Write sandbox UTF-8 text; use relative paths.',
-                        'pc__fs_edit': 'Replace exact blocks in a sandbox file: old_text/new_text or edits=[...] (all or nothing); old_text must match verbatim.',
-                        'pc__fs_copy': 'Copy or move text between sandbox files by line number, without the model retyping it.',
-                        'pc__web_render': 'Render sandbox HTML; report console errors and scene/camera/instance diagnostics. Not a visual quality guarantee.',
-                        'pc__shell_run': 'Run CMD in the isolated workspace. No network, PowerShell or background jobs. If unavailable, the command is not run.'}
+        sandbox_notes = {
+            'pc__shell_run': ' (Sandbox: only CMD built-ins and python run, offline; no PowerShell or background jobs.)',
+        }
         path_notes = {'pc__fs_list', 'pc__fs_read', 'pc__doc_read', 'pc__fs_write', 'pc__fs_edit', 'pc__web_render'}
         for tool in tools:
             fn = tool['function']
-            if fn['name'] in descriptions:
-                fn['description'] = descriptions[fn['name']]
+            if fn['name'] in sandbox_notes and 'sandbox' not in str(fn.get('description') or '').lower():
+                fn['description'] = str(fn.get('description') or '').rstrip() + sandbox_notes[fn['name']]
+            elif fn['name'] in path_notes and 'sandbox' not in str(fn.get('description') or '').lower():
+                fn['description'] = str(fn.get('description') or '').rstrip() + ' (Sandbox: use paths relative to the working folder.)'
             if fn['name'] in path_notes:
                 prop = (fn.get('parameters', {}).get('properties') or {}).get('path')
                 if isinstance(prop, dict):
-                    prop['description'] = 'Relative to the sandbox working folder, e.g. notes.txt or src/app.py.'
+                    existing = str(prop.get('description') or '').strip()
+                    if not existing:
+                        prop['description'] = 'Relative to the sandbox working folder, e.g. notes.txt or src/app.py.'
+                    elif 'sandbox' not in existing.lower():
+                        prop['description'] = existing.rstrip() + ' (Sandbox: relative to the working folder, e.g. notes.txt or src/app.py.)'
     from agent_profiles import tools_for_profile,distinct_tools
     tools=distinct_tools(tools_for_profile(tools,agent_profile))
     # Presupuesto duro del bloque de tools (ver agent/tool_budget.py): mientras quede lejos del
@@ -1478,12 +1526,15 @@ def _run_chat_stream(body, control=None):
     denegada = None               # herramienta que el usuario rechazo; corta el turno
     escrituras_fallidas = 0       # fs_write grandes que fallaron en este turno (1 reintento)
     archivo_recordado = False     # ya se pidió una vez crear el archivo que solo se mostró en el chat
+    action_nudges = 0
     draft_nudged = False
+    llamadas = 0
+    last_round_failed = False
     wrote_file = False
     llamadas_hechas = {}          # (herramienta, argumentos) ya ejecutados: la misma llamada
                                   # repetida es el bucle que se vio, y no aporta nada
-    fallos_forma = 0              # fallos de FORMA seguidos (no se ejecuto nada): tope 3
-    fallos_contenido = 0          # fallos de CONTENIDO seguidos (ejecuto y devolvio la prueba): tope 5
+    fallos_forma = 0              # fallos de FORMA seguidos (no se ejecuto nada)
+    fallos_contenido = 0          # fallos de CONTENIDO seguidos (ejecuto y devolvio la prueba)
     guardados_previos = {}        # ruta -> ultimo contenido guardado: para la "otra version" igual
     blocked_search_tools = set()
     wrap_up = False
@@ -1497,7 +1548,7 @@ def _run_chat_stream(body, control=None):
             "messages": messages,
             "stream": True,
             "chat_template_kwargs": {"no_date": True, "enable_thinking": effort != "none", "preserve_thinking": True,
-                                     "compact_tool_prompt": fallos_forma == 0, "strata_native_tools": True},
+                                     "compact_tool_prompt": False, "strata_native_tools": True},
         }
         for k in ("temperature", "top_p", "top_k", "min_p", "repetition_penalty",
                   "presence_penalty", "frequency_penalty", "max_tokens"):
@@ -1731,6 +1782,30 @@ def _run_chat_stream(body, control=None):
                    "ok": False, "executed": False, "status": "error"}
         if not ordered:
             if any(d["id"] in large_write_drafts for d in rejected):
+                fallos_forma += 1
+                fallos_contenido = 0
+                last_round_failed = True
+                retry_draft = bool(tools) and not wrap_up and fallos_forma < REFLEXIONES_MAX and rnd < rounds - 1
+                if retry_draft:
+                    has_resume = any(
+                        ((t.get("function") or {}).get("name") or "") == "pc__draft_resume"
+                        for t in (tools or [])
+                    )
+                    hint = (
+                        "An incomplete large write was saved as a draft on disk and NOT written to the final file. "
+                        "Do NOT stop and do NOT rewrite the whole file from scratch: call pc__draft_resume() to locate "
+                        "the saved prefix, copy it to the target filename with pc__fs_copy(desde=..., destino=..., modo='nuevo'), "
+                        "and finish the missing ending with pc__fs_edit."
+                        if has_resume else
+                        "Call not executed: your large write was truncated before completion. Retry cleanly with valid "
+                        "JSON arguments, or split the file into smaller steps."
+                    )
+                    messages.append({"role": "assistant", "content": content, "reasoning_content": reasoning})
+                    messages.append({"role": "tool", "content": "[Recovery: " + hint + "]"})
+                    if content.strip():
+                        full.append("\n\n")
+                        yield {"type": "content", "text": "\n\n"}
+                    continue
                 final = "".join(full).rstrip()
                 final += ("\n\n" if final else "") + "El archivo quedó como borrador. Ábrelo en la llamada Guardar archivo para copiarlo o descargarlo."
                 yield {"type": "content_fixed", "text": final}
@@ -1739,6 +1814,7 @@ def _run_chat_stream(body, control=None):
             if tools and (attempted or thought_attempted or cut_call or rejected or finish_reason == "tool_calls"):
                 fallos_forma += 1
                 fallos_contenido = 0
+                last_round_failed = True
                 if finish_reason == "tool_loop":
                     detail = "El modelo repitió el inicio de la llamada sin escribir argumentos."
                 elif cut_call:
@@ -1788,32 +1864,37 @@ def _run_chat_stream(body, control=None):
                 full.append("\n\n")
                 yield {"type": "content", "text": "\n\n"}
                 continue
-            if not draft_nudged and not wrote_file and rnd < rounds - 1 and workspace:
-                has_write_tool = any(
-                    ((t.get("function") or {}).get("name") or "") in ("pc__fs_write", "pc__draft_resume")
-                    for t in (tools or [])
+            if not wrap_up and not final_round and rnd < rounds - 1:
+                should_nudge, nudge_kind, target_hint = _should_nudge_incomplete_turn(
+                    content, messages, tools, workspace, wrote_file,
+                    llamadas, last_round_failed, bool(body.get("resume_draft")), action_nudges,
+                    draft_nudged=draft_nudged,
                 )
-                if has_write_tool:
-                    from draft_recovery import pending_draft as _pending_draft
-                    pending_now = _pending_draft(workspace)
-                    if pending_now:
-                        last_user = next(
-                            (str(m.get("content") or "") for m in reversed(messages) if m.get("role") == "user"),
-                            "",
+                if should_nudge:
+                    action_nudges += 1
+                    if nudge_kind == "draft":
+                        draft_nudged = True
+                        msg_nudge = (
+                            "[Recovery: your reply called 0 tools while a pending interrupted draft still exists for %s. "
+                            "Do not narrate what you will do — call pc__draft_resume() or read the recovered file with "
+                            "pc__fs_read right now, copy it with pc__fs_copy(desde=..., destino=%r, modo='nuevo'), "
+                            "and finish the missing ending with pc__fs_edit.]" % (target_hint, target_hint)
                         )
-                        _, (target_hint, _, _) = pending_now
-                        target_hint = target_hint or "the target file"
-                        if bool(body.get("resume_draft")) or _is_continuation_request(last_user, target_hint):
-                            draft_nudged = True
-                            messages.append({"role": "assistant", "content": content, "reasoning_content": reasoning})
-                            messages.append({"role": "tool", "content": (
-                                "[Recovery: your reply called 0 tools while a pending interrupted draft still exists for %s. "
-                                "Do not narrate what you will do — call pc__draft_resume() or read the recovered file with "
-                                "pc__fs_read right now, then write the complete file with pc__fs_write.]" % target_hint
-                            )})
-                            full.append("\n\n")
-                            yield {"type": "content", "text": "\n\n"}
-                            continue
+                    elif nudge_kind == "promise":
+                        msg_nudge = (
+                            "[Recovery: you stated you were going to perform an action, but emitted 0 tool calls. "
+                            "Do NOT stop or narrate — invoke the appropriate tool right now to complete the task.]"
+                        )
+                    else:
+                        msg_nudge = (
+                            "[Recovery: the previous tool step failed and no follow-up tool was called. "
+                            "Rectify the arguments or approach and call the next tool now until the task is complete.]"
+                        )
+                    messages.append({"role": "assistant", "content": content, "reasoning_content": reasoning})
+                    messages.append({"role": "tool", "content": msg_nudge})
+                    full.append("\n\n")
+                    yield {"type": "content", "text": "\n\n"}
+                    continue
             yield {"type": "done", "content": "".join(full), "reasoning_content": reasoning}
             return
 
@@ -1827,6 +1908,8 @@ def _run_chat_stream(body, control=None):
                             "function": {"name": c["name"], "arguments": json.dumps(c["parsed_args"], ensure_ascii=False)}}
                            for i, c in enumerate(ordered)]})
         failed_file = False
+        llamadas += len(ordered)
+        round_had_failure = False
         for i, c in enumerate(ordered):
             if control.cancelled.is_set():
                 return
@@ -1855,7 +1938,7 @@ def _run_chat_stream(body, control=None):
                     # La misma llamada exacta, otra vez: es el bucle observado (versiones del
                     # mismo fichero) y cada vuelta cuesta prefill y contexto.
                     text = ("error: that exact tool call already ran in this conversation and returned: %s. "
-                            "Do not repeat the same call; use the earlier result, change the arguments, or finish."
+                            "Do not repeat the same call; use the earlier result, switch to pc__fs_copy / pc__fs_edit / pc__fs_write with corrected arguments."
                             % str(llamadas_hechas[firma])[:160])
                     status, ok = "blocked", False
                 elif name == "pc__fs_write" and isinstance(args.get("path"), str) and args["path"] in guardados_previos and \
@@ -1950,8 +2033,13 @@ def _run_chat_stream(body, control=None):
                    "chars": len(text), "model_chars": len(model_text),
                    "truncated": len(text) > result_limit,
                    "source_truncated": source_truncated, "source_chars": source_chars}
-            if ok and status == "completed" and name == "pc__fs_write":
+            if ok and status == "completed" and name in ("pc__fs_write", "pc__fs_edit", "pc__fs_copy"):
                 wrote_file = True
+                escrituras_fallidas = 0
+            elif ok and status == "completed" and name == "pc__draft_resume":
+                escrituras_fallidas = 0
+            if not ok:
+                round_had_failure = True
             file_content = args.get("content")
             if not ok and name == "pc__fs_write" and not denegada and (
                     trace_id in large_write_drafts or isinstance(file_content, str) and len(file_content) >= 512):
@@ -1983,6 +2071,7 @@ def _run_chat_stream(body, control=None):
             if control.cancelled.is_set():
                 return
             messages.append({"role": "tool", "tool_call_id": c["id"] or f"call_{i}", "content": model_text})
+        last_round_failed = round_had_failure
         if denegada:
             final = "".join(full).rstrip()
             final += ("\n\n" if final else "") + ("No he ejecutado `%s` porque denegaste el permiso. "

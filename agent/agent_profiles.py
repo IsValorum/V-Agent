@@ -28,15 +28,8 @@ def filter_enabled(enabled,profile,full_access):
 def external_allowed(profile,full_access):
     return bool(full_access) and normalize(profile)!='light'
 def tools_for_profile(tools,profile):
-    # Profiles never override user-selected MCPs or remove callable parameters.
-    if normalize(profile)!='light':return tools
-    import copy
-    from tool_budget import SHORT_DESCRIPTIONS
-    result=copy.deepcopy(tools)
-    for item in result:
-        fn=item['function']
-        if fn['name'] not in ('pc__fs_edit','pc__shell_run'):fn['description']=SHORT_DESCRIPTIONS.get(fn['name'],fn.get('description',''))
-    return result
+    # Profiles never override user-selected MCPs, remove callable parameters, or truncate instructions.
+    return tools
 
 def distinct_tools(tools):
     """Hide exact aliases from discovery; existing routes/history remain intact."""

@@ -3,7 +3,7 @@ import copy
 
 DESCRIPTIONS = {
     'pc__code_check': 'File: check syntax by default (returns structured JSON with ok:false when syntax issues exist). Directory: list project checks without executing. Run a listed check ID with run=true (full-PC only). Report verification scope; passing syntax or one check does not prove the task is complete.',
-    'pc__draft_resume': 'Resume the latest saved draft (drafts/) in this conversation. Takes no arguments; restores a readable file path (recuperados/...) without regenerating code. Do not read drafts/ directly with fs_read.',
+    'pc__draft_resume': 'Resume the latest saved draft (drafts/) in this conversation. Takes no arguments; restores a readable file path (recuperados/...) plus tail preview without regenerating code. Finish it fast with fs_copy(desde=..., destino=..., modo="nuevo") + fs_edit. Do not read drafts/ directly with fs_read.',
     'duckduckgo__web_search': 'Search the web; returns titles, URLs and snippets. When results look relevant, visit the 1–3 most promising URLs with web_visit before answering; snippets may be stale or incomplete.',
     'duckduckgo__web_visit': 'Read a URL. Use it on relevant search results instead of answering from snippets alone. Continue only as needed: reuse page_id and set offset=next_offset.',
     'pc__fs_list': 'List a directory; "." is the working folder, or pass any relative or absolute directory path.',
@@ -39,12 +39,12 @@ DESCRIPTIONS = {
 }
 
 def compact_schema(schema):
-    """Remove display annotations, keeping validation and property names intact."""
+    """Preserve complete parameter descriptions and schema instructions."""
     if not isinstance(schema, dict):
         return copy.deepcopy(schema)
     result = {}
     for key, value in schema.items():
-        if key in ('title', 'examples', '$comment', '$schema') or key == 'default' and value is None:
+        if key == '$schema':
             continue
         if key in ('properties', 'patternProperties', '$defs', 'definitions', 'dependentSchemas'):
             result[key] = {name: compact_schema(child) for name, child in value.items()}
@@ -114,20 +114,19 @@ def compact_tools(tools):
         props = schema.get('properties') or {}
         if name=='web__http_request':props.pop('download_dir',None)
         if name in DESCRIPTIONS:
-            fn['description'] = _dynamic_description(name, enabled_names)
-            # Keep parameter semantics; display-only annotations were removed above.
+            orig_desc = str(fn.get('description') or '').strip()
+            dyn_desc = _dynamic_description(name, enabled_names)
+            # Never shorten an existing MCP description when no dynamic routing adjustment applies.
+            if name in ('web__http_request', 'autobrowser__open', 'web__download', 'pc__shell_run'):
+                fn['description'] = dyn_desc
+            else:
+                fn['description'] = orig_desc if len(orig_desc) > len(dyn_desc) else dyn_desc
             if name == 'duckduckgo__web_search' and {'query', 'region', 'timelimit'} <= props.keys() and not set(schema.get('required') or []) - {'query'}:
                 # The search server also carries an old URL-reader alias. Visit owns
-                # reading/pagination in this agent, so do not declare that API twice.
+                # reading/pagination in this agent, so preserve full search parameter schemas without 'url'.
                 fn['parameters'] = {'type': 'object', 'properties': {
-                    'query': {'type': 'string'},
-                    'region': {'type': 'string', 'description': 'Optional locale override; omit for user settings.'},
-                    'timelimit': {'type': ['string', 'null'], 'enum': ['d', 'w', 'm', 'y', None], 'description': 'Age: day/week/month/year; omit for user settings.'},
+                    k: copy.deepcopy(props[k]) for k in ('query', 'region', 'timelimit') if k in props
                 }, 'required': ['query']}
-            elif name == 'duckduckgo__web_visit' and 'find_in_page' in props:
-                props['find_in_page']['description'] = 'Focus keywords.'
-            elif name == 'pc__shell_run' and 'timeout' in props:
-                props['timeout']['description'] = 'Seconds; omit for user settings.'
         output.append(item)
     return output
 

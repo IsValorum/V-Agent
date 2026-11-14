@@ -267,8 +267,11 @@ function autoResumeDraftId(history,functions){
     const m=history[i];
     if(m.role!=='assistant')continue;
     for(const c of (m.tool_trace||[])){
-      if((c.name==='pc__fs_write'||c.name==='fs_write')&&c.status==='completed'&&c.args?.path){
-        done.add(String(c.args.path).split(/[\\/]/).pop().toLowerCase());
+      const completedWrite=(c.name==='pc__fs_write'||c.name==='fs_write'||c.name==='pc__fs_edit'||c.name==='fs_edit')&&c.args?.path;
+      const completedCopy=(c.name==='pc__fs_copy'||c.name==='fs_copy')&&c.args?.destino;
+      const donePath=completedWrite?c.args.path:completedCopy?c.args.destino:'';
+      if(donePath&&c.status==='completed'&&c.ok!==false){
+        done.add(String(donePath).split(/[\\/]/).pop().toLowerCase());
       }
     }
     for(let j=(m.tool_trace||[]).length-1;j>=0;j--){
@@ -280,10 +283,10 @@ function autoResumeDraftId(history,functions){
       if((target&&lastUser.toLowerCase().includes(target))||(lastUser.length<=240&&DRAFT_CONTINUE_RE.test(lastUser)))return c.draft_id;
     }
     const text=String(m.content||'');
-    const re=/drafts[\\/]([0-9a-f]{32})(?:-([^\s`.,;)\]]+))?/gi;
+    const re=/drafts[\\/]([0-9a-f]{32})(?:-([^\s`"'<>,;)\]]+))?/gi;
     let match;
     while((match=re.exec(text))!==null){
-      const draftId=match[1],target=String(match[2]||'').toLowerCase();
+      const draftId=match[1],target=String(match[2]||'').replace(/[.,;:!?]+$/,'').toLowerCase();
       if(target&&done.has(target))continue;
       if((target&&lastUser.toLowerCase().includes(target))||(lastUser.length<=240&&DRAFT_CONTINUE_RE.test(lastUser)))return draftId;
     }
