@@ -718,6 +718,109 @@ class CrossModelAndProfileTests(unittest.TestCase):
                     }))
                 self.assertEqual(bcalls['n'], 2, f'{profile} blocked error must not loop')
 
+    def test_outputs_dump_chunks_stay_below_light_budget_and_gate_disabled_fs_read(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            policy = AccessPolicy(root)
+            (root / 'outputs').mkdir(parents=True, exist_ok=True)
+            big_lines = [f'line {i:03d}: ' + ('x' * 70) for i in range(1, 251)]
+            (root / 'outputs' / 'tool_1.txt').write_text('\n'.join(big_lines), encoding='utf-8')
+
+            for full_pc in (False, True):
+                chunk = pc_mcp.call('fs_read', {'path': 'outputs/tool_1.txt', 'offset': 0, 'max_chars': 12000}, full_access=full_pc, policy=policy)
+                self.assertLessEqual(len(chunk), 3600)
+                self.assertIn('[Continue: fs_read offset=', chunk)
+                paged = pc_mcp.call('fs_read', {'path': 'outputs/tool_1.txt', 'linea': 1, 'ventana': 200}, full_access=full_pc, policy=policy)
+                self.assertLessEqual(len(paged), 3600)
+                self.assertIn('To continue: fs_read(path, linea=', paged)
+
+            tools_with_read = [
+                {'type': 'function', 'function': {'name': 'pc__' + t['name'], 'description': mcp_prompt.DESCRIPTIONS['pc__' + t['name']], 'parameters': t['inputSchema']}}
+                for t in pc_mcp.TOOLS if t['name'] in ('shell_run', 'fs_read')
+            ]
+            big_out = '\n'.join(big_lines)
+
+            class OutputHub:
+                def routes(self):
+                    return {'pc__shell_run': ('pc', 'shell_run'), 'pc__fs_read': ('pc', 'fs_read')}
+
+                def call(self, name, args, cancel=None):
+                    if name == 'pc__shell_run':
+                        return {'ok': True, 'text': big_out}
+                    return {'ok': True, 'text': pc_mcp.call('fs_read', args, full_access=False, policy=policy)}
+
+            seen_msgs = []
+            calls = {'n': 0}
+
+            def stream_with_read(payload, control):
+                calls['n'] += 1
+                seen_msgs.append(list(payload.get('messages') or []))
+                if calls['n'] == 1:
+                    yield ('data: ' + json.dumps({'choices': [{'delta': {'tool_calls': [{'index': 0, 'id': 's1', 'type': 'function', 'function': {'name': 'pc__shell_run', 'arguments': '{"command":"dir"}'}}]}, 'finish_reason': 'tool_calls'}]})).encode()
+                    yield b'data: [DONE]'
+                elif calls['n'] == 2:
+                    tool_msg = next(m['content'] for m in reversed(seen_msgs[-1]) if m.get('role') == 'tool')
+                    m = re.search(r'Full output saved at (outputs/[^\s:]+)', tool_msg)
+                    self.assertIsNotNone(m)
+                    yield ('data: ' + json.dumps({'choices': [{'delta': {'tool_calls': [{'index': 0, 'id': 'r1', 'type': 'function', 'function': {'name': 'pc__fs_read', 'arguments': json.dumps({'path': m.group(1), 'offset': 0, 'max_chars': 7500})}}]}, 'finish_reason': 'tool_calls'}]})).encode()
+                    yield b'data: [DONE]'
+                else:
+                    yield ('data: ' + json.dumps({'choices': [{'delta': {'content': 'Lectura completada.'}, 'finish_reason': 'stop'}]})).encode()
+                    yield b'data: [DONE]'
+
+            with patch.object(agent, 'VRAM_AUTO', False), \
+                 patch.object(agent, 'tokenizer_del_modelo', lambda _: None), \
+                 patch.object(agent, 'tools_for', lambda *a: tools_with_read), \
+                 patch.object(agent, 'engine_context', lambda *a: 8192), \
+                 patch.object(agent, 'engine_chat_stream', stream_with_read), \
+                 patch.object(agent, 'HUB', OutputHub()), \
+                 patch.object(agent.PROJECTS, 'workspace', lambda *a: policy):
+                events = list(agent._run_chat_stream({
+                    'model': 'test',
+                    'conversation_id': 'c-out-ok',
+                    'agent_profile': 'light',
+                    'permission_mode': 'run',
+                    'messages': [{'role': 'user', 'content': 'Inspect output'}],
+                }))
+            self.assertEqual(calls['n'], 3)
+            read_res = [e for e in events if e.get('type') == 'tool_result' and e.get('name') == 'pc__fs_read'][0]
+            self.assertTrue(read_res['ok'])
+            self.assertFalse(read_res['truncated'])
+            self.assertIn('[Continue: fs_read offset=', read_res['model_result'])
+
+            # Without pc__fs_read enabled, must NOT tell the model to call fs_read
+            tools_no_read = [t for t in tools_with_read if t['function']['name'] == 'pc__shell_run']
+            calls['n'] = 0
+            seen_no_read = []
+
+            def stream_no_read(payload, control):
+                calls['n'] += 1
+                seen_no_read.append(list(payload.get('messages') or []))
+                if calls['n'] == 1:
+                    yield ('data: ' + json.dumps({'choices': [{'delta': {'tool_calls': [{'index': 0, 'id': 's2', 'type': 'function', 'function': {'name': 'pc__shell_run', 'arguments': '{"command":"dir"}'}}]}, 'finish_reason': 'tool_calls'}]})).encode()
+                    yield b'data: [DONE]'
+                else:
+                    yield ('data: ' + json.dumps({'choices': [{'delta': {'content': 'Salida truncada reportada.'}, 'finish_reason': 'stop'}]})).encode()
+                    yield b'data: [DONE]'
+
+            with patch.object(agent, 'VRAM_AUTO', False), \
+                 patch.object(agent, 'tokenizer_del_modelo', lambda _: None), \
+                 patch.object(agent, 'tools_for', lambda *a: tools_no_read), \
+                 patch.object(agent, 'engine_context', lambda *a: 8192), \
+                 patch.object(agent, 'engine_chat_stream', stream_no_read), \
+                 patch.object(agent, 'HUB', OutputHub()), \
+                 patch.object(agent.PROJECTS, 'workspace', lambda *a: policy):
+                events_no = list(agent._run_chat_stream({
+                    'model': 'test',
+                    'conversation_id': 'c-out-no',
+                    'agent_profile': 'light',
+                    'permission_mode': 'run',
+                    'messages': [{'role': 'user', 'content': 'Run cmd'}],
+                }))
+            shell_res = next(e for e in events_no if e.get('type') == 'tool_result')
+            self.assertIn('pc__fs_read) is disabled', shell_res['model_result'])
+            self.assertNotIn('Full output saved at outputs/', shell_res['model_result'])
+
 
 if __name__ == '__main__':
     unittest.main()

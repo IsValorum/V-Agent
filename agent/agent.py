@@ -2012,13 +2012,17 @@ def _run_chat_stream(body, control=None):
             limite = min(presupuesto_resultado(),PROFILES[agent_profile]['result_chars'])
             limit_note = nota_presupuesto(rnd, rounds) if i == len(ordered) - 1 else ""
             if len(text) > limite - len(limit_note):
-                # Como hace Goose (`large_response_handler`): la salida larga no se tira, se vuelca
-                # a un fichero de la carpeta de trabajo y se le dice la ruta. El modelo puede leerla
-                # por partes con fs_read en vez de quedarse con la cabecera truncada.
-                destino = volcar_salida(trace_id, text, workspace)
-                if destino:
-                    limit_note += ("\n[Full output saved at %s: read it in chunks with fs_read "
-                                   "(offset) instead of calling the tool again.]" % destino)
+                if "pc__fs_read" in allowed:
+                    # Como hace Goose (`large_response_handler`): la salida larga no se tira, se vuelca
+                    # a un fichero de la carpeta de trabajo y se le dice la ruta. El modelo puede leerla
+                    # por partes con fs_read en vez de quedarse con la cabecera truncada.
+                    destino = volcar_salida(trace_id, text, workspace)
+                    if destino:
+                        limit_note += ("\n[Full output saved at %s: read it in chunks with fs_read "
+                                       "(offset) instead of calling the tool again.]" % destino)
+                else:
+                    limit_note += ("\n[Output truncated (%d total characters); file reading "
+                                   "(pc__fs_read) is disabled for this conversation.]" % len(text))
             result_limit = max(0, limite - len(limit_note))
             if source_truncated and "outputs/" not in limit_note and name != "pc__fs_read":
                 # El propio servidor MCP recorto la salida (pc_mcp CAP / web_visit por paginas): lo que

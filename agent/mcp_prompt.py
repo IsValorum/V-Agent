@@ -7,7 +7,7 @@ DESCRIPTIONS = {
     'duckduckgo__web_search': 'Search the web; returns titles, URLs and snippets. When results look relevant, visit the 1–3 most promising URLs with web_visit before answering; snippets may be stale or incomplete.',
     'duckduckgo__web_visit': 'Read a URL. Use it on relevant search results instead of answering from snippets alone. Continue only as needed: reuse page_id and set offset=next_offset.',
     'pc__fs_list': 'List a directory; "." is the working folder, or pass any relative or absolute directory path.',
-    'pc__fs_read': 'Read a UTF-8 text file (relative or absolute path; for directories use fs_list). offset continues by character; linea is a 1-based line, ventana is the line count.',
+    'pc__fs_read': 'Read a UTF-8 text file (relative or absolute path; for directories use fs_list). offset continues by character; linea is a 1-based line, ventana is the line count. Also reads saved outputs/ dumps in chunks.',
     'pc__doc_read': 'Extract text, tables and metadata from PDF, DOCX, XLSX, PPTX, ODT/ODS/ODP, EPUB, RTF, HTML, XML and CSV (relative or absolute path).',
     'pc__fs_write': 'Create or overwrite a UTF-8 file (relative or absolute path); creates parent directories.',
     'pc__fs_edit': 'Replace exact blocks in an existing file: one old_text/new_text, or edits=[{old_text,new_text},...] (all or nothing). old_text must match verbatim and appear once, else widen it or set all=true. fs_write creates.',

@@ -1102,6 +1102,7 @@ def call(name, args, *, full_access=False, policy=None):
             path = policy.path(args["path"], full_access)
         if os.path.isdir(path):
             raise ValueError(f"{path} is a directory, not a file; use fs_list to list its contents.")
+        is_output_dump = raw_arg.lower().startswith(("outputs/", "salidas/")) or "/outputs/" in str(path).replace("\\", "/").lower()
         try:
             with open(path, "r", encoding="utf-8-sig", errors="strict") as f:
                 texto_completo = f.read()
@@ -1139,7 +1140,7 @@ def call(name, args, *, full_access=False, policy=None):
             corte = lineas[inicio - 1:inicio - 1 + n]
             ancho = max(4, len(str(total)))
             cap = int(options('pc').get('max_result_chars') or 12000)
-            limit = max(300, min(cap - 260, 3200) if draft_restored_rel else cap - 260)
+            limit = max(300, min(cap - 260, 3200) if draft_restored_rel else min(cap - 260, 3400) if is_output_dump else cap - 260)
             rows = []
             for k, line in enumerate(corte, inicio):
                 row = "%*d\t%s" % (ancho, k, line)
@@ -1166,7 +1167,8 @@ def call(name, args, *, full_access=False, policy=None):
         if args.get("offset") is not None and int(args["offset"]) < 0:
             raise ValueError("offset must be >= 0.")
         cap = int(options('pc').get('max_result_chars') or 12000)
-        n = max(1, min(int(args.get("max_chars") or 3000), max(300, cap - 200)))
+        chunk_ceiling = min(max(300, cap - 200), 3400) if is_output_dump else max(300, cap - 200)
+        n = max(1, min(int(args.get("max_chars") or 3000), chunk_ceiling))
         offset = max(0, int(args.get("offset") or 0))
         content = texto_completo[offset:offset + n]
         more = offset + len(content) < len(texto_completo)
