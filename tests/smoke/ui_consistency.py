@@ -48,7 +48,7 @@ if(!window.__hidden){window.__hidden={};
   new MutationObserver(list=>{for(const m of list){const el=m.type==='characterData'?m.target.parentElement:m.target;
     if(!el||el.closest('#chat,svg,script,style,template,option,select,dialog:not([open])'))continue;
     const text=(el.textContent||'').trim();if(text.length<4||el.children.length>2)continue;
-    if(!STATUS.test(el.id+' '+el.className))continue;
+    if(!STATUS.test(el.id+' '+el.className)||el.closest('a,button'))continue;  // a link or button label is not a message
     const panel=el.parentElement?.closest(PANEL);
     // Hidden itself while what holds it is on screen (text in a closed tab or window is not counted).
     if(!shown(el)&&el.parentElement&&shown(el.parentElement)&&(panel?shown(panel):true)){const key=el.id?'#'+el.id:el.tagName.toLowerCase()+'.'+String(el.className).split(' ')[0];(window.__hidden[key]??=new Set()).add(text.slice(0,90));}}})

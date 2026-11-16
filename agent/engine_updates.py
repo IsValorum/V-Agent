@@ -71,19 +71,20 @@ class Updates:
         # Low priority and off the startup path: deleting gigabytes must not delay the first reply.
         threading.Thread(target=self.prune,name='engine-prune',daemon=True).start()
     def prune(self,only=None):
-        """Keep, per engine, the active version and the one before it (for "Restore previous").
+        """Keep, per engine, only the active version (a new one is tested before it replaces it).
 
-        Before, every update added a folder (llama.cpp CUDA: ~1.9 GB, and llama.cpp publishes almost
-        daily) and kept the downloaded .zip files beside the extracted engine. A folder still in use
-        by a running engine cannot be deleted on Windows: it is skipped and removed on a later start.
+        Earlier versions kept every update (llama.cpp CUDA: ~1.9 GB, published almost daily), then the
+        active one plus the one before it, with the downloaded .zip files beside them. A folder still in
+        use by a running engine cannot be deleted on Windows: it is skipped and removed on a later start.
         """
         with self.lock:
             if self.installing:return
-            active=active_installations();previous=self.state.get('previous',{})
+            active=active_installations()
+            if self.state.pop('previous',None) is not None:self.save()  # no second copy any more
         for key in ([only] if only else FEEDS):
             base=self.root/key
             if not base.is_dir():continue
-            keep={folder for folder in (_version_folder(active.get(key)),_version_folder(previous.get(key))) if folder}
+            keep={folder for folder in (_version_folder(active.get(key)),) if folder}
             for folder in base.iterdir():
                 if not folder.is_dir():continue
                 if folder in keep:
@@ -109,15 +110,25 @@ class Updates:
                     try:
                         if repo not in repos:
                             import app_updates
-                            req=urllib.request.Request('https://api.github.com/repos/'+repo+'/releases?per_page=8',headers={'User-Agent':'V-Agent/'+app_updates.VERSION,'Accept':'application/vnd.github+json','Accept-Encoding':'identity'})
+                            req=urllib.request.Request('https://api.github.com/repos/'+repo+'/releases?per_page=20',headers={'User-Agent':'V-Agent/'+app_updates.VERSION,'Accept':'application/vnd.github+json','Accept-Encoding':'identity'})
                             with urllib.request.urlopen(req,timeout=15) as response:repos[repo]=json.load(response)
-                        candidate=next(((release,asset) for release in repos[repo] if not release.get('draft') and (not release.get('prerelease') or key.startswith('llama-')) for asset in release.get('assets',[]) if re.fullmatch(pattern,asset['name'])),None)
+                        # The newest compatible build by publication date, straight to it (no stepping through
+                        # the ones in between); GitHub's list order is by creation, not publication.
+                        matches=[(release,asset) for release in repos[repo] if not release.get('draft') and (not release.get('prerelease') or key.startswith('llama-')) for asset in release.get('assets',[]) if re.fullmatch(pattern,asset['name'])]
+                        candidate=max(matches,key=lambda pair:str(pair[0].get('published_at') or pair[0].get('created_at') or ''),default=None)
                         if candidate is None:releases[key]={'available':False,'message':'No hay un precompilado compatible publicado.','repository':repo};continue
                         release,asset=candidate;tag=release['tag_name']
                         current=installed.get(key,{}).get('tag') or builds.get({'llama-cpu':'cpu','llama-cuda':'cuda','llama-vulkan':'vulkan','rust':'rust'}.get(key,key),{}).get('build') or builds.get(key,{}).get('version') or ''
                         deps=[a for a in release.get('assets',[]) if key=='llama-cuda' and a['name']=='cudart-llama-bin-win-cuda-12.4-x64.zip']
                         releases[key]={'tag':tag,'development':bool(release.get('prerelease')),'current':current,'available':tag.lstrip('v')!=str(current).lstrip('v'),'notes':str(release.get('body') or '')[:100000],'url':release['html_url'],'repository':repo,'asset':asset,'dependencies':deps}
                     except Exception as error:releases[key]={'available':False,'error':str(error),'repository':repo}
+                try:
+                    import maya_engine
+                    maya_info=builds.get('maya',{}) if isinstance(builds,dict) else {}
+                    maya_ver=str(maya_info.get('build') or maya_info.get('version') or '')
+                    releases['maya']=maya_engine.check_latest_release(maya_ver)
+                except Exception as error:
+                    releases['maya']={'available':False,'source_only':True,'error':str(error),'repository':'mw00/project-maya'}
                 with self.lock:self.state.update(releases=releases,checked_at=time.time());self.save()
             finally:
                 with self.lock:self.busy=False;self.installing=False
@@ -137,6 +148,42 @@ class Updates:
             current=previous.get('tag') if previous else build.get('build') or build.get('version','')
             release.update(current=current,available=release.get('tag','').lstrip('v')!=str(current).lstrip('v'))
             self.state['operation']='Restaurado: '+key;self.save();return self.snapshot()
+    def uninstall(self,key):
+        if key=='maya':
+            with self.lock:
+                if self.busy:raise ValueError('Hay otra operación en curso.')
+                import maya_engine
+                maya_build=(self.builds() or {}).get('maya',{})
+                maya_engine.uninstall_installation(maya_build.get('root'))
+                rel=self.state.get('releases',{}).get('maya',{})
+                if rel:
+                    rel.update(current='',available=False)
+                    rel.pop('error',None)
+                self.progress=None;self.state.pop('error',None);self.state['operation']='Project Maya desvinculado.';self.save();return self.snapshot()
+        if key not in FEEDS:raise ValueError('Unknown engine.')
+        with self.lock:
+            if self.busy:raise ValueError('Hay otra operación en curso.')
+            folder=self.root/key;active=active_installations()
+            if not folder.exists() and key not in active and key not in self.state.get('previous',{}):
+                raise ValueError('Ese motor no está instalado.')
+            if folder.exists():
+                for attempt in range(2):
+                    try:shutil.rmtree(folder);break
+                    except PermissionError:
+                        if attempt:raise ValueError('No se pudo eliminar el motor porque sigue en uso.')
+                        time.sleep(0.35)
+                    except OSError as error:
+                        raise ValueError('No se pudo eliminar el motor porque sigue en uso: '+str(error))
+            active.pop(key,None);atomic_json(self.root/'active.json',active)
+            self.state.setdefault('previous',{}).pop(key,None)
+            release=self.state.get('releases',{}).get(key,{})
+            mapped={'llama-cpu':'cpu','llama-cuda':'cuda','llama-vulkan':'vulkan'}.get(key,key);build=self.builds().get(mapped,{})
+            current=build.get('build') or build.get('version','')
+            if release:
+                tag=str(release.get('tag') or '')
+                release.update(current=current,available=bool(release.get('asset') and tag and tag.lstrip('v')!=str(current).lstrip('v')))
+                release.pop('error',None)
+            self.progress=None;self.state.pop('error',None);self.state['operation']='Eliminado: '+key;self.save();return self.snapshot()
     def install(self,key):
         if key not in FEEDS:raise ValueError('Unknown engine.')
         # A release check (not an install) may still be finishing other feeds: wait for it instead
@@ -163,7 +210,10 @@ class Updates:
                     same=reusable.get(asset.get('digest') or '')
                     if same and all((old_bin/name).is_file() for name in same['extracted']):
                         # cudart (373 MB) rarely changes between llama.cpp builds: link it instead of downloading.
-                        for name in same['extracted']:_link_or_copy(old_bin/name,folder/'bin'/name)
+                        with self.lock:self.progress['phase']='link'
+                        for name in same['extracted']:
+                            dest=folder/'bin'/name
+                            if not dest.exists():_link_or_copy(old_bin/name,dest)
                         files.append(same)
                         with self.lock:self.progress['received']+=asset.get('size',0)
                         continue
@@ -172,7 +222,7 @@ class Updates:
                     with self.lock:self.progress['phase']='download'
                     path=folder/Path(asset['name']).name;digest=hashlib.sha256();size=0
                     import app_updates
-                    with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'V-Agent/'+app_updates.VERSION}),timeout=60) as response,path.open('wb') as output:
+                    with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'V-Agent/'+app_updates.VERSION,'Accept-Encoding':'identity'}),timeout=60) as response,path.open('wb') as output:
                         while chunk:=response.read(2**20):
                             size+=len(chunk)
                             if size>2*2**30:raise ValueError('Download is too large.')
@@ -190,14 +240,35 @@ class Updates:
                 found=list((folder/'bin').rglob(FEEDS[key][2]))
                 if len(found)!=1:raise ValueError('No se encontró un único ejecutable compatible.')
                 exe=found[0]
-                result=subprocess.run([str(exe),'--help' if key=='strata' else '--version'],cwd=str(exe.parent),capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=15,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+                verify_env={**os.environ,'PATH':str(exe.parent)+os.pathsep+os.environ.get('PATH','')}
+                result=None
+                for attempt in range(2):
+                    try:
+                        result=subprocess.run([str(exe),'--help' if key=='strata' else '--version'],cwd=str(exe.parent),env=verify_env,capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=90,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+                        break
+                    except (subprocess.TimeoutExpired,PermissionError,OSError) as error:
+                        is_transient=isinstance(error,(subprocess.TimeoutExpired,PermissionError)) or getattr(error,'winerror',None) in (5,32,1450)
+                        if attempt==0 and is_transient:
+                            time.sleep(1.5);continue
+                        if isinstance(error,(subprocess.TimeoutExpired,PermissionError)) or getattr(error,'winerror',None) in (5,32,1450):
+                            raise ValueError('El precompilado tardó demasiado o quedó bloqueado al comprobarse; se conserva el motor anterior.') from error
+                        raise
+                if result is None:
+                    raise ValueError('El precompilado tardó demasiado o quedó bloqueado al comprobarse; se conserva el motor anterior.')
                 if key=='strata':
                     text=(result.stdout or '')+(result.stderr or '')
                     if 'usage:' not in text.lower():raise ValueError('El precompilado no puede iniciarse; se conserva el motor anterior.')
-                elif result.returncode:raise ValueError('El precompilado no puede iniciarse; se conserva el motor anterior.')
+                elif result.returncode:
+                    detail=(result.stderr or result.stdout or '').strip().splitlines()
+                    suffix=(' ('+detail[-1][:180]+')') if detail else f' (código {result.returncode})'
+                    raise ValueError('El precompilado no puede iniciarse; se conserva el motor anterior.'+suffix)
                 record={'tag':release['tag'],'executable':str(exe),'repository':FEEDS[key][0],'files':files}
-                active=active_installations();self.state.setdefault('previous',{})[key]=active.get(key);active[key]=record;atomic_json(self.root/'active.json',active)
-                with self.lock:self.state['releases'][key]['available']=False;self.progress['phase']='complete';self.state['operation']='Actualizado: '+key;self.save()
+                active=active_installations();active[key]=record;atomic_json(self.root/'active.json',active)
+                with self.lock:
+                    entry=self.state.setdefault('releases',{}).setdefault(key,{})
+                    entry['current']=release['tag'];entry['available']=False;entry.pop('error',None)
+                    if self.progress:self.progress['phase']='complete'
+                    self.state.pop('error',None);self.state['operation']='Actualizado: '+key;self.save()
                 work_folder[0]=None
             except Exception as error:
                 with self.lock:

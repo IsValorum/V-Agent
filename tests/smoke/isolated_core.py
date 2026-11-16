@@ -109,13 +109,13 @@ class IsolatedCore:
             raise RuntimeError(f'{path} → {status}: {data}')
         return data
 
-    def chat(self, conversation, message, model, permission='run', functions=None, rounds=8, approve=True,
+    def chat(self, conversation, message, model, permission='run', functions=None, rounds=8, approve=True, profile='balanced',
              stop_after=None, max_tokens=3000):
         """Send one message and collect the reply's events; answers approvals with `approve`."""
         body = {'model': model, 'conversation_id': conversation, 'messages': [{'role': 'user', 'content': message}],
                 'functions': functions if functions is not None else {'files': True}, 'effort': 'none',
                 'sampling': {'temperature': 0, 'max_tokens': max_tokens}, 'rounds': rounds,
-                'agent_profile': 'balanced', 'permission_mode': permission}
+                'agent_profile': profile, 'permission_mode': permission}
         request = urllib.request.Request(self.base + '/api/chat', json.dumps(body).encode(),
                                          {'Content-Type': 'application/json', 'Origin': self.base})
         events = []

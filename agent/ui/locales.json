@@ -8765,12 +8765,6 @@
     "fr": "Par défaut (V-Agent)",
     "de": "Standard (V-Agent)"
   },
-  "Personalizado": {
-    "en": "Custom",
-    "pt": "Personalizado",
-    "fr": "Personnalisé",
-    "de": "Benutzerdefiniert"
-  },
   "Sesión por conversación (x-opencode-session)": {
     "en": "Per-conversation session (x-opencode-session)",
     "pt": "Sessão por conversa (x-opencode-session)",
@@ -8788,12 +8782,6 @@
     "pt": "Sempre enviar UUID v4",
     "fr": "Toujours envoyer un UUID v4",
     "de": "Immer UUID v4 senden"
-  },
-  "Desactivado": {
-    "en": "Disabled",
-    "pt": "Desativado",
-    "fr": "Désactivé",
-    "de": "Deaktiviert"
   },
   "Versión de la API (anthropic-version)": {
     "en": "API version (anthropic-version)",
@@ -8878,5 +8866,2531 @@
     "pt": "X-Custom-Header: valor",
     "fr": "X-Custom-Header: valeur",
     "de": "X-Custom-Header: Wert"
+  },
+  "Eliminar": {
+    "en": "Uninstall",
+    "pt": "Desinstalar",
+    "fr": "Désinstaller",
+    "de": "Deinstallieren"
+  },
+  "Vinculando": {
+    "en": "Linking",
+    "pt": "Vinculando",
+    "fr": "Liaison",
+    "de": "Verknüpfen"
+  },
+  "¿Eliminar este motor?": {
+    "en": "Remove this engine?",
+    "pt": "Remover este motor?",
+    "fr": "Supprimer ce moteur ?",
+    "de": "Diese Engine entfernen?"
+  },
+  "Se borrarán los archivos descargados del motor. Podrás volver a instalarlo cuando quieras.": {
+    "en": "The downloaded engine files will be deleted. You can reinstall it anytime.",
+    "pt": "Os arquivos baixados do motor serão excluídos. Você pode reinstalá-lo quando quiser.",
+    "fr": "Les fichiers téléchargés du moteur seront supprimés. Vous pourrez le réinstaller à tout moment.",
+    "de": "Die heruntergeladenen Engine-Dateien werden gelöscht. Sie können sie jederzeit neu installieren."
+  },
+  "Ese motor no está instalado.": {
+    "en": "That engine is not installed.",
+    "pt": "Esse motor não está instalado.",
+    "fr": "Ce moteur n'est pas installé.",
+    "de": "Diese Engine ist nicht installiert."
+  },
+  "No se pudo eliminar el motor porque sigue en uso.": {
+    "en": "Could not remove the engine because it is still in use.",
+    "pt": "Não foi possível remover o motor porque ele ainda está em uso.",
+    "fr": "Impossible de supprimer le moteur car il est toujours utilisé.",
+    "de": "Die Engine konnte nicht entfernt werden, da sie noch verwendet wird."
+  },
+  "Descarga el modelo antes de eliminar motores.": {
+    "en": "Unload the model before removing engines.",
+    "pt": "Descarregue o modelo antes de remover motores.",
+    "fr": "Déchargez le modèle avant de supprimer des moteurs.",
+    "de": "Entladen Sie das Modell, bevor Sie Engines entfernen."
+  },
+  "Descarga el modelo antes de actualizar motores.": {
+    "en": "Unload the model before updating engines.",
+    "pt": "Descarregue o modelo antes de atualizar motores.",
+    "fr": "Déchargez le modèle avant de mettre à jour les moteurs.",
+    "de": "Entladen Sie das Modell, bevor Sie Engines aktualisieren."
+  },
+  "El precompilado tardó demasiado o quedó bloqueado al comprobarse; se conserva el motor anterior.": {
+    "en": "The prebuilt binary timed out or stayed locked during verification; keeping the previous engine.",
+    "pt": "O binário pré-compilado demorou demais ou ficou bloqueado na verificação; mantendo o motor anterior.",
+    "fr": "Le binaire précompilé a expiré ou est resté verrouillé lors de la vérification ; le moteur précédent est conservé.",
+    "de": "Die vorkompilierte Datei hat das Zeitlimit überschritten oder war bei der Überprüfung gesperrt; vorherige Engine wird beibehalten."
+  },
+  "El precompilado no puede iniciarse; se conserva el motor anterior.": {
+    "en": "The prebuilt binary could not start; keeping the previous engine.",
+    "pt": "O binário pré-compilado não pôde iniciar; mantendo o motor anterior.",
+    "fr": "Le binaire précompilé n'a pas pu démarrer ; le moteur précédent est conservé.",
+    "de": "Die vorkompilierte Datei konnte nicht gestartet werden; vorherige Engine wird beibehalten."
+  },
+  "Espera a que termine la operación actual.": {
+    "en": "Wait for the current operation to finish.",
+    "pt": "Aguarde a conclusão da operação atual.",
+    "fr": "Attendez la fin de l'opération en cours.",
+    "de": "Warten Sie, bis der aktuelle Vorgang abgeschlossen ist."
+  },
+  "Hay otra operación en curso.": {
+    "en": "Another operation is in progress.",
+    "pt": "Há outra operação em andamento.",
+    "fr": "Une autre opération est en cours.",
+    "de": "Es läuft bereits ein anderer Vorgang."
+  },
+  "Project Maya": {
+    "en": "Project Maya",
+    "pt": "Project Maya",
+    "fr": "Project Maya",
+    "de": "Project Maya"
+  },
+  "Project Maya (Compilación local opcional)": {
+    "en": "Project Maya (Optional local build)",
+    "pt": "Project Maya (Compilação local opcional)",
+    "fr": "Project Maya (Compilation locale optionnelle)",
+    "de": "Project Maya (Optionaler lokaler Build)"
+  },
+  "Compilación local opcional": {
+    "en": "Optional local build",
+    "pt": "Compilação local opcional",
+    "fr": "Compilation locale optionnelle",
+    "de": "Optionaler lokaler Build"
+  },
+  "compilación local opcional desde GitHub (mw00/project-maya)": {
+    "en": "optional local build from GitHub (mw00/project-maya)",
+    "pt": "compilação local opcional do GitHub (mw00/project-maya)",
+    "fr": "compilation locale optionnelle depuis GitHub (mw00/project-maya)",
+    "de": "optionaler lokaler Build von GitHub (mw00/project-maya)"
+  },
+  "compilación local opcional desde GitHub (mw{n}/project-maya)": {
+    "en": "optional local build from GitHub (mw{n}/project-maya)",
+    "pt": "compilação local opcional do GitHub (mw{n}/project-maya)",
+    "fr": "compilation locale optionnelle depuis GitHub (mw{n}/project-maya)",
+    "de": "optionaler lokaler Build von GitHub (mw{n}/project-maya)"
+  },
+  "Project Maya necesita GPU NVIDIA (CC {n} o superior) o AMD Radeon compatible": {
+    "en": "Project Maya requires a compatible NVIDIA GPU (CC {n} or higher) or AMD Radeon GPU",
+    "pt": "Project Maya requer GPU NVIDIA (CC {n} ou superior) ou AMD Radeon compatível",
+    "fr": "Project Maya nécessite un GPU NVIDIA (CC {n} ou supérieur) ou AMD Radeon compatible",
+    "de": "Project Maya erfordert eine kompatible NVIDIA-GPU (CC {n} oder höher) oder AMD Radeon"
+  },
+  "Project Maya necesita GPU NVIDIA (CC 7.0 o superior) o AMD Radeon compatible": {
+    "en": "Project Maya requires a compatible NVIDIA GPU (CC 7.0 or higher) or AMD Radeon GPU",
+    "pt": "Project Maya requer GPU NVIDIA (CC 7.0 ou superior) ou AMD Radeon compatível",
+    "fr": "Project Maya nécessite un GPU NVIDIA (CC 7.0 ou supérieur) ou AMD Radeon compatible",
+    "de": "Project Maya erfordert eine kompatible NVIDIA-GPU (CC 7.0 oder höher) oder AMD Radeon"
+  },
+  "Compilación local opcional en este equipo desde el repositorio oficial mw00/project-maya. No incluye binario universal precompilado; comprueba los requisitos previos antes de descargar o compilar.": {
+    "en": "Optional local build on this PC from the official mw00/project-maya repository. Does not include a universal prebuilt binary; check prerequisites before downloading or building.",
+    "pt": "Compilação local opcional neste computador a partir do repositório oficial mw00/project-maya. Não inclui binário universal pré-compilado; verifique os pré-requisitos antes de baixar ou compilar.",
+    "fr": "Compilation locale optionnelle sur cet ordinateur depuis le dépôt officiel mw00/project-maya. N'inclut pas de binaire universel précompilé ; vérifiez les prérequis avant de télécharger ou compiler.",
+    "de": "Optionaler lokaler Build auf diesem PC aus dem offiziellen Repository mw00/project-maya. Enthält keine universelle vorkompilierte Binärdatei; prüfen Sie vor dem Herunterladen oder Kompilieren die Voraussetzungen."
+  },
+  "Carpeta de Project Maya": {
+    "en": "Project Maya folder",
+    "pt": "Pasta do Project Maya",
+    "fr": "Dossier de Project Maya",
+    "de": "Project-Maya-Ordner"
+  },
+  "Automático (datos locales de V-Agent)": {
+    "en": "Automatic (V-Agent local data)",
+    "pt": "Automático (dados locais do V-Agent)",
+    "fr": "Automatique (données locales de V-Agent)",
+    "de": "Automatisch (lokale V-Agent-Daten)"
+  },
+  "Backend de aceleración": {
+    "en": "Acceleration backend",
+    "pt": "Backend de aceleração",
+    "fr": "Backend d'accélération",
+    "de": "Beschleunigungs-Backend"
+  },
+  "Automático (NVIDIA CUDA / AMD HIP)": {
+    "en": "Automatic (NVIDIA CUDA / AMD HIP)",
+    "pt": "Automático (NVIDIA CUDA / AMD HIP)",
+    "fr": "Automatique (NVIDIA CUDA / AMD HIP)",
+    "de": "Automatisch (NVIDIA CUDA / AMD HIP)"
+  },
+  "NVIDIA CUDA (SM 7.0+)": {
+    "en": "NVIDIA CUDA (SM 7.0+)",
+    "pt": "NVIDIA CUDA (SM 7.0+)",
+    "fr": "NVIDIA CUDA (SM 7.0+)",
+    "de": "NVIDIA CUDA (SM 7.0+)"
+  },
+  "AMD HIP / ROCm (Windows)": {
+    "en": "AMD HIP / ROCm (Windows)",
+    "pt": "AMD HIP / ROCm (Windows)",
+    "fr": "AMD HIP / ROCm (Windows)",
+    "de": "AMD HIP / ROCm (Windows)"
+  },
+  "Requisitos previos en este equipo": {
+    "en": "Prerequisites on this PC",
+    "pt": "Pré-requisitos neste computador",
+    "fr": "Prérequis sur cet ordinateur",
+    "de": "Voraussetzungen auf diesem PC"
+  },
+  "Comprobar requisitos": {
+    "en": "Check prerequisites",
+    "pt": "Verificar pré-requisitos",
+    "fr": "Vérifier les prérequis",
+    "de": "Voraussetzungen prüfen"
+  },
+  "Comprobar requisitos de Project Maya": {
+    "en": "Check Project Maya prerequisites",
+    "pt": "Verificar pré-requisitos do Project Maya",
+    "fr": "Vérifier les prérequis de Project Maya",
+    "de": "Project-Maya-Voraussetzungen prüfen"
+  },
+  "Comprobando requisitos locales…": {
+    "en": "Checking local prerequisites…",
+    "pt": "Verificando pré-requisitos locais…",
+    "fr": "Vérification des prérequis locaux…",
+    "de": "Lokale Voraussetzungen werden geprüft…"
+  },
+  "Project Maya ya está compilado en este equipo.": {
+    "en": "Project Maya is already compiled on this PC.",
+    "pt": "Project Maya já está compilado neste computador.",
+    "fr": "Project Maya est déjà compilé sur cet ordinateur.",
+    "de": "Project Maya ist auf diesem PC bereits kompiliert."
+  },
+  "Requisitos listos. Clona y compila Project Maya opcionalmente desde Modelo → Motor y conexión.": {
+    "en": "Prerequisites ready. Optionally clone and build Project Maya under Model → Engine & connection.",
+    "pt": "Pré-requisitos prontos. Clone e compile o Project Maya opcionalmente em Modelo → Motor e conexão.",
+    "fr": "Prérequis prêts. Clonez et compilez Project Maya en option depuis Modèle → Moteur et connexion.",
+    "de": "Voraussetzungen erfüllt. Klonen und kompilieren Sie Project Maya optional unter Modell → Engine & Verbindung."
+  },
+  "Faltan requisitos para compilar Project Maya: {items}": {
+    "en": "Missing prerequisites to build Project Maya: {items}",
+    "pt": "Faltam pré-requisitos para compilar o Project Maya: {items}",
+    "fr": "Prérequis manquants pour compiler Project Maya : {items}",
+    "de": "Fehlende Voraussetzungen zum Kompilieren von Project Maya: {items}"
+  },
+  "Instalar un motor local es opcional: elige llama.cpp, Strata, Strata Rust o Project Maya (compilación local opcional) solo si vas a ejecutar modelos locales, conecta una API externa, o pulsa Siguiente para decidir luego.": {
+    "en": "Installing a local engine is optional: choose llama.cpp, Strata, Strata Rust, or Project Maya (optional local build) only if you plan to run local models, connect an external API, or click Next to decide later.",
+    "pt": "Instalar um motor local é opcional: escolha llama.cpp, Strata, Strata Rust ou Project Maya (compilação local opcional) apenas se for executar modelos locais, conecte uma API externa ou clique em Avançar para decidir depois.",
+    "fr": "L'installation d'un moteur local est facultative : choisissez llama.cpp, Strata, Strata Rust ou Project Maya (compilation locale optionnelle) uniquement si vous exécutez des modèles locaux, connectez une API externe ou cliquez sur Suivant pour décider plus tard.",
+    "de": "Die Installation einer lokalen Engine ist optional: Wählen Sie llama.cpp, Strata, Strata Rust oder Project Maya (optionaler lokaler Build) nur, wenn Sie lokale Modelle ausführen möchten, verbinden Sie eine externe API oder klicken Sie auf Weiter, um später zu entscheiden."
+  },
+  "Comprobar versión oficial": {
+    "en": "Check official version",
+    "pt": "Verificar versão oficial",
+    "fr": "Vérifier la version officielle",
+    "de": "Offizielle Version prüfen"
+  },
+  "Clonar / Actualizar": {
+    "en": "Clone / Update",
+    "pt": "Clonar / Atualizar",
+    "fr": "Cloner / Mettre à jour",
+    "de": "Klonen / Aktualisieren"
+  },
+  "Actualizar desde GitHub": {
+    "en": "Update from GitHub",
+    "pt": "Atualizar do GitHub",
+    "fr": "Mettre à jour depuis GitHub",
+    "de": "Von GitHub aktualisieren"
+  },
+  "Clonar repositorio oficial": {
+    "en": "Clone official repository",
+    "pt": "Clonar repositório oficial",
+    "fr": "Cloner le dépôt officiel",
+    "de": "Offizielles Repository klonen"
+  },
+  "Compilar motor": {
+    "en": "Build engine",
+    "pt": "Compilar motor",
+    "fr": "Compiler le moteur",
+    "de": "Engine kompilieren"
+  },
+  "Sin código local": {
+    "en": "No local source",
+    "pt": "Sem código local",
+    "fr": "Aucun code local",
+    "de": "Kein lokaler Quellcode"
+  },
+  "Procesando…": {
+    "en": "Processing…",
+    "pt": "Processando…",
+    "fr": "Traitement en cours…",
+    "de": "Wird verarbeitet…"
+  },
+  "Versión oficial comprobada.": {
+    "en": "Official version checked.",
+    "pt": "Versão oficial verificada.",
+    "fr": "Version officielle vérifiée.",
+    "de": "Offizielle Version geprüft."
+  },
+  "Repositorio de Project Maya actualizado.": {
+    "en": "Project Maya repository updated.",
+    "pt": "Repositório do Project Maya atualizado.",
+    "fr": "Dépôt de Project Maya mis à jour.",
+    "de": "Project-Maya-Repository aktualisiert."
+  },
+  "Copia de Project Maya actualizada. Compila si hubo cambios en C++.": {
+    "en": "Project Maya copy updated. Rebuild if there were C++ changes.",
+    "pt": "Cópia do Project Maya atualizada. Compile novamente se houve alterações em C++.",
+    "fr": "Copie de Project Maya mise à jour. Recompilez s'il y a eu des changements en C++.",
+    "de": "Project-Maya-Kopie aktualisiert. Bei C++-Änderungen neu kompilieren."
+  },
+  "Compilación iniciada en segundo plano…": {
+    "en": "Build started in background…",
+    "pt": "Compilação iniciada em segundo plano…",
+    "fr": "Compilation démarrée en arrière-plan…",
+    "de": "Kompilierung im Hintergrund gestartet…"
+  },
+  "Project Maya compilado correctamente.": {
+    "en": "Project Maya compiled successfully.",
+    "pt": "Project Maya compilado com sucesso.",
+    "fr": "Project Maya compilé avec succès.",
+    "de": "Project Maya erfolgreich kompiliert."
+  },
+  "Project Maya eliminado.": {
+    "en": "Project Maya removed.",
+    "pt": "Project Maya removido.",
+    "fr": "Project Maya supprimé.",
+    "de": "Project Maya entfernt."
+  },
+  "¿Clonar Project Maya desde GitHub?": {
+    "en": "Clone Project Maya from GitHub?",
+    "pt": "Clonar Project Maya do GitHub?",
+    "fr": "Cloner Project Maya depuis GitHub ?",
+    "de": "Project Maya von GitHub klonen?"
+  },
+  "Se descargará el código fuente oficial (mw00/project-maya) para compilarlo en este equipo. Tus pesos de modelos no se descargan automáticamente.": {
+    "en": "The official source code (mw00/project-maya) will be downloaded to compile on this PC. Your model weights are not downloaded automatically.",
+    "pt": "O código-fonte oficial (mw00/project-maya) será baixado para compilar neste computador. Os pesos dos modelos não são baixados automaticamente.",
+    "fr": "Le code source officiel (mw00/project-maya) sera téléchargé pour être compilé sur cet ordinateur. Vos poids de modèles ne sont pas téléchargés automatiquement.",
+    "de": "Der offizielle Quellcode (mw00/project-maya) wird heruntergeladen, um ihn auf diesem PC zu kompilieren. Modellgewichte werden nicht automatisch heruntergeladen."
+  },
+  "Clonar": {
+    "en": "Clone",
+    "pt": "Clonar",
+    "fr": "Cloner",
+    "de": "Klonen"
+  },
+  "¿Compilar Project Maya ahora?": {
+    "en": "Build Project Maya now?",
+    "pt": "Compilar Project Maya agora?",
+    "fr": "Compiler Project Maya maintenant ?",
+    "de": "Project Maya jetzt kompilieren?"
+  },
+  "La compilación en este equipo requiere CUDA o ROCm y Visual Studio Build Tools, y puede tardar varios minutos.": {
+    "en": "Building on this PC requires CUDA or ROCm and Visual Studio Build Tools, and may take several minutes.",
+    "pt": "Compilar neste computador requer CUDA ou ROCm e Visual Studio Build Tools, e pode levar vários minutos.",
+    "fr": "La compilation sur cet ordinateur nécessite CUDA ou ROCm et Visual Studio Build Tools, et peut prendre plusieurs minutes.",
+    "de": "Das Kompilieren auf diesem PC erfordert CUDA oder ROCm und Visual Studio Build Tools und kann mehrere Minuten dauern."
+  },
+  "Compilar": {
+    "en": "Build",
+    "pt": "Compilar",
+    "fr": "Compiler",
+    "de": "Kompilieren"
+  },
+  "¿Eliminar Project Maya?": {
+    "en": "Remove Project Maya?",
+    "pt": "Remover Project Maya?",
+    "fr": "Supprimer Project Maya ?",
+    "de": "Project Maya entfernen?"
+  },
+  "Se borrará el repositorio local administrado por V-Agent o se desvinculará la carpeta externa. No se borran tus pesos ni modelos.": {
+    "en": "The local repository managed by V-Agent will be deleted, or the external folder will be unlinked. Your weights and models are not deleted.",
+    "pt": "O repositório local gerenciado pelo V-Agent será excluído ou a pasta externa será desvinculada. Seus pesos e modelos não são excluídos.",
+    "fr": "Le dépôt local géré par V-Agent sera supprimé, ou le dossier externe sera dissocié. Vos poids et modèles ne sont pas supprimés.",
+    "de": "Das von V-Agent verwaltete lokale Repository wird gelöscht oder der externe Ordner getrennt. Ihre Gewichte und Modelle werden nicht gelöscht."
+  },
+  "Se eliminará la copia local y los binarios compilados de Project Maya. Tus modelos GGUF no se tocarán.": {
+    "en": "The local copy and compiled binaries of Project Maya will be deleted. Your GGUF models will not be touched.",
+    "pt": "A cópia local e os binários compilados do Project Maya serão excluídos. Seus modelos GGUF não serão afetados.",
+    "fr": "La copie locale et les binaires compilés de Project Maya seront supprimés. Vos modèles GGUF ne seront pas modifiés.",
+    "de": "Die lokale Kopie und kompilierten Binärdateien von Project Maya werden gelöscht. Ihre GGUF-Modelle bleiben unberührt."
+  },
+  "Gestionar en Motor": {
+    "en": "Manage in Engine",
+    "pt": "Gerenciar em Motor",
+    "fr": "Gérer dans Moteur",
+    "de": "In Engine verwalten"
+  },
+  "Project Maya: GLM-5.3, DeepSeek-V4.1, MiniMax-M3.1 y Qwen-3.8 locales.": {
+    "en": "Project Maya: local GLM-5.3, DeepSeek-V4.1, MiniMax-M3.1, and Qwen-3.8.",
+    "pt": "Project Maya: GLM-5.3, DeepSeek-V4.1, MiniMax-M3.1 e Qwen-3.8 locais.",
+    "fr": "Project Maya : GLM-5.3, DeepSeek-V4.1, MiniMax-M3.1 et Qwen-3.8 locaux.",
+    "de": "Project Maya: lokale GLM-5.3, DeepSeek-V4.1, MiniMax-M3.1 und Qwen-3.8."
+  },
+  "Selecciona o configura un modelo de Project Maya (maya-*.json) para editar sus opciones avanzadas por familia.": {
+    "en": "Select or configure a Project Maya model (maya-*.json) to edit its per-family advanced options.",
+    "pt": "Selecione ou configure um modelo do Project Maya (maya-*.json) para editar suas opções avançadas por família.",
+    "fr": "Sélectionnez ou configurez un modèle Project Maya (maya-*.json) pour modifier ses options avancées par famille.",
+    "de": "Wählen oder konfigurieren Sie ein Project-Maya-Modell (maya-*.json), um die erweiterten Familienoptionen zu bearbeiten."
+  },
+  "Configuración de Project Maya": {
+    "en": "Project Maya configuration",
+    "pt": "Configuração do Project Maya",
+    "fr": "Configuration de Project Maya",
+    "de": "Project-Maya-Konfiguration"
+  },
+  "GPUs (índices o vacío)": {
+    "en": "GPUs (indices or empty)",
+    "pt": "GPUs (índices ou vazio)",
+    "fr": "GPU (indices ou vide)",
+    "de": "GPUs (Indizes oder leer)"
+  },
+  "0 o 0,1": {
+    "en": "0 or 0,1",
+    "pt": "0 ou 0,1",
+    "fr": "0 ou 0,1",
+    "de": "0 oder 0,1"
+  },
+  "Ranuras paralelas": {
+    "en": "Parallel slots",
+    "pt": "Slots paralelos",
+    "fr": "Emplacements parallèles",
+    "de": "Parallele Slots"
+  },
+  "Reserva VRAM (MiB)": {
+    "en": "VRAM reserve (MiB)",
+    "pt": "Reserva de VRAM (MiB)",
+    "fr": "Réserve VRAM (MiB)",
+    "de": "VRAM-Reserve (MiB)"
+  },
+  "Reserva VRAM (GB)": {
+    "en": "VRAM reserve (GB)",
+    "pt": "Reserva de VRAM (GB)",
+    "fr": "Réserve VRAM (GB)",
+    "de": "VRAM-Reserve (GB)"
+  },
+  "Caché de expertos (GB)": {
+    "en": "Expert cache (GB)",
+    "pt": "Cache de especialistas (GB)",
+    "fr": "Cache d'experts (Go)",
+    "de": "Experten-Cache (GB)"
+  },
+  "Estrategia Draft / MTP": {
+    "en": "Draft / MTP strategy",
+    "pt": "Estratégia Draft / MTP",
+    "fr": "Stratégie Draft / MTP",
+    "de": "Draft- / MTP-Strategie"
+  },
+  "Umbral DSpark (0–1)": {
+    "en": "DSpark threshold (0–1)",
+    "pt": "Limiar DSpark (0–1)",
+    "fr": "Seuil DSpark (0–1)",
+    "de": "DSpark-Schwellenwert (0–1)"
+  },
+  "Paralelismo tensorial (TP)": {
+    "en": "Tensor parallel (TP)",
+    "pt": "Paralelismo tensorial (TP)",
+    "fr": "Parallélisme tensoriel (TP)",
+    "de": "Tensor-Parallelität (TP)"
+  },
+  "Memoria mapeada (mmap)": {
+    "en": "Memory mapping (mmap)",
+    "pt": "Mapeamento de memória (mmap)",
+    "fr": "Mappage mémoire (mmap)",
+    "de": "Speicherzuordnung (mmap)"
+  },
+  "Caché de expertos": {
+    "en": "Expert cache",
+    "pt": "Cache de especialistas",
+    "fr": "Cache d'experts",
+    "de": "Experten-Cache"
+  },
+  "Lote de lectura (Prefill)": {
+    "en": "Prefill batch",
+    "pt": "Lote de leitura (Prefill)",
+    "fr": "Lot de préremplissage",
+    "de": "Prefill-Batch"
+  },
+  "Tamaño de chunk prefill": {
+    "en": "Prefill chunk size",
+    "pt": "Tamanho do chunk de prefill",
+    "fr": "Taille de bloc prefill",
+    "de": "Prefill-Chunkgröße"
+  },
+  "Hilos de CPU": {
+    "en": "CPU threads",
+    "pt": "Threads de CPU",
+    "fr": "Threads CPU",
+    "de": "CPU-Threads"
+  },
+  "Lookup de prompt": {
+    "en": "Prompt lookup",
+    "pt": "Lookup de prompt",
+    "fr": "Recherche de prompt",
+    "de": "Prompt-Lookup"
+  },
+  "Formato KV": {
+    "en": "KV format",
+    "pt": "Formato KV",
+    "fr": "Format KV",
+    "de": "KV-Format"
+  },
+  "Formato caché KV": {
+    "en": "KV cache format",
+    "pt": "Formato do cache KV",
+    "fr": "Format du cache KV",
+    "de": "KV-Cache-Format"
+  },
+  "RAM para expertos (GB)": {
+    "en": "Expert RAM (GB)",
+    "pt": "RAM para especialistas (GB)",
+    "fr": "RAM pour experts (Go)",
+    "de": "RAM für Experten (GB)"
+  },
+  "Razonamiento por defecto": {
+    "en": "Default reasoning effort",
+    "pt": "Raciocínio padrão",
+    "fr": "Raisonnement par défaut",
+    "de": "Standard-Denktiefe"
+  },
+  "Presupuesto de pensamiento (tokens)": {
+    "en": "Thinking budget (tokens)",
+    "pt": "Orçamento de pensamento (tokens)",
+    "fr": "Budget de réflexion (tokens)",
+    "de": "Denkbudget (Tokens)"
+  },
+  "Descarga automática en reposo (s)": {
+    "en": "Idle auto-unload (s)",
+    "pt": "Descarregamento em inatividade (s)",
+    "fr": "Déchargement automatique au repos (s)",
+    "de": "Automatisches Entladen im Leerlauf (s)"
+  },
+  "Lectura rápida de prompt (DeepSeek)": {
+    "en": "Fast prefill (DeepSeek)",
+    "pt": "Prefill rápido (DeepSeek)",
+    "fr": "Préremplissage rapide (DeepSeek)",
+    "de": "Schneller Prefill (DeepSeek)"
+  },
+  "Streaming KV": {
+    "en": "KV streaming",
+    "pt": "Streaming KV",
+    "fr": "Streaming KV",
+    "de": "KV-Streaming"
+  },
+  "GLM-5.3 744B desactiva kv_streaming por defecto": {
+    "en": "GLM-5.3 744B disables kv_streaming by default",
+    "pt": "GLM-5.3 744B desativa kv_streaming por padrão",
+    "fr": "GLM-5.3 744B désactive kv_streaming par défaut",
+    "de": "GLM-5.3 744B deaktiviert kv_streaming standardmäßig"
+  },
+  "KV residente en GPU": {
+    "en": "GPU-resident KV cache",
+    "pt": "Cache KV residente na GPU",
+    "fr": "Cache KV résident sur GPU",
+    "de": "GPU-residenter KV-Cache"
+  },
+  "Soporte de imágenes (Visión)": {
+    "en": "Image support (Vision)",
+    "pt": "Suporte a imagens (Visão)",
+    "fr": "Prise en charge d'images (Vision)",
+    "de": "Bildunterstützung (Vision)"
+  },
+  "Codificador de visión residente": {
+    "en": "Resident vision encoder",
+    "pt": "Codificador de visão residente",
+    "fr": "Encodeur de vision résident",
+    "de": "Residenter Vision-Encoder"
+  },
+  "Modo Turbo (GLM-5.3)": {
+    "en": "Turbo mode (GLM-5.3)",
+    "pt": "Modo Turbo (GLM-5.3)",
+    "fr": "Mode Turbo (GLM-5.3)",
+    "de": "Turbo-Modus (GLM-5.3)"
+  },
+  "Desactivar rechazo (Ablate)": {
+    "en": "Disable refusal (Ablate)",
+    "pt": "Desativar recusa (Ablate)",
+    "fr": "Désactiver le refus (Ablate)",
+    "de": "Ablehnung deaktivieren (Ablate)"
+  },
+  "Variables de entorno de Maya (MAYA_*)": {
+    "en": "Maya environment variables (MAYA_*)",
+    "pt": "Variáveis de ambiente do Maya (MAYA_*)",
+    "fr": "Variables d'environnement Maya (MAYA_*)",
+    "de": "Maya-Umgebungsvariablen (MAYA_*)"
+  },
+  "Guardar configuración de Maya": {
+    "en": "Save Maya configuration",
+    "pt": "Salvar configuração do Maya",
+    "fr": "Enregistrer la configuration Maya",
+    "de": "Maya-Konfiguration speichern"
+  },
+  "Cada variable debe tener el formato CLAVE=VALOR.": {
+    "en": "Each variable must use the KEY=VALUE format.",
+    "pt": "Cada variável deve usar o formato CHAVE=VALOR.",
+    "fr": "Chaque variable doit utiliser le format CLÉ=VALEUR.",
+    "de": "Jede Variable muss das Format SCHLÜSSEL=WERT haben."
+  },
+  "Guardado. Se aplicará al recargar.": {
+    "en": "Saved. Will apply on reload.",
+    "pt": "Salvo. Será aplicado ao recarregar.",
+    "fr": "Enregistré. Sera appliqué au rechargement.",
+    "de": "Gespeichert. Wird beim Neuladen angewendet."
+  },
+  "Configuración de Maya guardada.": {
+    "en": "Maya configuration saved.",
+    "pt": "Configuração do Maya salva.",
+    "fr": "Configuration Maya enregistrée.",
+    "de": "Maya-Konfiguration gespeichert."
+  },
+  "GPU NVIDIA (CC >= 7.0)": {
+    "en": "NVIDIA GPU (CC >= 7.0)",
+    "pt": "GPU NVIDIA (CC >= 7.0)",
+    "fr": "GPU NVIDIA (CC >= 7.0)",
+    "de": "NVIDIA-GPU (CC >= 7.0)"
+  },
+  "GPU Intel detectada · no compatible con Maya": {
+    "en": "Intel GPU detected · incompatible with Maya",
+    "pt": "GPU Intel detectada · incompatível com Maya",
+    "fr": "GPU Intel détecté · incompatible avec Maya",
+    "de": "Intel-GPU erkannt · nicht kompatibel mit Maya"
+  },
+  "GPU Intel detectada": {
+    "en": "Intel GPU detected",
+    "pt": "GPU Intel detectada",
+    "fr": "GPU Intel détecté",
+    "de": "Intel-GPU erkannt"
+  },
+  "no compatible con Maya": {
+    "en": "incompatible with Maya",
+    "pt": "incompatível com Maya",
+    "fr": "incompatible avec Maya",
+    "de": "nicht kompatibel mit Maya"
+  },
+  "No se detectó GPU NVIDIA o AMD compatible": {
+    "en": "No compatible NVIDIA or AMD GPU detected",
+    "pt": "Nenhuma GPU NVIDIA ou AMD compatível detectada",
+    "fr": "Aucun GPU NVIDIA ou AMD compatible détecté",
+    "de": "Keine kompatible NVIDIA- oder AMD-GPU erkannt"
+  },
+  "GPU AMD Radeon compatible (HIP/ROCm)": {
+    "en": "Compatible AMD Radeon GPU (HIP/ROCm)",
+    "pt": "GPU AMD Radeon compatível (HIP/ROCm)",
+    "fr": "GPU AMD Radeon compatible (HIP/ROCm)",
+    "de": "Kompatible AMD-Radeon-GPU (HIP/ROCm)"
+  },
+  "No se detectó GPU AMD compatible": {
+    "en": "No compatible AMD GPU detected",
+    "pt": "Nenhuma GPU AMD compatível detectada",
+    "fr": "Aucun GPU AMD compatible détecté",
+    "de": "Keine kompatible AMD-GPU erkannt"
+  },
+  "Git": {
+    "en": "Git",
+    "pt": "Git",
+    "fr": "Git",
+    "de": "Git"
+  },
+  "Instala Git para Windows": {
+    "en": "Install Git for Windows",
+    "pt": "Instale o Git for Windows",
+    "fr": "Installez Git pour Windows",
+    "de": "Git für Windows installieren"
+  },
+  "Python 3.10+": {
+    "en": "Python 3.10+",
+    "pt": "Python 3.10+",
+    "fr": "Python 3.10+",
+    "de": "Python 3.10+"
+  },
+  "Instala Python 3.10 o superior": {
+    "en": "Install Python 3.10 or later",
+    "pt": "Instale Python 3.10 ou superior",
+    "fr": "Installez Python 3.10 ou supérieur",
+    "de": "Python 3.10 oder neuer installieren"
+  },
+  "CMake 3.24+": {
+    "en": "CMake 3.24+",
+    "pt": "CMake 3.24+",
+    "fr": "CMake 3.24+",
+    "de": "CMake 3.24+"
+  },
+  "Instala CMake 3.24 o superior": {
+    "en": "Install CMake 3.24 or later",
+    "pt": "Instale CMake 3.24 ou superior",
+    "fr": "Installez CMake 3.24 ou supérieur",
+    "de": "CMake 3.24 oder neuer installieren"
+  },
+  "Visual Studio Build Tools C++ (2022/2026)": {
+    "en": "Visual Studio Build Tools C++ (2022/2026)",
+    "pt": "Visual Studio Build Tools C++ (2022/2026)",
+    "fr": "Visual Studio Build Tools C++ (2022/2026)",
+    "de": "Visual Studio Build Tools C++ (2022/2026)"
+  },
+  "Instala Desktop development with C++": {
+    "en": "Install Desktop development with C++",
+    "pt": "Instale Desenvolvimento para desktop com C++",
+    "fr": "Installez Développement Desktop avec C++",
+    "de": "Desktopentwicklung mit C++ installieren"
+  },
+  "NVIDIA CUDA Toolkit (nvcc)": {
+    "en": "NVIDIA CUDA Toolkit (nvcc)",
+    "pt": "NVIDIA CUDA Toolkit (nvcc)",
+    "fr": "NVIDIA CUDA Toolkit (nvcc)",
+    "de": "NVIDIA CUDA Toolkit (nvcc)"
+  },
+  "Instala NVIDIA CUDA Toolkit (nvcc)": {
+    "en": "Install NVIDIA CUDA Toolkit (nvcc)",
+    "pt": "Instale o NVIDIA CUDA Toolkit (nvcc)",
+    "fr": "Installez NVIDIA CUDA Toolkit (nvcc)",
+    "de": "NVIDIA CUDA Toolkit (nvcc) installieren"
+  },
+  "Archivo de paginación de Windows (>= 16 GB)": {
+    "en": "Windows page file (>= 16 GB)",
+    "pt": "Arquivo de paginação do Windows (>= 16 GB)",
+    "fr": "Fichier d'échange Windows (>= 16 Go)",
+    "de": "Windows-Auslagerungsdatei (>= 16 GB)"
+  },
+  "Ninja (recomendado)": {
+    "en": "Ninja (recommended)",
+    "pt": "Ninja (recomendado)",
+    "fr": "Ninja (recommandé)",
+    "de": "Ninja (empfohlen)"
+  },
+  "Opcional; acelera la compilación": {
+    "en": "Optional; speeds up compilation",
+    "pt": "Opcional; acelera a compilação",
+    "fr": "Optionnel ; accélère la compilation",
+    "de": "Optional; beschleunigt die Kompilierung"
+  },
+  "Código fuente oficial de Project Maya": {
+    "en": "Official Project Maya source code",
+    "pt": "Código-fonte oficial do Project Maya",
+    "fr": "Code source officiel de Project Maya",
+    "de": "Offizieller Quellcode von Project Maya"
+  },
+  "Pulsa Clonar repositorio oficial o elige tu carpeta de Project Maya": {
+    "en": "Click Clone official repository or choose your Project Maya folder",
+    "pt": "Clique em Clonar repositório oficial ou escolha a pasta do Project Maya",
+    "fr": "Cliquez sur Cloner le dépôt officiel ou choisissez votre dossier Project Maya",
+    "de": "Klicken Sie auf Offizielles Repository klonen oder wählen Sie Ihren Project-Maya-Ordner"
+  },
+  "Motores compilados en este equipo": {
+    "en": "Compiled engines on this PC",
+    "pt": "Motores compilados neste computador",
+    "fr": "Moteurs compilés sur cet ordinateur",
+    "de": "Auf diesem PC kompilierte Engines"
+  },
+  "Pendiente de compilar en este equipo": {
+    "en": "Pending build on this PC",
+    "pt": "Pendente de compilação neste computador",
+    "fr": "En attente de compilation sur cet ordinateur",
+    "de": "Kompilierung auf diesem PC ausstehend"
+  },
+  "Project Maya no incluye backend Vulkan ni solo CPU: necesita GPU NVIDIA (CC >= 7.0) o AMD Radeon compatible.": {
+    "en": "Project Maya does not include a Vulkan or CPU-only backend: it requires a compatible NVIDIA GPU (CC >= 7.0) or AMD Radeon GPU.",
+    "pt": "Project Maya não inclui backend Vulkan nem apenas CPU: requer GPU NVIDIA (CC >= 7.0) ou AMD Radeon compatível.",
+    "fr": "Project Maya n'inclut pas de backend Vulkan ni CPU uniquement : il nécessite un GPU NVIDIA (CC >= 7.0) ou AMD Radeon compatible.",
+    "de": "Project Maya enthält kein Vulkan- oder reines CPU-Backend: erforderlich ist eine kompatible NVIDIA-GPU (CC >= 7.0) oder AMD Radeon."
+  },
+  "Project Maya está listo para ejecutar modelos compatibles en este equipo.": {
+    "en": "Project Maya is ready to run compatible models on this PC.",
+    "pt": "Project Maya está pronto para executar modelos compatíveis neste computador.",
+    "fr": "Project Maya est prêt à exécuter des modèles compatibles sur cet ordinateur.",
+    "de": "Project Maya ist bereit, kompatible Modelle auf diesem PC auszuführen."
+  },
+  "Todos los requisitos de compilación están listos. Puedes compilar Project Maya en este equipo.": {
+    "en": "All build prerequisites are ready. You can compile Project Maya on this PC.",
+    "pt": "Todos os pré-requisitos de compilação estão prontos. Você pode compilar o Project Maya neste computador.",
+    "fr": "Tous les prérequis de compilation sont prêts. Vous pouvez compiler Project Maya sur cet ordinateur.",
+    "de": "Alle Kompilierungsvoraussetzungen sind erfüllt. Sie können Project Maya auf diesem PC kompilieren."
+  },
+  "Instala los requisitos marcados antes de compilar Project Maya en este equipo.": {
+    "en": "Install the marked prerequisites before compiling Project Maya on this PC.",
+    "pt": "Instale os pré-requisitos marcados antes de compilar o Project Maya neste computador.",
+    "fr": "Installez les prérequis marqués avant de compiler Project Maya sur cet ordinateur.",
+    "de": "Installieren Sie die markierten Voraussetzungen, bevor Sie Project Maya auf diesem PC kompilieren."
+  },
+  "Git no está instalado en este equipo.": {
+    "en": "Git is not installed on this PC.",
+    "pt": "O Git não está instalado neste computador.",
+    "fr": "Git n'est pas installé sur cet ordinateur.",
+    "de": "Git ist auf diesem PC nicht installiert."
+  },
+  "La carpeta elegida no está vacía ni es un repositorio Git de Project Maya.": {
+    "en": "The chosen folder is neither empty nor a Project Maya Git repository.",
+    "pt": "A pasta escolhida não está vazia nem é um repositório Git do Project Maya.",
+    "fr": "Le dossier choisi n'est ni vide ni un dépôt Git de Project Maya.",
+    "de": "Der gewählte Ordner ist weder leer noch ein Project-Maya-Git-Repository."
+  },
+  "La carpeta no contiene Project Maya (maya.py y serve/server.py).": {
+    "en": "The folder does not contain Project Maya (maya.py and serve/server.py).",
+    "pt": "A pasta não contém o Project Maya (maya.py e serve/server.py).",
+    "fr": "Le dossier ne contient pas Project Maya (maya.py et serve/server.py).",
+    "de": "Der Ordner enthält kein Project Maya (maya.py und serve/server.py)."
+  },
+  "La carpeta elegida no contiene Project Maya (maya.py y serve/server.py).": {
+    "en": "The chosen folder does not contain Project Maya (maya.py and serve/server.py).",
+    "pt": "A pasta escolhida não contém o Project Maya (maya.py e serve/server.py).",
+    "fr": "Le dossier choisi ne contient pas Project Maya (maya.py et serve/server.py).",
+    "de": "Der gewählte Ordner enthält kein Project Maya (maya.py und serve/server.py)."
+  },
+  "La carpeta de Project Maya no existe.": {
+    "en": "The Project Maya folder does not exist.",
+    "pt": "A pasta do Project Maya não existe.",
+    "fr": "Le dossier de Project Maya n'existe pas.",
+    "de": "Der Project-Maya-Ordner existiert nicht."
+  },
+  "Backend de Maya no válido (auto, cuda o hip).": {
+    "en": "Invalid Maya backend (auto, cuda, or hip).",
+    "pt": "Backend do Maya inválido (auto, cuda ou hip).",
+    "fr": "Backend Maya invalide (auto, cuda ou hip).",
+    "de": "Ungültiges Maya-Backend (auto, cuda oder hip)."
+  },
+  "No se pudo eliminar Project Maya porque sigue en uso.": {
+    "en": "Could not remove Project Maya because it is still in use.",
+    "pt": "Não foi possível remover o Project Maya porque ele ainda está em uso.",
+    "fr": "Impossible de supprimer Project Maya car il est toujours utilisé.",
+    "de": "Project Maya konnte nicht entfernt werden, da es noch verwendet wird."
+  },
+  "No se encontró la carpeta de Project Maya.": {
+    "en": "Project Maya folder not found.",
+    "pt": "Pasta do Project Maya não encontrada.",
+    "fr": "Dossier de Project Maya introuvable.",
+    "de": "Project-Maya-Ordner nicht gefunden."
+  },
+  "GPU no compatible con Project Maya.": {
+    "en": "GPU not compatible with Project Maya.",
+    "pt": "GPU incompatível com o Project Maya.",
+    "fr": "GPU incompatible avec Project Maya.",
+    "de": "GPU nicht kompatibel mit Project Maya."
+  },
+  "No se encuentra instalado Project Maya. Configura su carpeta y requisitos en Ajustes → Motor.": {
+    "en": "Project Maya is not installed. Configure its folder and prerequisites in Settings → Engine.",
+    "pt": "Project Maya não está instalado. Configure sua pasta e pré-requisitos em Configurações → Motor.",
+    "fr": "Project Maya n'est pas installé. Configurez son dossier et ses prérequis dans Paramètres → Moteur.",
+    "de": "Project Maya ist nicht installiert. Konfigurieren Sie Ordner und Voraussetzungen unter Einstellungen → Engine."
+  },
+  "No se encontró el archivo de configuración maya-*.json seleccionado.": {
+    "en": "Selected maya-*.json configuration file was not found.",
+    "pt": "O arquivo de configuração maya-*.json selecionado não foi encontrado.",
+    "fr": "Le fichier de configuration maya-*.json sélectionné est introuvable.",
+    "de": "Ausgewählte Konfigurationsdatei maya-*.json wurde nicht gefunden."
+  },
+  "Project Maya aún no está compilado en esa carpeta. Revisa los requisitos previos y compílalo primero.": {
+    "en": "Project Maya is not built yet in that folder. Check prerequisites and build it first.",
+    "pt": "Project Maya ainda não está compilado nessa pasta. Verifique os pré-requisitos e compile primeiro.",
+    "fr": "Project Maya n'est pas encore compilé dans ce dossier. Vérifiez les prérequis et compilez-le d'abord.",
+    "de": "Project Maya ist in diesem Ordner noch nicht kompiliert. Prüfen Sie die Voraussetzungen und kompilieren Sie es zuerst."
+  },
+  "Elige un modelo válido de Project Maya.": {
+    "en": "Choose a valid Project Maya model.",
+    "pt": "Escolha um modelo válido do Project Maya.",
+    "fr": "Choisissez un modèle Project Maya valide.",
+    "de": "Wählen Sie ein gültiges Project-Maya-Modell."
+  },
+  "Descarga el modelo actual antes de actualizar motores.": {
+    "en": "Unload the current model before updating engines.",
+    "pt": "Descarregue o modelo atual antes de atualizar motores.",
+    "fr": "Déchargez le modèle actuel avant de mettre à jour les moteurs.",
+    "de": "Entladen Sie das aktuelle Modell, bevor Sie Engines aktualisieren."
+  },
+  "Descarga el modelo actual antes de compilar el motor.": {
+    "en": "Unload the current model before building the engine.",
+    "pt": "Descarregue o modelo atual antes de compilar o motor.",
+    "fr": "Déchargez le modèle actuel avant de compiler le moteur.",
+    "de": "Entladen Sie das aktuelle Modell, bevor Sie die Engine kompilieren."
+  },
+  "Descarga el modelo actual antes de eliminar motores.": {
+    "en": "Unload the current model before removing engines.",
+    "pt": "Descarregue o modelo atual antes de remover motores.",
+    "fr": "Déchargez le modèle actuel avant de supprimer des moteurs.",
+    "de": "Entladen Sie das aktuelle Modell, bevor Sie Engines entfernen."
+  },
+  "Acción de Maya desconocida.": {
+    "en": "Unknown Maya action.",
+    "pt": "Ação do Maya desconhecida.",
+    "fr": "Action Maya inconnue.",
+    "de": "Unbekannte Maya-Aktion."
+  },
+  "Las GPUs de Maya deben ser índices numéricos separados por comas (ej. 0 o 0,1).": {
+    "en": "Maya GPUs must be comma-separated numeric indices (e.g. 0 or 0,1).",
+    "pt": "As GPUs do Maya devem ser índices numéricos separados por vírgulas (ex. 0 ou 0,1).",
+    "fr": "Les GPU Maya doivent être des indices numériques séparés par des virgules (ex. 0 ou 0,1).",
+    "de": "Maya-GPUs müssen kommagetrennte numerische Indizes sein (z. B. 0 oder 0,1)."
+  },
+  "Archivo de configuración de Maya no válido.": {
+    "en": "Invalid Maya configuration file.",
+    "pt": "Arquivo de configuração do Maya inválido.",
+    "fr": "Fichier de configuration Maya invalide.",
+    "de": "Ungültige Maya-Konfigurationsdatei."
+  },
+  "Configuración de Maya no válida.": {
+    "en": "Invalid Maya configuration.",
+    "pt": "Configuração do Maya inválida.",
+    "fr": "Configuration Maya invalide.",
+    "de": "Ungültige Maya-Konfiguration."
+  },
+  "No se encontró la configuración de Maya.": {
+    "en": "Maya configuration not found.",
+    "pt": "Configuração do Maya não encontrada.",
+    "fr": "Configuration Maya introuvable.",
+    "de": "Maya-Konfiguration nicht gefunden."
+  },
+  "Contexto de Maya fuera de rango (2048–262144).": {
+    "en": "Maya context out of range (2048–262144).",
+    "pt": "Contexto do Maya fora do intervalo (2048–262144).",
+    "fr": "Contexte Maya hors plage (2048–262144).",
+    "de": "Maya-Kontext außerhalb des Bereichs (2048–262144)."
+  },
+  "Paralelismo de Maya fuera de rango (1–32).": {
+    "en": "Maya parallelism out of range (1–32).",
+    "pt": "Paralelismo do Maya fora do intervalo (1–32).",
+    "fr": "Parallélisme Maya hors plage (1–32).",
+    "de": "Maya-Parallelität außerhalb des Bereichs (1–32)."
+  },
+  "La reserva de VRAM debe indicarse en MiB enteros.": {
+    "en": "VRAM reserve must be specified in whole MiB.",
+    "pt": "A reserva de VRAM deve ser informada em MiB inteiros.",
+    "fr": "La réserve VRAM doit être indiquée en MiB entiers.",
+    "de": "Die VRAM-Reserve muss in ganzen MiB angegeben werden."
+  },
+  "Opción de draft no admitida por esta familia de Maya.": {
+    "en": "Draft option not supported by this Maya family.",
+    "pt": "Opção de draft não suportada por esta família do Maya.",
+    "fr": "Option draft non prise en charge par cette famille Maya.",
+    "de": "Draft-Option wird von dieser Maya-Familie nicht unterstützt."
+  },
+  "El umbral DSpark debe estar entre 0 y 1.": {
+    "en": "DSpark threshold must be between 0 and 1.",
+    "pt": "O limiar DSpark deve estar entre 0 e 1.",
+    "fr": "Le seuil DSpark doit être compris entre 0 et 1.",
+    "de": "Der DSpark-Schwellenwert muss zwischen 0 und 1 liegen."
+  },
+  "Tensor parallel (--tp) debe ser un entero entre 1 y 16.": {
+    "en": "Tensor parallel (--tp) must be an integer between 1 and 16.",
+    "pt": "Tensor parallel (--tp) deve ser um inteiro entre 1 e 16.",
+    "fr": "Tensor parallel (--tp) doit être un entier entre 1 et 16.",
+    "de": "Tensor Parallel (--tp) muss eine ganze Zahl zwischen 1 und 16 sein."
+  },
+  "Opción mmap no válida para DeepSeek.": {
+    "en": "Invalid mmap option for DeepSeek.",
+    "pt": "Opção mmap inválida para DeepSeek.",
+    "fr": "Option mmap invalide pour DeepSeek.",
+    "de": "Ungültige mmap-Option für DeepSeek."
+  },
+  "La caché de expertos debe ser \"auto\" o un número entero.": {
+    "en": "Expert cache must be \"auto\" or an integer.",
+    "pt": "O cache de especialistas deve ser \"auto\" ou um inteiro.",
+    "fr": "Le cache d'experts doit être \"auto\" ou un entier.",
+    "de": "Der Experten-Cache muss \"auto\" oder eine ganze Zahl sein."
+  },
+  "Prefill debe ser \"auto\" o un entero.": {
+    "en": "Prefill must be \"auto\" or an integer.",
+    "pt": "Prefill deve ser \"auto\" ou um inteiro.",
+    "fr": "Prefill doit être \"auto\" ou un entier.",
+    "de": "Prefill muss \"auto\" oder eine ganze Zahl sein."
+  },
+  "El tamaño de chunk prefill debe ser entero.": {
+    "en": "Prefill chunk size must be an integer.",
+    "pt": "O tamanho do chunk de prefill deve ser um inteiro.",
+    "fr": "La taille de bloc prefill doit être un entier.",
+    "de": "Die Prefill-Chunkgröße muss eine ganze Zahl sein."
+  },
+  "Los hilos de CPU deben estar entre 1 y 512.": {
+    "en": "CPU threads must be between 1 and 512.",
+    "pt": "Os threads de CPU devem estar entre 1 e 512.",
+    "fr": "Les threads CPU doivent être compris entre 1 et 512.",
+    "de": "CPU-Threads müssen zwischen 1 und 512 liegen."
+  },
+  "Lookup de prompt (--suffix-draft) debe estar entre 0 y 16.": {
+    "en": "Prompt lookup (--suffix-draft) must be between 0 and 16.",
+    "pt": "Lookup de prompt (--suffix-draft) deve estar entre 0 e 16.",
+    "fr": "Prompt lookup (--suffix-draft) doit être compris entre 0 et 16.",
+    "de": "Prompt-Lookup (--suffix-draft) muss zwischen 0 und 16 liegen."
+  },
+  "Formato KV no admitido por Qwen en Maya.": {
+    "en": "KV format not supported by Qwen in Maya.",
+    "pt": "Formato KV não suportado pelo Qwen no Maya.",
+    "fr": "Format KV non pris en charge par Qwen dans Maya.",
+    "de": "KV-Format wird von Qwen in Maya nicht unterstützt."
+  },
+  "Formato KV no admitido por MiniMax en Maya.": {
+    "en": "KV format not supported by MiniMax in Maya.",
+    "pt": "Formato KV não suportado pelo MiniMax no Maya.",
+    "fr": "Format KV non pris en charge par MiniMax dans Maya.",
+    "de": "KV-Format wird von MiniMax in Maya nicht unterstützt."
+  },
+  "El presupuesto de pensamiento está fuera de rango.": {
+    "en": "Thinking budget is out of range.",
+    "pt": "O orçamento de pensamento está fora do intervalo.",
+    "fr": "Le budget de réflexion est hors plage.",
+    "de": "Das Denkbudget liegt außerhalb des zulässigen Bereichs."
+  },
+  "Nivel de razonamiento no válido para Maya.": {
+    "en": "Invalid reasoning level for Maya.",
+    "pt": "Nível de raciocínio inválido para o Maya.",
+    "fr": "Niveau de raisonnement invalide pour Maya.",
+    "de": "Ungültige Denktiefe für Maya."
+  },
+  "Tiempo de descarga por inactividad fuera de rango.": {
+    "en": "Idle unload timeout out of range.",
+    "pt": "Tempo de descarregamento por inatividade fora do intervalo.",
+    "fr": "Délai de déchargement au repos hors plage.",
+    "de": "Zeitlimit für Leerlauf-Entladung außerhalb des Bereichs."
+  },
+  "llama.cpp · CUDA (NVIDIA)": {
+    "en": "llama.cpp · CUDA (NVIDIA)",
+    "pt": "llama.cpp · CUDA (NVIDIA)",
+    "fr": "llama.cpp · CUDA (NVIDIA)",
+    "de": "llama.cpp · CUDA (NVIDIA)"
+  },
+  "llama.cpp · Vulkan (AMD, Intel Arc, NVIDIA)": {
+    "en": "llama.cpp · Vulkan (AMD, Intel Arc, NVIDIA)",
+    "pt": "llama.cpp · Vulkan (AMD, Intel Arc, NVIDIA)",
+    "fr": "llama.cpp · Vulkan (AMD, Intel Arc, NVIDIA)",
+    "de": "llama.cpp · Vulkan (AMD, Intel Arc, NVIDIA)"
+  },
+  "llama.cpp · CPU": {
+    "en": "llama.cpp · CPU",
+    "pt": "llama.cpp · CPU",
+    "fr": "llama.cpp · CPU",
+    "de": "llama.cpp · CPU"
+  },
+  "Strata · PolyStrata": {
+    "en": "Strata · PolyStrata",
+    "pt": "Strata · PolyStrata",
+    "fr": "Strata · PolyStrata",
+    "de": "Strata · PolyStrata"
+  },
+  "Strata Rust (Qwen3.5/3.6)": {
+    "en": "Strata Rust (Qwen3.5/3.6)",
+    "pt": "Strata Rust (Qwen3.5/3.6)",
+    "fr": "Strata Rust (Qwen3.5/3.6)",
+    "de": "Strata Rust (Qwen3.5/3.6)"
+  },
+  "Actualización de V-Agent": {
+    "en": "V-Agent Update",
+    "pt": "Atualização do V-Agent",
+    "fr": "Mise à jour de V-Agent",
+    "de": "V-Agent-Update"
+  },
+  "Instalando nueva actualización de V-Agent…": {
+    "en": "Installing new V-Agent update…",
+    "pt": "Instalando nova atualização do V-Agent…",
+    "fr": "Installation de la nouvelle mise à jour de V-Agent…",
+    "de": "Neues V-Agent-Update wird installiert…"
+  },
+  "V-Agent se cerrará un momento y volverá a abrirse automáticamente al terminar.": {
+    "en": "V-Agent will close briefly and reopen automatically once finished.",
+    "pt": "O V-Agent será fechado rapidamente e reabrirá automaticamente ao terminar.",
+    "fr": "V-Agent va se fermer un instant et se rouvrira automatiquement à la fin.",
+    "de": "V-Agent wird kurz geschlossen und nach Abschluss automatisch neu gestartet."
+  },
+  "Instalar un motor local es opcional: elige llama.cpp, Strata, Strata Rust o Project Maya (compilación local opcional) solo si vas a ejecutar modelos locales, selecciona tu propia compilación si ya tienes una, conecta una API externa o pulsa Siguiente para decidir luego.": {
+    "en": "Installing a local engine is optional: choose llama.cpp, Strata, Strata Rust, or Project Maya (optional local build) only if you plan to run local models, select your own custom build if you already have one, connect an external API, or click Next to decide later.",
+    "pt": "Instalar um motor local é opcional: escolha llama.cpp, Strata, Strata Rust ou Project Maya (compilação local opcional) somente se for executar modelos locais, selecione sua própria compilação se já tiver uma, conecte uma API externa ou clique em Avançar para decidir depois.",
+    "fr": "L’installation d’un moteur local est facultative : choisissez llama.cpp, Strata, Strata Rust ou Project Maya (compilation locale facultative) uniquement pour exécuter des modèles locaux, sélectionnez votre propre compilation si vous en avez déjà une, connectez une API externe ou cliquez sur Suivant pour décider plus tard.",
+    "de": "Die Installation eines lokalen Motors ist optional: Wählen Sie llama.cpp, Strata, Strata Rust oder Project Maya (optionaler lokaler Build) nur für lokale Modelle, wählen Sie einen eigenen Build aus, falls Sie bereits einen haben, verbinden Sie eine externe API oder klicken Sie auf Weiter, um später zu entscheiden."
+  },
+  "Oficial · V-Agent": {
+    "en": "Official · V-Agent",
+    "pt": "Oficial · V-Agent",
+    "fr": "Officiel · V-Agent",
+    "de": "Offiziell · V-Agent"
+  },
+  "+ Añadir mi compilación": {
+    "en": "+ Add custom build",
+    "pt": "+ Adicionar minha compilação",
+    "fr": "+ Ajouter ma compilation",
+    "de": "+ Eigenen Build hinzufügen"
+  },
+  "+ Elegir compilación Maya": {
+    "en": "+ Choose Maya build",
+    "pt": "+ Escolher compilação Maya",
+    "fr": "+ Choisir la compilation Maya",
+    "de": "+ Maya-Build wählen"
+  },
+  "+ Añadir Strata propio": {
+    "en": "+ Add custom Strata",
+    "pt": "+ Adicionar Strata próprio",
+    "fr": "+ Ajouter Strata personnalisé",
+    "de": "+ Eigenes Strata hinzufügen"
+  },
+  "+ Añadir Strata Rust propio": {
+    "en": "+ Add custom Strata Rust",
+    "pt": "+ Adicionar Strata Rust próprio",
+    "fr": "+ Ajouter Strata Rust personnalisé",
+    "de": "+ Eigenes Strata Rust hinzufügen"
+  },
+  "+ Añadir llama.cpp propio": {
+    "en": "+ Add custom llama.cpp",
+    "pt": "+ Adicionar llama.cpp próprio",
+    "fr": "+ Ajouter llama.cpp personnalisé",
+    "de": "+ Eigenes llama.cpp hinzufügen"
+  },
+  "Ejecutable Strata": {
+    "en": "Strata executable",
+    "pt": "Executável Strata",
+    "fr": "Exécutable Strata",
+    "de": "Strata-Programmdatei"
+  },
+  "Ejecutable Strata Rust": {
+    "en": "Strata Rust executable",
+    "pt": "Executável Strata Rust",
+    "fr": "Exécutable Strata Rust",
+    "de": "Strata-Rust-Programmdatei"
+  },
+  "Binario compilado (opcional)": {
+    "en": "Compiled binary (optional)",
+    "pt": "Binário compilado (opcional)",
+    "fr": "Binaire compilé (facultatif)",
+    "de": "Kompilierte Binärdatei (optional)"
+  },
+  "maya.exe / maya-ds4.exe (si ya está compilado)": {
+    "en": "maya.exe / maya-ds4.exe (if already compiled)",
+    "pt": "maya.exe / maya-ds4.exe (se já compilado)",
+    "fr": "maya.exe / maya-ds4.exe (si déjà compilé)",
+    "de": "maya.exe / maya-ds4.exe (falls bereits kompiliert)"
+  },
+  "Binario compilado de Project Maya": {
+    "en": "Project Maya compiled binary",
+    "pt": "Binário compilado do Project Maya",
+    "fr": "Binaire compilé de Project Maya",
+    "de": "Kompilierte Binärdatei von Project Maya"
+  },
+  "Si ya tienes una compilación propia, elige su carpeta o binario sin descargar ni compilar de nuevo.": {
+    "en": "If you already have a custom build, choose its folder or binary without downloading or recompiling.",
+    "pt": "Se você já tem uma compilação própria, escolha a pasta ou o binário sem baixar nem compilar novamente.",
+    "fr": "Si vous avez déjà votre propre compilation, choisissez son dossier ou binaire sans rien télécharger ni recompiler.",
+    "de": "Wenn Sie bereits einen eigenen Build haben, wählen Sie dessen Ordner oder Datei ohne erneutes Herunterladen oder Kompilieren."
+  },
+  "Compilación lista para usar (no hace falta descargar ni compilar).": {
+    "en": "Build ready to use (no download or compilation needed).",
+    "pt": "Compilação pronta para uso (sem precisar baixar ou compilar).",
+    "fr": "Compilation prête à l’emploi (aucun téléchargement ni compilation requis).",
+    "de": "Build einsatzbereit (kein Download oder Kompilieren erforderlich)."
+  },
+  "Personalizada": {
+    "en": "Custom",
+    "pt": "Personalizada",
+    "fr": "Personnalisée",
+    "de": "Benutzerdefiniert"
+  },
+  "Elige un ejecutable válido para Strata · PolyStrata (strata-poly.exe).": {
+    "en": "Choose a valid executable for Strata · PolyStrata (strata-poly.exe).",
+    "pt": "Escolha um executável válido para Strata · PolyStrata (strata-poly.exe).",
+    "fr": "Choisissez un exécutable valide pour Strata · PolyStrata (strata-poly.exe).",
+    "de": "Wählen Sie eine gültige ausführbare Datei für Strata · PolyStrata (strata-poly.exe)."
+  },
+  "Elige un ejecutable válido para Strata Rust (strata.exe).": {
+    "en": "Choose a valid executable for Strata Rust (strata.exe).",
+    "pt": "Escolha um executável válido para Strata Rust (strata.exe).",
+    "fr": "Choisissez un exécutable valide pour Strata Rust (strata.exe).",
+    "de": "Wählen Sie eine gültige ausführbare Datei für Strata Rust (strata.exe)."
+  },
+  "Elige un ejecutable válido para Project Maya.": {
+    "en": "Choose a valid executable for Project Maya.",
+    "pt": "Escolha um executável válido para Project Maya.",
+    "fr": "Choisissez un exécutable valide pour Project Maya.",
+    "de": "Wählen Sie eine gültige ausführbare Datei für Project Maya."
+  },
+  "Elige un intérprete de Python válido para Project Maya.": {
+    "en": "Choose a valid Python interpreter for Project Maya.",
+    "pt": "Escolha um interpretador Python válido para o Project Maya.",
+    "fr": "Choisissez un interpréteur Python valide pour Project Maya.",
+    "de": "Wählen Sie einen gültigen Python-Interpreter für Project Maya."
+  },
+  "Preparar modelo con Maya": {
+    "en": "Set up a model with Maya",
+    "pt": "Preparar modelo com Maya",
+    "fr": "Préparer un modèle avec Maya",
+    "de": "Modell mit Maya einrichten"
+  },
+  "Desvincular": {
+    "en": "Unlink",
+    "pt": "Desvincular",
+    "fr": "Dissocier",
+    "de": "Verknüpfung lösen"
+  },
+  "¿Desvincular Project Maya?": {
+    "en": "Unlink Project Maya?",
+    "pt": "Desvincular Project Maya?",
+    "fr": "Dissocier Project Maya ?",
+    "de": "Project Maya trennen?"
+  },
+  "La carpeta de Maya y sus modelos se conservan en el disco.": {
+    "en": "Maya’s folder and models remain on disk.",
+    "pt": "A pasta do Maya e seus modelos permanecem no disco.",
+    "fr": "Le dossier Maya et ses modèles restent sur le disque.",
+    "de": "Mayas Ordner und Modelle bleiben auf dem Datenträger."
+  },
+  "Project Maya desvinculado.": {
+    "en": "Project Maya unlinked.",
+    "pt": "Project Maya desvinculado.",
+    "fr": "Project Maya dissocié.",
+    "de": "Project Maya wurde getrennt."
+  },
+  "Ventana KV en GPU (tokens)": {
+    "en": "GPU KV window (tokens)",
+    "pt": "Janela KV na GPU (tokens)",
+    "fr": "Fenêtre KV sur le GPU (jetons)",
+    "de": "KV-Fenster auf der GPU (Tokens)"
+  },
+  "Configurando Project Maya…": {
+    "en": "Setting up Project Maya…",
+    "pt": "Configurando Project Maya…",
+    "fr": "Configuration de Project Maya…",
+    "de": "Project Maya wird eingerichtet…"
+  },
+  "Configuración de Project Maya terminada.": {
+    "en": "Project Maya setup completed.",
+    "pt": "Configuração do Project Maya concluída.",
+    "fr": "Configuration de Project Maya terminée.",
+    "de": "Einrichtung von Project Maya abgeschlossen."
+  },
+  "Ajustes avanzados de Maya": {
+    "en": "Advanced Maya settings",
+    "pt": "Configurações avançadas do Maya",
+    "fr": "Réglages avancés de Maya",
+    "de": "Erweiterte Maya-Einstellungen"
+  },
+  "Registro de preparación": {
+    "en": "Setup log",
+    "pt": "Registro de preparação",
+    "fr": "Journal de préparation",
+    "de": "Einrichtungsprotokoll"
+  },
+  "Preparar modelo": {
+    "en": "Prepare model",
+    "pt": "Preparar modelo",
+    "fr": "Préparer le modèle",
+    "de": "Modell vorbereiten"
+  },
+  "V-Agent descargará los archivos necesarios y preparará el modelo en este equipo.": {
+    "en": "V-Agent will download the required files and set up the model on this computer.",
+    "pt": "O V-Agent baixará os arquivos necessários e preparará o modelo neste computador.",
+    "fr": "V-Agent téléchargera les fichiers nécessaires et préparera le modèle sur cet ordinateur.",
+    "de": "V-Agent lädt die benötigten Dateien herunter und richtet das Modell auf diesem Computer ein."
+  },
+  "Tamaño aproximado": {
+    "en": "Approximate size",
+    "pt": "Tamanho aproximado",
+    "fr": "Taille approximative",
+    "de": "Ungefähre Größe"
+  },
+  "Generación y caché": {
+    "en": "Generation and cache",
+    "pt": "Geração e cache",
+    "fr": "Génération et cache",
+    "de": "Generierung und Cache"
+  },
+  "No se pudo preparar el modelo de Maya. Revisa el registro.": {
+    "en": "Maya model setup failed. Check the log.",
+    "pt": "Não foi possível preparar o modelo do Maya. Consulte o registro.",
+    "fr": "La préparation du modèle Maya a échoué. Consultez le journal.",
+    "de": "Das Maya-Modell konnte nicht eingerichtet werden. Prüfe das Protokoll."
+  },
+  "No hay una preparación de Maya que se pueda cancelar.": {
+    "en": "There is no Maya setup to cancel.",
+    "pt": "Não há preparação do Maya para cancelar.",
+    "fr": "Aucune préparation de Maya à annuler.",
+    "de": "Keine Maya-Einrichtung zum Abbrechen."
+  },
+  "No se pudo cancelar la preparación de Maya.": {
+    "en": "Could not cancel Maya setup.",
+    "pt": "Não foi possível cancelar a preparação do Maya.",
+    "fr": "Impossible d’annuler la préparation de Maya.",
+    "de": "Die Maya-Einrichtung konnte nicht abgebrochen werden."
+  },
+  "Preparación de Maya cancelada.": {
+    "en": "Maya setup cancelled.",
+    "pt": "Preparação do Maya cancelada.",
+    "fr": "Préparation de Maya annulée.",
+    "de": "Maya-Einrichtung abgebrochen."
+  },
+  "Maya no dejó un modelo configurado. Revisa maya-setup.log.": {
+    "en": "Maya did not create a model configuration. Check maya-setup.log.",
+    "pt": "O Maya não criou uma configuração de modelo. Consulte maya-setup.log.",
+    "fr": "Maya n’a pas créé de configuration de modèle. Consultez maya-setup.log.",
+    "de": "Maya hat keine Modellkonfiguration erstellt. Prüfe maya-setup.log."
+  },
+  "Elige un modelo de Project Maya.": {
+    "en": "Choose a Project Maya model.",
+    "pt": "Escolha um modelo do Project Maya.",
+    "fr": "Choisissez un modèle Project Maya.",
+    "de": "Wähle ein Project-Maya-Modell."
+  },
+  "Archivo de paginación de Windows": {
+    "en": "Windows page file",
+    "pt": "Arquivo de paginação do Windows",
+    "fr": "Fichier d’échange Windows",
+    "de": "Windows-Auslagerungsdatei"
+  },
+  "Selecciona un modelo": {
+    "en": "Select a model",
+    "pt": "Selecione um modelo",
+    "fr": "Sélectionnez un modèle",
+    "de": "Modell auswählen"
+  },
+  "Muy alto": {
+    "en": "Very high",
+    "pt": "Muito alto",
+    "fr": "Très élevé",
+    "de": "Sehr hoch"
+  },
+  "GB recomendados": {
+    "en": "GB recommended",
+    "pt": "GB recomendados",
+    "fr": "Go recommandés",
+    "de": "GB empfohlen"
+  },
+  "Catálogo de Maya": {
+    "en": "Maya catalog",
+    "pt": "Catálogo do Maya",
+    "fr": "Catalogue Maya",
+    "de": "Maya-Katalog"
+  },
+  "Otro modelo compatible": {
+    "en": "Another compatible model",
+    "pt": "Outro modelo compatível",
+    "fr": "Autre modèle compatible",
+    "de": "Anderes kompatibles Modell"
+  },
+  "Archivos locales (GGUF o EXL3)": {
+    "en": "Local files (GGUF or EXL3)",
+    "pt": "Arquivos locais (GGUF ou EXL3)",
+    "fr": "Fichiers locaux (GGUF ou EXL3)",
+    "de": "Lokale Dateien (GGUF oder EXL3)"
+  },
+  "GGUF local de GLM-5.3-Flash": {
+    "en": "Local GLM-5.3-Flash GGUF",
+    "pt": "GGUF local de GLM-5.3-Flash",
+    "fr": "GGUF local de GLM-5.3-Flash",
+    "de": "Lokales GGUF für GLM-5.3-Flash"
+  },
+  "Identificador del modelo": {
+    "en": "Model ID",
+    "pt": "Identificador do modelo",
+    "fr": "Identifiant du modèle",
+    "de": "Modell-ID"
+  },
+  "Carpeta de los archivos del modelo": {
+    "en": "Model files folder",
+    "pt": "Pasta dos arquivos do modelo",
+    "fr": "Dossier des fichiers du modèle",
+    "de": "Ordner der Modelldateien"
+  },
+  "Carpeta de descarga": {
+    "en": "Download folder",
+    "pt": "Pasta de download",
+    "fr": "Dossier de téléchargement",
+    "de": "Downloadordner"
+  },
+  "Aceleración": {
+    "en": "Acceleration",
+    "pt": "Aceleração",
+    "fr": "Accélération",
+    "de": "Beschleunigung"
+  },
+  "Medir rendimiento": {
+    "en": "Benchmark",
+    "pt": "Medir desempenho",
+    "fr": "Mesurer les performances",
+    "de": "Leistung messen"
+  },
+  "V-Agent preparará los archivos locales y descargará los componentes que falten.": {
+    "en": "V-Agent will prepare local files and download any missing components.",
+    "pt": "O V-Agent preparará os arquivos locais e baixará os componentes que faltarem.",
+    "fr": "V-Agent préparera les fichiers locaux et téléchargera les composants manquants.",
+    "de": "V-Agent bereitet die lokalen Dateien vor und lädt fehlende Komponenten herunter."
+  },
+  "Opciones de preparación de Maya no válidas.": {
+    "en": "Invalid Maya setup options.",
+    "pt": "Opções de preparação do Maya inválidas.",
+    "fr": "Options de préparation de Maya non valides.",
+    "de": "Ungültige Optionen für die Maya-Einrichtung."
+  },
+  "Identificador de modelo de Maya no válido.": {
+    "en": "Invalid Maya model ID.",
+    "pt": "Identificador de modelo do Maya inválido.",
+    "fr": "Identifiant du modèle Maya non valide.",
+    "de": "Ungültige Maya-Modell-ID."
+  },
+  "La importación GGUF de GLM usa los archivos de la carpeta elegida.": {
+    "en": "GLM GGUF import uses the files in the selected folder.",
+    "pt": "A importação GGUF do GLM usa os arquivos da pasta selecionada.",
+    "fr": "L’importation GGUF de GLM utilise les fichiers du dossier choisi.",
+    "de": "Der GGUF-Import für GLM verwendet die Dateien im ausgewählten Ordner."
+  },
+  "Elige una carpeta existente para los modelos de Maya.": {
+    "en": "Choose an existing folder for Maya models.",
+    "pt": "Escolha uma pasta existente para os modelos do Maya.",
+    "fr": "Choisissez un dossier existant pour les modèles Maya.",
+    "de": "Wähle einen vorhandenen Ordner für Maya-Modelle."
+  },
+  "Indica los índices de GPU separados por comas.": {
+    "en": "Enter GPU indices separated by commas.",
+    "pt": "Informe os índices de GPU separados por vírgulas.",
+    "fr": "Indiquez les indices des GPU séparés par des virgules.",
+    "de": "Gib die GPU-Indizes durch Kommas getrennt ein."
+  },
+  "Contexto de Maya fuera de rango (8192–1048576).": {
+    "en": "Maya context is out of range (8192–1048576).",
+    "pt": "Contexto do Maya fora do intervalo (8192–1048576).",
+    "fr": "Contexte Maya hors limites (8192–1048576).",
+    "de": "Maya-Kontext außerhalb des Bereichs (8192–1048576)."
+  },
+  "Instala Python 3.10 o superior para preparar Project Maya.": {
+    "en": "Install Python 3.10 or later to set up Project Maya.",
+    "pt": "Instale o Python 3.10 ou posterior para preparar o Project Maya.",
+    "fr": "Installez Python 3.10 ou une version ultérieure pour préparer Project Maya.",
+    "de": "Installiere Python 3.10 oder neuer, um Project Maya einzurichten."
+  },
+  "Project Maya ya se está configurando.": {
+    "en": "Project Maya setup is already running.",
+    "pt": "O Project Maya já está sendo configurado.",
+    "fr": "La configuration de Project Maya est déjà en cours.",
+    "de": "Project Maya wird bereits eingerichtet."
+  },
+  "Backend de Maya no válido.": {
+    "en": "Invalid Maya backend.",
+    "pt": "Backend do Maya inválido.",
+    "fr": "Backend Maya non valide.",
+    "de": "Ungültiges Maya-Backend."
+  },
+  "Ajustes avanzados": {
+    "en": "Advanced settings",
+    "pt": "Configurações avançadas",
+    "fr": "Réglages avancés",
+    "de": "Erweiterte Einstellungen"
+  },
+  "Activado": {
+    "en": "Enabled",
+    "pt": "Ativado",
+    "fr": "Activé",
+    "de": "Aktiviert"
+  },
+  "Descarga el modelo actual antes de preparar otro modelo.": {
+    "en": "Unload the current model before preparing another one.",
+    "pt": "Descarregue o modelo atual antes de preparar outro.",
+    "fr": "Déchargez le modèle actuel avant d’en préparer un autre.",
+    "de": "Entlade das aktuelle Modell, bevor du ein anderes vorbereitest."
+  },
+  "La estimación de memoria antes de cargar aún no está disponible para Maya.": {
+    "en": "A pre-load memory estimate is not yet available for Maya.",
+    "pt": "A estimativa de memória antes do carregamento ainda não está disponível para o Maya.",
+    "fr": "L’estimation de la mémoire avant chargement n’est pas encore disponible pour Maya.",
+    "de": "Für Maya ist vor dem Laden noch keine Speicherschätzung verfügbar."
+  },
+  "Formato de caché KV no admitido por el motor seleccionado.": {
+    "en": "The selected engine does not support this KV cache format.",
+    "pt": "O motor selecionado não é compatível com este formato de cache KV.",
+    "fr": "Le moteur sélectionné ne prend pas en charge ce format de cache KV.",
+    "de": "Die ausgewählte Engine unterstützt dieses KV-Cache-Format nicht."
+  },
+  "Configuración de Project Maya incompleta.": {
+    "en": "Project Maya configuration is incomplete.",
+    "pt": "Configuração do Project Maya incompleta.",
+    "fr": "Configuration de Project Maya incomplète.",
+    "de": "Die Project-Maya-Konfiguration ist unvollständig."
+  },
+  "Espera a que termine la configuración de Project Maya.": {
+    "en": "Wait for Project Maya setup to finish.",
+    "pt": "Aguarde a configuração do Project Maya terminar.",
+    "fr": "Attendez la fin de la configuration de Project Maya.",
+    "de": "Warte, bis die Einrichtung von Project Maya abgeschlossen ist."
+  },
+  "Etiqueta de Project Maya no válida.": {
+    "en": "Invalid Project Maya tag.",
+    "pt": "Tag do Project Maya inválida.",
+    "fr": "Balise Project Maya non valide.",
+    "de": "Ungültiges Project-Maya-Tag."
+  },
+  "Git no respondió.": {
+    "en": "Git did not respond.",
+    "pt": "O Git não respondeu.",
+    "fr": "Git n’a pas répondu.",
+    "de": "Git hat nicht geantwortet."
+  },
+  "La copia de Maya tiene cambios de código locales. Revísalos antes de actualizar.": {
+    "en": "This Maya checkout has local code changes. Review them before updating.",
+    "pt": "A cópia do Maya tem alterações locais no código. Revise-as antes de atualizar.",
+    "fr": "La copie de Maya contient des modifications locales du code. Vérifiez-les avant de mettre à jour.",
+    "de": "Die Maya-Kopie enthält lokale Codeänderungen. Prüfe sie vor dem Update."
+  },
+  "La copia local no quedó en la etiqueta solicitada. Revisa la rama local.": {
+    "en": "The local copy is not at the requested tag. Check the local branch.",
+    "pt": "A cópia local não está na tag solicitada. Verifique a branch local.",
+    "fr": "La copie locale ne correspond pas à la balise demandée. Vérifiez la branche locale.",
+    "de": "Die lokale Kopie entspricht nicht dem angeforderten Tag. Prüfe den lokalen Branch."
+  },
+  "Nivel de razonamiento no válido para este modelo de Maya.": {
+    "en": "Invalid reasoning level for this Maya model.",
+    "pt": "Nível de raciocínio inválido para este modelo do Maya.",
+    "fr": "Niveau de raisonnement non valide pour ce modèle Maya.",
+    "de": "Ungültige Denkstufe für dieses Maya-Modell."
+  },
+  "No se pudo comprobar la revisión local de Project Maya.": {
+    "en": "Could not check the local Project Maya revision.",
+    "pt": "Não foi possível verificar a revisão local do Project Maya.",
+    "fr": "Impossible de vérifier la révision locale de Project Maya.",
+    "de": "Die lokale Revision von Project Maya konnte nicht geprüft werden."
+  },
+  "No se pudo obtener una versión oficial de Project Maya.": {
+    "en": "Could not retrieve an official Project Maya version.",
+    "pt": "Não foi possível obter uma versão oficial do Project Maya.",
+    "fr": "Impossible de récupérer une version officielle de Project Maya.",
+    "de": "Eine offizielle Version von Project Maya konnte nicht abgerufen werden."
+  },
+  "Project Maya no está vinculado.": {
+    "en": "Project Maya is not linked.",
+    "pt": "O Project Maya não está vinculado.",
+    "fr": "Project Maya n’est pas associé.",
+    "de": "Project Maya ist nicht verknüpft."
+  },
+  "Flash Attention": {
+    "en": "Flash Attention",
+    "pt": "Flash Attention",
+    "fr": "Flash Attention",
+    "de": "Flash Attention"
+  },
+  "Hilos de CPU al generar": {
+    "en": "CPU threads while generating",
+    "pt": "Threads de CPU ao gerar",
+    "fr": "Threads CPU pendant la génération",
+    "de": "CPU-Threads beim Generieren"
+  },
+  "Núcleos que usa la CPU mientras escribe la respuesta.": {
+    "en": "CPU cores used while the reply is written.",
+    "pt": "Núcleos que a CPU usa enquanto escreve a resposta.",
+    "fr": "Cœurs utilisés par le CPU pendant l’écriture de la réponse.",
+    "de": "CPU-Kerne, die beim Schreiben der Antwort genutzt werden."
+  },
+  "Hilos de CPU al leer el prompt": {
+    "en": "CPU threads while reading the prompt",
+    "pt": "Threads de CPU ao ler o prompt",
+    "fr": "Threads CPU pendant la lecture du prompt",
+    "de": "CPU-Threads beim Lesen des Prompts"
+  },
+  "Núcleos que usa la CPU al procesar el prompt.": {
+    "en": "CPU cores used while the prompt is processed.",
+    "pt": "Núcleos que a CPU usa ao processar o prompt.",
+    "fr": "Cœurs utilisés par le CPU pour traiter le prompt.",
+    "de": "CPU-Kerne, die beim Verarbeiten des Prompts genutzt werden."
+  },
+  "Lotes continuos": {
+    "en": "Continuous batching",
+    "pt": "Lotes contínuos",
+    "fr": "Lots continus",
+    "de": "Kontinuierliches Batching"
+  },
+  "Mezcla peticiones en curso con nuevas (útil con varios slots).": {
+    "en": "Mixes running requests with new ones (useful with several slots).",
+    "pt": "Mistura pedidos em curso com novos (útil com vários slots).",
+    "fr": "Mélange les requêtes en cours avec les nouvelles (utile avec plusieurs slots).",
+    "de": "Mischt laufende mit neuen Anfragen (nützlich bei mehreren Slots)."
+  },
+  "Calentamiento al cargar": {
+    "en": "Warm-up on load",
+    "pt": "Aquecimento ao carregar",
+    "fr": "Préchauffage au chargement",
+    "de": "Aufwärmen beim Laden"
+  },
+  "Ejecuta una pasada vacía al cargar para que la primera respuesta no sea lenta.": {
+    "en": "Runs an empty pass on load so the first reply is not slow.",
+    "pt": "Executa uma passagem vazia ao carregar para que a primeira resposta não seja lenta.",
+    "fr": "Exécute une passe vide au chargement pour que la première réponse ne soit pas lente.",
+    "de": "Führt beim Laden einen leeren Durchlauf aus, damit die erste Antwort nicht langsam ist."
+  },
+  "Reempaquetar pesos": {
+    "en": "Repack weights",
+    "pt": "Reempacotar pesos",
+    "fr": "Réorganiser les poids",
+    "de": "Gewichte umpacken"
+  },
+  "Reorganiza los pesos para la CPU al cargar (más rápido en CPU, carga algo más lenta).": {
+    "en": "Reorganises the weights for the CPU on load (faster on CPU, slightly slower load).",
+    "pt": "Reorganiza os pesos para a CPU ao carregar (mais rápido na CPU, carregamento um pouco mais lento).",
+    "fr": "Réorganise les poids pour le CPU au chargement (plus rapide sur CPU, chargement un peu plus lent).",
+    "de": "Ordnet die Gewichte beim Laden für die CPU um (schneller auf der CPU, etwas langsameres Laden)."
+  },
+  "Operaciones del host en la GPU": {
+    "en": "Host operations on the GPU",
+    "pt": "Operações do host na GPU",
+    "fr": "Opérations de l’hôte sur le GPU",
+    "de": "Host-Operationen auf der GPU"
+  },
+  "Lleva a la GPU operaciones de tensores que están en la RAM.": {
+    "en": "Runs on the GPU operations on tensors that are in RAM.",
+    "pt": "Leva para a GPU operações de tensores que estão na RAM.",
+    "fr": "Exécute sur le GPU les opérations sur des tenseurs situés en RAM.",
+    "de": "Führt Operationen auf Tensoren im RAM auf der GPU aus."
+  },
+  "Prioridad del proceso": {
+    "en": "Process priority",
+    "pt": "Prioridade do processo",
+    "fr": "Priorité du processus",
+    "de": "Prozesspriorität"
+  },
+  "Prioridad del motor frente a otros programas del equipo.": {
+    "en": "The engine’s priority over other programs on the computer.",
+    "pt": "Prioridade do motor face a outros programas do computador.",
+    "fr": "Priorité du moteur par rapport aux autres programmes de l’ordinateur.",
+    "de": "Priorität der Engine gegenüber anderen Programmen des Computers."
+  },
+  "Baja": {
+    "en": "Low",
+    "pt": "Baixa",
+    "fr": "Basse",
+    "de": "Niedrig"
+  },
+  "Media": {
+    "en": "Medium",
+    "pt": "Média",
+    "fr": "Moyenne",
+    "de": "Mittel"
+  },
+  "Alta": {
+    "en": "High",
+    "pt": "Alta",
+    "fr": "Haute",
+    "de": "Hoch"
+  },
+  "Tiempo real": {
+    "en": "Real time",
+    "pt": "Tempo real",
+    "fr": "Temps réel",
+    "de": "Echtzeit"
+  },
+  "Modo de carga del modelo": {
+    "en": "Model loading mode",
+    "pt": "Modo de carregamento do modelo",
+    "fr": "Mode de chargement du modèle",
+    "de": "Lademodus des Modells"
+  },
+  "mmap lee el archivo según se necesita; mlock lo fija en RAM para que Windows no lo mueva al disco.": {
+    "en": "mmap reads the file as needed; mlock keeps it in RAM so Windows does not move it to disk.",
+    "pt": "mmap lê o ficheiro conforme necessário; mlock fixa-o na RAM para que o Windows não o mova para o disco.",
+    "fr": "mmap lit le fichier au besoin ; mlock le garde en RAM pour que Windows ne le déplace pas sur le disque.",
+    "de": "mmap liest die Datei nach Bedarf; mlock hält sie im RAM, damit Windows sie nicht auf die Festplatte auslagert."
+  },
+  "Fijar el modelo en RAM (mlock)": {
+    "en": "Lock the model in RAM (mlock)",
+    "pt": "Fixar o modelo na RAM (mlock)",
+    "fr": "Verrouiller le modèle en RAM (mlock)",
+    "de": "Modell im RAM sperren (mlock)"
+  },
+  "Impide que el sistema mueva el modelo al archivo de paginación.": {
+    "en": "Stops the system from moving the model to the page file.",
+    "pt": "Impede que o sistema mova o modelo para o ficheiro de paginação.",
+    "fr": "Empêche le système de déplacer le modèle dans le fichier d’échange.",
+    "de": "Verhindert, dass das System das Modell in die Auslagerungsdatei verschiebt."
+  },
+  "Cargar el modelo entero (sin mmap)": {
+    "en": "Load the whole model (no mmap)",
+    "pt": "Carregar o modelo inteiro (sem mmap)",
+    "fr": "Charger tout le modèle (sans mmap)",
+    "de": "Ganzes Modell laden (ohne mmap)"
+  },
+  "Lee todo el archivo al cargar en vez de mapearlo.": {
+    "en": "Reads the whole file on load instead of mapping it.",
+    "pt": "Lê o ficheiro inteiro ao carregar em vez de o mapear.",
+    "fr": "Lit tout le fichier au chargement au lieu de le mapper.",
+    "de": "Liest beim Laden die ganze Datei, statt sie einzublenden."
+  },
+  "Lectura bajo demanda de tensores grandes": {
+    "en": "On-demand reading of large tensors",
+    "pt": "Leitura sob demanda de tensores grandes",
+    "fr": "Lecture à la demande des gros tenseurs",
+    "de": "Große Tensoren bei Bedarf lesen"
+  },
+  "Lee del disco solo las filas que se usan de tensores muy grandes.": {
+    "en": "Reads from disk only the rows that are used of very large tensors.",
+    "pt": "Lê do disco apenas as linhas usadas de tensores muito grandes.",
+    "fr": "Lit sur le disque uniquement les lignes utilisées des très gros tenseurs.",
+    "de": "Liest von sehr großen Tensoren nur die genutzten Zeilen von der Festplatte."
+  },
+  "Caché KV en la GPU": {
+    "en": "KV cache on the GPU",
+    "pt": "Cache KV na GPU",
+    "fr": "Cache KV sur le GPU",
+    "de": "KV-Cache auf der GPU"
+  },
+  "Desactívalo para dejar la caché KV en la RAM y liberar VRAM (más lento).": {
+    "en": "Turn it off to keep the KV cache in RAM and free VRAM (slower).",
+    "pt": "Desative-o para deixar o cache KV na RAM e libertar VRAM (mais lento).",
+    "fr": "Désactivez-le pour garder le cache KV en RAM et libérer de la VRAM (plus lent).",
+    "de": "Ausschalten, um den KV-Cache im RAM zu halten und VRAM freizugeben (langsamer)."
+  },
+  "Formato de caché V (si distinto de K)": {
+    "en": "V cache format (if different from K)",
+    "pt": "Formato do cache V (se diferente de K)",
+    "fr": "Format du cache V (s’il diffère de K)",
+    "de": "V-Cache-Format (falls anders als K)"
+  },
+  "Por defecto V usa el mismo formato que la caché KV elegida arriba.": {
+    "en": "By default V uses the same format as the KV cache chosen above.",
+    "pt": "Por omissão V usa o mesmo formato que o cache KV escolhido acima.",
+    "fr": "Par défaut, V utilise le même format que le cache KV choisi plus haut.",
+    "de": "Standardmäßig nutzt V dasselbe Format wie der oben gewählte KV-Cache."
+  },
+  "Caché KV compartida entre slots": {
+    "en": "KV cache shared between slots",
+    "pt": "Cache KV partilhado entre slots",
+    "fr": "Cache KV partagé entre les slots",
+    "de": "KV-Cache für alle Slots gemeinsam"
+  },
+  "Un solo búfer KV para todos los slots paralelos.": {
+    "en": "A single KV buffer for all parallel slots.",
+    "pt": "Um único buffer KV para todos os slots paralelos.",
+    "fr": "Un seul tampon KV pour tous les slots parallèles.",
+    "de": "Ein einziger KV-Puffer für alle parallelen Slots."
+  },
+  "Caché SWA completa": {
+    "en": "Full SWA cache",
+    "pt": "Cache SWA completo",
+    "fr": "Cache SWA complet",
+    "de": "Vollständiger SWA-Cache"
+  },
+  "Para modelos con ventana deslizante: guarda todo el contexto (más memoria, menos recálculo).": {
+    "en": "For sliding-window models: keeps the whole context (more memory, less recomputing).",
+    "pt": "Para modelos com janela deslizante: guarda todo o contexto (mais memória, menos recálculo).",
+    "fr": "Pour les modèles à fenêtre glissante : garde tout le contexte (plus de mémoire, moins de recalcul).",
+    "de": "Für Modelle mit gleitendem Fenster: hält den ganzen Kontext (mehr Speicher, weniger Neuberechnung)."
+  },
+  "Caché de prompts en RAM (MiB)": {
+    "en": "Prompt cache in RAM (MiB)",
+    "pt": "Cache de prompts na RAM (MiB)",
+    "fr": "Cache des prompts en RAM (Mio)",
+    "de": "Prompt-Cache im RAM (MiB)"
+  },
+  "Memoria para conservar prompts anteriores y retomarlos sin releerlos. 0 la desactiva.": {
+    "en": "Memory to keep earlier prompts and resume them without reading them again. 0 turns it off.",
+    "pt": "Memória para guardar prompts anteriores e retomá-los sem os reler. 0 desativa-a.",
+    "fr": "Mémoire pour garder les prompts précédents et les reprendre sans les relire. 0 la désactive.",
+    "de": "Speicher, um frühere Prompts zu behalten und ohne erneutes Lesen fortzusetzen. 0 schaltet ihn aus."
+  },
+  "Reutilizar caché desde (tokens)": {
+    "en": "Reuse cache from (tokens)",
+    "pt": "Reutilizar cache a partir de (tokens)",
+    "fr": "Réutiliser le cache à partir de (tokens)",
+    "de": "Cache wiederverwenden ab (Tokens)"
+  },
+  "Tamaño mínimo de un trozo de prompt repetido para reutilizarlo desplazando la caché.": {
+    "en": "Smallest repeated piece of prompt that is reused by shifting the cache.",
+    "pt": "Tamanho mínimo de um trecho de prompt repetido para reutilizá-lo deslocando o cache.",
+    "fr": "Taille minimale d’un morceau de prompt répété réutilisé en décalant le cache.",
+    "de": "Kleinstes wiederholtes Prompt-Stück, das durch Verschieben des Caches wiederverwendet wird."
+  },
+  "Desplazar contexto al llenarse": {
+    "en": "Shift context when full",
+    "pt": "Deslocar o contexto ao encher",
+    "fr": "Décaler le contexte quand il est plein",
+    "de": "Kontext verschieben, wenn er voll ist"
+  },
+  "Descarta lo más antiguo en vez de cortar la respuesta cuando se llena el contexto.": {
+    "en": "Drops the oldest part instead of cutting the reply when the context fills up.",
+    "pt": "Descarta o mais antigo em vez de cortar a resposta quando o contexto enche.",
+    "fr": "Supprime le plus ancien au lieu de couper la réponse quand le contexte est plein.",
+    "de": "Verwirft das Älteste, statt die Antwort abzuschneiden, wenn der Kontext voll ist."
+  },
+  "Dispositivos": {
+    "en": "Devices",
+    "pt": "Dispositivos",
+    "fr": "Périphériques",
+    "de": "Geräte"
+  },
+  "Lista de dispositivos separados por comas (por ejemplo CUDA0,CUDA1).": {
+    "en": "Comma-separated list of devices (for example CUDA0,CUDA1).",
+    "pt": "Lista de dispositivos separados por vírgulas (por exemplo CUDA0,CUDA1).",
+    "fr": "Liste de périphériques séparés par des virgules (par exemple CUDA0,CUDA1).",
+    "de": "Kommagetrennte Geräteliste (zum Beispiel CUDA0,CUDA1)."
+  },
+  "Reparto entre varias GPU": {
+    "en": "Split across several GPUs",
+    "pt": "Divisão entre várias GPUs",
+    "fr": "Répartition sur plusieurs GPU",
+    "de": "Aufteilung auf mehrere GPUs"
+  },
+  "Por capas (layer), por filas (row) o por tensores; none usa una sola GPU.": {
+    "en": "By layers, by rows or by tensors; none uses a single GPU.",
+    "pt": "Por camadas, por linhas ou por tensores; none usa uma única GPU.",
+    "fr": "Par couches, par lignes ou par tenseurs ; none utilise un seul GPU.",
+    "de": "Nach Schichten, Zeilen oder Tensoren; none nutzt eine einzige GPU."
+  },
+  "GPU principal": {
+    "en": "Main GPU",
+    "pt": "GPU principal",
+    "fr": "GPU principal",
+    "de": "Haupt-GPU"
+  },
+  "La GPU que usa el modelo con reparto none, o la de los resultados intermedios.": {
+    "en": "The GPU the model uses with split none, or the one for intermediate results.",
+    "pt": "A GPU usada pelo modelo com divisão none, ou a dos resultados intermédios.",
+    "fr": "Le GPU utilisé par le modèle avec la répartition none, ou celui des résultats intermédiaires.",
+    "de": "Die GPU des Modells bei Aufteilung none oder die für Zwischenergebnisse."
+  },
+  "Proporción por GPU": {
+    "en": "Share per GPU",
+    "pt": "Proporção por GPU",
+    "fr": "Part par GPU",
+    "de": "Anteil pro GPU"
+  },
+  "Parte del modelo para cada GPU, separada por comas (por ejemplo 3,1).": {
+    "en": "Share of the model for each GPU, comma-separated (for example 3,1).",
+    "pt": "Parte do modelo para cada GPU, separada por vírgulas (por exemplo 3,1).",
+    "fr": "Part du modèle pour chaque GPU, séparée par des virgules (par exemple 3,1).",
+    "de": "Anteil des Modells je GPU, kommagetrennt (zum Beispiel 3,1)."
+  },
+  "Todos los expertos MoE en la CPU": {
+    "en": "All MoE experts on the CPU",
+    "pt": "Todos os especialistas MoE na CPU",
+    "fr": "Tous les experts MoE sur le CPU",
+    "de": "Alle MoE-Experten auf der CPU"
+  },
+  "Deja en RAM todos los expertos y en la GPU el resto del modelo.": {
+    "en": "Keeps all experts in RAM and the rest of the model on the GPU.",
+    "pt": "Deixa todos os especialistas na RAM e o resto do modelo na GPU.",
+    "fr": "Garde tous les experts en RAM et le reste du modèle sur le GPU.",
+    "de": "Hält alle Experten im RAM und den Rest des Modells auf der GPU."
+  },
+  "Ubicación de tensores (avanzado)": {
+    "en": "Tensor placement (advanced)",
+    "pt": "Localização de tensores (avançado)",
+    "fr": "Placement des tenseurs (avancé)",
+    "de": "Tensor-Platzierung (erweitert)"
+  },
+  "Patrón=búfer, por ejemplo exps=CPU para dejar expertos en la CPU.": {
+    "en": "Pattern=buffer, for example exps=CPU to keep experts on the CPU.",
+    "pt": "Padrão=buffer, por exemplo exps=CPU para deixar especialistas na CPU.",
+    "fr": "Motif=tampon, par exemple exps=CPU pour garder les experts sur le CPU.",
+    "de": "Muster=Puffer, zum Beispiel exps=CPU, um Experten auf der CPU zu halten."
+  },
+  "Optimización NUMA": {
+    "en": "NUMA optimisation",
+    "pt": "Otimização NUMA",
+    "fr": "Optimisation NUMA",
+    "de": "NUMA-Optimierung"
+  },
+  "Solo para equipos con varios nodos de memoria (varios procesadores).": {
+    "en": "Only for computers with several memory nodes (several processors).",
+    "pt": "Apenas para computadores com vários nós de memória (vários processadores).",
+    "fr": "Uniquement pour les ordinateurs à plusieurs nœuds mémoire (plusieurs processeurs).",
+    "de": "Nur für Computer mit mehreren Speicherknoten (mehreren Prozessoren)."
+  },
+  "Escalado RoPE": {
+    "en": "RoPE scaling",
+    "pt": "Escala RoPE",
+    "fr": "Mise à l’échelle RoPE",
+    "de": "RoPE-Skalierung"
+  },
+  "Método para usar más contexto del que el modelo trae de serie.": {
+    "en": "Method to use more context than the model comes with.",
+    "pt": "Método para usar mais contexto do que o modelo traz de origem.",
+    "fr": "Méthode pour utiliser plus de contexte que celui du modèle d’origine.",
+    "de": "Methode, um mehr Kontext zu nutzen, als das Modell mitbringt."
+  },
+  "Frecuencia base de RoPE": {
+    "en": "RoPE base frequency",
+    "pt": "Frequência base do RoPE",
+    "fr": "Fréquence de base RoPE",
+    "de": "RoPE-Basisfrequenz"
+  },
+  "Por defecto la del modelo. Solo cámbiala si el autor lo indica.": {
+    "en": "The model’s own by default. Change it only if its author says so.",
+    "pt": "Por omissão, a do modelo. Altere-a só se o autor o indicar.",
+    "fr": "Celle du modèle par défaut. Ne la changez que si son auteur l’indique.",
+    "de": "Standardmäßig die des Modells. Nur ändern, wenn der Autor es angibt."
+  },
+  "Factor de escala de RoPE": {
+    "en": "RoPE scale factor",
+    "pt": "Fator de escala do RoPE",
+    "fr": "Facteur d’échelle RoPE",
+    "de": "RoPE-Skalierungsfaktor"
+  },
+  "Amplía el contexto por 1/N (0.25 = cuatro veces).": {
+    "en": "Extends the context by 1/N (0.25 = four times).",
+    "pt": "Amplia o contexto por 1/N (0.25 = quatro vezes).",
+    "fr": "Étend le contexte de 1/N (0.25 = quatre fois).",
+    "de": "Erweitert den Kontext um 1/N (0.25 = viermal)."
+  },
+  "YaRN: contexto original": {
+    "en": "YaRN: original context",
+    "pt": "YaRN: contexto original",
+    "fr": "YaRN : contexte d’origine",
+    "de": "YaRN: ursprünglicher Kontext"
+  },
+  "Contexto con el que se entrenó el modelo (0 = el del archivo).": {
+    "en": "Context the model was trained with (0 = the file’s).",
+    "pt": "Contexto com que o modelo foi treinado (0 = o do ficheiro).",
+    "fr": "Contexte avec lequel le modèle a été entraîné (0 = celui du fichier).",
+    "de": "Kontext, mit dem das Modell trainiert wurde (0 = der aus der Datei)."
+  },
+  "YaRN: factor de extrapolación": {
+    "en": "YaRN: extrapolation factor",
+    "pt": "YaRN: fator de extrapolação",
+    "fr": "YaRN : facteur d’extrapolation",
+    "de": "YaRN: Extrapolationsfaktor"
+  },
+  "-1 usa el valor del modelo.": {
+    "en": "-1 uses the model’s value.",
+    "pt": "-1 usa o valor do modelo.",
+    "fr": "-1 utilise la valeur du modèle.",
+    "de": "-1 nutzt den Wert des Modells."
+  },
+  "YaRN: factor de atención": {
+    "en": "YaRN: attention factor",
+    "pt": "YaRN: fator de atenção",
+    "fr": "YaRN : facteur d’attention",
+    "de": "YaRN: Aufmerksamkeitsfaktor"
+  },
+  "Adaptadores LoRA": {
+    "en": "LoRA adapters",
+    "pt": "Adaptadores LoRA",
+    "fr": "Adaptateurs LoRA",
+    "de": "LoRA-Adapter"
+  },
+  "Ruta de uno o varios archivos LoRA GGUF, separados por comas.": {
+    "en": "Path of one or more LoRA GGUF files, comma-separated.",
+    "pt": "Caminho de um ou vários ficheiros LoRA GGUF, separados por vírgulas.",
+    "fr": "Chemin d’un ou plusieurs fichiers LoRA GGUF, séparés par des virgules.",
+    "de": "Pfad einer oder mehrerer LoRA-GGUF-Dateien, kommagetrennt."
+  },
+  "Presupuesto de razonamiento (tokens)": {
+    "en": "Reasoning budget (tokens)",
+    "pt": "Orçamento de raciocínio (tokens)",
+    "fr": "Budget de raisonnement (tokens)",
+    "de": "Denkbudget (Tokens)"
+  },
+  "-1 sin límite; 0 termina el razonamiento enseguida.": {
+    "en": "-1 no limit; 0 ends the reasoning at once.",
+    "pt": "-1 sem limite; 0 termina o raciocínio de imediato.",
+    "fr": "-1 sans limite ; 0 termine le raisonnement aussitôt.",
+    "de": "-1 ohne Grenze; 0 beendet das Denken sofort."
+  },
+  "Hilos de CPU para expertos": {
+    "en": "CPU threads for experts",
+    "pt": "Threads de CPU para especialistas",
+    "fr": "Threads CPU pour les experts",
+    "de": "CPU-Threads für Experten"
+  },
+  "Hilos para los expertos que no caben en VRAM (por defecto, 70 % de los núcleos).": {
+    "en": "Threads for the experts that do not fit in VRAM (by default 70 % of the cores).",
+    "pt": "Threads para os especialistas que não cabem na VRAM (por omissão, 70 % dos núcleos).",
+    "fr": "Threads pour les experts qui ne tiennent pas en VRAM (par défaut 70 % des cœurs).",
+    "de": "Threads für Experten, die nicht in den VRAM passen (standardmäßig 70 % der Kerne)."
+  },
+  "Ventana de tokens por paso": {
+    "en": "Tokens per step window",
+    "pt": "Janela de tokens por passo",
+    "fr": "Fenêtre de tokens par étape",
+    "de": "Token-Fenster pro Schritt"
+  },
+  "Máximo de tokens que pasan por el modelo a la vez al escribir.": {
+    "en": "Most tokens that go through the model at once while writing.",
+    "pt": "Máximo de tokens que passam pelo modelo de uma vez ao escrever.",
+    "fr": "Nombre maximal de tokens traités à la fois pendant l’écriture.",
+    "de": "Höchstzahl an Tokens, die beim Schreiben gleichzeitig durch das Modell gehen."
+  },
+  "Tokens de prompt por lote": {
+    "en": "Prompt tokens per batch",
+    "pt": "Tokens de prompt por lote",
+    "fr": "Tokens de prompt par lot",
+    "de": "Prompt-Tokens pro Batch"
+  },
+  "Tokens del prompt leídos a la vez (por defecto 1024; unos 1,4 MiB de VRAM cada uno).": {
+    "en": "Prompt tokens read at once (1024 by default; about 1.4 MiB of VRAM each).",
+    "pt": "Tokens do prompt lidos de uma vez (1024 por omissão; cerca de 1,4 MiB de VRAM cada).",
+    "fr": "Tokens du prompt lus à la fois (1024 par défaut ; environ 1,4 Mio de VRAM chacun).",
+    "de": "Gleichzeitig gelesene Prompt-Tokens (standardmäßig 1024; je etwa 1,4 MiB VRAM)."
+  },
+  "Adivinar repeticiones (tokens)": {
+    "en": "Guess repetitions (tokens)",
+    "pt": "Adivinhar repetições (tokens)",
+    "fr": "Deviner les répétitions (tokens)",
+    "de": "Wiederholungen vorhersagen (Tokens)"
+  },
+  "Si se repiten los últimos N tokens, propone lo que siguió la otra vez (acelera código repetitivo).": {
+    "en": "If the last N tokens repeat, proposes what followed last time (speeds up repetitive code).",
+    "pt": "Se os últimos N tokens se repetem, propõe o que se seguiu da outra vez (acelera código repetitivo).",
+    "fr": "Si les N derniers tokens se répètent, propose ce qui a suivi la fois précédente (accélère le code répétitif).",
+    "de": "Wiederholen sich die letzten N Tokens, schlägt es vor, was beim letzten Mal folgte (beschleunigt sich wiederholenden Code)."
+  },
+  "Respuestas simultáneas": {
+    "en": "Simultaneous replies",
+    "pt": "Respostas simultâneas",
+    "fr": "Réponses simultanées",
+    "de": "Gleichzeitige Antworten"
+  },
+  "Respuestas que se escriben a la vez, cada una con su propia secuencia.": {
+    "en": "Replies written at the same time, each with its own sequence.",
+    "pt": "Respostas escritas ao mesmo tempo, cada uma com a sua própria sequência.",
+    "fr": "Réponses écrites en même temps, chacune avec sa propre séquence.",
+    "de": "Gleichzeitig geschriebene Antworten, jede mit eigener Sequenz."
+  },
+  "Borrador en respuestas simultáneas": {
+    "en": "Draft in simultaneous replies",
+    "pt": "Rascunho em respostas simultâneas",
+    "fr": "Brouillon dans les réponses simultanées",
+    "de": "Entwurf bei gleichzeitigen Antworten"
+  },
+  "Con varias respuestas a la vez, cada una usa también el bloque que adivina.": {
+    "en": "With several replies at once, each also uses the block that guesses ahead.",
+    "pt": "Com várias respostas ao mesmo tempo, cada uma usa também o bloco que adivinha.",
+    "fr": "Avec plusieurs réponses à la fois, chacune utilise aussi le bloc qui anticipe.",
+    "de": "Bei mehreren Antworten zugleich nutzt jede auch den vorausschauenden Block."
+  },
+  "Vocabulario del borrador": {
+    "en": "Draft vocabulary",
+    "pt": "Vocabulário do rascunho",
+    "fr": "Vocabulaire du brouillon",
+    "de": "Entwurfsvokabular"
+  },
+  "El bloque que adivina elige entre los primeros N tokens del vocabulario.": {
+    "en": "The block that guesses ahead chooses among the vocabulary’s first N tokens.",
+    "pt": "O bloco que adivinha escolhe entre os primeiros N tokens do vocabulário.",
+    "fr": "Le bloc qui anticipe choisit parmi les N premiers tokens du vocabulaire.",
+    "de": "Der vorausschauende Block wählt unter den ersten N Tokens des Vokabulars."
+  },
+  "Sin grafos CUDA": {
+    "en": "No CUDA graphs",
+    "pt": "Sem grafos CUDA",
+    "fr": "Sans graphes CUDA",
+    "de": "Keine CUDA-Graphen"
+  },
+  "Lanza los kernels uno a uno. Solo para diagnosticar problemas.": {
+    "en": "Launches kernels one by one. Only for diagnosing problems.",
+    "pt": "Lança os kernels um a um. Apenas para diagnosticar problemas.",
+    "fr": "Lance les noyaux un par un. Uniquement pour diagnostiquer des problèmes.",
+    "de": "Startet Kernel einzeln. Nur zur Fehlersuche."
+  },
+  "Reservar la VRAM al cargar": {
+    "en": "Claim the VRAM on load",
+    "pt": "Reservar a VRAM ao carregar",
+    "fr": "Réserver la VRAM au chargement",
+    "de": "VRAM beim Laden reservieren"
+  },
+  "Toma de una vez la VRAM libre (menos la reserva) para la caché de expertos.": {
+    "en": "Takes the free VRAM (minus the reserve) at once for the expert cache.",
+    "pt": "Toma de uma vez a VRAM livre (menos a reserva) para o cache de especialistas.",
+    "fr": "Prend d’un coup la VRAM libre (moins la réserve) pour le cache des experts.",
+    "de": "Belegt den freien VRAM (abzüglich Reserve) auf einmal für den Experten-Cache."
+  },
+  "Caché KV completa al cargar": {
+    "en": "Full KV cache on load",
+    "pt": "Cache KV completo ao carregar",
+    "fr": "Cache KV complet au chargement",
+    "de": "Vollständiger KV-Cache beim Laden"
+  },
+  "Reserva la VRAM de todo el contexto al cargar en vez de según se use.": {
+    "en": "Reserves VRAM for the whole context on load instead of as it is used.",
+    "pt": "Reserva a VRAM de todo o contexto ao carregar em vez de conforme é usada.",
+    "fr": "Réserve la VRAM de tout le contexte au chargement plutôt qu’au fil de l’usage.",
+    "de": "Reserviert VRAM für den ganzen Kontext beim Laden statt nach Bedarf."
+  },
+  "RAM para expertos (MiB)": {
+    "en": "RAM for experts (MiB)",
+    "pt": "RAM para especialistas (MiB)",
+    "fr": "RAM pour les experts (Mio)",
+    "de": "RAM für Experten (MiB)"
+  },
+  "RAM reservada para los expertos que no están en VRAM, también al responder.": {
+    "en": "RAM held for the experts that are not in VRAM, also while replying.",
+    "pt": "RAM reservada para os especialistas que não estão na VRAM, também ao responder.",
+    "fr": "RAM réservée aux experts absents de la VRAM, aussi pendant les réponses.",
+    "de": "RAM für Experten außerhalb des VRAM, auch während der Antwort."
+  },
+  "Fijar expertos en RAM": {
+    "en": "Lock experts in RAM",
+    "pt": "Fixar especialistas na RAM",
+    "fr": "Verrouiller les experts en RAM",
+    "de": "Experten im RAM sperren"
+  },
+  "Impide que el sistema mueva al disco los expertos que están en RAM.": {
+    "en": "Stops the system from moving to disk the experts that are in RAM.",
+    "pt": "Impede que o sistema mova para o disco os especialistas que estão na RAM.",
+    "fr": "Empêche le système de déplacer sur le disque les experts en RAM.",
+    "de": "Verhindert, dass das System Experten im RAM auf die Festplatte auslagert."
+  },
+  "Expertos en tránsito": {
+    "en": "Experts in transit",
+    "pt": "Especialistas em trânsito",
+    "fr": "Experts en transit",
+    "de": "Experten in Übertragung"
+  },
+  "Expertos muy usados que se suben a VRAM mientras escribe.": {
+    "en": "Frequently used experts moved to VRAM while writing.",
+    "pt": "Especialistas muito usados que sobem para a VRAM enquanto escreve.",
+    "fr": "Experts très utilisés transférés en VRAM pendant l’écriture.",
+    "de": "Häufig genutzte Experten, die beim Schreiben in den VRAM geladen werden."
+  },
+  "VRAM de paso para expertos (MiB)": {
+    "en": "Staging VRAM for experts (MiB)",
+    "pt": "VRAM de passagem para especialistas (MiB)",
+    "fr": "VRAM de transit pour les experts (Mio)",
+    "de": "Zwischen-VRAM für Experten (MiB)"
+  },
+  "VRAM por la que pasan los expertos de fuera de la caché al leer el prompt.": {
+    "en": "VRAM the experts outside the cache pass through while the prompt is read.",
+    "pt": "VRAM por onde passam os especialistas fora do cache ao ler o prompt.",
+    "fr": "VRAM par laquelle passent les experts hors cache pendant la lecture du prompt.",
+    "de": "VRAM, durch den Experten außerhalb des Caches beim Lesen des Prompts laufen."
+  },
+  "Copiar expertos por adelantado desde (tokens)": {
+    "en": "Copy experts ahead from (tokens)",
+    "pt": "Copiar especialistas com antecedência a partir de (tokens)",
+    "fr": "Copier les experts à l’avance à partir de (tokens)",
+    "de": "Experten vorab kopieren ab (Tokens)"
+  },
+  "A partir de N tokens, el lote copia los expertos antes de enrutar.": {
+    "en": "From N tokens on, the batch copies the experts before routing.",
+    "pt": "A partir de N tokens, o lote copia os especialistas antes de encaminhar.",
+    "fr": "À partir de N tokens, le lot copie les experts avant le routage.",
+    "de": "Ab N Tokens kopiert der Batch die Experten vor dem Routing."
+  },
+  "Búfer de paso en lecturas largas (MiB)": {
+    "en": "Staging buffer for long reads (MiB)",
+    "pt": "Buffer de passagem em leituras longas (MiB)",
+    "fr": "Tampon de transit pour les longues lectures (Mio)",
+    "de": "Zwischenpuffer bei langen Lesevorgängen (MiB)"
+  },
+  "Hasta cuánto crece el búfer de paso en un prompt de varios lotes.": {
+    "en": "How far the staging buffer grows in a prompt of several batches.",
+    "pt": "Até quanto cresce o buffer de passagem num prompt de vários lotes.",
+    "fr": "Jusqu’où le tampon de transit grandit pour un prompt de plusieurs lots.",
+    "de": "Wie weit der Zwischenpuffer bei einem Prompt aus mehreren Batches wächst."
+  },
+  "Parte de expertos que calcula la CPU": {
+    "en": "Share of experts the CPU computes",
+    "pt": "Parte dos especialistas que a CPU calcula",
+    "fr": "Part des experts calculée par le CPU",
+    "de": "Anteil der Experten, den die CPU berechnet"
+  },
+  "Fracción (0–1) de esos expertos que calcula la CPU mientras tanto.": {
+    "en": "Share (0–1) of those experts the CPU computes meanwhile.",
+    "pt": "Fração (0–1) desses especialistas que a CPU calcula entretanto.",
+    "fr": "Part (0–1) de ces experts calculée par le CPU pendant ce temps.",
+    "de": "Anteil (0–1) dieser Experten, den die CPU währenddessen berechnet."
+  },
+  "Punto de control cada (tokens)": {
+    "en": "Checkpoint every (tokens)",
+    "pt": "Ponto de controlo a cada (tokens)",
+    "fr": "Point de contrôle tous les (tokens)",
+    "de": "Checkpoint alle (Tokens)"
+  },
+  "Guarda un punto de control cada N tokens de prompt, además del final.": {
+    "en": "Saves a checkpoint every N prompt tokens, besides the final one.",
+    "pt": "Guarda um ponto de controlo a cada N tokens de prompt, além do final.",
+    "fr": "Enregistre un point de contrôle tous les N tokens de prompt, en plus du final.",
+    "de": "Speichert alle N Prompt-Tokens einen Checkpoint, zusätzlich zum letzten."
+  },
+  "RAM para conversaciones aparcadas (MiB)": {
+    "en": "RAM for parked conversations (MiB)",
+    "pt": "RAM para conversas estacionadas (MiB)",
+    "fr": "RAM pour les conversations en attente (Mio)",
+    "de": "RAM für geparkte Unterhaltungen (MiB)"
+  },
+  "Permite alternar varias conversaciones sin volver a leer su prompt.": {
+    "en": "Lets several conversations take turns without reading their prompt again.",
+    "pt": "Permite alternar várias conversas sem voltar a ler o seu prompt.",
+    "fr": "Permet d’alterner plusieurs conversations sans relire leur prompt.",
+    "de": "Erlaubt den Wechsel zwischen mehreren Unterhaltungen, ohne ihren Prompt erneut zu lesen."
+  },
+  "Conversaciones aparcadas": {
+    "en": "Parked conversations",
+    "pt": "Conversas estacionadas",
+    "fr": "Conversations en attente",
+    "de": "Geparkte Unterhaltungen"
+  },
+  "Máximo de conversaciones guardadas en RAM (por defecto 4).": {
+    "en": "Most conversations kept in RAM (4 by default).",
+    "pt": "Máximo de conversas guardadas na RAM (4 por omissão).",
+    "fr": "Nombre maximal de conversations gardées en RAM (4 par défaut).",
+    "de": "Höchstzahl an im RAM gehaltenen Unterhaltungen (standardmäßig 4)."
+  },
+  "Aparcar desde (tokens)": {
+    "en": "Park from (tokens)",
+    "pt": "Estacionar a partir de (tokens)",
+    "fr": "Mettre en attente à partir de (tokens)",
+    "de": "Parken ab (Tokens)"
+  },
+  "Una conversación más corta no se guarda.": {
+    "en": "A shorter conversation is not kept.",
+    "pt": "Uma conversa mais curta não é guardada.",
+    "fr": "Une conversation plus courte n’est pas gardée.",
+    "de": "Eine kürzere Unterhaltung wird nicht gespeichert."
+  },
+  "RAM libre mínima para aparcar (MiB)": {
+    "en": "Minimum free RAM to park (MiB)",
+    "pt": "RAM livre mínima para estacionar (MiB)",
+    "fr": "RAM libre minimale pour mettre en attente (Mio)",
+    "de": "Mindestens freier RAM zum Parken (MiB)"
+  },
+  "Solo guarda conversaciones mientras quede esta RAM física libre.": {
+    "en": "Keeps conversations only while this much physical RAM stays free.",
+    "pt": "Só guarda conversas enquanto restar esta RAM física livre.",
+    "fr": "Ne garde les conversations que tant que cette RAM physique reste libre.",
+    "de": "Hält Unterhaltungen nur, solange so viel physischer RAM frei bleibt."
+  },
+  "Reparto de capas entre GPU": {
+    "en": "Layer split across GPUs",
+    "pt": "Divisão de camadas entre GPUs",
+    "fr": "Répartition des couches entre GPU",
+    "de": "Schichtaufteilung auf GPUs"
+  },
+  "Capas del modelo repartidas entre las GPU CUDA que ve el proceso.": {
+    "en": "The model’s layers split across the CUDA GPUs the process sees.",
+    "pt": "Camadas do modelo divididas entre as GPUs CUDA que o processo vê.",
+    "fr": "Couches du modèle réparties entre les GPU CUDA visibles par le processus.",
+    "de": "Schichten des Modells, verteilt auf die CUDA-GPUs, die der Prozess sieht."
+  },
+  "Todos los expertos en la CPU": {
+    "en": "All experts on the CPU",
+    "pt": "Todos os especialistas na CPU",
+    "fr": "Tous les experts sur le CPU",
+    "de": "Alle Experten auf der CPU"
+  },
+  "No guarda expertos en VRAM (menos VRAM, más lento).": {
+    "en": "Keeps no experts in VRAM (less VRAM, slower).",
+    "pt": "Não guarda especialistas na VRAM (menos VRAM, mais lento).",
+    "fr": "Ne garde aucun expert en VRAM (moins de VRAM, plus lent).",
+    "de": "Hält keine Experten im VRAM (weniger VRAM, langsamer)."
+  },
+  "Hilos en cualquier nodo NUMA": {
+    "en": "Threads on any NUMA node",
+    "pt": "Threads em qualquer nó NUMA",
+    "fr": "Threads sur n’importe quel nœud NUMA",
+    "de": "Threads auf jedem NUMA-Knoten"
+  },
+  "Solo para equipos con varios nodos de memoria.": {
+    "en": "Only for computers with several memory nodes.",
+    "pt": "Apenas para computadores com vários nós de memória.",
+    "fr": "Uniquement pour les ordinateurs à plusieurs nœuds mémoire.",
+    "de": "Nur für Computer mit mehreren Speicherknoten."
+  },
+  "Omitir expertos poco usados (posición)": {
+    "en": "Skip rarely used experts (rank)",
+    "pt": "Omitir especialistas pouco usados (posição)",
+    "fr": "Ignorer les experts peu utilisés (rang)",
+    "de": "Selten genutzte Experten überspringen (Rang)"
+  },
+  "Experimental: salta un experto de fuera de VRAM poco relevante. Puede bajar la calidad.": {
+    "en": "Experimental: skips a barely relevant expert outside VRAM. May lower quality.",
+    "pt": "Experimental: salta um especialista fora da VRAM pouco relevante. Pode baixar a qualidade.",
+    "fr": "Expérimental : ignore un expert hors VRAM peu pertinent. Peut réduire la qualité.",
+    "de": "Experimentell: überspringt einen kaum relevanten Experten außerhalb des VRAM. Kann die Qualität senken."
+  },
+  "Omitir expertos por peso": {
+    "en": "Skip experts by weight",
+    "pt": "Omitir especialistas por peso",
+    "fr": "Ignorer les experts selon leur poids",
+    "de": "Experten nach Gewicht überspringen"
+  },
+  "Experimental: alternativa a la anterior por peso del enrutador. Puede bajar la calidad.": {
+    "en": "Experimental: the previous one by router weight instead. May lower quality.",
+    "pt": "Experimental: alternativa à anterior pelo peso do encaminhador. Pode baixar a qualidade.",
+    "fr": "Expérimental : variante de la précédente selon le poids du routeur. Peut réduire la qualité.",
+    "de": "Experimentell: Variante der vorigen nach Router-Gewicht. Kann die Qualität senken."
+  },
+  "Preferir expertos en VRAM": {
+    "en": "Prefer experts in VRAM",
+    "pt": "Preferir especialistas na VRAM",
+    "fr": "Préférer les experts en VRAM",
+    "de": "Experten im VRAM bevorzugen"
+  },
+  "Experimental (qwen35moe): favorece a los expertos ya en VRAM. Puede bajar la calidad.": {
+    "en": "Experimental (qwen35moe): favours experts already in VRAM. May lower quality.",
+    "pt": "Experimental (qwen35moe): favorece os especialistas já na VRAM. Pode baixar a qualidade.",
+    "fr": "Expérimental (qwen35moe) : favorise les experts déjà en VRAM. Peut réduire la qualité.",
+    "de": "Experimentell (qwen35moe): bevorzugt Experten, die schon im VRAM sind. Kann die Qualität senken."
+  },
+  "Borrador MTP (tokens por paso)": {
+    "en": "MTP draft (tokens per step)",
+    "pt": "Rascunho MTP (tokens por passo)",
+    "fr": "Brouillon MTP (tokens par étape)",
+    "de": "MTP-Entwurf (Tokens pro Schritt)"
+  },
+  "Decodificación especulativa con la cabeza MTP del modelo. Sin valor, desactivado.": {
+    "en": "Speculative decoding with the model’s MTP head. Empty means off.",
+    "pt": "Descodificação especulativa com a cabeça MTP do modelo. Sem valor, desativado.",
+    "fr": "Décodage spéculatif avec la tête MTP du modèle. Vide = désactivé.",
+    "de": "Spekulatives Dekodieren mit dem MTP-Kopf des Modells. Leer = aus."
+  },
+  "Trozo de prefill en tokens (0 = token a token).": {
+    "en": "Prefill chunk in tokens (0 = token by token).",
+    "pt": "Bloco de prefill em tokens (0 = token a token).",
+    "fr": "Bloc de pré-remplissage en tokens (0 = token par token).",
+    "de": "Prefill-Block in Tokens (0 = Token für Token)."
+  },
+  "Hilos para los expertos que corren en la CPU.": {
+    "en": "Threads for the experts that run on the CPU.",
+    "pt": "Threads para os especialistas que correm na CPU.",
+    "fr": "Threads pour les experts exécutés sur le CPU.",
+    "de": "Threads für die Experten, die auf der CPU laufen."
+  },
+  "Cada una tiene su propia caché KV del tamaño del contexto.": {
+    "en": "Each one has its own KV cache the size of the context.",
+    "pt": "Cada uma tem o seu próprio cache KV do tamanho do contexto.",
+    "fr": "Chacune a son propre cache KV de la taille du contexte.",
+    "de": "Jede hat ihren eigenen KV-Cache in Kontextgröße."
+  },
+  "VRAM libre que se deja (MB)": {
+    "en": "VRAM left free (MB)",
+    "pt": "VRAM livre deixada (MB)",
+    "fr": "VRAM laissée libre (Mo)",
+    "de": "Frei gelassener VRAM (MB)"
+  },
+  "VRAM que queda libre tras colocar los expertos (por defecto 512).": {
+    "en": "VRAM left free after placing the experts (512 by default).",
+    "pt": "VRAM que fica livre após colocar os especialistas (512 por omissão).",
+    "fr": "VRAM laissée libre après le placement des experts (512 par défaut).",
+    "de": "VRAM, der nach dem Platzieren der Experten frei bleibt (standardmäßig 512)."
+  },
+  "RAM para conversaciones (MB)": {
+    "en": "RAM for conversations (MB)",
+    "pt": "RAM para conversas (MB)",
+    "fr": "RAM pour les conversations (Mo)",
+    "de": "RAM für Unterhaltungen (MB)"
+  },
+  "Guarda estados de conversaciones anteriores para retomarlas sin releer el prompt.": {
+    "en": "Keeps states of earlier conversations to resume them without reading the prompt again.",
+    "pt": "Guarda estados de conversas anteriores para retomá-las sem reler o prompt.",
+    "fr": "Garde l’état des conversations précédentes pour les reprendre sans relire le prompt.",
+    "de": "Speichert Zustände früherer Unterhaltungen, um sie ohne erneutes Lesen des Prompts fortzusetzen."
+  },
+  "Backend de GPU": {
+    "en": "GPU backend",
+    "pt": "Backend da GPU",
+    "fr": "Backend GPU",
+    "de": "GPU-Backend"
+  },
+  "CUDA (NVIDIA) o Vulkan. Por defecto CUDA si está disponible.": {
+    "en": "CUDA (NVIDIA) or Vulkan. CUDA by default if available.",
+    "pt": "CUDA (NVIDIA) ou Vulkan. CUDA por omissão se estiver disponível.",
+    "fr": "CUDA (NVIDIA) ou Vulkan. CUDA par défaut s’il est disponible.",
+    "de": "CUDA (NVIDIA) oder Vulkan. Standardmäßig CUDA, falls verfügbar."
+  },
+  "GPU a usar": {
+    "en": "GPU to use",
+    "pt": "GPU a usar",
+    "fr": "GPU à utiliser",
+    "de": "Zu nutzende GPU"
+  },
+  "Índice de GPU, o varios separados por comas para repartir las capas.": {
+    "en": "GPU index, or several comma-separated to split the layers.",
+    "pt": "Índice da GPU, ou vários separados por vírgulas para dividir as camadas.",
+    "fr": "Index du GPU, ou plusieurs séparés par des virgules pour répartir les couches.",
+    "de": "GPU-Index oder mehrere kommagetrennt, um die Schichten aufzuteilen."
+  },
+  "Adaptador LoRA": {
+    "en": "LoRA adapter",
+    "pt": "Adaptador LoRA",
+    "fr": "Adaptateur LoRA",
+    "de": "LoRA-Adapter"
+  },
+  "Archivo LoRA GGUF como ruta:escala (por ejemplo C:\\lora.gguf:1.0).": {
+    "en": "LoRA GGUF file as path:scale (for example C:\\lora.gguf:1.0).",
+    "pt": "Ficheiro LoRA GGUF como caminho:escala (por exemplo C:\\lora.gguf:1.0).",
+    "fr": "Fichier LoRA GGUF sous la forme chemin:échelle (par exemple C:\\lora.gguf:1.0).",
+    "de": "LoRA-GGUF-Datei als Pfad:Skala (zum Beispiel C:\\lora.gguf:1.0)."
+  },
+  "Números como llama.cpp": {
+    "en": "llama.cpp numerics",
+    "pt": "Números como no llama.cpp",
+    "fr": "Calculs comme llama.cpp",
+    "de": "Numerik wie llama.cpp"
+  },
+  "Iguala la aritmética de llama.cpp para comparar resultados. Más lento.": {
+    "en": "Matches llama.cpp’s arithmetic to compare results. Slower.",
+    "pt": "Iguala a aritmética do llama.cpp para comparar resultados. Mais lento.",
+    "fr": "Reproduit l’arithmétique de llama.cpp pour comparer les résultats. Plus lent.",
+    "de": "Gleicht die Arithmetik von llama.cpp an, um Ergebnisse zu vergleichen. Langsamer."
+  },
+  "Expertos fijos": {
+    "en": "Fixed experts",
+    "pt": "Especialistas fixos",
+    "fr": "Experts fixes",
+    "de": "Feste Experten"
+  },
+  "Coloca los expertos en orden y no los mueve, para repetir pruebas exactas.": {
+    "en": "Places experts in order and never moves them, to repeat exact tests.",
+    "pt": "Coloca os especialistas por ordem e não os move, para repetir testes exatos.",
+    "fr": "Place les experts dans l’ordre sans les déplacer, pour répéter des tests exacts.",
+    "de": "Platziert Experten der Reihe nach und verschiebt sie nie, um Tests exakt zu wiederholen."
+  },
+  "Memoria y caché": {
+    "en": "Memory and cache",
+    "pt": "Memória e cache",
+    "fr": "Mémoire et cache",
+    "de": "Speicher und Cache"
+  },
+  "GPU y CPU": {
+    "en": "GPU and CPU",
+    "pt": "GPU e CPU",
+    "fr": "GPU et CPU",
+    "de": "GPU und CPU"
+  },
+  "Contexto extendido (RoPE)": {
+    "en": "Extended context (RoPE)",
+    "pt": "Contexto alargado (RoPE)",
+    "fr": "Contexte étendu (RoPE)",
+    "de": "Erweiterter Kontext (RoPE)"
+  },
+  "Adaptadores y razonamiento": {
+    "en": "Adapters and reasoning",
+    "pt": "Adaptadores e raciocínio",
+    "fr": "Adaptateurs et raisonnement",
+    "de": "Adapter und Denken"
+  },
+  "Experimental": {
+    "en": "Experimental",
+    "pt": "Experimental",
+    "fr": "Expérimental",
+    "de": "Experimentell"
+  },
+  "Por capas": {
+    "en": "By layers",
+    "pt": "Por camadas",
+    "fr": "Par couches",
+    "de": "Nach Schichten"
+  },
+  "Por filas": {
+    "en": "By rows",
+    "pt": "Por linhas",
+    "fr": "Par lignes",
+    "de": "Nach Zeilen"
+  },
+  "Por tensores": {
+    "en": "By tensors",
+    "pt": "Por tensores",
+    "fr": "Par tenseurs",
+    "de": "Nach Tensoren"
+  },
+  "Lineal": {
+    "en": "Linear",
+    "pt": "Linear",
+    "fr": "Linéaire",
+    "de": "Linear"
+  },
+  "Distribuir": {
+    "en": "Distribute",
+    "pt": "Distribuir",
+    "fr": "Répartir",
+    "de": "Verteilen"
+  },
+  "Aislar": {
+    "en": "Isolate",
+    "pt": "Isolar",
+    "fr": "Isoler",
+    "de": "Isolieren"
+  },
+  "Opciones del motor": {
+    "en": "Engine options",
+    "pt": "Opções do motor",
+    "fr": "Options du moteur",
+    "de": "Engine-Optionen"
+  },
+  "Leyendo las opciones del motor…": {
+    "en": "Reading the engine’s options…",
+    "pt": "A ler as opções do motor…",
+    "fr": "Lecture des options du moteur…",
+    "de": "Engine-Optionen werden gelesen…"
+  },
+  "No se pudieron leer las opciones del motor.": {
+    "en": "The engine’s options could not be read.",
+    "pt": "Não foi possível ler as opções do motor.",
+    "fr": "Impossible de lire les options du moteur.",
+    "de": "Die Engine-Optionen konnten nicht gelesen werden."
+  },
+  "Cambiadas": {
+    "en": "Changed",
+    "pt": "Alteradas",
+    "fr": "Modifiées",
+    "de": "Geändert"
+  },
+  "Se aplicará en la próxima carga del modelo.": {
+    "en": "It will apply the next time the model is loaded.",
+    "pt": "Será aplicado no próximo carregamento do modelo.",
+    "fr": "S’appliquera au prochain chargement du modèle.",
+    "de": "Wird beim nächsten Laden des Modells angewendet."
+  },
+  "Este motor no ofrece más opciones.": {
+    "en": "This engine offers no further options.",
+    "pt": "Este motor não oferece mais opções.",
+    "fr": "Ce moteur ne propose pas d’autres options.",
+    "de": "Diese Engine bietet keine weiteren Optionen."
+  },
+  "Instala el motor para ver sus opciones.": {
+    "en": "Install the engine to see its options.",
+    "pt": "Instale o motor para ver as suas opções.",
+    "fr": "Installez le moteur pour voir ses options.",
+    "de": "Installiere die Engine, um ihre Optionen zu sehen."
+  },
+  "Vacío = valor por defecto del motor. Se aplica al cargar el modelo.": {
+    "en": "Empty = the engine’s default. Applied when the model is loaded.",
+    "pt": "Vazio = valor por omissão do motor. Aplica-se ao carregar o modelo.",
+    "fr": "Vide = valeur par défaut du moteur. S’applique au chargement du modèle.",
+    "de": "Leer = Standardwert der Engine. Wird beim Laden des Modells angewendet."
+  },
+  "Por defecto": {
+    "en": "Default",
+    "pt": "Predefinido",
+    "fr": "Par défaut",
+    "de": "Standard"
+  },
+  "Valor no válido para": {
+    "en": "Invalid value for",
+    "pt": "Valor inválido para",
+    "fr": "Valeur non valide pour",
+    "de": "Ungültiger Wert für"
+  },
+  "Atención más rápida y con menos memoria. Auto la activa cuando la GPU la admite. Una caché KV cuantizada (q8_0, q4_0) la necesita.": {
+    "en": "Faster attention that uses less memory. Auto turns it on when the GPU supports it. A quantized KV cache (q8_0, q4_0) needs it.",
+    "pt": "Atenção mais rápida e com menos memória. Auto ativa-a quando a GPU a suporta. Um cache KV quantizado (q8_0, q4_0) precisa dela.",
+    "fr": "Attention plus rapide et moins gourmande en mémoire. Auto l’active quand le GPU la prend en charge. Un cache KV quantifié (q8_0, q4_0) en a besoin.",
+    "de": "Schnellere Attention mit weniger Speicher. Auto schaltet sie ein, wenn die GPU sie unterstützt. Ein quantisierter KV-Cache (q8_0, q4_0) braucht sie."
+  },
+  "Tamaño de lote": {
+    "en": "Batch size",
+    "pt": "Tamanho do lote",
+    "fr": "Taille de lot",
+    "de": "Batch-Größe"
+  },
+  "Tamaño de microlote": {
+    "en": "Micro-batch size",
+    "pt": "Tamanho do microlote",
+    "fr": "Taille de micro-lot",
+    "de": "Micro-Batch-Größe"
+  },
+  "Puntos de control del contexto": {
+    "en": "Context checkpoints",
+    "pt": "Pontos de controlo do contexto",
+    "fr": "Points de contrôle du contexte",
+    "de": "Kontext-Checkpoints"
+  },
+  "Capas con expertos en la CPU": {
+    "en": "Layers with experts on the CPU",
+    "pt": "Camadas com especialistas na CPU",
+    "fr": "Couches avec experts sur le CPU",
+    "de": "Schichten mit Experten auf der CPU"
+  },
+  "Modelo borrador (especulativo)": {
+    "en": "Draft model (speculative)",
+    "pt": "Modelo de rascunho (especulativo)",
+    "fr": "Modèle brouillon (spéculatif)",
+    "de": "Entwurfsmodell (spekulativ)"
+  },
+  "Usar modelo borrador": {
+    "en": "Use a draft model",
+    "pt": "Usar modelo de rascunho",
+    "fr": "Utiliser un modèle brouillon",
+    "de": "Entwurfsmodell verwenden"
+  },
+  "Tipo de borrador": {
+    "en": "Draft type",
+    "pt": "Tipo de rascunho",
+    "fr": "Type de brouillon",
+    "de": "Entwurfstyp"
+  },
+  "Tokens propuestos (máx.)": {
+    "en": "Proposed tokens (max)",
+    "pt": "Tokens propostos (máx.)",
+    "fr": "Tokens proposés (max.)",
+    "de": "Vorgeschlagene Tokens (max.)"
+  },
+  "Tokens propuestos (mín.)": {
+    "en": "Proposed tokens (min)",
+    "pt": "Tokens propostos (mín.)",
+    "fr": "Tokens proposés (min.)",
+    "de": "Vorgeschlagene Tokens (min.)"
   }
 }

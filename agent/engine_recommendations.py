@@ -17,6 +17,7 @@ ENGINE_NAMES = {
     'llama-cpu': 'llama.cpp · CPU',
     'strata': 'Strata · PolyStrata',
     'rust': 'Strata Rust',
+    'maya': 'Project Maya',
 }
 LLAMA_VARIANT = {'llama-cuda': 'cuda', 'llama-vulkan': 'vulkan', 'llama-cpu': 'cpu'}
 
@@ -68,6 +69,8 @@ def _entry(key, recommended, reason, releases, required_driver=None):
         status = 'installed'
     elif release.get('available'):
         status = 'available'
+    elif release.get('source_only'):
+        status = 'installed' if current else 'optional'
     else:
         status = 'installed' if current else 'check'
     return {
@@ -116,6 +119,13 @@ def recommend(profile, releases):
         gpu_facts = f"{other.get('name')}" + (f" · {other['vram_mib'] / 1024:.1f} GB" if other.get('vram_mib') else '')
     else:
         gpu_facts = 'No se detectó una GPU dedicada'
+    amd_supported = any(str(item.get('vendor', '')).lower() == 'amd' or 'radeon' in str(item.get('name', '')).lower() for item in profile.get('gpus') or [])
+    maya_cuda = nvidia and (capability is None or float(capability) >= 7.0)
+    maya_hw = maya_cuda or amd_supported
+    maya_reason = (
+        (gpu_facts if maya_hw else 'Project Maya necesita GPU NVIDIA (CC 7.0 o superior) o AMD Radeon compatible')
+        + ' · compilación local opcional desde GitHub (mw00/project-maya)'
+    )
     rows = [
         _entry('llama-cuda', best == 'llama-cuda',
                gpu_facts + ('' if best == 'llama-cuda' else (f' · necesita el controlador NVIDIA {CUDA_LLAMA_MIN_DRIVER:.2f} o posterior' if nvidia else ' · necesita una GPU NVIDIA')),
@@ -130,8 +140,9 @@ def recommend(profile, releases):
                (gpu_facts if nvidia else 'Strata Poly necesita una GPU NVIDIA y un controlador CUDA 13')
                + ('' if strata else ' · no recomendado para esta GPU o controlador'), releases, CUDA_STRATA_MIN_DRIVER),
         _entry('rust', True, 'Strata Rust es el motor para Qwen3.5/3.6; instálalo si usas esas familias de modelos', releases, None),
+        _entry('maya', False, maya_reason, releases, None),
     ]
-    order = {'llama-cuda': 0, 'llama-vulkan': 1, 'llama-cpu': 2, 'strata': 3, 'rust': 4}
+    order = {'llama-cuda': 0, 'llama-vulkan': 1, 'llama-cpu': 2, 'strata': 3, 'rust': 4, 'maya': 5}
     rows.sort(key=lambda row: (not row['recommended'], order.get(row['key'], 9)))
     summary = gpu_facts + ' · ' + {'llama-cuda': 'llama.cpp CUDA recomendado', 'llama-vulkan': 'llama.cpp Vulkan recomendado',
                                     'llama-cpu': 'llama.cpp CPU recomendado'}[best]

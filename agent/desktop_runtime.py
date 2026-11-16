@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import threading
 import urllib.parse
 from pathlib import Path
@@ -182,6 +183,28 @@ def install(a):
 
     def models():
         if manager.kind=='strata':return original['installed_models']()
+        if manager.kind=='maya':
+            import maya_engine
+            maya_root=maya_engine.resolve_root(manager.settings.get('maya',{}).get('root'))
+            maya_items=maya_engine.list_configs(maya_root)
+            ignored=set(_read_json(a.PROFILE_PATH,{}).get('ignored_models',[]))
+            entries=[]
+            for item in maya_items:
+                identifier=item['id']
+                if identifier in ignored:continue
+                kv_val=(item.get('kv_cache') if item['family']=='minimax' else item.get('kv')) or 'fp16'
+                baseline={'sampling':default_profiles['code']['sampling'],'effort':item.get('reasoning_effort') or 'high','rounds':50,'context':item.get('context') or 32768,'kv':kv_val}
+                pref=a.MODEL_PREFERENCES.get(identifier,baseline)
+                kv_opts=[{'value':opt,'label':opt.upper(),'description':'Formato de caché KV configurado en Project Maya.'} for opt in item['schema'].get('kv_options',())]
+                entries.append({**item,'id':identifier,'config':item['config_path'],'gguf_name':item['model_name'],'display_name':item['model_name'],
+                    'backend':'Project Maya · '+item['family_label'],'context':pref['context'],'status':'loaded' if manager.loaded==identifier else 'available',
+                    'current':manager.loaded==identifier,'agent_profiles':default_profiles,'preferences':pref,
+                    'kv':{'current':pref.get('kv',kv_val),'options':kv_opts},
+                    'draft':{'integrated':False,'available':False,'files':[],'tokens':0,'source':item.get('draft') or 'auto'},
+                    'vision_settings':{'enabled':bool(item.get('images')),'mmproj':'','supported':not item['schema'].get('text_only',False),'encoder_available':True,'encoder':'Integrado en Project Maya'},
+                    'maya_config':item})
+            return {'models':entries,'data':entries,'loaded':bool(manager.loaded),'loaded_model':manager.loaded,'engine_online':bool(maya_root and (entries or manager.online)),
+                    'manual_loading':True,'current':manager.loaded,'profiles':default_profiles,'profile_version':1,'preparation':a.PREPARATION.snapshot()}
         entries=[]
         if manager.kind in ('llama','rust'):
             sources=a.registry.discover(CONFIG_ROOT)
@@ -235,7 +258,7 @@ def install(a):
 
     def health():
         if manager.kind=='strata':return original['engine_health']()
-        if manager.kind in ('llama','rust') and manager.process and manager.process.poll() is not None:manager.stop();_clear_hw_cache()
+        if manager.kind in ('llama','rust','maya') and manager.process and manager.process.poll() is not None:manager.stop();_clear_hw_cache()
         return {'status':'ok','loaded':bool(manager.loaded),'model':manager.loaded}
 
     def load(name,context=None):
@@ -244,9 +267,14 @@ def install(a):
             for file in CONFIG_ROOT.glob('strata-*.json'):
                 cfg=_read_json(file,{})
                 if not cfg.get('_val_managed_engine'):continue
-                exe=updated_executable('strata',RUNTIME_ROOT/'strata/strata-poly.exe')
+                exe=manager.executable()
                 if str(exe)!=cfg.get('exe'):
-                    cfg['exe']=str(exe);cfg['lib_dirs']=[str(exe.parent/'lib'),str(exe.parent)];__import__('ui_preferences').atomic_json(file,cfg)
+                    cfg['exe']=str(exe);cfg['lib_dirs']=[str(exe.parent/'lib'),str(exe.parent)]
+                    from runtime_paths import strata_vision_executable
+                    vision_exe=str(strata_vision_executable())
+                    for vkey in ('vision','agent_vision'):
+                        if isinstance(cfg.get(vkey),dict):cfg[vkey]={**cfg[vkey],'exe':vision_exe}
+                    __import__('ui_preferences').atomic_json(file,cfg)
             # A model registered earlier, or an engine update that dropped a family: say so now,
             # instead of three engine restarts and an English stack of log lines.
             try:
@@ -266,6 +294,18 @@ def install(a):
                 while '--prompt-cache' in args:
                     i=args.index('--prompt-cache');del args[i:i+2]
                 args+=['--prompt-cache',str(effective(saved)['checkpoints'])];cfg['args']=args;atomic_json(file,cfg)
+            # The engine's other options (threads, expert placement, caches…): what V-Agent applied last
+            # time is taken out first, so going back to the engine default really removes the flag.
+            options=(a.MODEL_PREFERENCES.records.get(name) or {}).get('engine') or {}
+            if not (health() or {}).get('loaded'):
+                import engine_options
+                from ui_preferences import atomic_json
+                file=Path(model['config']);cfg=json.loads(file.read_text(encoding='utf-8-sig'))
+                previous=cfg.get('_val_engine_options') or []
+                if options or previous:
+                    text=engine_options.help_text('strata',manager.executable())
+                    args,applied=engine_options.apply('strata',cfg.get('args',[]),options,text,previous)
+                    cfg['args']=args;cfg['_val_engine_options']=applied;atomic_json(file,cfg)
             try:return original['load_agent_model'](name,context)
             finally:_clear_hw_cache()
         model=selected(name)
@@ -309,7 +349,7 @@ def install(a):
         import psutil
         metrics=manager.metrics();usage=a.context_usage(metrics,bool(manager.loaded))
         timing=manager.last_timing
-        return system_metrics({'engine_online':manager.online or manager.kind in ('llama','rust'),'loaded':bool(manager.loaded),'model':manager.loaded,'preparation':a.PREPARATION.snapshot(),
+        return system_metrics({'engine_online':manager.online or manager.kind in ('llama','rust','maya'),'loaded':bool(manager.loaded),'model':manager.loaded,'preparation':a.PREPARATION.snapshot(),
                 'live':metrics['live'],'last':{'decode':timing.get('predicted_per_second'),'prefill':timing.get('prompt_per_second')},'context_usage':usage,
                 **a.hardware_stats.snapshot()})
 
@@ -337,7 +377,7 @@ def install(a):
         finally:_clear_hw_cache()
     a.unload_agent_model=_unload
     a.stop_engine=_stop
-    a.start_engine=lambda name=None:original['start_engine'](name) if manager.kind=='strata' else ({'status':'ready','engine_online':True} if manager.kind=='llama' else manager.connect())
+    a.start_engine=lambda name=None:original['start_engine'](name) if manager.kind=='strata' else ({'status':'ready','engine_online':True} if manager.kind in ('llama','maya') else manager.connect())
     a.tokenizer_del_modelo=lambda *args:original['tokenizer_del_modelo'](*args) if manager.kind=='strata' else None
     a.engine_context=lambda:original['engine_context']() if manager.kind=='strata' else manager.metrics()['engine'].get('max_context')
     old_validate=a.kv_settings.validate
@@ -346,6 +386,9 @@ def install(a):
         cfg=_read_json(config,{})
         if cfg.get('engine_kind') in ('llama','rust'):
             if value not in (('fp16','q8_0') if cfg.get('engine_kind')=='rust' else ('fp16','bf16','q8_0','q4_0')):raise ValueError('Formato KV no habilitado para esta compilación.')
+            return value
+        if cfg.get('engine_kind')=='maya' or Path(config).name.startswith('maya-'):
+            if value not in ('fp16','bf16','int8','q8_0'):raise ValueError('Formato KV no admitido por Project Maya.')
             return value
         return old_validate(config,value)
     a.kv_settings.validate=validate
@@ -421,6 +464,17 @@ def install(a):
         for step,interval in ((components_step,30*60),(app_step,6*60*60)):
             threading.Thread(target=run_loop,args=(step,interval),daemon=True).start()
     threading.Thread(target=follow_desktop,name='v-agent-desktop-watch',daemon=True).start()
+    def prune_updates():
+        """Off the start-up path: installers already installed and minor-update leftovers of other versions."""
+        try:
+            from app_updates import UPDATES as app_update
+            app_update.prune_installed()
+        except Exception:pass
+        try:
+            import components
+            components.prune()
+        except Exception:pass
+    threading.Thread(target=prune_updates,name='v-agent-update-prune',daemon=True).start()
     if os.environ.get('V_AGENT_NO_AUTO_UPDATE')!='1':
         threading.Thread(target=automatic_updates,name='v-agent-auto-updates',daemon=True).start()
 
@@ -497,6 +551,27 @@ def install(a):
                 except Exception as error:self._json(400,{'error':str(error)[:300]})
                 return
             if self.path=='/api/harness/state':self._json(200,manager.snapshot());return
+            if self.path=='/api/harness/engine-options':
+                # The active engine's own options, as its installed executable lists them.
+                import engine_options
+                kind=manager.kind if manager.kind in engine_options.CATALOG else ''
+                exe=manager.executable() if kind else None
+                self._json(200,engine_options.catalog(kind,engine_options.help_text(kind,exe) if exe else ''));return
+            if self.path=='/api/harness/maya/setup-status':
+                import maya_engine
+                self._json(200,maya_engine.build_status());return
+            if self.path=='/api/harness/maya/status':
+                import maya_engine
+                from hardware_stats import profile_snapshot
+                maya_cfg=manager.settings.get('maya',{})
+                root=maya_engine.resolve_root(maya_cfg.get('root'))
+                prereqs=maya_engine.check_prerequisites(profile_snapshot(),maya_cfg.get('root'),maya_cfg.get('backend','auto'))
+                bins=maya_engine.find_binaries(root,extra_exe=maya_cfg.get('executable'))
+                if bins:
+                    prereqs={**prereqs,'binaries':bins,'has_binaries':True}
+                configs=maya_engine.list_configs(root)
+                rel=(updates.snapshot().get('releases') or {}).get('maya') or {}
+                self._json(200,{'settings':{'root':maya_cfg.get('root',''),'executable':maya_cfg.get('executable',''),'python':maya_cfg.get('python',''),'backend':maya_cfg.get('backend','auto')},'prerequisites':prereqs,'release':rel,'configs':configs,'build':maya_engine.build_status(),'setup_models':maya_engine.SETUP_MODELS});return
             if manager.kind!='strata' and self.path=='/api/context/usage':
                 with a.ACTIVE_CONTEXT_LOCK:run=dict(a.ACTIVE_CONTEXT_RUN)
                 if not run:
@@ -507,6 +582,8 @@ def install(a):
             if manager.kind!='strata' and self.path=='/api/vision/status':
                 if manager.kind=='llama':
                     enabled=bool(selected(manager.loaded).get('llama_settings',{}).get('mmproj')) if manager.loaded else False
+                elif manager.kind=='maya':
+                    enabled=bool((manager.maya_health() or {}).get('images',selected(manager.loaded).get('maya_config',{}).get('images',False))) if manager.loaded else False
                 elif manager.kind=='api':
                     enabled=bool(manager.settings.get('api',{}).get('vision',False))
                 else:
@@ -550,6 +627,9 @@ def install(a):
                     body=self._read_json_dict(16384,'Solicitud de memoria no válida.');model=selected(body.get('model'))
                     if not isinstance(model,dict):raise ValueError('Elige un modelo válido.')
                     if manager.kind=='api':raise ValueError('La memoria del proveedor no se administra en este equipo.')
+                    if manager.kind=='maya':
+                        self._json(200,{'memory':None,'reason':'La estimación de memoria antes de cargar aún no está disponible para Maya.'})
+                        return
                     context=body.get('context',model.get('context') or 16384)
                     if type(context) is not int or not 2048<=context<=262144:raise ValueError('Contexto fuera de rango.')
                     kv=body.get('kv') or model.get('preferences',{}).get('kv','fp16')
@@ -697,14 +777,16 @@ def install(a):
                 # V-Agent's own signed updates (see app_updates.py): check, download+verify, launch.
                 from app_updates import UPDATES as app_update
                 try:
-                    action=self._read_json_dict(1024,'Invalid request.').get('action')
+                    body=self._read_json_dict(1024,'Invalid request.')
+                    action=body.get('action')
                     if action=='check':result=app_update.check()
                     elif action=='download':
                         if not app_update.snapshot().get('available'):raise ValueError('No hay una actualización verificada.')
                         threading.Thread(target=_safe,args=(app_update.download,),daemon=True).start();result=app_update.snapshot()
                     elif action=='launch':
                         if (health() or {}).get('loaded'):raise ValueError('Descarga el modelo antes de instalar la actualización.')
-                        result={**app_update.snapshot(),**app_update.launch()}
+                        lang=body.get('language') or body.get('lang') or preferences.get().get('language') or 'en'
+                        result={**app_update.snapshot(),**app_update.launch(language=lang)}
                     else:raise ValueError('Unknown action.')
                     self._json(200,result)
                 except (ValueError,OSError) as error:self._json(400,{'error':str(error)})
@@ -714,11 +796,16 @@ def install(a):
                     body=self._read_json_dict(4096,'Invalid request.');action=self.path.rsplit('/',1)[1]
                     if action=='check':result=updates.check(True)
                     elif action=='defer':result=updates.defer()
-                    elif action in ('install','rollback'):
+                    elif action in ('install','rollback','uninstall'):
                         if not a.ENGINE_LOCK.acquire(blocking=False):raise ValueError('Espera a que termine la operación actual.')
                         try:
-                            if (health() or {}).get('loaded') or a.PREPARATION.snapshot().get('active'):raise ValueError('Descarga el modelo antes de actualizar motores.')
-                            result=updates.install(body.get('engine')) if action=='install' else updates.rollback(body.get('engine'))
+                            if (health() or {}).get('loaded') or a.PREPARATION.snapshot().get('active'):
+                                raise ValueError('Descarga el modelo antes de eliminar motores.' if action=='uninstall' else 'Descarga el modelo antes de actualizar motores.')
+                            if action in ('rollback','uninstall'):a.stop_engine()
+                            result=updates.install(body.get('engine')) if action=='install' else updates.rollback(body.get('engine')) if action=='rollback' else updates.uninstall(body.get('engine'))
+                            if action=='uninstall' and body.get('engine')=='maya':
+                                manager.settings['maya']={'root':'','backend':'auto'}
+                                manager.save()
                         finally:a.ENGINE_LOCK.release()
                     else:raise ValueError('Unknown action.')
                     self._json(200,update_payload(result))
@@ -754,10 +841,100 @@ def install(a):
                     body=self._read_json_dict(4096,'Invalid request.');APPROVALS.resolve(body.get('id'),body.get('allowed'),bool(body.get('remember',False)));self._json(200,{'ok':True})
                 except (ValueError,OSError) as error:self._json(400,{'error':str(error)})
                 return
+            if self.path=='/api/harness/maya/prerequisites':
+                try:
+                    import maya_engine
+                    from hardware_stats import profile_snapshot
+                    body=self._read_json_dict(4096)
+                    maya_cfg=manager.settings.get('maya',{})
+                    root_val=body.get('root') if 'root' in body else maya_cfg.get('root','')
+                    exe_val=body.get('executable') if 'executable' in body else maya_cfg.get('executable','')
+                    backend_val=body.get('backend') if 'backend' in body else maya_cfg.get('backend','auto')
+                    prereqs=maya_engine.check_prerequisites(profile_snapshot(),root_val,backend_val)
+                    bins=maya_engine.find_binaries(maya_engine.resolve_root(root_val),extra_exe=exe_val)
+                    if bins:
+                        prereqs={**prereqs,'binaries':bins,'has_binaries':True}
+                    self._json(200,prereqs)
+                except (ValueError,OSError) as error:self._json(400,{'error':str(error)})
+                return
             if not a.ENGINE_LOCK.acquire(blocking=False):self._json(409,{'error':'Detén la generación antes de cambiar el motor.'});return
             try:
                 body=self._read_json_dict(65536)
-                if self.path=='/api/harness/configure':
+                if self.path=='/api/harness/maya/config':
+                    import maya_engine
+                    model_id=body.get('model')
+                    if manager.kind != 'maya' or not model_id:
+                        raise ValueError('Elige un modelo válido de Project Maya.')
+                    model_item=selected(model_id)
+                    if 'maya_config' not in model_item:
+                        raise ValueError('Elige un modelo válido de Project Maya.')
+                    cfg_path=Path(model_item['config'])
+                    updated=maya_engine.apply_family_settings(cfg_path,body.get('settings') or {})
+                    if model_id:
+                        pref_patch={'context':updated['context'],'effort':updated.get('reasoning_effort') or 'high'}
+                        kv_val=(updated.get('kv_cache') if updated['family']=='minimax' else updated.get('kv'))
+                        if kv_val:pref_patch['kv']=kv_val
+                        a.MODEL_PREFERENCES.save(model_id,pref_patch)
+                    self._json(200,{'maya_config':updated,'pending_reload':bool(manager.kind=='maya' and manager.loaded and model_id==manager.loaded)})
+                elif self.path=='/api/harness/maya/action':
+                    import maya_engine
+                    from hardware_stats import profile_snapshot
+                    act=str(body.get('action') or '')
+                    maya_cfg=manager.settings.setdefault('maya',{'root':'','backend':'auto'})
+                    if act not in ('check_update','clone_or_pull','update','build','cancel_setup','uninstall'):
+                        raise ValueError('Acción de Maya desconocida.')
+                    if act=='check_update':
+                        cur_root=maya_engine.resolve_root(body.get('root') or maya_cfg.get('root'))
+                        cur_ver=maya_engine.installed_version(cur_root)
+                        rel=maya_engine.check_latest_release(cur_ver)
+                        with updates.lock:
+                            updates.state.setdefault('releases',{})['maya']=rel;updates.save()
+                        self._json(200,{'release':rel,'prerequisites':maya_engine.check_prerequisites(profile_snapshot(),body.get('root') or maya_cfg.get('root'),body.get('backend') or maya_cfg.get('backend','auto')),'build':maya_engine.build_status()})
+                    elif act in ('clone_or_pull','update'):
+                        if (health() or {}).get('loaded') or a.PREPARATION.snapshot().get('active'):raise ValueError('Descarga el modelo actual antes de actualizar motores.')
+                        target=str(body.get('root') or maya_cfg.get('root') or '').strip() or None
+                        res=maya_engine.clone_or_update_repo(target,tag=str(body.get('tag') or '').strip())
+                        maya_cfg['root']=res['root']
+                        if body.get('backend') in ('auto','cuda','hip'):maya_cfg['backend']=body['backend']
+                        manager.save()
+                        with updates.lock:
+                            rel=updates.state.setdefault('releases',{}).setdefault('maya',{'repository':maya_engine.MAYA_REPO,'source_only':True})
+                            rel['current']=res.get('version') or '';rel['available']=False;rel.pop('error',None)
+                            updates.save()
+                        self._json(200,{**res,'snapshot':manager.snapshot(),'prerequisites':maya_engine.check_prerequisites(profile_snapshot(),res['root'],maya_cfg.get('backend','auto')),'configs':maya_engine.list_configs(Path(res['root'])),'build':maya_engine.build_status()})
+                    elif act=='build':
+                        if (health() or {}).get('loaded') or a.PREPARATION.snapshot().get('active'):raise ValueError('Descarga el modelo actual antes de preparar otro modelo.')
+                        root = body.get('root') or maya_cfg.get('root')
+                        backend = body.get('backend') or maya_cfg.get('backend','auto')
+                        setup_model = body.get('setup_model', '')
+                        setup_options = body.get('setup_options', {})
+                        maya_engine.setup_arguments(backend,setup_model,setup_options)
+                        prereqs = maya_engine.check_prerequisites(profile_snapshot(),root,backend)
+                        if not prereqs['hardware_supported']:
+                            raise ValueError(prereqs['note'])
+                        if not maya_engine.find_python(maya_engine.resolve_root(root)):
+                            raise ValueError('Instala Python 3.10 o superior para preparar Project Maya.')
+                        if not maya_engine.resolve_root(root):
+                            root = maya_engine.clone_or_update_repo(root or None)['root']
+                        bld = maya_engine.start_build(root,backend,setup_model,setup_options)
+                        if root:
+                            maya_cfg['root'] = str(root)
+                            manager.save()
+                        self._json(200,{'build':bld,'snapshot':manager.snapshot()})
+                    elif act=='cancel_setup':
+                        self._json(200,{'build':maya_engine.cancel_setup()})
+                    elif act=='uninstall':
+                        if (health() or {}).get('loaded') or a.PREPARATION.snapshot().get('active'):raise ValueError('Descarga el modelo actual antes de eliminar motores.')
+                        a.stop_engine()
+                        res=maya_engine.uninstall_installation(maya_cfg.get('root'))
+                        manager.settings['maya']={'root':'','backend':'auto'};manager.save()
+                        with updates.lock:
+                            rel=updates.state.setdefault('releases',{}).get('maya',{})
+                            if rel:rel.update(current='',available=False)
+                            updates.save()
+                        self._json(200,{**res,'snapshot':manager.snapshot(),'prerequisites':maya_engine.check_prerequisites(profile_snapshot(),'',maya_cfg.get('backend','auto')),'build':maya_engine.build_status()})
+                    else:raise ValueError('Acción de Maya desconocida.')
+                elif self.path=='/api/harness/configure':
                     # A provider model is only a selection (nothing in memory here): switching connection or
                     # engine releases it instead of asking the user to "unload" it first.
                     if manager.kind=='api':manager.release_remote()
@@ -794,6 +971,6 @@ def install(a):
                         result['model']['id']='rust--'+info['identifier'];self._json(200,result)
                     else:self._json(200,register_llama_import(info,body.get('name')))
                 else:self._json(404,{'error':'Acción desconocida.'})
-            except (ValueError,OSError,KeyError,TypeError) as error:self._json(400,{'error':str(error)})
+            except (ValueError,OSError,KeyError,TypeError,subprocess.SubprocessError) as error:self._json(400,{'error':str(error)})
             finally:a.ENGINE_LOCK.release()
     a.Handler=Handler

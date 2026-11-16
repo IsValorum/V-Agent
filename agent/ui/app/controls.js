@@ -38,6 +38,8 @@ function setChatControls(pane,toggle=false){
 function syncComposerLabels(){
   const select=$('#model'),name=modelNames[select.value]||select.selectedOptions[0]?.textContent||'Modelo';
   $('#modelBtnLabel').textContent=select.value?name:uiText('Modelo');
+  // The chip shortens long names; the full one stays readable on the element.
+  $('#modelBtnLabel').title=select.value?name:'';
   const limited=preparationState?.model===loadedModel&&preparationState?.mode==='on_demand';
   const state=preparationState?.active||loadingModelId?'preparing':engineOnline===null||!modelStateKnown?'unknown':engineOnline===false?'off':!loadedModel?'empty':loadedModel===select.value?(limited?'limited':'ready'):'different';
   const modelButton=$('#modelBtn');modelButton.dataset.state=state;syncWelcomeHint();

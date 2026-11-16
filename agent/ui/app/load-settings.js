@@ -5,9 +5,9 @@ const LOAD_LLAMA_FIELDS=new Set(['gpu_layers','cpu_moe','fit_target']);
 const DRAFT_DEFAULTS={enabled:false,path:'',type:'auto',max:3,min:0};
 let loadCurrent={...LOAD_DEFAULTS},draftCurrent={...DRAFT_DEFAULTS},memoryTimer=0,memoryController=null,memoryKey='',memoryLast=null,loadCapabilities=null;
 function setupLoadSettings(){
-  const group=document.createElement('section');group.id='modelLoadSettings';group.className='sec';group.innerHTML='<h4>Carga del motor</h4><div class="load-mode"><button type="button" data-load-auto="true">Automático</button><button type="button" data-load-auto="false">Personalizado</button></div>'+[['parallel','Slots paralelos','Un slot para un agente personal. Auto usa 1; más slots multiplican el contexto reservado.'],['batch','Batch size','Tokens máximos procesados juntos. Auto usa el valor del motor.'],['ubatch','Microbatch size','Lote físico: bajarlo puede reducir memoria. No debe superar Batch.'],['checkpoints','Context checkpoints','Estados reutilizables de contexto. Más checkpoints pueden consumir más memoria.'],['fit_target','Margen de VRAM (MiB)','Memoria que --fit deja libre en la GPU. Auto usa 1024 MiB.'],['gpu_layers','Capas en GPU','Cuántas capas van a la VRAM (-ngl). Escribe un número o Todas; Auto usa el ajuste del motor.'],['cpu_moe','Expertos MoE en CPU','Capas cuyos expertos se quedan en la RAM (--n-cpu-moe). Ideal para modelos MoE en GPU pequeña.']].map(([key,label,help])=>'<div class="setting-row" data-load-field="'+key+'"><label for="load_'+key+'" title="'+help+'">'+label+' <span class="load-help" aria-hidden="true">?</span></label><input id="load_'+key+'" inputmode="numeric" autocomplete="off" placeholder="Auto" aria-label="'+label+'" title="'+help+'"></div>').join('')+'<p id="loadSettingsStatus" class="mini" role="status"></p>';
+  const group=document.createElement('section');group.id='modelLoadSettings';group.className='sec';group.innerHTML='<h4>Carga del motor</h4><div class="load-mode"><button type="button" data-load-auto="true">Automático</button><button type="button" data-load-auto="false">Personalizado</button></div>'+[['parallel','Slots paralelos','Un slot para un agente personal. Auto usa 1; más slots multiplican el contexto reservado.'],['batch','Tamaño de lote','Tokens máximos procesados juntos. Auto usa el valor del motor.'],['ubatch','Tamaño de microlote','Lote físico: bajarlo puede reducir memoria. No debe superar Batch.'],['checkpoints','Puntos de control del contexto','Estados reutilizables de contexto. Más checkpoints pueden consumir más memoria.'],['fit_target','Margen de VRAM (MiB)','Memoria que --fit deja libre en la GPU. Auto usa 1024 MiB.'],['gpu_layers','Capas en GPU','Cuántas capas van a la VRAM (-ngl). Escribe un número o Todas; Auto usa el ajuste del motor.'],['cpu_moe','Capas con expertos en la CPU','Capas cuyos expertos se quedan en la RAM (--n-cpu-moe). Ideal para modelos MoE en GPU pequeña.']].map(([key,label,help])=>'<div class="setting-row" data-load-field="'+key+'"><label for="load_'+key+'" title="'+help+'">'+label+' <span class="load-help" aria-hidden="true">?</span></label><input id="load_'+key+'" inputmode="numeric" autocomplete="off" placeholder="Auto" aria-label="'+label+'" title="'+help+'"></div>').join('')+'<p id="loadSettingsStatus" class="mini" role="status"></p>';
   const pane=document.getElementById('model-load-pane'),advanced=document.getElementById('loadAdvanced');if(advanced)advanced.before(group);else pane.append(group);
-  const memory=document.createElement('details');memory.id='modelMemoryEstimate';memory.className='settings-group';memory.open=false;memory.innerHTML='<summary><span>Desglose de memoria</span><span id="memoryHeadline" class="mini"></span></summary><div class="memory-estimate-body"><div class="memory-total"><span id="memoryGpuLabel">GPU</span><strong id="memoryGpu">—</strong><span>Total</span><strong id="memoryTotal">—</strong></div><div id="memoryBreakdown"></div><p id="memoryShape" class="mini"></p><p id="memoryWarning" role="status"></p><details><summary>Cómo se calcula</summary><p id="memoryNotes" class="mini"></p></details></div>';
+  const memory=document.createElement('details');memory.id='modelMemoryEstimate';memory.className='settings-group';memory.open=false;memory.innerHTML='<summary><span>Desglose de memoria</span><span id="memoryHeadline" class="mini"></span></summary><div class="memory-estimate-body"><div class="memory-total"><span id="memoryGpuLabel">GPU</span><strong id="memoryGpu">—</strong><span>Total</span><strong id="memoryTotal">—</strong></div><div id="memoryBreakdown"></div><p id="memoryShape" class="mini"></p><p id="memoryWarning" role="status"></p><p id="memoryNotes" class="mini memory-notes"></p></div>';
   const contextBlock=document.getElementById('contextBlock'),contextWarn=document.getElementById('contextMemoryWarning');
   if(contextBlock){if(contextWarn)contextWarn.before(memory);else contextBlock.append(memory);}else pane.prepend(memory);
   pane.prepend(group);
@@ -22,11 +22,11 @@ function setupLoadSettings(){
       loadCurrent=next;queueModelPreferences();syncLoadSettings();};
   }
   const draft=document.createElement('div');draft.id='modelDraftSettings';draft.className='draft-speculative';
-  draft.innerHTML='<h5>Draft especulativo</h5><label class="chk"><input id="llamaDraftEnabled" type="checkbox"> Usar modelo draft</label>'+
+  draft.innerHTML='<h5>Modelo borrador (especulativo)</h5><label class="chk"><input id="llamaDraftEnabled" type="checkbox"> Usar modelo borrador</label>'+
     '<div class="draft-path"><input id="llamaDraftPath" type="text" readonly placeholder="Ningún GGUF draft" aria-label="Archivo draft"><button id="llamaDraftBrowse" type="button">Elegir…</button></div>'+
-    '<div class="setting-row"><label for="llamaDraftType">Tipo de draft</label><select id="llamaDraftType"><option value="auto">Automático</option><option value="draft-simple">Simple</option><option value="draft-eagle3">Eagle3</option><option value="draft-mtp">MTP</option><option value="draft-dflash">DFlash</option><option value="draft-dspark">DSpark</option></select></div>'+
-    '<div class="setting-row"><label for="llamaDraftMax">Tokens máximos</label><input id="llamaDraftMax" type="number" min="1" max="32" inputmode="numeric"></div>'+
-    '<div class="setting-row"><label for="llamaDraftMin">Tokens mínimos</label><input id="llamaDraftMin" type="number" min="0" inputmode="numeric"></div>'+
+    '<div class="setting-row"><label for="llamaDraftType">Tipo de borrador</label><select id="llamaDraftType"><option value="auto">Automático</option><option value="draft-simple">Simple</option><option value="draft-eagle3">Eagle3</option><option value="draft-mtp">MTP</option><option value="draft-dflash">DFlash</option><option value="draft-dspark">DSpark</option></select></div>'+
+    '<div class="setting-row"><label for="llamaDraftMax">Tokens propuestos (máx.)</label><input id="llamaDraftMax" type="number" min="1" max="32" inputmode="numeric"></div>'+
+    '<div class="setting-row"><label for="llamaDraftMin">Tokens propuestos (mín.)</label><input id="llamaDraftMin" type="number" min="0" inputmode="numeric"></div>'+
     '<p id="llamaDraftStatus" class="mini" role="status"></p>';
   document.getElementById('loadSettingsStatus').before(draft);
   const draftChanged=()=>{draftCurrent={...draftCurrent,enabled:document.getElementById('llamaDraftEnabled').checked,type:document.getElementById('llamaDraftType').value,max:Number(document.getElementById('llamaDraftMax').value)||3,min:Number(document.getElementById('llamaDraftMin').value)||0};queueModelPreferences();syncLoadSettings();requestMemoryEstimate(true);};
@@ -39,6 +39,7 @@ function setupLoadSettings(){
   document.getElementById('composerControls').addEventListener('fw:close',()=>{clearTimeout(memoryTimer);memoryController?.abort();});
   syncLoadSettings();
   if(typeof attachLoadSettingsToPanel==='function')attachLoadSettingsToPanel();
+  setupEngineOptions();
 }
 function syncLoadSettings(estimate=true){
   const group=document.getElementById('modelLoadSettings');if(!group)return;
@@ -58,11 +59,26 @@ function syncLoadSettings(estimate=true){
   const status=document.getElementById('loadSettingsStatus');
   if(activeEngine==='llama')status.textContent=loadCurrent.auto?uiText('Automático: llama.cpp ajusta capas y contexto a tu memoria (--fit).'):uiText('Personalizado: tú eliges las capas (sin --fit). Se aplicará en la próxima carga.')+(layers?' '+uiText('El modelo tiene')+' '+layers+' '+uiText('capas')+'.':'');
   else status.textContent=loadCurrent.auto?uiText('Automático: 1 slot, lotes del motor y 1 checkpoint.'):uiText('Se aplicará en la próxima carga manual.');
+  syncEngineOptions();
   if(estimate)requestMemoryEstimate();
 }
 function memoryGiB(value){return typeof value==='number'?'≈ '+(value/2**30).toLocaleString(window.VALI18n?.locale||undefined,{maximumFractionDigits:2})+' GiB':uiText('No disponible');}
 function paintMemory(data,resync=true){
-  memoryLast=data;loadCapabilities=data.capabilities;if(resync)syncLoadSettings();const m=data.memory,h=m.hardware||{};document.getElementById('memoryHeadline').textContent=memoryGiB(m.total);{const cm=document.getElementById('contextMemory');if(cm)cm.textContent=uiText('Memoria')+' '+memoryGiB(m.total);}document.getElementById('memoryTotal').textContent=memoryGiB(m.total);
+  memoryLast=data;loadCapabilities=data.capabilities;
+  if(!data.memory){
+    const warning=document.getElementById('memoryWarning');
+    document.getElementById('memoryHeadline').textContent=uiText('No disponible');
+    for(const id of ['memoryGpu','memoryTotal'])document.getElementById(id).textContent='—';
+    document.getElementById('memoryGpu').dataset.exceeds='false';
+    document.getElementById('memoryGpuLabel').textContent='GPU';
+    document.getElementById('memoryBreakdown').replaceChildren();
+    for(const id of ['memoryShape','memoryNotes','contextMemory','contextMemoryWarning']){
+      const element=document.getElementById(id);if(element)element.textContent='';
+    }
+    warning.textContent=uiText(data.reason||'');warning.hidden=!warning.textContent;
+    return;
+  }
+  if(resync)syncLoadSettings();const m=data.memory,h=m.hardware||{};document.getElementById('memoryHeadline').textContent=memoryGiB(m.total);{const cm=document.getElementById('contextMemory');if(cm)cm.textContent=uiText('Memoria')+' '+memoryGiB(m.total);}document.getElementById('memoryTotal').textContent=memoryGiB(m.total);
   document.getElementById('memoryGpuLabel').textContent=uiText(['strata','rust'].includes(activeEngine)?'GPU (base)':'GPU con descarga completa');document.getElementById('memoryGpu').textContent=memoryGiB(m.gpu_full_offload);
   const breakdown=document.getElementById('memoryBreakdown');breakdown.replaceChildren();for(const [label,key] of [['Pesos','weights'],['Caché KV','kv'],['Estados y checkpoints','recurrent'],['Buffers','buffers']]){const row=document.createElement('div'),title=document.createElement('span'),value=document.createElement('span');row.className='memory-detail';title.textContent=uiText(label);value.textContent=memoryGiB(m[key]);row.append(title,value);breakdown.append(row);}
   document.getElementById('memoryShape').textContent=m.kv_type+' · '+m.context_per_slot.toLocaleString(window.VALI18n?.locale||undefined)+' tokens/slot · '+m.slots+' slots';
@@ -83,5 +99,119 @@ function requestMemoryEstimate(force=false){
   const payload={model,context:Number(document.getElementById('ctxInput').value),kv:document.getElementById('kvCache').value,load:{...loadCurrent},draft:{...draftCurrent}};
   const key=JSON.stringify([activeEngine,engineSnapshot?.llama,payload]);if(!force&&key===memoryKey)return;
   memoryController?.abort();const controller=new AbortController();memoryController=controller;
-  memoryTimer=setTimeout(async()=>{const warn=document.getElementById('memoryWarning');for(const id of ['memoryGpu','memoryTotal'])document.getElementById(id).textContent='—';document.getElementById('memoryBreakdown').replaceChildren();document.getElementById('memoryShape').textContent='';warn.textContent='';warn.hidden=true;document.getElementById('memoryHeadline').textContent=uiText('Calculando…');try{const result=await requestJSON('/api/harness/memory-estimate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:controller.signal});if(memoryController!==controller)return;memoryKey=key;paintMemory(result);}catch(error){if(error.name==='AbortError')return;document.getElementById('memoryHeadline').textContent=uiText('No disponible');warn.textContent=error.message;warn.hidden=false;}},240);
+  memoryTimer=setTimeout(async()=>{const warn=document.getElementById('memoryWarning');for(const id of ['memoryGpu','memoryTotal'])document.getElementById(id).textContent='—';document.getElementById('memoryBreakdown').replaceChildren();document.getElementById('memoryShape').textContent='';warn.textContent='';warn.hidden=true;document.getElementById('memoryHeadline').textContent=uiText('Calculando…');try{const result=await requestJSON('/api/harness/memory-estimate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:controller.signal});if(memoryController!==controller)return;memoryKey=key;paintMemory(result);}catch(error){if(error.name==='AbortError'||memoryController!==controller)return;paintMemory({memory:null,reason:error.message},false);}},240);
+}
+
+/* Engine options: everything else llama.cpp, Strata and Strata Rust accept (Flash Attention, threads,
+   RoPE, LoRA, expert placement…). The core sends the catalog of the installed executable; an empty
+   field is the engine's own default and passes nothing. Saved per model with the other preferences. */
+const ENGINE_OPTION_KINDS=['llama','strata','rust'];
+const ENGINE_CHOICE_LABELS={auto:'Automático',on:'Activado',off:'Desactivado',none:'Ninguno',layer:'Por capas',row:'Por filas',
+  tensor:'Por tensores',linear:'Lineal',yarn:'YaRN',distribute:'Distribuir',isolate:'Aislar',numactl:'numactl',dio:'DirectIO',
+  cuda:'CUDA',vulkan:'Vulkan'};
+let engineOptionsCatalog=null,engineCurrent={};
+function engineOptionsChanged(){return Object.values(engineCurrent).filter(value=>value!==null&&value!==undefined).length;}
+function setupEngineOptions(){
+  if(document.getElementById('engineOptions'))return;
+  const box=document.createElement('details');box.id='engineOptions';box.className='settings-group engine-options';
+  box.innerHTML='<summary><span id="engineOptionsTitle"></span><span id="engineOptionsCount" class="mini"></span></summary>'+
+    '<div id="engineOptionsBody" class="engine-options-body"></div><p id="engineOptionsStatus" class="mini" role="status"></p>';
+  // Under the engine card, opened by its "Advanced settings" button, like Project Maya's settings.
+  box.hidden=true;
+  const quick=document.querySelector('#controls-model .engine-quick'),pane=document.getElementById('model-load-pane');
+  if(quick)quick.after(box);else if(pane)pane.append(box);else return;
+  box.addEventListener('toggle',()=>{if(box.open)loadEngineOptions();syncEngineOptionsButton();});
+  document.getElementById('composerControls')?.addEventListener('fw:open',()=>{engineOptionsCatalog=null;syncEngineOptions();});
+  window.VALI18n?.onChange?.(()=>renderEngineOptions());
+  syncEngineOptions();
+}
+function syncEngineOptionsButton(){
+  const box=document.getElementById('engineOptions'),button=document.getElementById('mayaQuickAdvanced');
+  if(box&&button&&activeEngine!=='maya')button.setAttribute('aria-expanded',String(!box.hidden&&box.open));
+}
+function toggleEngineOptions(){
+  const box=document.getElementById('engineOptions');if(!box||!ENGINE_OPTION_KINDS.includes(activeEngine))return;
+  const open=box.hidden||!box.open;box.hidden=!open;box.open=open;syncEngineOptionsButton();
+  if(open){loadEngineOptions();box.scrollIntoView({block:'nearest'});}
+}
+function syncEngineOptions(){
+  const box=document.getElementById('engineOptions');if(!box)return;
+  if(!ENGINE_OPTION_KINDS.includes(activeEngine))box.hidden=true;
+  syncEngineOptionsButton();
+  const model=document.getElementById('model')?.value;engineCurrent={...(modelPreferences[model]?.engine||{})};
+  if(engineOptionsCatalog&&engineOptionsCatalog.engine!==activeEngine)engineOptionsCatalog=null;
+  // Called on every memory estimate: redraw only when something shown changed, so a value being
+  // typed, its focus and an "invalid" mark are not wiped out.
+  const signature=JSON.stringify([activeEngine,model,engineCurrent,!!engineOptionsCatalog,busy||engineBusy]);
+  if(box.dataset.signature===signature)return;
+  if(box.open&&!box.hidden)loadEngineOptions();else renderEngineOptions();
+}
+async function loadEngineOptions(){
+  if(!ENGINE_OPTION_KINDS.includes(activeEngine))return;
+  if(engineOptionsCatalog?.engine===activeEngine){renderEngineOptions();return;}
+  const status=document.getElementById('engineOptionsStatus');status.textContent=uiText('Leyendo las opciones del motor…');
+  try{engineOptionsCatalog=await requestJSON('/api/harness/engine-options',{cache:'no-store',signal:AbortSignal.timeout(30000)});}
+  catch(error){status.textContent=uiText('No se pudieron leer las opciones del motor.')+' '+error.message;return;}
+  renderEngineOptions();
+}
+function engineOptionSet(option,value){
+  engineCurrent={...engineCurrent,[option.key]:value};
+  // The value is already on screen: mark it drawn so saving it does not redraw the list.
+  const box=document.getElementById('engineOptions'),model=document.getElementById('model')?.value;
+  box.dataset.signature=JSON.stringify([activeEngine,model,engineCurrent,!!engineOptionsCatalog,busy||engineBusy]);
+  queueModelPreferences();
+  const count=engineOptionsChanged();
+  document.getElementById('engineOptionsCount').textContent=count?uiText('Cambiadas')+': '+count:'';
+  document.getElementById('engineOptionsStatus').textContent=uiText('Se aplicará en la próxima carga del modelo.');
+}
+function renderEngineOptions(){
+  const body=document.getElementById('engineOptionsBody');if(!body)return;
+  const box=document.getElementById('engineOptions'),model=document.getElementById('model')?.value;
+  box.dataset.signature=JSON.stringify([activeEngine,model,engineCurrent,!!engineOptionsCatalog,busy||engineBusy]);
+  document.getElementById('engineOptionsTitle').textContent=uiText('Opciones del motor');
+  const data=engineOptionsCatalog;body.replaceChildren();
+  const status=document.getElementById('engineOptionsStatus'),count=engineOptionsChanged();
+  document.getElementById('engineOptionsCount').textContent=count?uiText('Cambiadas')+': '+count:'';
+  if(!data||data.engine!==activeEngine){status.textContent='';return;}
+  if(!data.options.length){status.textContent=uiText(data.probed?'Este motor no ofrece más opciones.':'Instala el motor para ver sus opciones.');return;}
+  status.textContent=uiText('Vacío = valor por defecto del motor. Se aplica al cargar el modelo.');
+  const locked=busy||engineBusy;
+  for(const group of data.groups){
+    const options=data.options.filter(option=>option.group===group.id);if(!options.length)continue;
+    const heading=document.createElement('h5');heading.textContent=uiText(group.label);body.append(heading);
+    for(const option of options){
+      const row=document.createElement('div');row.className='setting-row engine-option';row.dataset.option=option.key;
+      const id='engopt_'+option.key,label=document.createElement('label');label.htmlFor=id;label.textContent=uiText(option.label);
+      const help=document.createElement('p');help.className='mini engine-option-help';help.textContent=uiText(option.help);
+      const current=engineCurrent[option.key];let control;
+      if(option.kind==='bool'){
+        control=document.createElement('input');control.type='checkbox';control.checked=current===true;
+        control.onchange=()=>engineOptionSet(option,control.checked?true:null);
+      }else if(option.kind==='switch'||option.kind==='choice'){
+        control=document.createElement('select');
+        const values=option.kind==='switch'?[['',uiText('Por defecto')],['true',uiText('Activado')],['false',uiText('Desactivado')]]
+          :[['',uiText('Por defecto')],...option.choices.map(value=>[value,uiText(option.labels?.[value]||ENGINE_CHOICE_LABELS[value]||value)])];
+        for(const [value,text] of values){const item=document.createElement('option');item.value=value;item.textContent=text;control.append(item);}
+        control.value=current===null||current===undefined?'':String(current);
+        control.onchange=()=>engineOptionSet(option,control.value===''?null:option.kind==='switch'?control.value==='true':control.value);
+      }else{
+        control=document.createElement('input');control.type='text';control.spellcheck=false;
+        control.placeholder=uiText('Por defecto');control.value=current===null||current===undefined?'':String(current);
+        if(option.kind!=='text')control.inputMode=option.kind==='int'?'numeric':'decimal';
+        control.onchange=()=>{
+          let text=control.value.trim();
+          if(!text){control.setAttribute('aria-invalid','false');engineOptionSet(option,null);return;}
+          if(option.kind==='float')text=text.replace(',','.');
+          let value=text,valid;
+          if(option.kind!=='text'){value=Number(text);valid=Number.isFinite(value)&&(option.kind!=='int'||Number.isInteger(value))&&value>=option.min&&value<=option.max;}
+          else valid=new RegExp('^(?:'+option.pattern+')$').test(text);
+          control.setAttribute('aria-invalid',String(!valid));
+          if(!valid){status.textContent=uiText('Valor no válido para')+' «'+uiText(option.label)+'»'+(option.kind==='text'?'':' ('+option.min+'–'+option.max+')');return;}
+          engineOptionSet(option,value);
+        };
+      }
+      control.id=id;control.disabled=locked;control.title=option.flag;
+      row.append(label,control,help);body.append(row);
+    }
+  }
 }

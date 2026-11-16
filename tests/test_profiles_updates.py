@@ -56,7 +56,9 @@ class ProfileUpdateTests(unittest.TestCase):
             self.assertTrue(service.state['releases']['llama-cpu']['development'])
             service.install('llama-cpu');wait(service)
             self.assertEqual(service.snapshot()['progress']['received'],len(raw));self.assertEqual(service.snapshot()['progress']['phase'],'complete');self.assertFalse(service.state.get('error'));self.assertTrue(Path(updates.active_installations()['llama-cpu']['executable']).is_file())
-            service.rollback('llama-cpu');self.assertNotIn('llama-cpu',updates.active_installations());self.assertTrue(service.state['releases']['llama-cpu']['available'])
+            # Only the active version is kept: there is nothing to roll back to, and it stays installed.
+            with self.assertRaises(ValueError):service.rollback('llama-cpu')
+            self.assertIn('llama-cpu',updates.active_installations())
     def test_syntax_check_never_executes_a_project_command(self):
         import pc_mcp,diagnostics
         from access_policy import AccessPolicy

@@ -79,19 +79,38 @@ const VAL_TOUR=(()=>{
     if(hasEngine(snapshot)){p.textContent=uiText('Ya tienes un motor instalado. Puedes cambiarlo cuando quieras desde Modelo → Cambiar motor.');return;}
     let hardware={};try{hardware=await requestJSON('/api/harness/hardware');}catch{}
     const variant=snapshot?.recommended_variant||'cpu',recommendedKey='llama-'+variant;
-    const labels={'llama-cuda':'llama.cpp · CUDA (NVIDIA)','llama-vulkan':'llama.cpp · Vulkan (AMD, Intel Arc, NVIDIA)','llama-cpu':'llama.cpp · CPU',strata:'Strata · PolyStrata',rust:'Strata Rust (Qwen3.5/3.6)'};
-    const choices=[recommendedKey,...['llama-cuda','llama-vulkan','llama-cpu','strata','rust'].filter(k=>k!==recommendedKey)];
-    for(const item of choices)select.add(new Option(labels[item]||item,item));
+    const labels={'llama-cuda':'llama.cpp · CUDA (NVIDIA)','llama-vulkan':'llama.cpp · Vulkan (AMD, Intel Arc, NVIDIA)','llama-cpu':'llama.cpp · CPU',strata:'Strata · PolyStrata',rust:'Strata Rust (Qwen3.5/3.6)',maya:'Project Maya (Compilación local opcional)'};
+    const choices=[recommendedKey,...['llama-cuda','llama-vulkan','llama-cpu','strata','rust','maya'].filter(k=>k!==recommendedKey)];
+    for(const item of choices)select.add(new Option(uiText(labels[item]||item),item));
     select.value=recommendedKey;select.hidden=false;
-    p.textContent=uiText('Instalar un motor local es opcional: elige llama.cpp, Strata o Strata Rust solo si vas a ejecutar modelos locales, conecta una API externa, o pulsa Siguiente para decidir luego.')+' '+uiParts(hardware.hardware_summary||hardware.summary||'');
+    p.textContent=uiText('Instalar un motor local es opcional: elige llama.cpp, Strata, Strata Rust o Project Maya (compilación local opcional) solo si vas a ejecutar modelos locales, selecciona tu propia compilación si ya tienes una, conecta una API externa o pulsa Siguiente para decidir luego.')+' '+uiParts(hardware.hardware_summary||hardware.summary||'');
     const install=document.createElement('button');install.type='button';install.className='soft-btn primary';
-    const syncBtn=()=>{install.textContent=uiText('Instalar elegido')+' · '+(labels[select.value]||select.value);};
+    const syncBtn=()=>{install.textContent=select.value==='maya'?uiText('Comprobar requisitos de Project Maya'):(uiText('Instalar elegido')+' · '+uiText(labels[select.value]||select.value));};
     syncBtn();select.onchange=syncBtn;
     const api=document.createElement('button');api.type='button';api.className='soft-btn';api.textContent=uiText('Prefiero conectar una API');
     api.onclick=()=>{close(true);document.querySelector('#modelBtn')?.click();setTimeout(()=>document.querySelector('#modelSourceTabs [data-source=api]')?.click(),400);};
     actions.append(install,api);
     install.onclick=async()=>{
       const chosenKey=select.value;
+      if(chosenKey==='maya'){
+        install.disabled=api.disabled=select.disabled=true;
+        try{
+          status.textContent=uiText('Comprobando requisitos locales…');
+          await requestJSON('/api/harness/configure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({engine:'maya'})});
+          const maya=await requestJSON('/api/harness/maya/status');
+          const prereqs=maya?.prerequisites||{};
+          if(maya?.installed){
+            status.textContent=uiText('Project Maya ya está compilado en este equipo.');
+          }else if(prereqs.ok){
+            status.textContent=uiText('Requisitos listos. Clona y compila Project Maya opcionalmente desde Modelo → Motor y conexión.');
+          }else{
+            const missing=(prereqs.missing||[]).map(item=>uiText(item)).join(', ');
+            status.textContent=uiText('Faltan requisitos para compilar Project Maya: {items}').replace('{items}',missing||'—');
+          }
+        }catch(error){status.textContent=uiText(error.message);}
+        finally{install.disabled=api.disabled=select.disabled=false;}
+        return;
+      }
       install.disabled=api.disabled=select.disabled=true;
       try{
         status.textContent=uiText('Buscando la versión oficial…');
@@ -102,7 +121,7 @@ const VAL_TOUR=(()=>{
         await requestJSON('/api/harness/updates/install',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({engine:chosenKey})});
         for(;;){
           await new Promise(r=>setTimeout(r,800));const u=await requestJSON('/api/harness/updates');const g=u.progress;
-          if(g&&g.engine===chosenKey)status.textContent=uiText({download:'Descargando',extract:'Extrayendo',verify:'Verificando'}[g.phase]||'Procesando')+(g.total?' · '+Math.round(g.received/g.total*100)+' % · '+(g.total/1048576).toFixed(0)+' MB':'');
+          if(g&&g.engine===chosenKey)status.textContent=uiText({download:'Descargando',link:'Vinculando',extract:'Extrayendo',verify:'Verificando',complete:'Completado',error:'Error'}[g.phase]||'Procesando')+(g.total?' · '+Math.round(g.received/g.total*100)+' % · '+(g.total/1048576).toFixed(0)+' MB':'');
           if(u.error)throw new Error(u.error);
           if(!u.busy){if(u.installed?.[chosenKey])break;throw new Error(uiText('No se pudo completar la instalación.'));}
         }
@@ -166,7 +185,24 @@ const VAL_TOUR=(()=>{
       else status.textContent=uiText('Versión')+' '+label(s.version)+(s.checked_at?' · '+uiText('Estás al día.'):'');
       syncNotesButton();
     };
-    const post=action=>requestJSON('/api/harness/app-update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})});
+    const post=action=>requestJSON('/api/harness/app-update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,language:window.VALI18n?.language||'en'})});
+    const showUpdateOverlay=version=>{
+      let overlay=document.getElementById('appUpdateOverlay');
+      if(!overlay){
+        overlay=document.createElement('div');
+        overlay.id='appUpdateOverlay';
+        overlay.className='app-update-overlay';
+        overlay.setAttribute('role','status');
+        overlay.setAttribute('aria-live','polite');
+        overlay.innerHTML='<div class="app-update-modal"><strong class="app-update-title"></strong><p class="app-update-step"></p><div class="app-update-bar" aria-hidden="true"><span></span></div><small class="app-update-note"></small></div>';
+        document.body.append(overlay);
+        window.VALI18n?.observe?.(overlay);
+      }
+      const ver=version?' · '+version:'';
+      overlay.querySelector('.app-update-title').textContent=uiText('Actualización de V-Agent')+ver;
+      overlay.querySelector('.app-update-step').textContent=uiText('Instalando nueva actualización de V-Agent…');
+      overlay.querySelector('.app-update-note').textContent=uiText('V-Agent se cerrará un momento y volverá a abrirse automáticamente al terminar.');
+    };
     // Minor updates channel (MCP servers, tools): signed components for this exact version.
     const cStatus=box.querySelector('#componentStatus'),cActions=box.querySelector('#componentActions'),cApply=box.querySelector('#componentApply'),cReset=box.querySelector('#componentReset');
     const cPost=action=>requestJSON('/api/harness/components',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})});
@@ -198,7 +234,7 @@ const VAL_TOUR=(()=>{
     box.querySelector('#appUpdateCheck').onclick=async()=>{status.textContent=uiText('Comprobando…');try{paint(await post('check'));paintComponents(await cPost('check'));}catch(e){status.textContent=e.message;}};
     go.onclick=async()=>{
       try{
-        if(go.dataset.action==='launch'){const r=await post('launch');if(r.launched){status.textContent=uiText('Cerrando V-Agent para instalar la actualización…');setTimeout(()=>window.__TAURI__?.window?.getCurrentWindow?.().close(),300);}return;}
+        if(go.dataset.action==='launch'){go.disabled=true;const r=await post('launch');if(r.launched){const ver=r.available?.version||'';status.textContent=uiText('Cerrando V-Agent para instalar la actualización…');showUpdateOverlay(ver);setTimeout(()=>window.__TAURI__?.window?.getCurrentWindow?.().close(),700);}else go.disabled=false;return;}
         paint(await post('download'));
         // One poll at a time; a failed request ends it instead of leaving the bar frozen forever.
         clearTimeout(go._poll);

@@ -136,6 +136,35 @@ class AppUpdateTests(unittest.TestCase):
         state = app_updates.AppUpdates('').check()
         self.assertFalse(state['configured']); self.assertIsNone(state['available'])
 
+    def test_intermediate_update_helper_menu_defaults_english_and_translates_all_languages(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); installer = root / 'setup.exe'; installer.write_bytes(b'verified')
+            exe = root / 'V-Agent.exe'; exe.write_bytes(b'desktop')
+            updater = app_updates.AppUpdates('owner/V-Agent')
+            updater.state.update(ready=str(installer), available={'version':'9.1.0', 'installer':{'sha256':hashlib.sha256(b'verified').hexdigest()}})
+            seen = {}
+            with patch.object(app_updates, 'DATA_ROOT', root), patch.dict('os.environ', {'V_AGENT_DESKTOP_PID':'123', 'V_AGENT_DESKTOP_EXE':str(exe)}), patch('subprocess.run') as run:
+                run.return_value.returncode = 0
+                for lang in (None, 'en', 'es', 'es-MX', 'pt', 'fr', 'de', 'unknown'):
+                    kw = {} if lang is None else {'language': lang}
+                    self.assertTrue(updater.launch(**kw)['launched'])
+                    env = run.call_args.kwargs['env']
+                    expected = 'en' if lang in (None, 'unknown') else ('es' if lang == 'es-MX' else lang)
+                    self.assertEqual(env['V_AGENT_UPDATE_LANG'], expected)
+                    self.assertIn('9.1.0', env['V_AGENT_UPDATE_UI_INSTALL'])
+                    self.assertTrue(env['V_AGENT_UPDATE_UI_TITLE'])
+                    self.assertTrue(env['V_AGENT_UPDATE_UI_SUBTITLE'])
+                    self.assertTrue(env['V_AGENT_UPDATE_UI_CLOSING'])
+                    self.assertTrue(env['V_AGENT_UPDATE_UI_LAUNCH'])
+                    self.assertTrue(env['V_AGENT_UPDATE_UI_HINT'])
+                    seen[lang or 'default'] = env['V_AGENT_UPDATE_UI_SUBTITLE']
+                helper = base64.b64decode(run.call_args.kwargs['env']['V_AGENT_UPDATE_HELPER']).decode('utf-16le')
+                self.assertIn('System.Windows.Forms', helper)
+                self.assertIn('Marquee', helper)
+                self.assertIn('DoEvents', helper)
+                self.assertIn('Installing new V-Agent update...', helper)
+            self.assertEqual(len({seen['en'], seen['es'], seen['pt'], seen['fr'], seen['de']}), 5)
+
 
 if __name__ == '__main__':
     unittest.main()

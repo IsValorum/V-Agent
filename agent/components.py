@@ -81,6 +81,18 @@ def active_overlay():
         return None
 
 
+def prune():
+    """At start: a record for another app version, and revision folders other than the one in use."""
+    if not ROOT.is_dir():
+        return
+    keep = active_overlay()
+    if keep is None:
+        _active_file().unlink(missing_ok=True)
+    for old in ROOT.glob('r*'):
+        if old.is_dir() and old != keep:
+            shutil.rmtree(old, ignore_errors=True)
+
+
 def enable_overlay():
     """Serve verified component modules before the bundled ones (core and every MCP process).
 

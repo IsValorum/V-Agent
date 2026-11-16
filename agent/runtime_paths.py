@@ -53,11 +53,31 @@ def installer_language():
 SEED_FILES=('model-profiles.json','creator-recommendations.json','template-provenance.json')
 
 
-def strata_vision_executable():
-    """Use the vision encoder alongside the active, downloaded Strata engine."""
+def active_engine_executable(kind, default):
+    """Return the user's configured custom executable when active, else the managed/bundled one."""
     from engine_updates import executable
-    engine=executable('strata',RUNTIME_ROOT/'strata/strata-poly.exe')
-    return engine.parent/'strata-vision.exe'
+    try:
+        cfg_file = SETTINGS_ROOT / 'engines.json'
+        if cfg_file.is_file():
+            import json as _json
+            data = _json.loads(cfg_file.read_text(encoding='utf-8-sig'))
+            kind_cfg = data.get(kind) if isinstance(data, dict) else None
+            if isinstance(kind_cfg, dict) and kind_cfg.get('variant') == 'custom':
+                custom = str(kind_cfg.get('executable') or '').strip()
+                if custom and Path(custom).is_file():
+                    return Path(custom)
+    except Exception:
+        pass
+    return executable(kind, default)
+
+
+def strata_vision_executable():
+    """Use the vision encoder alongside the active Strata engine (falling back to managed)."""
+    from engine_updates import executable
+    engine=active_engine_executable('strata',RUNTIME_ROOT/'strata/strata-poly.exe')
+    candidate=engine.parent/'strata-vision.exe'
+    if candidate.is_file():return candidate
+    return executable('strata',RUNTIME_ROOT/'strata/strata-poly.exe').parent/'strata-vision.exe'
 
 
 def _managed_vision_encoder(saved):
@@ -110,8 +130,7 @@ def bootstrap():
     for dest in CONFIG_ROOT.glob('strata-*.json'):
         cfg=json.loads(dest.read_text(encoding='utf8'))
         if cfg.get('_val_managed_engine'):
-            from engine_updates import executable
-            active_exe=executable('strata',RUNTIME_ROOT/'strata/strata-poly.exe')
+            active_exe=active_engine_executable('strata',RUNTIME_ROOT/'strata/strata-poly.exe')
             changed={**cfg,'exe':str(active_exe),'lib_dirs':[str(active_exe.parent/'lib'),str(active_exe.parent)],'cwd':str(CONFIG_ROOT),'port':19382}
             identifier=cfg['model_name'];changed['tokenizer']=str(assets/identifier/'tokenizer')
             changed['log']=str(LOG_ROOT/(dest.stem+'.log'))

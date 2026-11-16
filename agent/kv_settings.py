@@ -31,11 +31,11 @@ def describe(config_path):
         if not weight.is_absolute():weight=Path(cfg.get('cwd') or path.parent)/weight
         stat=weight.stat();arch,heads=_shape(str(weight.resolve()),stat.st_size,stat.st_mtime_ns)
         exe=Path(cfg.get('exe','')).stem.lower()
-        if exe=='strata-poly':
+        if exe=='strata':formats=['fp16','int8','q4_0','k8v4']
+        elif 'strata-poly' in exe or 'polystrata' in exe or cfg.get('_val_managed_engine'):
             formats=['fp16']
             if arch in ('qwen35moe','clover_moe','kolibri1'):formats+=['q8_0']
             elif arch=='gemma4' and any(heads) and all(type(d) is int and d%32==0 and (d==64 or d>=128) for d in heads if d is not None):formats+=['int8','int8k']
-        elif exe=='strata':formats=['fp16','int8','q4_0','k8v4']
         else:formats=[]
         return {'current':current,'architecture':arch,'options':[{'value':key,'label':FORMATS[key][0],'description':FORMATS[key][1]} for key in formats]}
     except (OSError,ValueError,KeyError,EOFError):

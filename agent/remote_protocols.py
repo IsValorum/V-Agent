@@ -258,8 +258,8 @@ AUTH_MODES = ('auto', 'bearer', 'x-api-key', 'api-key', 'none')
 _HEADER_NAME_RE = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
 
 
-def default_user_agent(version='1.1.0'):
-    clean = re.sub(r'[^0-9A-Za-z._+-]', '', str(version or '1.1.0')).strip() or '1.1.0'
+def default_user_agent(version='1.1.1'):
+    clean = re.sub(r'[^0-9A-Za-z._+-]', '', str(version or '1.1.1')).strip() or '1.1.1'
     return f'V-Agent/{clean}'
 
 

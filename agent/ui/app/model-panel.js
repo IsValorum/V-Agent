@@ -188,6 +188,7 @@ function queueModelPreferences(){
   if($('#kvCache')?.value)settings.kv=$('#kvCache').value;
   if(['llama','strata'].includes(activeEngine)&&document.getElementById('modelLoadSettings'))settings.load=structuredClone(loadCurrent);
   if(activeEngine==='llama'&&document.getElementById('modelDraftSettings'))settings.draft=structuredClone(draftCurrent);
+  if(['llama','strata','rust'].includes(activeEngine)&&document.getElementById('engineOptions'))settings.engine=structuredClone(engineCurrent);
   modelPreferences[id]={...modelPreferences[id],...structuredClone(settings)};pendingPreferences.set(id,settings);updateCreatorNotice();requestMemoryEstimate();
   clearTimeout(preferencesTimer);preferencesTimer=setTimeout(()=>flushModelPreferences().catch(error=>note(error.message)),350);
 }

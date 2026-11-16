@@ -154,7 +154,18 @@ class EngineManager:
                 return {k:info[k] for k in ('version','build','commit','cuda','source') if k in info}
             except (OSError,ValueError):return {}
         result={'strata':read('strata'),'cpu':read('llama-cpu'),'cuda':read('llama-cuda'),'vulkan':read('llama-vulkan'),
-                'rust':read('strata-rust'),'custom':self.settings.get('llama',{}).get('custom_build',{})}
+                'rust':read('strata-rust'),'custom':self.settings.get('llama',{}).get('custom_build',{}),
+                'strata_custom':self.settings.get('strata',{}).get('custom_build',{}),
+                'rust_custom':self.settings.get('rust',{}).get('custom_build',{})}
+        try:
+            import maya_engine
+            maya_cfg=self.settings.get('maya',{})
+            maya_root=maya_engine.resolve_root(maya_cfg.get('root'))
+            maya_ver=maya_engine.installed_version(maya_root)
+            maya_bins=maya_engine.find_binaries(maya_root,extra_exe=maya_cfg.get('executable'))
+            result['maya']={'version':maya_ver.lstrip('v') if maya_ver else '','build':maya_ver,'root':str(maya_root) if maya_root else '','executable':maya_cfg.get('executable',''),'custom_build':maya_cfg.get('custom_build',{}),'binaries':sorted(maya_bins),'source':maya_engine.MAYA_REPO} if (maya_root or maya_cfg.get('executable')) else {}
+        except Exception:
+            result['maya']={}
         for key,item in active_installations().items():
             if Path(item.get('executable','')).is_file():
                 mapped={'llama-cpu':'cpu','llama-cuda':'cuda','llama-vulkan':'vulkan'}.get(key,key);base=result.get(mapped,{})
@@ -163,19 +174,38 @@ class EngineManager:
     def snapshot(self):
         def public(cfg):return {**{key:value for key,value in cfg.items() if key!='api_key'},'has_key':self.credential_file(cfg.get('id','legacy')).exists()}
         remote=public(self.settings.get('api',{}))
-        return {'product':'V-Agent','version':__import__('app_updates').VERSION,'active':self.kind,'llama':self.settings.get('llama',{}),'api':remote,
+        return {'product':'V-Agent','version':__import__('app_updates').VERSION,'active':self.kind,'strata':self.settings.get('strata',{'variant':'official','executable':'','custom_build':{}}),'rust':self.settings.get('rust',{'variant':'official','executable':'','custom_build':{}}),'llama':self.settings.get('llama',{}),'maya':self.settings.get('maya',{'root':'','backend':'auto'}),'api':remote,
                 'data_dir':str(DATA_ROOT),'models':self.remote_models,'loaded_model':self.loaded,'online':self.online,
                 'builds':self.builds(),'connections':[public(cfg) for cfg in self.settings.get('connections',{}).values()],
-                'engines':[{'id':'strata','name':'Strata'},{'id':'rust','name':'Strata Rust'},{'id':'llama','name':'llama.cpp'},{'id':'api','name':'API compatible'}],'installed_engines':self.installed_engines(),'recommended_variant':self.recommended_variant()}
+                'engines':[{'id':'strata','name':'Strata'},{'id':'rust','name':'Strata Rust'},{'id':'llama','name':'llama.cpp'},{'id':'maya','name':'Project Maya'},{'id':'api','name':'API compatible'}],'installed_engines':self.installed_engines(),'recommended_variant':self.recommended_variant()}
 
     def configure(self,body):
         kind=body.get('engine')
-        if kind not in ('strata','rust','llama','api'):raise ValueError('Motor desconocido.')
+        if kind not in ('strata','rust','llama','maya','api'):raise ValueError('Motor desconocido.')
+        prior_maya=dict(self.settings.get('maya',{}))
+        if kind=='maya':body=self._prepare_maya_body(body,prior_maya)
+        if kind=='maya':
+            import maya_engine
+            backend=str(body.get('maya_backend',self.settings.get('maya',{}).get('backend','auto'))).strip().lower()
+            if backend not in ('auto','cuda','hip'):raise ValueError('Backend de Maya no válido (auto, cuda o hip).')
+            raw_root=str(body.get('maya_root',self.settings.get('maya',{}).get('root',''))).strip()
+            if raw_root:
+                candidate=Path(raw_root).expanduser()
+                if not candidate.is_dir():raise ValueError('La carpeta de Project Maya no existe.')
+                if not maya_engine.is_valid_root(candidate):raise ValueError('La carpeta elegida no contiene Project Maya (maya.py y serve/server.py).')
+                raw_root=str(candidate.resolve())
+            self.settings['maya']=self._finalize_maya_settings(raw_root,backend,body,prior_maya)
+        if kind in ('strata','rust'):
+            self._configure_binary_engine(kind,body)
         if kind=='llama':
             variant=body.get('variant','cuda')
             if variant not in ('cuda','vulkan','cpu','custom'):raise ValueError('Compilación desconocida.')
-            custom=str(body.get('executable','')).strip()
-            if variant=='custom' and (not Path(custom).is_file() or Path(custom).suffix.lower()!='.exe'):raise ValueError('Elige un ejecutable llama-server.exe válido.')
+            custom=str(body.get('executable','')).strip().strip('"')
+            if variant=='custom':
+                custom_path=Path(custom).expanduser()
+                if not custom or not custom_path.is_file() or (os.name=='nt' and custom_path.suffix.lower()!='.exe'):
+                    raise ValueError('Elige un ejecutable llama-server.exe válido.')
+                custom=str(custom_path)
             layers=str(body.get('gpu_layers','auto')).strip()
             if layers not in ('auto','all') and not (layers.isdigit() and 0<=int(layers)<=999):raise ValueError('Capas GPU: auto, all o un número entre 0 y 999.')
             prior=self.settings.get('llama',{})
@@ -237,7 +267,7 @@ class EngineManager:
         self.settings['active']=kind;self.kind=kind;self.save();return self.snapshot()
 
     def base(self):
-        if self.kind in ('llama','rust'):return 'http://127.0.0.1:19383/v1'
+        if self.kind in ('llama','rust','maya'):return 'http://127.0.0.1:19383/v1'
         return self.settings.get('api',{}).get('base_url','').rstrip('/')
     def url(self,path):
         base=self.base()
@@ -279,7 +309,7 @@ class EngineManager:
         default_ua=default_user_agent(app_updates.VERSION)
         if self.kind=='api':
             return build_provider_headers(self.settings.get('api',{}),self.key(),stream=stream,session_id=session_id,default_ua=default_ua,extra_headers=extra_headers)
-        key=self.llama_key if self.kind in ('llama','rust') else ''
+        key=self.llama_key if self.kind in ('llama','rust','maya') else ''
         headers={'Content-Type':'application/json','User-Agent':default_ua,'Accept':'text/event-stream' if stream else 'application/json','Accept-Encoding':'identity'}
         if stream:headers['Cache-Control']='no-cache'
         if key:headers['Authorization']='Bearer '+key
@@ -342,8 +372,97 @@ class EngineManager:
         self.save()
         return model
 
+    def _probe_custom_executable(self,custom_path):
+        info={'version':Path(custom_path).name,'executable':str(custom_path)}
+        try:
+            probe=subprocess.run([str(custom_path),'--version'],capture_output=True,timeout=5,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+            raw=(probe.stdout+probe.stderr).decode('utf8','replace')
+            lines=[line.strip() for line in raw.splitlines() if 'version:' in line.lower() or 'build' in line.lower() or line.strip()]
+            if lines:
+                line=lines[0]
+                info={'version':line.split(':',1)[-1].strip() if 'version:' in line.lower() else line[:120],'executable':str(custom_path)}
+        except (OSError,subprocess.TimeoutExpired):
+            pass
+        return info
+
+    def _configure_binary_engine(self,kind,body):
+        label='Strata · PolyStrata (strata-poly.exe)' if kind=='strata' else 'Strata Rust (strata.exe)'
+        prior=self.settings.get(kind,{})
+        variant=str(body.get('variant',prior.get('variant','official'))).strip().lower()
+        if variant not in ('official','custom'):raise ValueError('Compilación desconocida.')
+        custom=str(body.get('executable','')).strip().strip('"')
+        if variant=='custom':
+            custom_path=Path(custom).expanduser()
+            if not custom or not custom_path.is_file() or (os.name=='nt' and custom_path.suffix.lower()!='.exe'):
+                raise ValueError('Elige un ejecutable válido para '+label+'.')
+            custom=str(custom_path)
+            info=self._probe_custom_executable(custom_path)
+        else:
+            if not custom:custom=prior.get('executable','')
+            info=prior.get('custom_build',{})
+        self.settings[kind]={'variant':variant,'executable':custom,'custom_build':info}
+
+    def _prepare_maya_body(self,body,prior_maya):
+        import maya_engine
+        updated=dict(body)
+        raw_root=str(updated.get('maya_root',prior_maya.get('root',''))).strip().strip('"')
+        raw_exe=str(updated.get('maya_executable',updated.get('executable',prior_maya.get('executable','')))).strip().strip('"')
+        if raw_root:
+            root_path=Path(raw_root).expanduser()
+            if root_path.is_file() and (os.name!='nt' or root_path.suffix.lower()=='.exe'):
+                if not raw_exe:raw_exe=str(root_path)
+                found=maya_engine.resolve_root_from_selection(root_path)
+                raw_root=str(found) if found else str(root_path.parent)
+            else:
+                found=maya_engine.resolve_root_from_selection(root_path)
+                if found:raw_root=str(found)
+        if not raw_root and raw_exe:
+            found=maya_engine.resolve_root_from_selection(raw_exe)
+            if found:raw_root=str(found)
+        updated['maya_root']=raw_root
+        if 'maya_executable' in body or 'executable' in body or raw_exe:
+            updated['maya_executable']=raw_exe
+        return updated
+
+    def _finalize_maya_settings(self,raw_root,backend,body,prior_maya):
+        raw_exe=str(body.get('maya_executable',body.get('executable',prior_maya.get('executable','')))).strip().strip('"')
+        if raw_exe:
+            exe_path=Path(raw_exe).expanduser()
+            if not exe_path.is_file() or (os.name=='nt' and exe_path.suffix.lower()!='.exe'):
+                raise ValueError('Elige un ejecutable válido para Project Maya.')
+            raw_exe=str(exe_path)
+            info=self._probe_custom_executable(exe_path)
+        else:
+            info={}
+        raw_py=str(body.get('maya_python',body.get('python',prior_maya.get('python','')))).strip().strip('"')
+        if raw_py:
+            py_path=Path(raw_py).expanduser()
+            if not py_path.is_file():
+                raise ValueError('Elige un intérprete de Python válido para Project Maya.')
+            raw_py=str(py_path)
+        return {'root':raw_root,'backend':backend,'executable':raw_exe,'python':raw_py,'custom_build':info}
+
     def executable(self):
-        if self.kind=='rust':return updated_executable('rust',RUNTIME_ROOT/'strata-rust/strata.exe')
+        if self.kind=='strata':
+            cfg=self.settings.get('strata',{})
+            if cfg.get('variant')=='custom' and cfg.get('executable'):return Path(cfg['executable'])
+            return updated_executable('strata',RUNTIME_ROOT/'strata/strata-poly.exe')
+        if self.kind=='rust':
+            cfg=self.settings.get('rust',{})
+            if cfg.get('variant')=='custom' and cfg.get('executable'):return Path(cfg['executable'])
+            return updated_executable('rust',RUNTIME_ROOT/'strata-rust/strata.exe')
+        if self.kind=='maya':
+            cfg=self.settings.get('maya',{})
+            if cfg.get('executable'):return Path(cfg['executable'])
+            try:
+                import maya_engine
+                root=maya_engine.resolve_root(cfg.get('root'))
+                bins=maya_engine.find_binaries(root)
+                first=next((bins[k] for k in ('maya','maya-ds4','maya-mm3') if k in bins),None)
+                if first:return Path(first)
+            except Exception:
+                pass
+            return Path()
         cfg=self.settings.get('llama',{});variant=cfg.get('variant','cuda')
         if variant=='custom':return Path(cfg.get('executable',''))
         key={'cpu':'llama-cpu','vulkan':'llama-vulkan'}.get(variant,'llama-cuda')
@@ -361,16 +480,31 @@ class EngineManager:
         except Exception:
             return 'cpu'
     def installed_engines(self):
-        """Which engines can start right now (bundled or downloaded), for the first-run guide."""
+        """Which engines can start right now (bundled or downloaded or custom-selected), for the first-run guide."""
         found={key:updated_executable(key,RUNTIME_ROOT/key/'llama-server.exe').is_file() for key in ('llama-cuda','llama-vulkan','llama-cpu')}
-        found['strata']=updated_executable('strata',RUNTIME_ROOT/'strata'/'strata-poly.exe').is_file()
-        found['rust']=updated_executable('rust',RUNTIME_ROOT/'strata-rust/strata.exe').is_file()
+        found['llama-custom']=Path(self.settings.get('llama',{}).get('executable') or '').is_file()
+        found['strata']=updated_executable('strata',RUNTIME_ROOT/'strata'/'strata-poly.exe').is_file() or Path(self.settings.get('strata',{}).get('executable') or '').is_file()
+        found['rust']=updated_executable('rust',RUNTIME_ROOT/'strata-rust/strata.exe').is_file() or Path(self.settings.get('rust',{}).get('executable') or '').is_file()
+        try:
+            import maya_engine
+            maya_cfg=self.settings.get('maya',{})
+            maya_root=maya_engine.resolve_root(maya_cfg.get('root'))
+            maya_bins=maya_engine.find_binaries(maya_root,extra_exe=maya_cfg.get('executable'))
+            found['maya']=bool(maya_root and any(k in maya_bins for k in ('maya','maya-ds4','maya-mm3','custom')))
+        except Exception:
+            found['maya']=False
         return found
     def stop(self):
         process=self.process;self.process=None;self.loaded=None;self.live=False;self.online=False;self.last_usage={}
+        if process and getattr(process, 'stdin', None) and not process.stdin.closed:
+            process.stdin.close()
         if process and process.poll() is None:
             subprocess.run(['taskkill','/F','/T','/PID',str(process.pid)],capture_output=True,creationflags=subprocess.CREATE_NO_WINDOW,timeout=20)
             process.wait(timeout=10)
+        config = getattr(self, '_maya_run_config', None)
+        if config:
+            config.unlink(missing_ok=True)
+            self._maya_run_config = None
         return {'status':'unloaded','loaded':False,'loaded_model':None,'engine_online':False}
     def release_remote(self):
         self.loaded=None;self.live=False;self.last_usage={}
@@ -389,7 +523,87 @@ class EngineManager:
             self.loaded=model['id'];cfg=self.settings.setdefault('api',{});cfg['selected_model']=model['id']
             if cfg.get('id'):self.settings.setdefault('connections',{})[cfg['id']]=dict(cfg)
             self.save();return
-        self.stop();exe=self.executable()
+        self.stop()
+        if self.kind=='maya':
+            import socket, maya_engine
+            with socket.socket() as probe:
+                if probe.connect_ex(('127.0.0.1',19383))==0:raise ValueError('El puerto privado 19383 está ocupado; no se ha tocado ese proceso.')
+            maya_cfg=self.settings.get('maya',{})
+            maya_root=maya_engine.resolve_root(maya_cfg.get('root'))
+            if not maya_root:raise ValueError('No se encuentra instalado Project Maya. Configura su carpeta y requisitos en Ajustes → Motor.')
+            py_exe=maya_engine.find_python(maya_root,extra_python=maya_cfg.get('python'))
+            cfg_path=Path(model.get('config') or '')
+            if not cfg_path.is_file():raise ValueError('No se encontró el archivo de configuración maya-*.json seleccionado.')
+            if maya_engine.build_status()['building']:
+                raise ValueError('Espera a que termine la configuración de Project Maya.')
+            if (maya_root / '.v-agent-maya-needs-setup').is_file():
+                raise ValueError('Project Maya se actualizó. Pulsa Preparar modelo con Maya para reconstruir el binario.')
+            if not py_exe:
+                raise ValueError('Instala Python o ejecuta la configuración oficial de Project Maya.')
+            config = maya_engine._read_json(cfg_path, {})
+            if not isinstance(config, dict) or not config.get('exe') or not isinstance(config.get('args'), list):
+                raise ValueError('Configuración de Project Maya incompleta.')
+            family = maya_engine.config_family(config, cfg_path)
+            target_name = {'deepseek': 'maya-ds4', 'minimax': 'maya-mm3'}.get(family, 'maya')
+            configured_exe = Path(config['exe'])
+            if not configured_exe.is_absolute():
+                configured_exe = maya_root / configured_exe
+            extra_exe = maya_cfg.get('executable')
+            if extra_exe and Path(extra_exe).stem.lower() in (target_name, configured_exe.stem.lower()):
+                configured_exe = Path(extra_exe)
+            if not configured_exe.is_file():
+                candidates = maya_engine.find_binaries(maya_root)
+                configured_exe = Path(candidates.get(target_name) or configured_exe)
+            if not configured_exe.is_file():
+                raise ValueError(f'Falta el ejecutable {target_name}. Prepara este modelo con Project Maya.')
+            config['exe'] = str(configured_exe.resolve())
+            config.setdefault('model_name', model.get('display_name') or cfg_path.stem)
+            config.pop('api_key', None)
+            if not isinstance(config.get('tokenizer'), str) or not config['tokenizer']:
+                raise ValueError('Falta el tokenizador en la configuración de Project Maya.')
+            tokenizer = maya_root / config['tokenizer']
+            if not (tokenizer / 'vocab.json').is_file():
+                raise ValueError('Falta vocab.json. Prepara el tokenizador con la configuración oficial de Maya.')
+            config['tokenizer'] = str(tokenizer.resolve())
+            if context:
+                context = int(context)
+                if not 2048 <= context <= 1048576:
+                    raise ValueError('Contexto de Maya fuera de rango (2048–1048576).')
+                config['args'] = maya_engine._set_flag(config['args'], '--max-context', context)
+                config['context'] = context
+            # Maya resolves model and cache paths against its checkout. Keep the user's config intact.
+            import tempfile
+            cache = DATA_ROOT / 'cache' / 'maya'
+            cache.mkdir(parents=True, exist_ok=True)
+            with tempfile.NamedTemporaryFile(mode='w', encoding='utf8', prefix='run-', suffix='.json', dir=cache, delete=False) as stream:
+                self._maya_run_config = Path(stream.name)
+                json.dump(config, stream, ensure_ascii=False)
+            argv=[py_exe,'-m','serve.server','--engine','maya','--config',str(self._maya_run_config),'--host','127.0.0.1','--port','19383','--parent-pipe']
+            preparation.begin(model['id'])
+            preparation.update(stage='loading',message='Cargando con Project Maya…')
+            env={**os.environ,'PATH':str(configured_exe.parent)+os.pathsep+os.environ.get('PATH',''),
+                 'MAYA_API_KEY':self.llama_key,'PYTHONUNBUFFERED':'1'}
+            try:
+                from runtime_paths import log_for_append,log_tail
+                log_path=log_for_append(LOG_ROOT/'maya-server.log')
+                with log_path.open('a',encoding='utf8') as log:
+                    self.process=subprocess.Popen(argv,cwd=str(maya_root),stdin=subprocess.PIPE,stdout=log,stderr=log,env=env,creationflags=subprocess.CREATE_NO_WINDOW)
+                deadline=time.monotonic()+1800
+                while time.monotonic()<deadline:
+                    preparation.check_cancelled()
+                    if self.process.poll() is not None:
+                        raise ValueError(load_failure('Project Maya',log_tail(log_path)))
+                    status = self.maya_health()
+                    if status.get('status') == 'ok' and status.get('model') == config.get('model_name') and not status.get('unloaded'):
+                        self.loaded=model['id'];self.loaded_context=status.get('max_context') or context;self.online=True;preparation.finish();return
+                    time.sleep(.3)
+                raise TimeoutError('Project Maya no terminó de cargar en treinta minutos.')
+            except Exception:
+                self.stop()
+                if preparation.cancelled.is_set():preparation.finish_cancelled()
+                else:preparation.fail('No se pudo cargar con Project Maya; revisa el diagnóstico de carga.')
+                raise
+        exe=self.executable()
         engine='Strata Rust' if self.kind=='rust' else 'llama.cpp'
         if not exe.is_file():raise ValueError('No se encuentra instalado '+engine+'. Instálalo desde Ajustes → General → Motor o usa una API externa.')
         # Never accidentally attach to or stop somebody else's server.
@@ -410,16 +624,25 @@ class EngineManager:
             argv+=['--api-key',self.llama_key]
             from draft_models import arguments as draft_arguments
             argv+=draft_arguments(model.get('preferences',{}).get('draft') or {})
-        if self.kind=='rust':argv=[str(exe),'serve','--model',model['path'],'--addr','127.0.0.1:19383','--gpu','--ctx',str(context),'--kv',{'fp16':'f16','q8_0':'q8','q4_0':'q4'}.get(kv,kv)]
+            import engine_options
+            options=model.get('preferences',{}).get('engine') or {}
+            problem=engine_options.conflicts('llama',options,kv)
+            if problem:raise ValueError(problem)
+            argv+=engine_options.arguments('llama',options,engine_options.help_text('llama',exe))
+        if self.kind=='rust':
+            argv=[str(exe),'serve','--model',model['path'],'--addr','127.0.0.1:19383','--gpu','--ctx',str(context),'--kv',{'fp16':'f16','q8_0':'q8','q4_0':'q4'}.get(kv,kv)]
+            import engine_options
+            argv+=engine_options.arguments('rust',model.get('preferences',{}).get('engine') or {},engine_options.help_text('rust',exe))
         saved=model.get('llama_settings',{})
         if self.kind=='llama' and saved.get('mmproj'):argv+=['--mmproj',saved['mmproj']]
         if self.kind=='llama' and saved.get('template'):argv+=['--chat-template-file',saved['template']]
         engine='Strata Rust' if self.kind=='rust' else 'llama.cpp'
         preparation.begin(model['id']);preparation.update(stage='loading',message='Cargando con '+engine+'…')
-        env=None
+        path_dirs=[str(exe.parent)]+([str(exe.parent/'lib')] if (exe.parent/'lib').is_dir() else [])
+        env={**os.environ,'PATH':os.pathsep.join(path_dirs+[os.environ.get('PATH','')])}
         if self.kind=='rust':
             # Same private key as llama-server; through the environment, so it stays out of the process list.
-            env={**os.environ,'STRATA_API_KEY':self.llama_key}
+            env={**env,'STRATA_API_KEY':self.llama_key}
         try:
             from runtime_paths import log_for_append,log_tail
             log_path=log_for_append(LOG_ROOT/'llama-server.log')
@@ -441,6 +664,15 @@ class EngineManager:
             else:preparation.fail('No se pudo cargar con '+engine+'; revisa el diagnóstico de carga.')
             raise
 
+    def maya_health(self):
+        if self.kind!='maya':return {}
+        try:
+            with urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:19383/health',headers={'Authorization':'Bearer '+self.llama_key,'Accept':'application/json'}),timeout=1.5) as response:
+                data=json.load(response)
+                return data if isinstance(data,dict) else {}
+        except (OSError,ValueError,urllib.error.URLError):
+            return {}
+
     def _ready(self,log_path,start):
         """The model is really loaded, not only the server listening.
 
@@ -449,6 +681,8 @@ class EngineManager:
         and the next chat hit a closed port (WinError 10061). It writes "loaded <name>" once the
         weights are in; llama-server lists a model only after loading it.
         """
+        if self.kind=='maya':
+            return self.maya_health().get('status')=='ok'
         if self.kind=='rust':
             try:
                 with open(log_path,'rb') as stream:
@@ -460,22 +694,22 @@ class EngineManager:
 
     def stream(self,payload,control,conversation_id=None):
         allowed={'model','messages','stream','temperature','top_p','max_tokens','seed','tools','tool_choice','presence_penalty','frequency_penalty'}
-        if self.kind in ('llama','rust'):allowed|={'min_p','top_k','reasoning_effort','chat_template_kwargs'}
+        if self.kind in ('llama','rust','maya'):allowed|={'min_p','top_k','reasoning_effort','chat_template_kwargs'}
         if self.kind=='api':allowed.add('reasoning_effort')
         conv_id=conversation_id if conversation_id is not None else payload.get('conversation_id')
         body={k:v for k,v in payload.items() if k in allowed}
         if body.get('max_tokens')==0:body.pop('max_tokens')
         if self.kind=='api':body=openai_payload(body,self.base(),self.settings.get('api',{}).get('send_sampling',False))
-        if self.kind in ('llama','rust') and isinstance(body.get('messages'),list):
+        if self.kind in ('llama','rust','maya') and isinstance(body.get('messages'),list):
             body['messages']=normalize_orphan_tool_messages(body['messages'])
-        if self.kind=='llama':
-            body['repeat_penalty']=payload.get('repetition_penalty',1.0)
+        if self.kind in ('llama','maya'):
+            if self.kind=='llama':body['repeat_penalty']=payload.get('repetition_penalty',1.0)
             body['chat_template_kwargs']=dict(payload.get('chat_template_kwargs') or {})
         cfg=self.settings.get('api',{});claude=self.kind=='api' and cfg.get('protocol')=='anthropic'
         if self.kind=='api' and not cfg.get('vision') and any(isinstance(m,dict) and isinstance(m.get('content'),list) and any(p.get('type')=='image_url' for p in m['content'] if isinstance(p,dict)) for m in payload.get('messages',[])):
             raise ValueError('Activa imágenes en esta conexión API antes de enviarlas al proveedor.')
         if claude:body=claude_payload(body,cfg.get('api_version',DEFAULT_ANTHROPIC_VERSION),(self.selected_remote() or {}).get('max_output_tokens'))
-        elif self.kind=='rust' or self.kind=='api' and cfg.get('include_usage',True):body['stream_options']={'include_usage':True}
+        elif self.kind in ('rust','maya') or self.kind=='api' and cfg.get('include_usage',True):body['stream_options']={'include_usage':True}
         target=urllib.parse.urlsplit(self.url('/messages' if claude else '/chat/completions'));decoder=ClaudeStream() if claude else None
         timeout=cfg.get('timeout',180) if self.kind=='api' else 1800
         session_id=self.session_uuid(conv_id) if self.kind=='api' else None
@@ -492,7 +726,7 @@ class EngineManager:
             if control.cancelled.is_set():return
             try:connection.connect()
             except ConnectionRefusedError:
-                if self.kind in ('llama','rust') and (not self.process or self.process.poll() is not None):
+                if self.kind in ('llama','rust','maya') and (not self.process or self.process.poll() is not None):
                     self.stop()  # the engine closed after loading: the model is not loaded any more
                     raise ValueError('El motor se cerró y el modelo ya no está cargado. Vuelve a cargarlo; '
                                      'si vuelve a pasar, revisa el diagnóstico de carga.') from None
@@ -545,7 +779,7 @@ class EngineManager:
                     except ValueError:pass
                 ended=ended or stream_finished(line)
                 yield line
-            if self.kind=='api' and not ended and not control.cancelled.is_set():
+            if self.kind in ('api','maya') and not ended and not control.cancelled.is_set():
                 # The provider closed the connection without its end-of-reply mark: what arrived is a
                 # fragment, not an answer, and must not be shown as complete.
                 raise ValueError('La respuesta del proveedor se cortó antes de terminar (la conexión se cerró a mitad). '
@@ -562,7 +796,7 @@ class EngineManager:
         return int(chars/3.5)
 
     def metrics(self):
-        limit=(self.selected_remote() or {}).get('context') if self.kind=='api' else getattr(self,'loaded_context',None) if self.kind=='rust' and self.loaded else None
+        limit=(self.selected_remote() or {}).get('context') if self.kind=='api' else getattr(self,'loaded_context',None) if self.kind in ('rust','maya') and self.loaded else None
         prompt=self.last_usage.get('prompt_tokens');generated=self.last_usage.get('completion_tokens')
         if self.kind!='llama' and self.live:
             # The previous reply's numbers were reported as "live" and the meter stood still.
@@ -685,7 +919,7 @@ class EngineManager:
                 raise ValueError(provider_error(status,raw[:2048],key))
 
         chat_body={'model':raw_model,'stream':False,'messages':[{'role':'system','content':prompt},{'role':'user','content':'Conversation history to compress:\n\n'+transcript}]}
-        if self.kind in ('llama','rust'):
+        if self.kind in ('llama','rust','maya'):
             chat_body['chat_template_kwargs']={'no_date':True,'enable_thinking':False}
         if self.kind=='api':
             chat_body=openai_payload(chat_body,self.base(),False)

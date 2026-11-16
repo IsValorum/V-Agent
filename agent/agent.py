@@ -1124,10 +1124,13 @@ def tokenizer_del_modelo(model):
         return _TOKENIZADORES_MEDIDOS[model]
     ruta = None
     try:
-        cfg = json.loads(Path(selected_model(model)["config"]).read_text(encoding="utf-8-sig"))
+        config = Path(selected_model(model)["config"])
+        cfg = json.loads(config.read_text(encoding="utf-8-sig"))
         carpeta = Path(cfg.get("tokenizer") or "")
-        if (carpeta / "vocab.json").exists():
-            ruta = carpeta
+        # Project Maya writes it relative to its checkout (the config sits there or in configs/).
+        candidatas = ([] if not cfg.get("tokenizer") else [carpeta] if carpeta.is_absolute()
+                      else [carpeta, config.parent / carpeta, config.parent.parent / carpeta])
+        ruta = next((c for c in candidatas if (c / "vocab.json").exists()), None)
     except Exception:
         ruta = None
     _TOKENIZADORES_MEDIDOS[model] = ruta

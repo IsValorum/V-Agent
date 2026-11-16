@@ -196,8 +196,8 @@ def register_local_model(value, name=None, template_path=None):
         info = inspect_local_model(value,template_path)
         if info.get('already_registered'):
             return {'status':'already_registered','model':info['model']}
-        from engine_updates import executable
-        rejected = strata_rejection(executable('strata', RUNTIME_ROOT/'strata/strata-poly.exe'), info['path'])
+        from runtime_paths import active_engine_executable
+        rejected = strata_rejection(active_engine_executable('strata', RUNTIME_ROOT/'strata/strata-poly.exe'), info['path'])
         if rejected:
             raise ValueError(unsupported_message(rejected))
         path = Path(info['path'])
@@ -245,8 +245,8 @@ def register_local_model(value, name=None, template_path=None):
                 preset['sampling']['repetition_penalty'] = 1.0
             for key in ('code','agent'):
                 presets[key]['sampling']['presence_penalty'] = 0
-            from engine_updates import executable
-            engine = executable('strata', RUNTIME_ROOT/'strata/strata-poly.exe')
+            from runtime_paths import active_engine_executable
+            engine = active_engine_executable('strata', RUNTIME_ROOT/'strata/strata-poly.exe')
             asset = ASSETS/model_id
             config = {'exe':str(engine),'_val_managed_engine':True,
                       'args':['--model',str(path),'--kv',kv,'--vram-reserve-mib','512','--stage-mib','1024','--prompt-cache','1','--max-context',str(context)],
@@ -275,7 +275,7 @@ def register_local_model(value, name=None, template_path=None):
 
 
 def pick_local_file(kind='model'):
-    if kind not in ('model','template','draft','mmproj','encoder','project','engine','plugin'):
+    if kind not in ('model','template','draft','mmproj','encoder','project','engine','plugin','maya'):
         raise ValueError('Tipo de archivo no válido.')
     flags = subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0
     result = subprocess.run(command('pick',kind),capture_output=True,text=True,encoding='utf-8',timeout=300,creationflags=flags)

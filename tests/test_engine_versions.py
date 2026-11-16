@@ -1,4 +1,4 @@
-"""Engine updates keep the active and previous version only, reuse unchanged parts, leave no archives."""
+"""Engine updates keep only the active version, reuse unchanged parts, leave no archives."""
 import hashlib
 import io
 import os
@@ -81,21 +81,20 @@ class EngineVersionTests(unittest.TestCase):
     def folders(self):
         return sorted(p.name.split('-')[0] for p in (self.root / 'llama-cuda').iterdir())
 
-    def test_three_updates_keep_two_versions_without_archives(self):
+    def test_three_updates_keep_only_the_active_version_without_archives(self):
         for tag in ('b1', 'b2', 'b3'):
             self.install(tag)
-        self.assertEqual(self.folders(), ['b2', 'b3'])
+        # Straight to each new build, and only the one in use stays on disk (no "previous" copy).
+        self.assertEqual(self.folders(), ['b3'])
         leftovers = [p for p in (self.root / 'llama-cuda').rglob('*.zip')]
         self.assertEqual(leftovers, [])
         # cudart did not change: downloaded once, then linked into each new version.
         self.assertEqual(sum('cudart' in name for name in self.downloads), 1)
         active = Path(engine_updates.active_installations()['llama-cuda']['executable'])
         self.assertEqual((active.parent / 'cudart64_12.dll').read_bytes(), b'cudart-12.4')
-
-        self.updates.rollback('llama-cuda')
-        self.assertIn('b2', engine_updates.active_installations()['llama-cuda']['tag'])
-        self.updates.prune('llama-cuda')
-        self.assertEqual(self.folders(), ['b2', 'b3'])  # the version rolled back from is kept
+        self.assertNotIn('previous', self.updates.snapshot())
+        with self.assertRaises(ValueError):
+            self.updates.rollback('llama-cuda')
 
     def test_changed_dependency_is_downloaded_again_and_failures_leave_nothing(self):
         self.install('c1')
@@ -117,3 +116,17 @@ def tearDownModule():
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class LatestReleaseTests(EngineVersionTests):
+    """With several releases out since the installed one, the check goes straight to the newest."""
+    def test_newest_by_publication_even_when_listed_in_another_order(self):
+        import json
+        def rel(tag, published):
+            return {'tag_name': tag, 'draft': False, 'prerelease': False, 'published_at': published, 'body': '', 'html_url': 'u',
+                    'assets': [self.asset('llama-%s-bin-win-cuda-12.4-x64.zip' % tag, b'x')]}
+        listing = [rel('b10', '2026-11-10T00:00:00Z'), rel('b12', '2026-11-12T00:00:00Z'), rel('b11', '2026-11-11T00:00:00Z')]
+        with patch.object(engine_updates.urllib.request, 'urlopen', lambda request, timeout=0: Response(json.dumps(listing).encode())):
+            self.updates.check(force=True)
+        self.assertEqual(self.updates.state['releases']['llama-cuda']['tag'], 'b12')
+        self.assertEqual(self.updates.state['releases']['llama-cuda']['asset']['name'], 'llama-b12-bin-win-cuda-12.4-x64.zip')

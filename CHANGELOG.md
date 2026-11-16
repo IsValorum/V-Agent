@@ -4,6 +4,17 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.1.1
+
+Release introducing optional Project Maya integration, custom pre-compiled build support across all four local engines, per-model engine load options, an intermediate installer progress window on app updates, engine uninstall, and `llama.cpp` update reliability fixes.
+
+- **Optional Project Maya (`mw00/project-maya`) integration (`agent/maya_engine.py`, `agent/engine_manager.py`, `agent/thinking_policy.py`):** Added optional local engine support with Windows CUDA 13.2+ / VS 2026 and AMD ROCm prerequisite inspection, GitHub tag auto-updating, and per-family configuration (`GLM-5.3-Flash`, `GLM-5.3 744B`, `DeepSeek-V4.1-Flash-1017`, `MiniMax-M3.1-Flash`, `Qwen-3.8-Flash-Next`) without forcing installation in onboarding or settings.
+- **Custom build selection for all 4 local engines (`agent/engine_manager.py`, `agent/maya_engine.py`, `agent/runtime_paths.py`, `agent/model_import.py`, `agent/kv_settings.py`, `agent/ui/app/engine-controls.js`):** Users with their own pre-compiled `Strata · PolyStrata`, `Strata Rust`, `llama.cpp`, or `Project Maya` binaries can select them directly without forced downloads or recompilation, preserving custom paths across variant switches and prepending companion DLL directories on launch.
+- **Per-model engine load options (`agent/engine_options.py`, `agent/ui/app/load-settings.js`):** Added a `--help`-filtered catalog of engine load flags for `llama.cpp`, `Strata`, and `Strata Rust` with conflict validation (e.g., quantized KV cache requiring Flash Attention) and per-model persistence.
+- **Installer progress mini-window (`agent/app_updates.py`, `agent/ui/app/tour.js`, `agent/ui/styles/panels.css`, `agent/desktop_runtime.py`):** Added an in-app transition overlay and an external WinForms progress mini-window during **Install and restart** (English default, localized to `en`, `es`, `pt`, `fr`, and `de`) so users never see a blank screen while the installer runs and V-Agent restarts.
+- **`llama.cpp` update fix, engine uninstall, and update storage cleanup (`agent/engine_updates.py`, `agent/components.py`, `agent/app_updates.py`):** Fixed `llama.cpp` updates getting stuck at 100% downloaded without installing (handling transient `WinError 32` file locks and resetting progress cleanly), added clean engine uninstall/unlinking, and pruned superseded component revisions and already-installed/broken installers.
+- **5-language UI coverage & fast-extraction packaging:** Updated `1,899` translated phrases across `es`, `en`, `pt`, `fr`, and `de` in `agent/ui/locales.json` and `i18n.js`, built from a verified clean Git worktree using fast `zlib` NSIS decompression.
+
 ## 1.1.0
 
 Release focused on cleaner tool-execution UI, automatic minor updates without manual intervention, optional local engine setup on fresh installs, hardened remote API compatibility, and clearer MCP parameter diagnostics.

@@ -273,8 +273,8 @@ syncThemeControls();
 
 let modelVision={},visionDirty=false,projectRequest=0;
 function setupVisionSettings(container){
-  const section=document.createElement('details');section.id='visionSettings';
-  section.innerHTML='<summary>Visión · mmproj</summary><label class="chk"><input type="checkbox" id="visionEnabled"> Activar al cargar el modelo</label><div class="vision-path"><input id="visionPath" type="text" placeholder="Proyector mmproj.gguf" aria-label="Archivo mmproj"><button id="browseVision" type="button">Elegir…</button></div><details><summary>Codificador</summary><div class="vision-path"><input id="visionEncoder" type="text" aria-label="Codificador strata-vision"><button id="browseEncoder" type="button">Elegir…</button></div></details><p id="visionStatus" role="status"></p><button id="saveVision" type="button">Guardar para próxima carga</button>';
+  const section=document.createElement('details');section.id='visionSettings';section.className='settings-group';
+  section.innerHTML='<summary>Visión · mmproj</summary><label class="chk"><input type="checkbox" id="visionEnabled"> Activar al cargar el modelo</label><div class="vision-path"><input id="visionPath" type="text" placeholder="Proyector mmproj.gguf" aria-label="Archivo mmproj"><button id="browseVision" type="button">Elegir…</button></div><h5 class="block-title">Codificador</h5><div class="vision-path"><input id="visionEncoder" type="text" aria-label="Codificador strata-vision"><button id="browseEncoder" type="button">Elegir…</button></div><p id="visionStatus" role="status"></p><button id="saveVision" type="button">Guardar para próxima carga</button>';
   container.append(section);
   HELP.visionConfig=['Visión y mmproj','El mmproj convierte imágenes para el modelo y debe ser compatible con él. Se guarda por modelo. Activarlo se aplica en la próxima carga manual; elegir un archivo no carga nada. El codificador trabaja en CPU cuando adjuntas una imagen.'];
   const help=helpButton('visionConfig');section.querySelector('summary').append(help);help.onclick=event=>{event.preventDefault();event.stopPropagation();if(helpPinned&&helpAnchor===help)hideHelp();else showHelp(help,true);};

@@ -33,8 +33,8 @@
     loading=(async()=>{try{loaded=await requestJSON('/api/harness/mcp-options');for(const server in fields)for(const [key] of fields[server]){const input=document.getElementById('mcpopt-'+server+'-'+key);if(input.type==='checkbox')input.checked=loaded[server][key];else input.value=loaded[server][key];}document.getElementById('saveMCPOptions').disabled=false;document.getElementById('mcpOptionsState').textContent='';}catch(error){document.getElementById('mcpOptionsState').textContent=t('No se pudieron cargar los ajustes.')+' '+error.message;}finally{loading=null;}})();return loading;
   }
   window.setupMCPOptions=()=>{
-    const host=document.createElement('details');host.id='mcpOptions';host.className='settings-group';
-    host.innerHTML='<summary>Configuración de MCPs</summary><div class="mcp-options-body"><p class="mini">Se aplican a las próximas llamadas. No activa herramientas.</p><div id="mcpOptionsFields"></div><div class="mcp-options-actions"><button id="saveMCPOptions" type="button" disabled>Guardar ajustes</button><span id="mcpOptionsState" class="mini" role="status"></span></div></div>';
+    const host=document.createElement('section');host.id='mcpOptions';host.className='mcp-options';
+    host.innerHTML='<h4 class="block-title">Configuración de MCPs</h4><div class="mcp-options-body"><p class="mini">Se aplican a las próximas llamadas. No activa herramientas.</p><div id="mcpOptionsFields"></div><div class="mcp-options-actions"><button id="saveMCPOptions" type="button" disabled>Guardar ajustes</button><span id="mcpOptionsState" class="mini" role="status"></span></div></div>';
     document.getElementById('settings-tools').insertBefore(host,document.getElementById('settingsToolsHost'));
     for(const [server,title] of [['duckduckgo','Web Search / Web Visit'],['documents','Extractor de PDF y documentos'],['pc','PC · archivos y código'],['hf','Hugging Face']]){
       const group=document.createElement('details');group.className='mcp-option-server';const summary=document.createElement('summary');summary.textContent=title;group.append(summary);
@@ -53,7 +53,9 @@
       }
       group.append(content);document.getElementById('mcpOptionsFields').append(group);
     }
-    host.addEventListener('toggle',()=>{if(host.open&&!loaded)load();});
+    // A section now (it was a fold whose opening loaded the values): load when it is first on screen.
+    const seen=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting)&&!loaded){seen.disconnect();load();}});
+    seen.observe(host);
     document.getElementById('saveMCPOptions').onclick=async()=>{
       const button=document.getElementById('saveMCPOptions'),status=document.getElementById('mcpOptionsState'),body={};
       for(const server in fields){body[server]={};for(const [key,,type] of fields[server]){const input=document.getElementById('mcpopt-'+server+'-'+key);if(!input.checkValidity()){input.reportValidity();return;}body[server][key]=type==='checkbox'?input.checked:type==='number'?Number(input.value):input.value;}}

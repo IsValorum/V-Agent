@@ -134,7 +134,7 @@ async function loadModel() {
   $('#modelStatus').textContent=uiText('Cargando')+' '+name+'…';
   const timer=setInterval(()=>{syncPreparationView();$('#modelStatus').textContent=preparationState?.cancel_requested?uiText('Cancelando la carga…'):uiText('Preparando')+' '+name+' · '+Math.floor((Date.now()-started)/1000)+' s';},1000);
   try {
-    const result=await requestJSON('/api/load',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:selected,context}),signal:AbortSignal.timeout(910000)});
+    const result=await requestJSON('/api/load',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:selected,context}),signal:AbortSignal.timeout(activeEngine==='maya'?1810000:910000)});
     if(result.status==='cancelled'){
       updatePreparation(result.preparation);setLoadedModel(null);setEngineState(result.engine_online===true);await loadModels();$('#modelStatus').textContent=uiText('Carga cancelada.');note('Carga cancelada.');return;
     }

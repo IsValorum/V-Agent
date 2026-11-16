@@ -62,13 +62,17 @@ class ModelPreferences:
 
     def save(self, model, settings):
         if not isinstance(settings,dict):raise ValueError('Ajustes no válidos.')
-        allowed = {'sampling','effort','rounds','context','kv','load','draft'}
+        allowed = {'sampling','effort','rounds','context','kv','load','draft','engine'}
         if set(settings)-allowed:raise ValueError('Ajuste desconocido.')
         with self.lock:
             entry = copy.deepcopy(self.records.get(model, {}))
             for key,value in settings.items():
                 if key=='load':
                     from load_settings import validate
+                    entry[key]=validate(value,entry.get(key))
+                elif key=='engine':
+                    # Every other option of the engine (Flash Attention, threads, RoPE, LoRA…), see engine_options.
+                    from engine_options import validate
                     entry[key]=validate(value,entry.get(key))
                 elif key=='draft':
                     from draft_models import validate
@@ -85,7 +89,7 @@ class ModelPreferences:
                     if not isinstance(value,str) or value not in FORMATS:raise ValueError('Formato KV no válido.')
                     entry[key] = value
                 elif key=='effort':
-                    if value not in ('default','none','think','minimal','low','medium','high','xhigh'):raise ValueError('Razonamiento no válido.')
+                    if value not in ('default','none','think','minimal','low','medium','high','xhigh','max'):raise ValueError('Razonamiento no válido.')
                     entry[key] = value
                 else:
                     # Provider models declare up to millions of tokens; local engines are still held to
