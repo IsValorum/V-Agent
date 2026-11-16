@@ -45,7 +45,7 @@ class EngineCustomTests(unittest.TestCase):
  def test_all_four_local_engines_support_and_preserve_custom_builds(self):
   import json,kv_settings,runtime_paths
   with tempfile.TemporaryDirectory() as folder:
-   root=Path(folder)
+   root=Path(folder).resolve()
    settings_root=root/'settings';settings_root.mkdir()
    runtime_root=root/'runtime';runtime_root.mkdir()
    strata_exe=root/'custom-strata'/'strata-poly-custom.exe';strata_exe.parent.mkdir();strata_exe.write_bytes(b'strata')

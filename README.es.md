@@ -3,8 +3,9 @@
 # V-Agent
 
 **Un agente de IA local para Windows.**
-Ejecuta modelos GGUF en tu propio PC —o conecta una API compatible con OpenAI o Claude— y dales
-herramientas reales con permisos claros.
+Ejecuta modelos GGUF en tu propio PC con cuatro motores locales (o con tus propias compilaciones) —o conecta
+una API compatible con OpenAI, Claude, Azure u OpenRouter— con búsqueda y lectura web integrada con
+DuckDuckGo (`WebSearch`/`WebVisit`), lectura de documentos, navegador autónomo y permisos claros por acción.
 
 [![Tests](https://github.com/IsValorum/V-Agent/actions/workflows/tests.yml/badge.svg)](https://github.com/IsValorum/V-Agent/actions/workflows/tests.yml) [![Latest release](https://img.shields.io/github/v/release/IsValorum/V-Agent)](https://github.com/IsValorum/V-Agent/releases/latest) [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
@@ -24,119 +25,109 @@ herramientas reales con permisos claros.
 > cómputo con que se prueban nuevos modelos, motores y versiones, y ayuda a sostener mis estudios
 > universitarios.
 
-## Tres motores locales, integrados
+## Motores locales, compilaciones propias y APIs remotas
 
-V-Agent no se limita a apuntar a un motor que configuras tú: **llama.cpp, Strata y Strata Rust están
-integrados de forma nativa**. Los instala, los arranca, habla con sus servidores privados y lee sus
-propias cifras, y cambias de uno a otro desde la ventana del modelo con un clic.
+V-Agent no se limita a apuntar a un servidor externo: **Strata, Strata Rust, llama.cpp y Project Maya** se
+integran de forma nativa con su gestor de procesos privados, recomendador de hardware, estimador de memoria
+y selector de modelos. Además, en los cuatro motores puedes seleccionar **tu propia compilación precompilada**
+sin que se te obligue a descargar ni compilar nada.
 
-| | Qué hace V-Agent con él |
+| Motor | Qué hace V-Agent con él |
 |---|---|
-| **Strata** (por defecto) | Su servidor y su hub MCP forman parte del núcleo de V-Agent. Ejecuta modelos **Mixture-of-Experts** grandes en GPU pequeñas manteniendo en VRAM los expertos más usados, y antes de cada respuesta V-Agent reajusta esa caché de expertos a la conversación: más expertos (escribe más rápido) en una charla corta, sitio para la caché KV en una larga, sin reiniciar nada. Cabezas MTP para decodificación especulativa. |
-| **Strata Rust** | Arranca en la GPU con una clave privada por sesión y caché KV f16/q8/q4. Su contexto, velocidad y estado se leen del propio motor. |
-| **llama.cpp** | La compilación oficial CUDA, Vulkan o CPU adecuada a tu equipo. Ajuste automático de capas y contexto, formatos de caché KV, drafts especulativos, visión (mmproj). |
+| **Strata · PolyStrata** (por defecto) | Servidor integrado y hub MCP para modelos **Mixture-of-Experts** y densos. Reajusta dinámicamente en cada turno la caché de expertos en VRAM, admite decodificación especulativa MTP, `strata-vision`, cachés KV (`fp16`/`q8_0`/`int8`/`int8k`) y selección de binario personalizado. |
+| **Strata Rust** | Backend GPU para **Qwen3.5/3.6** con clave privada por sesión (`STRATA_API_KEY`), caché KV `f16`/`q8`/`q4`, métricas medidas y soporte de ejecutable propio. |
+| **llama.cpp** | Compilaciones oficiales **CUDA 12.4**, **Vulkan** (AMD, Intel Arc, NVIDIA) o **CPU** elegidas según tu equipo desde GitHub (o tu propio `llama-server.exe`). Incluye ajuste automático `--fit`, cachés KV cuantizadas (`fp16`/`bf16`/`q8_0`/`q4_0`), modelos draft especulativos, visión (`mmproj`) y reintentos ante bloqueos de archivos al actualizar en Windows. |
+| **Project Maya** *(opcional)* | Integración opcional para `mw00/project-maya` (**GLM-5.3-Flash**, **GLM-5.3 744B**, **DeepSeek-V4.1-Flash-1017**, **MiniMax-M3.1-Flash**, **Qwen-3.8-Flash-Next**) con diagnóstico de requisitos CUDA 13.2+ / VS 2026 y AMD ROCm, actualización por tags de GitHub, ajustes por familia y selector directo de carpeta o binario ya compilado. Nunca es obligatorio en el tutorial ni en ajustes. |
+| **APIs remotas** | Conexión con **OpenAI compatible**, **Anthropic Claude** (`/messages`), **Azure OpenAI** (con respaldo clásico `/openai/deployments/`), **OpenRouter** y **OpenCode**, con modos de autenticación por conexión (`Bearer`, `x-api-key`, `api-key`, ninguno), `User-Agent`, `anthropic-beta`, UUID persistente `x-opencode-session`, cabeceras anti-buffer SSE y cabeceras personalizadas. |
 
-En los tres: se instalan y actualizan desde sus **releases oficiales de GitHub** con verificación de
-checksum y una prueba antes de activarse, conservando la versión anterior para volver atrás; un modelo
-solo cuenta como cargado cuando el motor lo sirve de verdad; las velocidades se miden, no se estiman;
-los ajustes se conservan al cambiar de motor; y un motor que no puede ejecutar la arquitectura de un
-modelo lo dice al momento y te indica uno que sí. Antes de cada versión se ejecutan modelos reales en
-los tres ([resultados](docs/test-reports/1.0.7.md)).
+Además, en los motores locales:
+- **Opciones de carga por modelo (`agent/engine_options.py`):** lee `--help` del binario activo para mostrar únicamente los flags que admite esa compilación (Flash Attention, hilos de CPU, `mmap`/`mlock`/`load-mode`, KV offload, context shift, etc.), valida conflictos (como exigir Flash Attention para KV cuantizada) y guarda los ajustes por modelo.
+- **Sin descargas ni compilaciones forzadas:** puedes instalar, restaurar a la versión anterior o **eliminar** motores administrados desde *Ajustes → Sistema → Actualizaciones de motores*, o elegir tu binario propio en *Modelo → Motor*.
+- **Estimador de VRAM/RAM y métricas en vivo:** calcula pesos, caché KV, drafts y VRAM recuperable dentro de *Desglose de memoria*, y mide velocidades reales de prefill y decodificación (`tok/s`).
 
-## Qué hace
+## Búsqueda y lectura web con DuckDuckGo (`WebSearch`/`WebVisit`) y 7 servidores MCP
 
-- **Ejecuta modelos en tu equipo** con las compilaciones oficiales de **llama.cpp** (CUDA, Vulkan o CPU,
-  según tu hardware, descargadas de sus releases de GitHub), **Strata** o **Strata Rust**. También
-  funciona con APIs remotas compatibles con OpenAI y Claude.
-- **Le da herramientas al modelo**: archivos (con versiones y deshacer), comandos, búsqueda web y
-  lectura de páginas, un navegador autónomo, peticiones HTTP, Hugging Face y cualquier servidor MCP,
-  dentro de una **carpeta aislada por chat** o en todo el PC, con aprobación por acción.
-- **Te ayuda a encontrar modelos**: la ventana *Modelos* explora Hugging Face (descargas, likes,
-  contexto, licencia, la ficha renderizada y si cada cuantización cabe en tu GPU), descarga verificando
-  el SHA-256 e importa modelos y sus ajustes desde **LM Studio** y **Unsloth Studio**.
-- **Revisa el código que escribe**: Python (compilado), JavaScript, CSS, PowerShell, JSON, YAML, TOML,
-  XML/SVG y Java, además de TypeScript, C/C++, Rust, Go, PHP, Ruby y Lua si su compilador está
-  instalado. Las páginas HTML se ejecutan en un navegador sin interfaz con el mismo aislamiento que la
-  vista previa y reportan los errores con su línea.
-- **Sigue siendo tuyo**: sin cuenta y sin telemetría. Las actualizaciones van firmadas y la app solo
-  acepta lo que firma el autor.
+V-Agent incluye siete servidores MCP coordinados por conversación y controlados por permisos reales en el núcleo:
+
+| Servidor | Capacidades principales |
+|---|---|
+| **`duckduckgo` (`WebSearch` / `WebVisit`)** | Búsqueda web y lectura de páginas públicas (`web_search`, `web_visit`) integradas de serie, con botón de activación rápida en la barra de mensajes. Permite configurar en **Opciones MCP**: **región**, **idioma**, **SafeSearch**, **límite temporal** (`d`/`w`/`m`/`y`), **número de resultados**, filtrado de anuncios, timeout y presupuesto `visit_tokens` / `max_result_chars` desde `0` (**sin límite**) hasta `1.000.000`. Reintenta automáticamente sin comillas y con región global `wt-wt` si no hay resultados, extrae Markdown limpio con tablas y enlaces usando `trafilatura`, enfoca secciones con `find_in_page`, pagina instantáneas inmutables (`8 MiB` en páginas web), resume perfiles públicos de Hugging Face y **extrae documentos remotos PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, EPUB y RTF de hasta 24 MiB**. |
+| **`pc` (Archivos, Documentos y Consola)** | Lectura, escritura y edición con números de línea, recibos en diff unificado, historial y deshacer (`file_history`), mapa de proyecto (`project_map`), recuperación de borradores largos (`draft_resume`), ejecución aislada (`wxc-exec.exe`) o en todo el PC con **Consola** compartida, y **`pc__doc_read`** para leer en local **PDF** (con respaldo OCR de Windows para páginas escaneadas), Word, Excel, PowerPoint, OpenDocument, EPUB, RTF, CSV, HTML y XML. |
+| **`autobrowser` (Navegador autónomo)** | Navegador CDP sin ventana (`open`, `navigate`, `snapshot`, `text`, `click`, `fill`, `press`, `evaluate`, `screenshot`, `cookies`, `network`, `browser_console`) capaz de capturar Shadow DOM e iframes anidados, conectado con el panel visual **Navegador** integrado (con pantalla completa). |
+| **`web` (HTTP y descargas)** | Herramientas `http_request` y `download` (hasta `512 MiB`) con validación de redirecciones y bloqueo de redes privadas por defecto. |
+| **`computer` (Control de escritorio)** | Captura de pantalla, OCR (`ocr_image`), lista y foco de ventanas, ratón y teclado (solo con permiso explícito de acceso total). |
+| **`admin` (Consola elevada opcional)** | Helper UAC opcional por sesión sobre pipe privado para comandos administrativos puntuales en PowerShell o CMD. |
+| **`hf` (Hugging Face)** | Consulta la cuenta HF configurada y descarga o gestiona archivos junto con el buscador gráfico en *Modelos*. |
+
+También incluye soporte de **Extensiones, Plugins y servidores MCP externos**, con límites ajustables en *Tools → Opciones MCP*.
+
+## Interfaz, modelos y productividad
+
+- **Ventana Modelos e importación local:** explora Hugging Face (descargas, likes, contexto, licencia, ficha renderizada y si cada cuantización cabe en tu GPU/RAM), descarga verificando SHA-256 e importa o exporta modelos y ajustes con **LM Studio** y **Unsloth Studio** (sin copiar ni alterar tus `.gguf`).
+- **Proyectos y carpetas aisladas por chat:** cada conversación tiene su propia carpeta aislada, o puedes trabajar dentro de una carpeta de **Proyecto** tuya; tres perfiles de autonomía (**Ligero**, **Equilibrado** y **Completo**) con aprobaciones aplicadas por el núcleo.
+- **Traza de herramientas compacta y compactación de contexto:** las llamadas a herramientas se agrupan en un bloque colapsable con contador de pasos y errores. Las conversaciones largas pueden comprimirse con **Compactar contexto** (resumen local, OpenAI `/responses/compact` o Anthropic `/messages`).
+- **Verificación automática de código:** valida sintaxis y compilación en Python, JavaScript, CSS, PowerShell, JSON, YAML, TOML, XML/SVG y Java (además de TypeScript, C/C++, Rust, Go, PHP, Ruby y Lua si están instalados), y abre páginas HTML en navegador aislado para reportar errores de consola con línea.
+- **5 idiomas y personalización visual:** interfaz traducida por completo a **Español, English, Português, Français y Deutsch** (`1.899` frases), estilos **Glass** / **Deco**, modos Día / Noche / **AMOLED**, paletas de color y recorrido guiado inicial opcional.
 
 ![Ventana Modelos](docs/images/models.png)
 
 ## Calidad y pruebas
 
-- **Más de 200 pruebas automáticas** en cada cambio (núcleo, lógica de la interfaz, actualizaciones,
-  seguridad), además de análisis estático con ruff, bandit y ESLint.
-- **Pruebas con modelos reales** en llama.cpp, Strata y Strata Rust: se crean y comprueban archivos,
-  se respetan las aprobaciones, las respuestas se detienen limpiamente y un motor que no puede ejecutar
-  un modelo lo dice.
-- **Un recorrido automático por toda la interfaz** en un navegador sin ventana (cada ventana y página
-  de ajustes, tema claro y oscuro, ventanas pequeñas y grandes), y una sonda que detecta ventanas que
-  parpadean.
-- **Cada versión se comprueba** antes y después de publicarla: se arranca la aplicación empaquetada y
-  se verifica la actualización firmada tal como la verificará la versión anterior.
+- **338 pruebas unitarias automáticas en Python** + **8 suites JS (`.cjs`)** que cubren cambio de motores, compilaciones propias en los 4 motores locales, opciones de carga por modelo, protocolos de API remota, firmas y actualizaciones, seguridad, aislamiento de procesos (`wxc-exec.exe`), recuperación MCP y las 5 traducciones.
+- **Sondas y pruebas con modelos reales (`tests/smoke/`, `scripts/quality/`):** pruebas de extremo a extremo con `llama.cpp`, `Strata`, `Strata Rust` y matriz de `Project Maya`, arranque aislado, auditoría de diseño sin parpadeos y capturas completas de interfaz.
+- **Compilación limpia verificada (`scripts/clean_release_build.py`):** genera el instalador desde un *worktree* limpio de Git y comprueba que `strata-core.exe`, `V-Agent.exe` y `agent/ui/dist` estén libres de datos personales, rutas de usuario, seeds, modelos, llaves privadas o perfiles de navegador.
 
-Resultados de cada comprobación de esta versión, con capturas de su interfaz real:
-[docs/test-reports/1.0.7.md](docs/test-reports/1.0.7.md). Métodos, herramientas y lo que aún no se cubre:
-[docs/QUALITY.md](docs/QUALITY.md) (en inglés).
+Consulta [docs/QUALITY.md](docs/QUALITY.md), [CHANGELOG.md](CHANGELOG.md) y [docs/test-reports/1.0.7.md](docs/test-reports/1.0.7.md).
 
 ## Instalar
 
 1. Descarga `V-Agent_<versión>_x64-setup.exe` desde [Releases](../../releases/latest) (Windows 10/11, x64).
-2. Ábrelo. Lo más probable es que Windows muestre una pantalla azul **"Windows protegió tu PC"**: mira la nota de abajo.
-3. Elige idioma (Español, English, Português, Français, Deutsch) y carpeta. No hace falta ser administrador.
-4. Al abrirlo por primera vez te recomienda un motor para tu hardware y lo instala cuando confirmas.
-5. Añade un modelo GGUF o abre **Modelos** para buscar uno, y empieza a chatear. Un tutorial breve explica el resto.
+2. Ábrelo (empaquetado con compresión rápida `zlib`, sin permisos de administrador). Windows puede mostrar **"Windows protegió tu PC"**: revisa la nota inferior.
+3. Elige idioma (*Español, English, Português, Français, Deutsch*) y carpeta de instalación.
+4. Al iniciarlo por primera vez, el recorrido opcional te deja elegir motor, apuntar a tu propia compilación o conectar una API remota sin forzar descargas.
 
 > [!IMPORTANT]
-> **Sobre el aviso "Windows protegió tu PC".** El instalador todavía no está firmado con un
-> certificado de firma de código de Microsoft (es de pago), así que Windows SmartScreen no reconoce al
-> autor y muestra este aviso con las descargas nuevas. Para continuar, pulsa **Más información →
-> Ejecutar de todas formas**.
+> **Sobre el aviso "Windows protegió tu PC".** El instalador aún no usa un certificado comercial de
+> firma de código Microsoft Authenticode, por lo que Windows SmartScreen muestra este aviso con descargas
+> nuevas. Pulsa **Más información → Ejecutar de todas formas** únicamente si lo descargaste de los
+> [Releases](../../releases/latest) de este repositorio.
 >
-> Hazlo solo con el instalador descargado de los [Releases](../../releases/latest) de este
-> repositorio. Puedes comprobar que tu archivo es el publicado: ejecuta
-> `Get-FileHash .\V-Agent_<versión>_x64-setup.exe` en PowerShell y compara el resultado con el valor
-> `sha256` del archivo `v-agent-update.json` de la versión (da igual que esté en mayúsculas o minúsculas; ese archivo lo firma el autor, y V-Agent
-> verifica esa misma firma antes de instalar cualquier actualización).
+> Puedes verificar tu descarga en PowerShell:
+> `Get-FileHash .\V-Agent_<versión>_x64-setup.exe`
+> y comparar el resultado con el valor `sha256` del archivo `v-agent-update.json` de esa misma versión
+> (V-Agent valida además su firma Ed25519 automáticamente antes de aplicar actualizaciones).
 
-V-Agent se mantiene al día solo: al poco de abrirse aplica la **actualización menor** firmada más
-reciente (numeradas *1.0.0 C1, C2…*, sin instalador) y descarga un instalador más nuevo si existe, que
-solo instala cuando tú lo indicas.
+V-Agent se mantiene al día: tras abrirse aplica las **actualizaciones menores** firmadas (*1.1.1 C1, C2…*,
+sin reinstalar) y descarga instaladores nuevos en segundo plano. Al pulsar **Instalar y reiniciar**, muestra
+un mini menú de progreso traducido al idioma elegido mientras instala y relanza V-Agent automáticamente.
 
 ## Mapa del repositorio
 
 | Carpeta | Qué contiene |
 |---|---|
-| [`agent/`](agent/) | El núcleo: bucle del agente, API local, motores, herramientas (servidores MCP), actualizaciones y el código de la interfaz en [`agent/ui/`](agent/ui/). |
-| [`serve/`](serve/) | Capa de peticiones compatible con OpenAI/Anthropic y el hub MCP, tomados de PolyStrata. |
-| [`web_mcp/`](web_mcp/) | Búsqueda web, lectura de páginas y herramientas HTTP (servidores MCP). |
-| [`tools/`](tools/) | Lector de cabeceras GGUF y tokenizador usados al importar modelos. |
-| [`desktop/`](desktop/) | La aplicación de Windows (Tauri 2, Rust) y la configuración del instalador. |
-| [`scripts/`](scripts/) | Compilación, empaquetado, sincronización de la interfaz y firma de versiones. |
-| [`tests/`](tests/) | Pruebas automáticas (Python + interfaz) y pruebas manuales con modelo real. |
-| [`docs/`](docs/) | Arquitectura, API local, guía de usuario, capturas y notas de diseño. |
+| [`agent/`](agent/) | Núcleo, bucle del agente, motores locales/remotos (`engine_manager.py`, `maya_engine.py`, `engine_options.py`), servidores MCP, actualizaciones e interfaz en [`agent/ui/`](agent/ui/). |
+| [`serve/`](serve/) | Capa de peticiones compatible con OpenAI/Anthropic y hub MCP (basado en PolyStrata). |
+| [`web_mcp/`](web_mcp/) | Búsqueda y lectura web integrada con DuckDuckGo (`buscador_mcp.py`, `busqueda_local.py`) y herramientas HTTP (`http_tools_mcp.py`). |
+| [`tools/`](tools/) | Lector de metadatos GGUF y tokenizador para importación de modelos. |
+| [`desktop/`](desktop/) | Aplicación de escritorio Windows (Tauri 2, Rust) y configuración NSIS `zlib`. |
+| [`scripts/`](scripts/) | Ensamblador UI (`build-ui.py`), compilador limpio (`clean_release_build.py`) y firma Ed25519 (`release.py`). |
+| [`tests/`](tests/) | Pruebas unitarias Python, suites JS `.cjs` y pruebas con modelo real. |
+| [`docs/`](docs/) | Arquitectura, API local, guía de usuario e informes de calidad. |
 
 ## Compilar y probar
 
-Requisitos: Windows 10/11 x64, Python 3.13, Node.js 20+, Rust (stable, MSVC) y Visual Studio Build Tools.
-Los comandos están en el [README en inglés](README.md#build-and-test) y en [CONTRIBUTING.md](CONTRIBUTING.md).
+Requisitos: Windows 10/11 x64, Python 3.13, Node.js 20+, Rust (MSVC estable) y Visual Studio Build Tools.
+Los comandos completos están en el [README en inglés](README.md#build-and-test) y en [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Seguridad y privacidad
 
-- Todo escucha solo en `127.0.0.1` y responde únicamente a nombres locales, así que las páginas web no
-  pueden alcanzarlo. Los servidores de los motores exigen una clave privada en cada sesión.
-- Los archivos de modelo nunca se copian ni se modifican.
-- Los comandos se ejecutan en un contenedor de procesos de Windows en modo aislado; el acceso a todo el
-  PC es opcional.
-- Las herramientas que escriben archivos, restauran versiones, ejecutan comandos o usan la red piden
-  permiso en el modo «Preguntar»; las aprobaciones las aplica el núcleo, no solo la interfaz.
-- Las actualizaciones (instaladores, actualizaciones menores y motores) se verifican antes de usarse:
-  firma Ed25519 del autor para V-Agent, release oficial de GitHub y SHA-256 para motores y descargas de
-  Hugging Face.
+- Todo escucha únicamente en `127.0.0.1` validando orígenes locales; los servidores de motores exigen una clave privada por sesión.
+- Los archivos `.gguf` nunca se copian ni se modifican.
+- Los comandos se ejecutan en sandbox de procesos de Windows (`wxc-exec.exe`) en modo aislado o de proyecto; el acceso total al PC es opcional.
+- Las aprobaciones de escritura, comandos y red se aplican en el núcleo Python, no solo en la interfaz.
+- Instaladores y componentes menores se verifican con firma Ed25519 del autor; motores y descargas de Hugging Face se verifican por origen y SHA-256.
 
-Lee [SECURITY.md](SECURITY.md) para informar de una vulnerabilidad y [PRIVACY.md](PRIVACY.md) para saber
-qué se guarda y dónde.
+Lee [SECURITY.md](SECURITY.md) y [PRIVACY.md](PRIVACY.md) para más detalles.
 
 ## Licencia
 

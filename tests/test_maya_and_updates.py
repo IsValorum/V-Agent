@@ -14,7 +14,7 @@ import zipfile
 from pathlib import Path
 from unittest.mock import patch
 
-TMP = tempfile.mkdtemp(prefix='va-maya-')
+TMP = str(Path(tempfile.mkdtemp(prefix='va-maya-')).resolve())
 os.environ['STRATA_AGENT_DATA'] = TMP
 sys.path[:0] = ['agent', '.']
 
@@ -567,7 +567,7 @@ class EngineManagerMayaTests(unittest.TestCase):
                 self.assertIn('--parent-pipe',argv)
                 runtime_config=manager._maya_run_config
                 launch=json.loads(runtime_config.read_text(encoding='utf8'))
-                self.assertEqual(Path(launch['exe']),custom)
+                self.assertEqual(Path(launch['exe']).resolve(),custom.resolve())
                 self.assertEqual(launch['args'],['--max-context','16384'])
                 self.assertEqual(json.loads(path.read_text(encoding='utf8')),original)
                 self.assertEqual(manager.loaded_context,8192)
@@ -610,7 +610,7 @@ class EngineManagerMayaTests(unittest.TestCase):
 
         mgr.configure({'engine': 'maya', 'maya_root': str(valid_root), 'maya_backend': 'cuda'})
         self.assertEqual(mgr.kind, 'maya')
-        self.assertEqual(mgr.settings['maya']['root'], str(valid_root))
+        self.assertEqual(Path(mgr.settings['maya']['root']).resolve(), valid_root.resolve())
         self.assertEqual(mgr.settings['maya']['backend'], 'cuda')
 
     def test_ui_exposes_intermediate_update_overlay_and_four_engine_custom_pickers(self):
