@@ -68,10 +68,14 @@ function setLoadedModel(id,known=true,capacity=null){
   // The model window then shows the context the engine really runs with.
   if((changed||contextCapacity!==previousCapacity)&&typeof syncContextSelection==='function')syncContextSelection();
 }
-function modelIsReady(){return !preparationState?.active&&modelStateKnown&&engineOnline===true&&loadedModel&&loadedModel===$('#model').value;}
+// A local load still preparing (or one left over) never blocks a provider model: nothing is prepared for it.
+function localPreparing(){return !!preparationState?.active&&activeEngine!=='api';}
+// A click that cannot act now says why (and returns true) instead of doing nothing.
+function refuseWhileBusy(){const why=busy?'Espera a que termine la respuesta en curso o detenla.':engineBusy?'Espera a que termine la operación del motor.':'';if(why)note(why);return !!why;}
+function modelIsReady(){return !localPreparing()&&modelStateKnown&&engineOnline===true&&loadedModel&&loadedModel===$('#model').value;}
 function requireModelForChat(){if(modelIsReady())return true;note(loadedModel?'Descarga el modelo en memoria y carga el seleccionado en Motor.':'Selecciona un modelo y pulsa Cargar modelo en Motor.');if(!document.querySelector('dialog[open]'))setChatControls('model');return false;}
 function updateControls() {
-  const blocked=engineBusy||accessChanging||draftSaving||!!preparationState?.active;
+  const blocked=engineBusy||accessChanging||draftSaving||localPreparing();
   if($('#kvCache'))$('#kvCache').disabled=busy||blocked||!(modelKV[$('#model').value]?.options?.length);
   for(const id of ['input','attach','file','model','effort','refreshModels','addModel','engineToggle','workProfile','p_rounds','mcpReconnect','pcAccess'])$('#'+id).disabled=busy||blocked||accessChanging;
   $('#draftSource').disabled=$('#draftBrowse').disabled=busy||blocked||!$('#model').value;

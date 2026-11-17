@@ -48,7 +48,7 @@ $("#s_pc").onchange = () => {
 syncServerSwitches();
 function syncModelPicker() { updateControls(); }
 $("#model").onchange = () => { S.model = $("#model").value; syncContextSelection(); syncDraftSettings(); $("#modelStatus").textContent=""; syncModelPicker(); restoreModelPreferences(); saveSettings(); updateControls(); };
-$("#refreshModels").onclick=async()=>{if(busy||engineBusy)return;if(activeEngine!=='api'){await loadModels();return;}setEngineBusy(true);try{engineSnapshot=await requestJSON('/api/harness/connect',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(120000)});await loadModels();}catch(error){note(error.message);}finally{setEngineBusy(false);}};
+$("#refreshModels").onclick=async()=>{if(refuseWhileBusy())return;if(activeEngine!=='api'){await loadModels();return;}setEngineBusy(true);try{engineSnapshot=await requestJSON('/api/harness/connect',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(120000)});await loadModels();}catch(error){note(error.message);}finally{setEngineBusy(false);}};
 function syncProfileControls() {
   for (const [id,key,digits] of [["temp","temperature",2],["topp","top_p",2],["topk","top_k",0],["minp","min_p",2],["rep","repetition_penalty",2],["presence","presence_penalty",1],["frequency","frequency_penalty",1]]) {
     $("#p_"+id).value=S.sampling[key]; $("#o_"+id).textContent=Number(S.sampling[key]).toFixed(digits);
@@ -117,7 +117,7 @@ async function pollMCP() {
     health.textContent = 'No se pudo comprobar la conexión con los servidores.';
   }
 }
-$("#mcpReconnect").onclick=async()=>{if(busy||engineBusy)return;setEngineBusy(true);$("#mcpHealth").textContent="Reconectando…";try{await requestJSON("/api/mcp/reconnect",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});await pollMCP();}catch(e){$("#mcpHealth").textContent=e.message;}finally{setEngineBusy(false);}};
+$("#mcpReconnect").onclick=async()=>{if(refuseWhileBusy())return;setEngineBusy(true);$("#mcpHealth").textContent="Reconectando…";try{await requestJSON("/api/mcp/reconnect",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});await pollMCP();}catch(e){$("#mcpHealth").textContent=e.message;}finally{setEngineBusy(false);}};
 pollMCP();
 function syncAccessControls(){
   $('#pcAccess').value=pcAccess.mode;

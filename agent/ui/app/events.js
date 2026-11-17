@@ -74,7 +74,7 @@ async function inspectImport(){
     $('#registerModel').textContent=info.already_registered?'Seleccionar':'Añadir';$('#importStatus').textContent=(info.warnings||[]).join(' ');
   }catch(error){$('#importStatus').textContent=error.message;}finally{setImportBusy(false);}
 }
-$('#addModel').onclick=()=>{if(busy||engineBusy)return;if(activeEngine==='maya'){window.prepareMayaModel?.();return;}hideHelp();resetInspection();$('#modelPath').value='';$('#modelTemplate').value='';$('#modelName').value='';window.VALWindows?.open('import');$('#modelPath').focus();};
+$('#addModel').onclick=()=>{if(refuseWhileBusy())return;if(activeEngine==='maya'){window.prepareMayaModel?.();return;}hideHelp();resetInspection();$('#modelPath').value='';$('#modelTemplate').value='';$('#modelName').value='';window.VALWindows?.open('import');$('#modelPath').focus();};
 function closeImport(){if(importBusy)return;hideHelp();window.VALWindows?.close('import');$('#addModel').focus();}
 $('#closeAddModel').onclick=$('#cancelAddModel').onclick=closeImport;
 for(const id of ['modelPath','modelTemplate'])$('#'+id).addEventListener('input',resetInspection);

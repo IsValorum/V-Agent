@@ -4,6 +4,15 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.1.2
+
+Fix release: buttons that did nothing when clicked now act or say why.
+
+- **"Use model" with an API (`agent/ui/app/model-controls.js`, `agent/ui/app/composer.js`, `agent/ui/app/controls.js`):** The visible button now loads or releases the model itself instead of pressing a hidden button whose enabled state was computed elsewhere. A local `llama.cpp`/`Strata` load still marked as "preparing" in the core (stuck or left over, for up to 15 minutes) no longer blocks provider models: "Use model", "Disconnect API" and sending messages work. A leftover "preparing" state is checked with the core and cleared.
+- **No more silent clicks (`agent/ui/app/shell.js`, `agent/ui/app/settings.js`, `agent/ui/app/events.js`, `agent/ui/app/load-settings.js`, `agent/ui/app/models.js`):** During a reply or an engine operation, file access, approvals, "Add files", "Refresh", "Reconnect MCP", "Add model" and the draft model's "Choose…" now say why they cannot act instead of ignoring the click. After a download or import the model list refreshes even while a reply is running.
+- **Translations:** The new messages are translated into `en`, `pt`, `fr` and `de`.
+- **Tests:** `tests/smoke/api_use_model_ui.py` drives the real interface against a local fake provider (no account) and fails on 1.1.1 in all five reported cases.
+
 ## 1.1.1
 
 Release introducing optional Project Maya integration, custom pre-compiled build support across all four local engines, per-model engine load options, an intermediate installer progress window on app updates, engine uninstall, and `llama.cpp` update reliability fixes.

@@ -41,7 +41,7 @@ function syncComposerLabels(){
   // The chip shortens long names; the full one stays readable on the element.
   $('#modelBtnLabel').title=select.value?name:'';
   const limited=preparationState?.model===loadedModel&&preparationState?.mode==='on_demand';
-  const state=preparationState?.active||loadingModelId?'preparing':engineOnline===null||!modelStateKnown?'unknown':engineOnline===false?'off':!loadedModel?'empty':loadedModel===select.value?(limited?'limited':'ready'):'different';
+  const state=localPreparing()||loadingModelId?'preparing':engineOnline===null||!modelStateKnown?'unknown':engineOnline===false?'off':!loadedModel?'empty':loadedModel===select.value?(limited?'limited':'ready'):'different';
   const modelButton=$('#modelBtn');modelButton.dataset.state=state;syncWelcomeHint();
   modelButton.setAttribute('aria-label',uiText('Modelo')+': '+name+'. '+uiText(({unknown:'Comprobando estado',off:'Motor apagado',empty:'Sin modelo cargado',ready:'Cargado y listo',limited:'Cargado con lectura bajo demanda',preparing:'Preparando modelo',different:'Hay otro modelo en memoria'})[state]));
   $('#responseBtnLabel').textContent=({none:'Sin razonar',low:'Rápido',medium:'Equilibrado',high:'Profundo'})[S.effort]||uiText('Respuesta');

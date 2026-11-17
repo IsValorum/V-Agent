@@ -45,7 +45,7 @@ function syncModelSelectionSummary(){
     state.title=loadedModel&&!inMemory?uiText('En memoria:')+' '+(modelNames[loadedModel]||loadedModel):'';
   }
   if($('#remoteContextValue')){$('#remoteContextValue').textContent=model?.context?model.context.toLocaleString()+' tokens':uiText('No informado');$('#remoteContextOrigin').textContent=model?.context_source==='manual'?uiText('Límite indicado por ti'):model?.context_source==='provider'?uiText('Declarado por la API'):uiText('La API no publica este dato');if(document.activeElement!==$('#remoteContextInput'))$('#remoteContextInput').value=model?.context||'';}
-  const action=$('#modelSummaryAction');if(action){const loaded=!!model&&model.id===loadedModel;action.hidden=!model;action.textContent=model?.remote?(loaded?uiText('Dejar de usar'):uiText('Usar modelo')):(loaded?uiText('Descargar'):uiText('Cargar'));const switching=!!model&&!!loadedModel&&!loaded;if(switching)action.textContent=uiText('Cambiar a este modelo');action.dataset.primary=String(!loaded);action.disabled=!model||model.status==='unavailable'||busy||engineBusy||engineFormDirty();action.title=model?.remote?uiText('Seleccionar o dejar de usar este modelo de la API'):loaded?uiText('Descargar el modelo de memoria'):uiText('Cargar el modelo seleccionado');action.onclick=async()=>{if(switching){await unloadModel();if(!loadedModel)await loadModel();return;}const button=document.getElementById(loaded?'unload':'load');button?.click();};}
+  const action=$('#modelSummaryAction');if(action){const loaded=!!model&&model.id===loadedModel;action.hidden=!model;action.textContent=model?.remote?(loaded?uiText('Dejar de usar'):uiText('Usar modelo')):(loaded?uiText('Descargar'):uiText('Cargar'));const switching=!!model&&!!loadedModel&&!loaded;if(switching)action.textContent=uiText('Cambiar a este modelo');action.dataset.primary=String(!loaded);action.disabled=!model||model.status==='unavailable'||busy||engineBusy||engineFormDirty();action.title=model?.remote?uiText('Seleccionar o dejar de usar este modelo de la API'):loaded?uiText('Descargar el modelo de memoria'):uiText('Cargar el modelo seleccionado');action.onclick=async()=>{if(switching){await unloadModel();if(!loadedModel)await loadModel();return;}if(loaded)await unloadModel();else await loadModel();};}
 }
 
 async function loadModels() {
@@ -94,7 +94,9 @@ async function loadModels() {
   }
 }
 async function powerEngine() {
-  if (busy || engineBusy || preparationState?.active || engineOnline === null) return;
+  if (refuseWhileBusy()) return;
+  if (engineOnline === null) { note('Comprobando el estado del motor… inténtalo en un momento.'); return; }
+  {const reason=await modelActionBlocker();if(reason){note(reason);return;}}
   const starting = !engineOnline; modelStateRevision++; setEngineBusy(true);
   const status=$("#modelStatus"); status.textContent=starting?"Iniciando el motor…":"Apagando el motor y liberando memoria…";
   syncComposerLabels();
@@ -110,8 +112,20 @@ async function powerEngine() {
   finally { modelStateRevision++; setEngineBusy(false); pollStats(); }
 }
 $("#engineToggle").onclick=powerEngine;
+// Why a load or unload cannot start now, said to the user instead of ignoring the click. A "preparing"
+// state left over from an earlier load (a failed or interrupted one, another engine) is checked with the
+// core first: if nothing is loading there, it is cleared and the action goes ahead.
+async function modelActionBlocker(){
+  if(engineBusy)return uiText('Espera a que termine la operación del motor.');
+  if(localPreparing()){
+    try{const state=await requestJSON('/api/load/status',{cache:'no-store',signal:AbortSignal.timeout(4000)});if(state&&!state.active){preparationState=state;updateControls();}}catch{}
+    if(localPreparing())return uiText('Ya hay una carga de modelo en curso. Espera a que termine o cancélala.');
+  }
+  if(typeof accessChanging!=='undefined'&&accessChanging)return uiText('Espera a que termine el cambio de acceso.');
+  return '';
+}
 async function unloadModel() {
-  if(engineBusy||preparationState?.active)return;
+  {const reason=await modelActionBlocker();if(reason){note(reason);return;}}
   modelStateRevision++;setEngineBusy(true);const button=$('#unload');button.textContent=uiText(busy?'Deteniendo…':'Descargando…');
   try {
     if(busy){stopGeneration();const deadline=Date.now()+9000;while(busy&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,50));if(busy)throw new Error(uiText('La respuesta todavía se está deteniendo. Inténtalo de nuevo.'));}
@@ -123,7 +137,8 @@ async function unloadModel() {
   finally{modelStateRevision++;setEngineBusy(false);syncEngineCapabilities();pollStats();}
 }
 async function loadModel() {
-  if(busy||engineBusy||preparationState?.active)return;
+  if(busy){note('Espera a que termine la respuesta en curso o detenla.');return;}
+  {const reason=await modelActionBlocker();if(reason){note(reason);return;}}
   if(!$('#model').value){note('Selecciona un modelo disponible.');return;}
   if(loadedModel){note('Descarga primero el modelo en memoria.');return;}
   const selected=$('#model').value,name=modelNames[selected]||selected;

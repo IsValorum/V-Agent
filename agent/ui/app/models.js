@@ -208,7 +208,7 @@
       if(cell.dataset.html!==html){cell.dataset.html=html;cell.innerHTML=html;cell.querySelector('[data-download]')?.addEventListener('click',()=>download(current.id,row.dataset.file));cell.querySelector('[data-cancel]')?.addEventListener('click',event=>cancel(event.currentTarget.dataset.cancel));}
     }
     for(const job of jobs){
-      if(job.state==='done'&&before.has(job.id)&&before.get(job.id)!=='done'){note(T(job.model?'Modelo descargado y añadido.':'Archivo descargado.'));document.getElementById('refreshModels')?.click();}
+      if(job.state==='done'&&before.has(job.id)&&before.get(job.id)!=='done'){note(T(job.model?'Modelo descargado y añadido.':'Archivo descargado.'));loadModels();}
       if(job.state==='error'&&before.get(job.id)!=='error'&&before.has(job.id))note(job.error);
     }
     if(!active.length)clearInterval(poll);
@@ -259,7 +259,7 @@
       const ok=data.results.filter(r=>!r.error),bad=data.results.filter(r=>r.error);
       const warnings=ok.flatMap(r=>r.warnings||[]);
       status.textContent=ok.length+' '+T('importados')+(bad.length?' · '+bad.length+' '+T('con error')+': '+bad.map(r=>r.error).join(' · '):'')+(warnings.length?' · '+warnings.join(' · '):'');
-      document.getElementById('refreshModels')?.click();
+      loadModels();
       return data;
     }catch(error){status.textContent=T(error?.message||String(error));}
   }

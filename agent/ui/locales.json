@@ -11392,5 +11392,41 @@
     "pt": "Tokens propostos (mín.)",
     "fr": "Tokens proposés (min.)",
     "de": "Vorgeschlagene Tokens (min.)"
+  },
+  "Espera a que termine la operación del motor.": {
+    "en": "Wait for the engine operation to finish.",
+    "pt": "Aguarde a operação do motor terminar.",
+    "fr": "Attendez la fin de l'opération du moteur.",
+    "de": "Warte, bis der Motorvorgang abgeschlossen ist."
+  },
+  "Ya hay una carga de modelo en curso. Espera a que termine o cancélala.": {
+    "en": "A model is already loading. Wait for it to finish or cancel it.",
+    "pt": "Já há um modelo carregando. Aguarde terminar ou cancele.",
+    "fr": "Un modèle est déjà en cours de chargement. Attendez la fin ou annulez-le.",
+    "de": "Ein Modell wird bereits geladen. Warte, bis es fertig ist, oder brich es ab."
+  },
+  "Espera a que termine el cambio de acceso.": {
+    "en": "Wait for the access change to finish.",
+    "pt": "Aguarde a mudança de acesso terminar.",
+    "fr": "Attendez la fin du changement d'accès.",
+    "de": "Warte, bis die Zugriffsänderung abgeschlossen ist."
+  },
+  "Espera a que termine la respuesta en curso o detenla.": {
+    "en": "Wait for the current reply to finish, or stop it.",
+    "pt": "Aguarde a resposta atual terminar ou interrompa-a.",
+    "fr": "Attendez la fin de la réponse en cours ou arrêtez-la.",
+    "de": "Warte, bis die aktuelle Antwort fertig ist, oder stoppe sie."
+  },
+  "Comprobando el estado del motor… inténtalo en un momento.": {
+    "en": "Checking the engine status… try again in a moment.",
+    "pt": "Verificando o estado do motor… tente novamente em instantes.",
+    "fr": "Vérification de l'état du moteur… réessayez dans un instant.",
+    "de": "Motorstatus wird geprüft … versuche es gleich noch einmal."
+  },
+  "Espera a que termine la operación en curso.": {
+    "en": "Wait for the current operation to finish.",
+    "pt": "Aguarde a operação atual terminar.",
+    "fr": "Attendez la fin de l'opération en cours.",
+    "de": "Warte, bis der aktuelle Vorgang abgeschlossen ist."
   }
 }
