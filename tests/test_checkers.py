@@ -83,3 +83,24 @@ class InstallerReuseTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+@unittest.skipUnless(render_check.navegador(), 'headless browser required')
+class CanvasRenderTests(unittest.TestCase):
+    """web_render crashed on every page with a <canvas> from 1.0.8 to 1.1.4 (its size came as a list),
+    so 3D/voxel pages never got their scene diagnostics."""
+
+    def test_a_canvas_page_is_rendered_and_summarised(self):
+        page = ('<!doctype html><html><body><canvas id="c" width="320" height="200"></canvas><script>'
+                'const g=document.getElementById("c").getContext("2d");g.fillStyle="#3a7";g.fillRect(0,0,320,200);'
+                '</script></body></html>')
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'canvas.html'
+            path.write_text(page, encoding='utf-8')
+            try:
+                report = render_check.resumen(str(path), espera_ms=800, diagnostics=True)
+            finally:
+                render_check.cierra_sesion()
+        text = report if isinstance(report, str) else str(report.get('resumen') or report)
+        self.assertIn('1 canvas 320x200', text)
+        self.assertNotIn('inconclusive', text)

@@ -135,13 +135,18 @@ class McpSevenServerAuditTests(unittest.TestCase):
         cls.base_url = f"http://127.0.0.1:{cls.srv.server_port}"
 
         env_data = str(cls.data_dir)
+        with socket.socket() as probe:
+            probe.bind(("127.0.0.1", 0))
+            cls.closed_port = probe.getsockname()[1]
         cls.hub = hub_from_config(
             {
                 "mcpServers": {
                     "pc": {
                         "command": runtime_paths.command("pc")[0],
                         "args": runtime_paths.command("pc")[1:],
-                        "env": {"STRATA_AGENT_DATA": env_data, "STRATA_PC_ACCESS_KEY": cls.pc_key},
+                        # A closed local port: an open V-Agent on 19380 must not answer for "no console here".
+                        "env": {"STRATA_AGENT_DATA": env_data, "STRATA_PC_ACCESS_KEY": cls.pc_key,
+                                "STRATA_HARNESS_PORT": str(cls.closed_port)},
                     },
                     "hf": {
                         "command": runtime_paths.command("hf")[0],

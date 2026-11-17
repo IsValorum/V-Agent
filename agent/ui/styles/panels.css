@@ -1816,3 +1816,10 @@ a.release-notes-link,#settings-system a{display:inline-block;padding:4px 2px;}
 .agent-question .agent-question-option{min-height:32px;text-align:left;white-space:normal;}
 .agent-question .agent-question-answer{width:100%;box-sizing:border-box;resize:vertical;min-height:64px;margin:0 0 6px;font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px;}
 .agent-question .agent-question-status{min-height:1em;margin:0 0 8px;color:var(--muted);}
+
+/* Composer: double edge with a clear gap. The surface keeps its own border; an outline 5px outside it
+   draws the second line, following the chosen radius and leaving the background visible in between.
+   (The deco style has its own framed edge.) */
+:root:not([data-ui-style=deco]) .compose-surface{outline:1px solid var(--soft-line,var(--border));outline-offset:5px;}
+:root:not([data-ui-style=deco]) .compose-surface:focus-within{outline-color:color-mix(in srgb,var(--accent) 40%,var(--soft-line,var(--border)));}
+:root:not([data-ui-style=deco]) #composerBox{padding-top:12px;padding-bottom:6px;}

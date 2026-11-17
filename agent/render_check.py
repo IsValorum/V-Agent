@@ -502,7 +502,10 @@ def render(url, espera_ms=TIEMPO_CARGA_MS, captura=False, pintura=False, mantene
     salida = {"ok": bool(info.get("nodos")) and not reales,
               "navegador": pathlib.Path(getattr(_SESION, "ruta", navegador() or "nada")).name,
               "url": url, "titulo": info.get("titulo"), "nodos": info.get("nodos"),
-              "canvas": info.get("canvas"), "dimensiones_canvas": info.get("dimensiones"),
+              # The page reports [width, height]; as text ("800x600") for the summary lines.
+              "canvas": info.get("canvas"), "dimensiones_canvas": ("%sx%s" % tuple(info["dimensiones"])
+                                                                   if isinstance(info.get("dimensiones"), list) and len(info["dimensiones"]) == 2
+                                                                   else info.get("dimensiones")),
               "contexto_webgl": info.get("contexto_webgl"), "webgl": info.get("webgl"),
               "pixeles_pintados": info.get("pixeles_pintados"), "three": info.get("three"),
               "scripts": info.get("scripts"), "imagenes_rotas": info.get("imagenes_rotas"),
