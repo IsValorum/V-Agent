@@ -47,6 +47,30 @@ def _link_or_copy(source,target):
     except OSError:shutil.copy2(source,target)
 
 
+def _remove_tree(folder, attempts=6):
+    """Delete an old engine folder. Right after an install, Windows Defender (or the search indexer) often
+    keeps the new .exe/.dll open for a moment and rmtree fails with "access denied": that left an old
+    version on disk until the next start (seen in GitHub's Windows runners). A few short retries, read-only
+    attributes cleared; a folder still in use by a running engine stays and goes on a later start."""
+    import stat
+
+    def writable(function, path, _):
+        try:
+            os.chmod(path, stat.S_IWRITE)
+            function(path)
+        except OSError:
+            pass
+    for attempt in range(attempts):
+        try:
+            shutil.rmtree(folder, onexc=writable)
+        except OSError:
+            pass
+        if not Path(folder).exists():
+            return True
+        time.sleep(0.15 * (attempt + 1))
+    return False
+
+
 def _version_folder(record):
     """engine-updates/<key>/<tag-time>/ of an installed record (its executable is under bin/)."""
     try:
@@ -92,7 +116,7 @@ class Updates:
                         if archive.is_file():
                             try:archive.unlink()
                             except OSError:pass
-                else:shutil.rmtree(folder,ignore_errors=True)
+                else:_remove_tree(folder)
     def snapshot(self):
         with self.lock:return {**self.state,'busy':self.busy,'installing':self.installing,'installed':active_installations(),'progress':dict(self.progress) if self.progress else None}
     def save(self):atomic_json(self.root/'status.json',self.state)

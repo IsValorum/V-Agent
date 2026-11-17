@@ -12,6 +12,18 @@ import unittest
 sys.path.insert(0, 'agent')
 import app_updates
 
+def wait_until_unused(path, seconds=15):
+    """The restarted fake app is launched by the helper and may still be closing when the test ends; its
+    folder cannot be deleted on Windows while the .exe is running (seen on GitHub's runners)."""
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        try:
+            os.rename(path, path)  # fails while the executable is still mapped by a running process
+            return
+        except OSError:
+            time.sleep(.2)
+
+
 CSC = Path(os.environ.get('WINDIR', r'C:\Windows')) / 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
 
 
@@ -55,6 +67,7 @@ class UpdateHelperWindowsTests(unittest.TestCase):
             self.assertTrue((root / 'installed').exists(), log)
             self.assertEqual((root / 'installed').read_text(), '/S /UPDATE')
             self.assertTrue((root / 'started').exists(), log)
+            wait_until_unused(root / 'V-Agent.exe')
 
     def test_core_left_by_an_earlier_session_is_stopped_before_installing(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -92,5 +105,6 @@ class UpdateHelperWindowsTests(unittest.TestCase):
                     break
                 time.sleep(.1)
             log = (root / 'update.log').read_text() if (root / 'update.log').exists() else 'No update log.'
+            wait_until_unused(root / 'V-Agent.exe')
             self.assertIn('Stopping strata-core', log)
             self.assertTrue((root / 'installed').exists(), log)
