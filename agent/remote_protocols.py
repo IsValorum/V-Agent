@@ -61,7 +61,7 @@ def model_info(item,overrides):
     return {'id':identifier,'display_name':str(item.get('display_name') or item.get('name') or identifier),
             'context':positive_int(manual.get('context')) or context,
             'reported_context':context,'context_source':'manual' if positive_int(manual.get('context')) else 'provider' if context else 'unknown',
-            'max_output_tokens':positive_int(item.get('max_tokens')) or positive_int(item.get('max_output_tokens')),
+            'max_output_tokens':positive_int(item.get('max_tokens')) or positive_int(item.get('max_output_tokens')) or positive_int(item.get('max_completion_tokens')) or positive_int(architecture.get('max_completion_tokens')) or positive_int(limits.get('output')),
             'capabilities':item.get('capabilities') if isinstance(item.get('capabilities'),dict) else {}}
 
 

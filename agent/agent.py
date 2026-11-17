@@ -1602,6 +1602,7 @@ def _run_chat_stream(body, control=None):
     escrituras_fallidas = 0       # fs_write grandes que fallaron en este turno (1 reintento)
     archivo_recordado = False     # ya se pidió una vez crear el archivo que solo se mostró en el chat
     action_nudges = 0
+    solo_razonamiento = 0         # rondas que acabaron solo pensando (sin texto ni llamada)
     draft_nudged = False
     llamadas = 0
     last_round_failed = False
@@ -1976,6 +1977,31 @@ def _run_chat_stream(body, control=None):
                 final = (final + "\n\n" if final else "") + suffix
                 yield {"type": "content_fixed", "text": final}
                 yield {"type": "done", "content": final, "reasoning_content": reasoning}
+                return
+            # Only thinking, no reply and no call (seen 2026-11-17 with an API model planning a voxel island:
+            # the provider's output limit ran out inside the reasoning). Ending here showed "the model
+            # finished without returning text" and the work was lost; ask it to act instead.
+            if (tools and not content.strip() and (raw_reasoning or "").strip() and not wrap_up
+                    and rnd < rounds - 1 and solo_razonamiento < 2):
+                solo_razonamiento += 1
+                if finish_reason == "length":
+                    aviso_vacio = ("[Recovery: your reasoning used up the whole output budget before you acted, so "
+                                   "nothing was done. Do not plan again in detail. Act now: call the tool for the next "
+                                   "step (write a large file in smaller parts: fs_write the first part, then fs_edit to "
+                                   "add the rest), or answer the user.]")
+                else:
+                    aviso_vacio = ("[Recovery: you ended the turn after thinking, with no reply and no tool call. "
+                                   "Continue now: call the next tool, or give the user your answer.]")
+                messages.append({"role": "assistant", "content": "", "reasoning_content": reasoning})
+                messages.append({"role": "tool", "content": aviso_vacio})
+                continue
+            if not content.strip() and not "".join(full).strip() and (raw_reasoning or "").strip():
+                # The interface translates this exact phrase (an error event, not reply text).
+                yield {"type": "error", "text": (
+                    "El modelo agotó su límite de salida mientras razonaba y no llegó a responder. Prueba con "
+                    "menos esfuerzo de razonamiento o pide la tarea por partes."
+                    if finish_reason == "length" else
+                    "El modelo terminó de razonar sin escribir una respuesta. Puedes pedirle que continúe.")}
                 return
             # The user asked for a named file, the model showed code in the reply and created nothing:
             # give it one more round to actually write it (models do this despite the tool rule).

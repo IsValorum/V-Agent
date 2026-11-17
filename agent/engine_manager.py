@@ -699,6 +699,20 @@ class EngineManager:
         conv_id=conversation_id if conversation_id is not None else payload.get('conversation_id')
         body={k:v for k,v in payload.items() if k in allowed}
         if body.get('max_tokens')==0:body.pop('max_tokens')
+        auto_max=False
+        remote=(self.selected_remote() or {}) if self.kind=='api' else {}
+        if (self.kind=='api' and self.settings.get('api',{}).get('protocol')!='anthropic' and not positive_int(body.get('max_tokens'))
+                and remote.get('id') not in getattr(self,'_no_auto_max',set())):
+            # "No limit" must not mean the provider's default (often 4-8K tokens): reasoning used it all and
+            # the reply ended empty. Send the model's own output maximum (a generous one when the provider
+            # does not say); how much the model thinks is set by the thinking effort, not by this number.
+            ceiling=positive_int(remote.get('max_output_tokens')) or 65536
+            window=positive_int(remote.get('reported_context')) or positive_int(remote.get('context'))
+            if window:
+                # Providers refuse prompt + max_tokens above their window: leave room for this prompt.
+                prompt=self.estimate_prompt(len(json.dumps(body.get('messages') or [],ensure_ascii=False))+len(json.dumps(body.get('tools') or [],ensure_ascii=False)))
+                ceiling=min(ceiling,window-int(prompt*1.1)-256)
+            if ceiling>=1024:body['max_tokens']=ceiling;auto_max=True
         if self.kind=='api':body=openai_payload(body,self.base(),self.settings.get('api',{}).get('send_sampling',False))
         if self.kind in ('llama','rust','maya') and isinstance(body.get('messages'),list):
             body['messages']=normalize_orphan_tool_messages(body['messages'])
@@ -740,6 +754,13 @@ class EngineManager:
                 try:raw_err=decode_http_body(raw_err,response.getheader('Content-Encoding'))
                 except OSError:pass
                 text=raw_err.decode('utf8',errors='replace');key=self.key() if self.kind=='api' else ''
+                if auto_max and response.status in (400,422) and re.search(r'max_(?:completion_)?tokens|output tokens|max.?output',text,re.I):
+                    # This provider does not accept that output maximum: use its own default for this model.
+                    if not hasattr(self,'_no_auto_max'):self._no_auto_max=set()
+                    self._no_auto_max.add(remote.get('id'))
+                    connection.close()
+                    yield from self.stream(payload,control,conversation_id=conversation_id)
+                    return
                 raise ValueError(provider_error(response.status,text,key))
             # Only llama-server reports its own speeds and live counts. For the others they are measured
             # here: each streamed delta is about one token, and reading lasts until the first one arrives.

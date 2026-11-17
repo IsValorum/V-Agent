@@ -338,7 +338,7 @@ function updateToolTrace(section,trace) {
       if (!preview) {
         const label = document.createElement('div');
         label.className = 'tool-block-head';
-        label.textContent = 'Argumentos en directo';
+        label.textContent = uiText('Argumentos en directo');
         preview = document.createElement('pre');
         preview.className = 'tool-draft-preview';
         preview.tabIndex = 0;
@@ -385,9 +385,9 @@ function updateToolTrace(section,trace) {
       const copy=document.createElement('button');copy.type='button';copy.className='text-btn';copy.textContent=uiText('Copiar');copy.setAttribute('aria-label',uiText('Copiar resultado de ')+toolTitle(call));copy.onclick=()=>navigator.clipboard.writeText(result).then(()=>note('Resultado copiado.')).catch(()=>note('No se pudo copiar. Selecciona el resultado y pulsa Ctrl+C.'));heading.append(copy);
       if(call.recovery){const recovered=document.createElement('p');recovered.className='tool-note';recovered.textContent=call.recovery.result;body.append(recovered);}
       if(!result){const empty=document.createElement('p');empty.className='tool-note';empty.textContent=uiText('La herramienta devolvió un resultado vacío.');body.append(empty);}
-      if(call.source_truncated){const note=document.createElement('p');note.className='tool-note';note.textContent='El servidor MCP entregó este resultado recortado'+(call.source_chars?' ('+formatTokens(call.source_chars)+' caracteres originales).':'.');body.append(note);}
+      if(call.source_truncated){const note=document.createElement('p');note.className='tool-note';note.textContent=uiText('El servidor MCP entregó este resultado recortado')+(call.source_chars?' ('+formatTokens(call.source_chars)+' '+uiText('caracteres originales')+').':'.');body.append(note);}
       if(call.truncated&&typeof call.model_result==='string') {
-        const note=document.createElement('p');note.className='tool-note';note.textContent='Aquí se conserva todo el resultado recibido. El modelo recibió '+formatTokens(call.model_result.length)+' de '+formatTokens(result.length)+' caracteres.';body.append(note);
+        const note=document.createElement('p');note.className='tool-note';note.textContent=uiText('Aquí se conserva todo el resultado recibido.')+' '+uiText('El modelo recibió')+' '+formatTokens(call.model_result.length)+' / '+formatTokens(result.length)+' '+uiText('caracteres')+'.';body.append(note);
         const sent=document.createElement('details');sent.className='model-result';const summary=document.createElement('summary');summary.textContent=uiText('Ver lo enviado al modelo');const pre=document.createElement('pre');pre.tabIndex=0;pre.textContent=call.model_result;sent.append(summary,pre);body.append(sent);
       }
     }else{

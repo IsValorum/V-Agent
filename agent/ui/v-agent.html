@@ -38,7 +38,7 @@ try{const logo=localStorage.getItem('valBootLogo');if(['gold','silver','jade','b
 <div id="ambient" aria-hidden="true"></div>
 
 <div class="app">
-  <aside id="sidebar" class="glass" aria-label="Conversaciones">
+  <aside id="sidebar" class="glass" aria-label="Conversaciones" data-ui-aria="Conversaciones">
     <div class="sidebar-chrome" role="toolbar" aria-label="Navegación">
       <button id="sidebarToggle" type="button" class="icon-btn" aria-label="Ocultar barra lateral"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/><rect x="5.4" y="6.4" width="1.7" height="11.2" rx=".4" fill="currentColor" stroke="none"/></svg></button>
       <button id="chatBack" type="button" class="icon-btn" aria-label="Conversación anterior" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
@@ -52,7 +52,7 @@ try{const logo=localStorage.getItem('valBootLogo');if(['gold','silver','jade','b
     <nav id="projectsNav" aria-label="Proyectos"></nav>
     <div class="side-head"><span>Recientes</span><span id="convCount">0</span></div>
     <input id="convSearch" type="search" placeholder="Buscar chats…" aria-label="Buscar chats" autocomplete="off" hidden>
-    <nav id="convs" aria-label="Historial de conversaciones"></nav>
+    <nav id="convs" aria-label="Historial de conversaciones" data-ui-aria="Historial de conversaciones"></nav>
     <div class="sidebar-bottom">
       <div class="engine-card" id="engineCard">
         <details id="engineMetrics">
@@ -74,7 +74,7 @@ try{const logo=localStorage.getItem('valBootLogo');if(['gold','silver','jade','b
     <div id="sidebarResizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Ajustar ancho de la barra lateral"></div>
   </aside>
   <div id="sidebarScrim"></div>
-  <section id="chatwrap" aria-label="Chat" data-empty="true" data-raised="true">
+  <section id="chatwrap" aria-label="Chat" data-ui-aria="Chat" data-empty="true" data-raised="true">
     <header class="topbar">
       <button id="sidebarReopen" class="icon-btn" type="button" aria-label="Mostrar barra lateral"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/><rect x="5.4" y="6.4" width="1.7" height="11.2" rx=".4" fill="currentColor" stroke="none"/></svg></button>
       <button id="mobileMenu" class="icon-btn" title="Abrir conversaciones" aria-label="Abrir conversaciones" aria-controls="sidebar" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
@@ -86,7 +86,7 @@ try{const logo=localStorage.getItem('valBootLogo');if(['gold','silver','jade','b
         <button id="themeBtn" class="icon-btn" title="Cambiar a tema claro" aria-label="Cambiar a tema claro"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg></button>
       </div>
     </header>
-    <div id="chat" role="log" aria-label="Mensajes" aria-live="off"></div>
+    <div id="chat" role="log" aria-label="Mensajes" data-ui-aria="Mensajes" aria-live="off"></div>
     <button id="followBtn" type="button" title="Volver al final y seguir la generación">↓ Seguir leyendo</button>
     <div id="composerBox">
       <div class="compose-inner">
@@ -96,7 +96,7 @@ try{const logo=localStorage.getItem('valBootLogo');if(['gold','silver','jade','b
           <textarea id="input" rows="2" placeholder="Mensaje…" aria-label="Mensaje" autocomplete="off"></textarea>
           <div class="composer-tools">
             <input type="file" id="file" multiple hidden>
-            <div id="composerLeft" class="composer-config" data-composer-side="left" aria-label="Botones a la izquierda">
+            <div id="composerLeft" class="composer-config" data-composer-side="left" aria-label="Botones a la izquierda" data-ui-aria="Botones a la izquierda">
               <button id="attach" class="icon-btn" aria-label="Adjuntar archivo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 12 6-6a3.5 3.5 0 0 1 5 5l-8 8a5 5 0 0 1-7-7l8-8m-6 10 8-8"/></svg></button>
               <button id="modelBtn" class="composer-control model-control" data-controls="model" aria-controls="composerControls" aria-haspopup="dialog" aria-expanded="false"><span class="model-dot" aria-hidden="true"></span><span id="modelBtnLabel">Modelo</span><span class="control-chevron" aria-hidden="true">⌄</span></button>
               <button id="responseBtn" class="composer-control" data-controls="response" aria-controls="composerControls" aria-haspopup="dialog" aria-expanded="false"><span id="responseBtnLabel">Respuesta</span><span class="control-chevron" aria-hidden="true">⌄</span></button>
@@ -104,7 +104,7 @@ try{const logo=localStorage.getItem('valBootLogo');if(['gold','silver','jade','b
               <button id="mcpBtn" class="composer-control" data-controls="tools" aria-controls="composerControls" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v4m8-4v4M6 7h12v3a6 6 0 0 1-12 0V7Zm6 9v5"/></svg>Tools <span id="toolCount">0</span></button>
               <button id="scopeBtn" class="composer-control" data-controls="tools" data-scope="sandbox" aria-controls="composerControls" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 4 8 9 8 9s8-5 8-9V6l-8-3Z"/><path d="m8 12 3 3 5-6"/></svg><span id="scopeLabel">Sandbox</span></button>
             </div>
-            <div id="composerRight" data-composer-side="right" aria-label="Botones a la derecha"><button id="send" aria-label="Enviar mensaje"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg></button></div>
+            <div id="composerRight" data-composer-side="right" aria-label="Botones a la derecha" data-ui-aria="Botones a la derecha"><button id="send" aria-label="Enviar mensaje"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg></button></div>
           </div>
         </div>
         <div id="modelPreparation" hidden><div class="preparation-caption"><span id="preparationLabel" role="status">Preparando modelo…</span><span id="preparationAmount"></span><button id="cancelModelLoad" type="button" title="Cancelar la carga y detener el motor" disabled>Cancelar carga</button></div><progress id="preparationProgress" max="100" aria-label="Preparación del modelo"></progress></div>

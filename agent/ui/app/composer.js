@@ -329,7 +329,7 @@ async function generateResponse(replaceIndex=null) {
   setBusy(true);renderChat(replaceIndex??-1);
   const box=addAssistantBox(),think=box.querySelector('.think'),thinkBody=box.querySelector('.think-body'),bubble=box.querySelector('.bubble');box.dataset.index=replaceIndex??messages.length;box.dataset.generating='true';generation.box=box;const metricLabels=box.querySelectorAll('.response-metrics small');if(metricLabels[0])metricLabels[0].textContent=uiText('Generación');if(metricLabels[1])metricLabels[1].textContent=uiText('Lectura');bubble.textContent=uiText('Preparando respuesta…');
   showResponseModel(box,generation.provenance);
-  let finalText='',finalReasoning='',ended=false,reader,errorText='',lastUsage=null,traceView=null,paintFrame=0,streamNote=uiText('Preparando respuesta…'),paintedReasoning='',paintedBubble='',streamComplete=false,traceDirty=false,paintTimer=0,lastPaint=0;const toolTrace=[];
+  let finalText='',finalReasoning='',ended=false,finishReason='',reader,errorText='',lastUsage=null,traceView=null,paintFrame=0,streamNote=uiText('Preparando respuesta…'),paintedReasoning='',paintedBubble='',streamComplete=false,traceDirty=false,paintTimer=0,lastPaint=0;const toolTrace=[];
   function paintStream(){
     paintFrame=0;
     lastPaint=performance.now();
@@ -376,15 +376,15 @@ async function generateResponse(replaceIndex=null) {
       if(event.timings)updateResponsePerformance(generation,event.timings);
       if(Array.isArray(event.choices)){
         const choice=event.choices[0]||{},delta=choice.delta||{};
-        if(delta.reasoning_content){finalReasoning+=delta.reasoning_content;if(!finalText)streamNote='Razonando…';}
+        if(delta.reasoning_content){finalReasoning+=delta.reasoning_content;if(!finalText)streamNote=uiText('Razonando…');}
         if(delta.content)finalText+=delta.content;
         if(event.usage){lastUsage=event.usage;raiseGenerationUsage(generation,event.usage);}
-        if(choice.finish_reason)ended=true;
+        if(choice.finish_reason){ended=true;finishReason=choice.finish_reason;}
         queuePaint();return;
       }
       if(event.type==='approval'){showToolApproval(event);}
       else if(event.type==='question'){showAgentQuestion(event);}
-      else if(event.type==='reasoning'){finalReasoning+=event.text||'';if(!finalText)streamNote='Razonando…';}
+      else if(event.type==='reasoning'){finalReasoning+=event.text||'';if(!finalText)streamNote=uiText('Razonando…');}
       else if(event.type==='reasoning_fixed'){finalReasoning=event.text||'';}   // el agente quito marcas de llamada crudas del razonamiento
       else if(event.type==='content'){finalText+=event.text||'';}
       else if(event.type==='content_fixed'){finalText=event.text||'';}   // reemplazo: el agente quito marcas de llamada crudas
@@ -402,6 +402,8 @@ async function generateResponse(replaceIndex=null) {
     }
     for(;;){const {value,done}=await reader.read();buffer+=done?decoder.decode():decoder.decode(value,{stream:true});let match;while((match=/\r?\n\r?\n/.exec(buffer))){const chunk=buffer.slice(0,match.index);buffer=buffer.slice(match.index+match[0].length);consume(chunk);}if(done){if(buffer.trim())consume(buffer);break;}}
     if(!ended)throw new Error(uiText('La conexión se interrumpió antes de completar la respuesta.'));
+    // Only thinking: say what happened (often the output limit ran out inside the reasoning), not a bare failure.
+    if(!finalText.trim()&&finalReasoning.trim())throw new Error(uiText(finishReason==='length'?'El modelo agotó su límite de salida mientras razonaba y no llegó a responder. Prueba con menos esfuerzo de razonamiento o pide la tarea por partes.':'El modelo terminó de razonar sin escribir una respuesta. Puedes pedirle que continúe.'));
     if(!finalText.trim())throw new Error(uiText('El modelo terminó sin devolver texto. Puedes regenerar la respuesta.'));
   }catch(error){
     if(reader)await reader.cancel().catch(()=>{});

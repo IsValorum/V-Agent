@@ -10,6 +10,8 @@ request, and the interface is driven in the bundled headless browser like a user
 - the provider answers 503 once in the middle of a turn: the round is repeated, the task finishes;
 - the provider refuses a prompt as larger than its context: the history is shortened, the round
   is repeated and the task finishes;
+- a round that only reasons until the output limit is asked to act, and the task finishes;
+- with no output limit set, the provider gets the model's own output maximum, not its small default;
 - a request without `ask_user` (an API client) never gets the question tool.
 """
 import asyncio
@@ -44,10 +46,13 @@ def say(text):
 def script(body):
     """(status, payload) for one request: decided by the user's words and the last tool result."""
     messages = body.get('messages') or []
-    user = next((m.get('content') for m in reversed(messages) if m.get('role') == 'user'), '') or ''
+
+    def real_user(m):  # the harness's recovery notes reach API providers as user messages
+        return m.get('role') == 'user' and not str(m.get('content') or '').startswith('[Recovery')
+    user = next((m.get('content') for m in reversed(messages) if real_user(m)), '') or ''
     if isinstance(user, list):
         user = ' '.join(part.get('text', '') for part in user if isinstance(part, dict))
-    last_user = max((i for i, m in enumerate(messages) if m.get('role') == 'user'), default=-1)
+    last_user = max((i for i, m in enumerate(messages) if real_user(m)), default=-1)
     last_tool = next((m.get('content') for m in reversed(messages[last_user + 1:]) if m.get('role') == 'tool'), None)
     tools = [t['function']['name'] for t in body.get('tools') or []]
     if 'color' in user:
@@ -70,6 +75,16 @@ def script(body):
             return 400, json.dumps({'error': {'message': 'the request exceeds the available context size, try increasing it',
                                               'type': 'exceed_context_size_error'}})
         return 200, say('TAREA-COMPLETA con contexto de %d caracteres' % size)
+    if 'voxel' in user:
+        # First round: only reasoning, cut by the output limit (what a long plan does on an API model).
+        recovery = any('output budget' in str(m.get('content')) for m in messages[last_user + 1:])
+        if not recovery:
+            return 200, sse([{'choices': [{'delta': {'reasoning_content': 'Plan: heightmap, water shader, '
+                                                                            'per-quad jitter... ' * 40}}]},
+                             {'choices': [{'delta': {}, 'finish_reason': 'length'}]}])
+        if last_tool is None or 'output budget' in str(last_tool):
+            return 200, call('pc__fs_write', {'path': 'isla.html', 'content': '<!doctype html><title>isla</title>'})
+        return 200, say('ISLA-LISTA')
     if 'api client' in user:
         return 200, say('TOOLS:' + ','.join(tools))
     return 200, say('ok')
@@ -88,7 +103,7 @@ class Provider(BaseHTTPRequestHandler):
         self.wfile.write(raw)
 
     def do_GET(self):
-        self._send(200, json.dumps({'object': 'list', 'data': [{'id': 'fake-agent', 'object': 'model', 'context_length': 1048576}]}),
+        self._send(200, json.dumps({'object': 'list', 'data': [{'id': 'fake-agent', 'object': 'model', 'context_length': 1048576, 'max_tokens': 65536}]}),
                    'application/json')
 
     def do_POST(self):
@@ -159,6 +174,11 @@ async def run(core):
         done = await browser.run(WAIT_DONE)
         check('a context overflow shortens the history, repeats and finishes', 'TAREA-COMPLETA con contexto' in done['text'], done['text'])
         check('the shortened context is shown as a card', any('Contexto acotado' in c for c in done['cards']), done['cards'][-4:])
+        # 5. Only reasoning, cut by the output limit: the agent is asked to act and finishes the task.
+        await browser.run(SEND % json.dumps('Haz una isla voxel ligera y prueba tus herramientas'))
+        done = await browser.run(WAIT_DONE)
+        check('a reasoning-only round cut by the output limit is followed by action, not an empty reply',
+              'ISLA-LISTA' in done['text'] and 'sin devolver texto' not in done['text'], done['text'][-200:])
         errors = await browser.run("return (window.__errors||[]).slice(-5)")
         check('no page errors', not errors and not browser.errors, (errors, browser.errors))
     return ok
@@ -171,6 +191,11 @@ def main():
         core.post('/api/harness/configure', {'engine': 'api', 'base_url': f'http://127.0.0.1:{server.server_port}/v1', 'api_key': 'fixture-only-key'})
         core.post('/api/harness/connect', {})
         ok = asyncio.run(run(core))
+        # The interface's "no limit": the provider gets the model's own output maximum, never its small default.
+        sent = [b.get('max_tokens') for b in REQUESTS if b.get('messages')]
+        good = bool(sent) and all(value == 65536 for value in sent)
+        ok.append(good)
+        print(f"  {'OK  ' if good else 'FAIL'} with no output limit set, the API gets the model's own maximum (no provider default) — {sorted(set(map(str, sent)))}", flush=True)
         # 5. API clients: same core, no ask_user flag.
         model = next(m['id'] for m in core.get('/api/models')['models'])
         core.post('/api/load', {'model': model})

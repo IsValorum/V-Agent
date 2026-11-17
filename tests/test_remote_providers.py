@@ -79,6 +79,41 @@ class RemoteProvidersTests(unittest.TestCase):
    restarted_after_release=engine_manager.EngineManager()
    self.assertTrue(restarted_after_release.online);self.assertIsNone(restarted_after_release.loaded)
   finally:server.shutdown();server.server_close()
+ def test_no_output_limit_sends_the_models_maximum_and_falls_back_when_refused(self):
+  # "No limit" (max_tokens 0) must not leave the provider's small default in place: reasoning used it up
+  # and the reply ended empty. When the provider refuses the value, the request is repeated without it.
+  requests=[];refuse={'on':False}
+  class Handler(BaseHTTPRequestHandler):
+   def log_message(self,*args):pass
+   def do_GET(self):
+    raw=json.dumps({'data':[{'id':'known','context_length':200000,'max_tokens':100000},{'id':'unknown','context_length':1048576}]}).encode()
+    self.send_response(200);self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw)
+   def do_POST(self):
+    body=json.loads(self.rfile.read(int(self.headers['Content-Length'])));requests.append(body)
+    if refuse['on'] and 'max_tokens' in body:
+     raw=json.dumps({'error':{'message':'max_tokens must be less than or equal to 8192'}}).encode()
+     self.send_response(400);self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw);return
+    self.send_response(200);self.end_headers()
+    self.wfile.write(b'data: {"choices":[{"delta":{"content":"ok"},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n')
+  server=ThreadingHTTPServer(('127.0.0.1',0),Handler);threading.Thread(target=server.serve_forever,daemon=True).start()
+  class Control:
+   cancelled=threading.Event()
+   def attach(self,*args):pass
+   def detach(self,*args):pass
+  try:
+   m=self.manager;m.configure({'engine':'api','base_url':f'http://127.0.0.1:{server.server_port}/v1','api_key':'local-test'});m.connect()
+   ids={model['id']:m.remote_identifier(model) for model in m.remote_models}
+   def ask(model,limit=0):
+    m.load({'id':ids[model]},None,None)
+    return b''.join(m.stream({'model':model,'messages':[{'role':'user','content':'x'*3500}],'max_tokens':limit},Control())).decode()
+   ask('known');self.assertTrue(98000<requests[-1]['max_tokens']<=100000,requests[-1].get('max_tokens'))
+   ask('unknown');self.assertEqual(requests[-1]['max_tokens'],65536)
+   ask('known',2048);self.assertEqual(requests[-1]['max_tokens'],2048)  # a limit the user set is kept
+   refuse['on']=True;before=len(requests)
+   self.assertIn('"ok"',ask('unknown'))
+   self.assertEqual([('max_tokens' in r) for r in requests[before:]],[True,False])
+   ask('unknown');self.assertNotIn('max_tokens',requests[-1])  # remembered for this model
+  finally:server.shutdown();server.server_close()
  def test_stream_errors_are_failures_not_empty_success(self):
   with self.assertRaises(ValueError):ClaudeStream().packet({'type':'error','error':{'message':'overloaded'}})
 if __name__=='__main__':unittest.main()

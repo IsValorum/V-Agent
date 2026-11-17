@@ -11536,5 +11536,35 @@
     "pt": "Sem resposta em 15 minutos; o agente seguiu com o próprio critério.",
     "fr": "Pas de réponse en 15 minutes ; l'agent a continué selon son jugement.",
     "de": "Keine Antwort in 15 Minuten; der Agent hat nach eigenem Ermessen weitergemacht."
+  },
+  "El modelo agotó su límite de salida mientras razonaba y no llegó a responder. Prueba con menos esfuerzo de razonamiento o pide la tarea por partes.": {
+    "en": "The model used up its output limit while reasoning and never answered. Try a lower reasoning effort or ask for the task in parts.",
+    "pt": "O modelo esgotou o limite de saída enquanto raciocinava e não chegou a responder. Tente um esforço de raciocínio menor ou peça a tarefa por partes.",
+    "fr": "Le modèle a épuisé sa limite de sortie pendant son raisonnement sans répondre. Essayez un effort de raisonnement plus faible ou demandez la tâche par étapes.",
+    "de": "Das Modell hat sein Ausgabelimit beim Nachdenken aufgebraucht und nicht geantwortet. Versuche einen geringeren Denkaufwand oder bitte um die Aufgabe in Teilen."
+  },
+  "El modelo terminó de razonar sin escribir una respuesta. Puedes pedirle que continúe.": {
+    "en": "The model finished reasoning without writing an answer. You can ask it to continue.",
+    "pt": "O modelo terminou de raciocinar sem escrever uma resposta. Você pode pedir que continue.",
+    "fr": "Le modèle a fini de raisonner sans écrire de réponse. Vous pouvez lui demander de continuer.",
+    "de": "Das Modell hat fertig nachgedacht, ohne eine Antwort zu schreiben. Du kannst es bitten, weiterzumachen."
+  },
+  "Razonando…": {
+    "en": "Reasoning…",
+    "pt": "Raciocinando…",
+    "fr": "Raisonnement…",
+    "de": "Denkt nach …"
+  },
+  "Aquí se conserva todo el resultado recibido.": {
+    "en": "The full result received is kept here.",
+    "pt": "Todo o resultado recebido é mantido aqui.",
+    "fr": "Le résultat reçu est conservé ici en entier.",
+    "de": "Hier wird das vollständige empfangene Ergebnis aufbewahrt."
+  },
+  "El modelo recibió": {
+    "en": "The model received",
+    "pt": "O modelo recebeu",
+    "fr": "Le modèle a reçu",
+    "de": "Das Modell erhielt"
   }
 }

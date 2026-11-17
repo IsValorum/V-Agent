@@ -4,6 +4,15 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.1.4
+
+Fix release: API models no longer run out of output inside their reasoning, a reasoning-only round is followed by action instead of an empty reply, and the remaining untranslated interface text is translated.
+
+- **"No limit" means the model's own output maximum (`agent/engine_manager.py`, `agent/remote_protocols.py`):** With no output limit set, V-Agent used to omit `max_tokens`, so providers applied their own small default and long reasoning used it all, ending the reply empty. Requests now carry the model's declared output maximum (also read from `max_completion_tokens` / `top_provider` / `limits.output`), or 65,536 when the provider does not declare one, kept within the window left by the prompt. A provider that refuses the value gets the request again without it, remembered per model. How much the model thinks is still set only by the thinking effort.
+- **Reasoning-only rounds (`agent/agent.py`, `agent/ui/app/composer.js`):** A round that ends with reasoning but no reply and no tool call is asked to act (up to twice) instead of ending the turn; if nothing comes, a clear translated message says what happened instead of "the model finished without returning text".
+- **Translations (`agent/ui/app/chat.js`, `agent/ui/app/composer.js`, `agent/ui/app/shell.js`, `agent/ui/v-agent.html`):** "Reasoning…", the live-arguments label, truncated-result notes and the screen-reader names of the page regions are now translated into `en`, `pt`, `fr` and `de`.
+- **Tests:** new `tests/smoke/ui_language_audit.py` drives the real interface through every live state of a reply in each language and fails on Spanish left on screen; `tests/smoke/agent_autonomy_ui.py` adds the reasoning-only round and the output maximum sent to the provider; `tests/test_remote_providers.py` covers the output maximum and its fallback.
+
 ## 1.1.3
 
 Release making long autonomous runs survive provider errors and full context windows, letting the agent ask the user mid-task, and strengthening the code checker.
