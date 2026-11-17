@@ -89,12 +89,38 @@ def stream_finished(line):
     except (ValueError,AttributeError):return False
 
 
-PROVIDER_HINTS={401:'la clave de la API no es válida o caducó',403:'la clave no tiene permiso para este modelo',
+PROVIDER_HINTS={401:'la clave de la API no es válida o caducó',402:'no queda saldo o crédito en la cuenta del proveedor',
+                403:'la clave no tiene permiso para este modelo',
                 404:'la URL o el modelo no existen en este proveedor',408:'el proveedor tardó demasiado',
                 413:'la conversación es demasiado larga para este proveedor',
                 429:'se alcanzó el límite de uso o de velocidad del proveedor; espera un poco',
                 500:'el proveedor tuvo un error interno',502:'el proveedor no está disponible ahora mismo',
-                503:'el proveedor no está disponible ahora mismo',504:'el proveedor tardó demasiado'}
+                503:'el proveedor está saturado o no disponible ahora mismo',504:'el proveedor tardó demasiado',
+                529:'el proveedor está saturado ahora mismo'}
+
+
+class ProviderHTTPError(ValueError):
+    """A provider's refusal with its HTTP status and the wait it asked for (Retry-After), so the agent
+    can tell a busy provider (wait and retry) from a rejected request (stop), as the OpenAI/Anthropic SDKs,
+    OpenCode and Goose do."""
+    def __init__(self,message,status,retry_after_ms=None):
+        super().__init__(message);self.status=status;self.retry_after_ms=retry_after_ms
+
+
+def retry_after_ms(headers):
+    """Milliseconds from retry-after-ms or retry-after (seconds or an HTTP date); None when absent."""
+    try:
+        value=headers.get('retry-after-ms')
+        if value:return max(0,int(float(value)))
+        value=headers.get('retry-after')
+        if not value:return None
+        if re.fullmatch(r'\s*\d+(?:\.\d+)?\s*',value):return max(0,int(float(value)*1000))
+        from email.utils import parsedate_to_datetime
+        import datetime
+        when=parsedate_to_datetime(value)
+        return max(0,int((when-datetime.datetime.now(when.tzinfo)).total_seconds()*1000))
+    except (TypeError,ValueError,OverflowError):
+        return None
 
 
 def provider_error(status,text,key=''):
@@ -706,13 +732,17 @@ class EngineManager:
             # "No limit" must not mean the provider's default (often 4-8K tokens): reasoning used it all and
             # the reply ended empty. Send the model's own output maximum (a generous one when the provider
             # does not say); how much the model thinks is set by the thinking effort, not by this number.
-            ceiling=positive_int(remote.get('max_output_tokens')) or 65536
+            # As OpenCode does (packages/core/src/session/model-request.ts, outputLimit): the catalog's output
+            # limit, 32,000 when the provider does not say, never more than 256,000 ("no reply needs more"),
+            # fitted to the room the prompt leaves in the window with 15 % estimate error and 1 % headroom,
+            # and never under 1,024.
+            ceiling=min(positive_int(remote.get('max_output_tokens')) or 32000,256000)
             window=positive_int(remote.get('reported_context')) or positive_int(remote.get('context'))
             if window:
                 # Providers refuse prompt + max_tokens above their window: leave room for this prompt.
                 prompt=self.estimate_prompt(len(json.dumps(body.get('messages') or [],ensure_ascii=False))+len(json.dumps(body.get('tools') or [],ensure_ascii=False)))
-                ceiling=min(ceiling,window-int(prompt*1.1)-256)
-            if ceiling>=1024:body['max_tokens']=ceiling;auto_max=True
+                ceiling=min(ceiling,max(1024,int(window*0.99)-int(prompt*1.15)))
+            body['max_tokens']=ceiling;auto_max=True
         if self.kind=='api':body=openai_payload(body,self.base(),self.settings.get('api',{}).get('send_sampling',False))
         if self.kind in ('llama','rust','maya') and isinstance(body.get('messages'),list):
             body['messages']=normalize_orphan_tool_messages(body['messages'])
@@ -761,7 +791,8 @@ class EngineManager:
                     connection.close()
                     yield from self.stream(payload,control,conversation_id=conversation_id)
                     return
-                raise ValueError(provider_error(response.status,text,key))
+                raise ProviderHTTPError(provider_error(response.status,text,key),response.status,
+                                        retry_after_ms({k.lower():v for k,v in response.getheaders()}))
             # Only llama-server reports its own speeds and live counts. For the others they are measured
             # here: each streamed delta is about one token, and reading lasts until the first one arrives.
             sent=time.monotonic();first=None;chunks=0;ended=False

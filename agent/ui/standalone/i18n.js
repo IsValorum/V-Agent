@@ -19,6 +19,7 @@
     if((m=text.match(/^Modelo: (.*)\. (.+)$/)))return t('Modelo')+': '+m[1]+'. '+t(m[2]);
     if((m=text.match(/^Acceso del agente: (.+)\. Cambiar acceso$/)))return t('Acceso del agente')+': '+t(m[1])+'. '+t('Cambiar acceso');
     if((m=text.match(/^Modo del agente: (.+)\. Cambiar modo$/)))return t('Modo del agente')+': '+t(m[1])+'. '+t('Cambiar modo');
+    if((m=text.match(/^Error del proveedor \((\d{3})\): (.+?)\.(?: Detalle: ([\s\S]*))?$/)))return t('Error del proveedor')+' ('+m[1]+'): '+t(m[2])+'.'+(m[3]?' '+t('Detalle')+': '+m[3]:'');
     if((m=text.match(/^Contexto: (.*)$/)))return t('Contexto')+': '+m[1].replace(/\btokens\b/g,t('tokens'));
     if((m=text.match(/^Archivados · (\d+)$/)))return t('Archivados')+' · '+m[1];
     if((m=text.match(/^Personalizado · difiere del autor: (.+)\.$/)))return t('Personalizado')+' · '+t('difiere del autor')+': '+m[1].split(', ').map(part=>t(part)).join(', ')+'.';

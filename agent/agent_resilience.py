@@ -11,46 +11,94 @@ short record, as `context_policy.project_messages` does at the start of a turn).
 """
 import copy
 import json
+import random
 import re
+import socket
 
-# Retried: rate limits, provider overload and gateway errors, connections cut or timed out, replies
-# that stopped without their end mark. Never retried: authentication, a bad request, a missing model.
-_TRANSIENT_STATUS = re.compile(r'\((?:408|409|425|429|500|502|503|504|520|521|522|523|524|529)\)')
-_TRANSIENT_TEXT = re.compile(
-    r'se cort[oó] antes de terminar|overloaded|rate[ _-]?limit|too many requests|temporarily unavailable|'
-    r'service unavailable|bad gateway|gateway time-?out|timed? ?out|connection (?:reset|aborted|refused)|'
-    r'remote ?(?:end )?closed|remotedisconnected|incompleteread|winerror 1005[34]|'
-    r'el motor interrumpi[oó] la respuesta|server is busy|try again', re.I)
+# How the open-source harnesses do it (read in their sources, 2026-11-17), and what is taken here:
+#   * OpenCode (packages/core/src/model-retry.ts, packages/ai/src/provider-error.ts): a provider's
+#     throttle or server error is retried 10 times, exponential from 2 s with jitter; Retry-After is
+#     honoured (capped at 15 min); a quota/balance error is never retried; with no network path at all it
+#     keeps trying for an hour; a timed-out attempt is retried at most 3 times; context overflow is its own
+#     class (compact, then retry).
+#   * Goose (goose-provider-types/src/retry.rs): exponential from 1 s, gap capped at 30 s, jitter 0.8-1.2,
+#     the provider's retry delay wins for rate limits; permanent 4xx are not retried.
+#   * Roo Code: when the user lets it act alone it never gives up on a busy provider (5 s x 2^n up to
+#     10 min per wait, with a visible countdown).  Aider (litellm): about 60 s in total.
+# Here: OpenCode's classes and Retry-After, Goose's 30 s cap per gap: 10 attempts, about 3.5 minutes of
+# waiting for a provider that keeps answering "overloaded" (DeepSeek 529 lasted longer than 23 s).
+
 _OVERFLOW = re.compile(
     r'exceeds? the (?:available )?context|context(?:[ _-]?length| window| size)[^.]{0,40}(?:exceed|too|limit|maximum)|'
-    r'maximum context|context_length_exceeded|exceed_context_size|too many tokens|prompt is too long|'
-    r'input is too long|request \(\d+ tokens\) exceeds|reduce the length of the (?:messages|prompt)', re.I)
-_NOT_RETRIED = re.compile(r'\((?:400|401|402|403|404|405|413|422)\)')
+    r'maximum context|context_length_exceeded|exceed_context_size|model_context_window_exceeded|prompt is too long|'
+    r'input is too long|request \(\d+ tokens\) exceeds|reduce the length of the (?:messages|prompt)|'
+    r'greater than the context length|context window exceeded', re.I)
+# A 429 that is an exhausted balance or plan, not a throttle: waiting does not help.
+_QUOTA = re.compile(r'insufficient[-_\s]?(?:quota|balance)|(?<!token_)quota[-_\s]?exceeded|budget exceeded|usage limit|'
+                    r'billing|credit limit|package has expired|no queda saldo', re.I)
+_THROTTLE_OR_BUSY = re.compile(
+    r'se cort[oó] antes de terminar|overloaded|saturado|rate[ _-]?limit|too many requests|temporarily unavailable|'
+    r'service[-_\s]?unavailable|bad gateway|at capacity|server (?:is )?busy|try again|resource[-_\s]?exhausted|'
+    r'connection (?:reset|aborted|refused)|remote ?(?:end )?closed|remotedisconnected|incompleteread|'
+    r'winerror 1005[34]|el motor interrumpi[oó] la respuesta|upstream (?:connect|request)', re.I)
+_UNREACHABLE = re.compile(r'getaddrinfo failed|name or service not known|nodename nor servname|no route to host|'
+                          r'network is unreachable|winerror 1006[45]|winerror 10051|winerror 1100[12]', re.I)
+_TIMEOUT = re.compile(r'timed? ?out|time-?out', re.I)
+_STATUS = re.compile(r'\((\d{3})\)')
 
-ATTEMPTS = {'transient': 3, 'overflow': 2}
-DELAYS = (2.0, 6.0, 15.0)
+ATTEMPTS = {'transient': 10, 'timeout': 3, 'overflow': 2}
+UNREACHABLE_SECONDS = 3600
+RETRY_AFTER_MAX_SECONDS = 15 * 60
+FIRST_DELAY, GAP_CAP = 2.0, 30.0
+
+
+def _status(error):
+    status = getattr(error, 'status', None)
+    if isinstance(status, int):
+        return status
+    match = _STATUS.search(str(error or ''))
+    return int(match.group(1)) if match else None
 
 
 def classify(error):
-    """'overflow', 'transient' or None (stop: retrying would only repeat the same failure)."""
+    """'overflow', 'transient', 'timeout', 'unreachable' or None (stop: a retry would fail the same way)."""
     text = str(error or '')
-    if _OVERFLOW.search(text) or '(413)' in text:
+    status = _status(error)
+    if status != 429 and (_OVERFLOW.search(text) or status == 413):
         return 'overflow'
-    if isinstance(error, (ConnectionError, TimeoutError)):
-        return 'transient'
-    name = type(error).__name__
-    if name in ('RemoteDisconnected', 'IncompleteRead', 'BadStatusLine', 'timeout'):
-        return 'transient'
-    if _NOT_RETRIED.search(text):
+    if status == 402 or _QUOTA.search(text):
         return None
-    if _TRANSIENT_STATUS.search(text) or _TRANSIENT_TEXT.search(text):
+    if isinstance(error, socket.gaierror) or _UNREACHABLE.search(text):
+        return 'unreachable'
+    if status in (408, 409, 425, 429) or (status is not None and status >= 500):
+        return 'transient'
+    if status is not None and 400 <= status < 500:
+        return None
+    if isinstance(error, TimeoutError) or type(error).__name__ == 'timeout' or _TIMEOUT.search(text):
+        return 'timeout'
+    if isinstance(error, ConnectionError) or type(error).__name__ in ('RemoteDisconnected', 'IncompleteRead', 'BadStatusLine'):
+        return 'transient'
+    if _THROTTLE_OR_BUSY.search(text):
         return 'transient'
     return None
 
 
-def delay(attempt):
-    """Seconds to wait before retry number `attempt` (1-based)."""
-    return DELAYS[min(max(attempt, 1), len(DELAYS)) - 1]
+def allowed(kind, attempt, elapsed):
+    """Whether retry number `attempt` (1-based) may run, `elapsed` seconds after this round's first failure."""
+    if kind == 'unreachable':
+        return elapsed < UNREACHABLE_SECONDS
+    return attempt <= ATTEMPTS.get(kind, 0)
+
+
+def delay(attempt, retry_after_ms=None, jitter=True):
+    """Seconds before retry number `attempt`: 2, 4, 8, 16 s, then 30 s, with +-20 % jitter so many clients do
+    not come back at the same instant; never shorter than the provider's Retry-After (capped at 15 min)."""
+    seconds = min(FIRST_DELAY * 2 ** (max(attempt, 1) - 1), GAP_CAP)
+    if jitter:
+        seconds *= 0.8 + random.random() * 0.4
+    if retry_after_ms:
+        seconds = max(seconds, min(retry_after_ms / 1000.0, RETRY_AFTER_MAX_SECONDS))
+    return round(seconds, 1)
 
 
 def chars(messages, tools=None):

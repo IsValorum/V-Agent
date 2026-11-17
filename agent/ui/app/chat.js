@@ -142,8 +142,11 @@ function toolTitle(call) {
 // What the agent did on its own (retry, trimmed context) or asked, in the interface language.
 function toolNotice(call) {
   const n=call&&call.notice;if(!n||typeof n!=='object')return '';
-  const attempt=n.attempt&&n.max?' '+uiText('Intento')+' '+n.attempt+'/'+n.max+'.':'';
-  if(n.kind==='transient')return uiText('Error transitorio del motor o del proveedor; se repite automáticamente.')+attempt+(n.wait?' '+uiText('Espera')+': '+n.wait+' s.':'');
+  const attempt=n.attempt?' '+uiText('Intento')+' '+n.attempt+(n.max?'/'+n.max:'')+'.':'';
+  const wait=n.wait?' '+uiText('Espera')+': '+n.wait+' s.':'';
+  if(n.kind==='transient'||n.kind==='timeout')return uiText('Error transitorio del motor o del proveedor; se repite automáticamente.')+attempt+wait;
+  if(n.kind==='empty')return uiText('El modelo devolvió una respuesta vacía; se repite la misma petición.')+attempt;
+  if(n.kind==='unreachable')return uiText('Sin conexión con el proveedor; se sigue intentando hasta 1 hora.')+attempt+wait;
   if(n.kind==='overflow')return uiText('El modelo rechazó la petición por superar su contexto; se acortó el historial y se repite.')+attempt;
   if(n.kind==='context')return uiText('Se apartaron resultados antiguos del contexto para seguir trabajando.')+' '+formatTokens(n.before||0)+' → '+formatTokens(n.after||0)+' '+uiText('caracteres')+(n.archived?' · '+n.archived+' '+uiText('bloques guardados en la carpeta context/ del chat'):'')+'.';
   if(n.kind==='question'){

@@ -317,7 +317,7 @@ def _cierre_bucle(control, previo, guardado_en_turno):
     return (previo + recado) if previo else recado.strip()
 
 
-RECUPERACIONES_TURNO = 8      # reintentos por errores del motor/proveedor en todo un turno
+RECUPERACIONES_TURNO = 60     # tope de seguridad: reintentos por errores del motor/proveedor en todo un turno
 
 
 def _entero(value):
@@ -357,12 +357,18 @@ def _tarjeta_reintento(rnd, intento, maximo, tipo, error, espera):
     """A trace card for an automatic retry after an engine/provider error."""
     ident = "tool_%d_retry_%d_%s" % (rnd + 1, intento, secrets.token_hex(3))
     motivo = str(error)[:300] or type(error).__name__
+    de = (" de %d" % maximo) if maximo else ""
     if tipo == "overflow":
         texto = ("El modelo rechazó la petición por superar su contexto. Se acortó el historial y se repite "
-                 "(intento %d de %d). Detalle: %s" % (intento, maximo, motivo))
+                 "(intento %d%s). Detalle: %s" % (intento, de, motivo))
+    elif tipo == "empty":
+        texto = "El modelo devolvió una respuesta vacía; se repite la misma petición (intento %d%s)." % (intento, de)
+    elif tipo == "unreachable":
+        texto = ("No hay conexión con el proveedor. Se repite en %d s (intento %d; se sigue intentando hasta 1 hora). "
+                 "Detalle: %s" % (round(espera), intento, motivo))
     else:
-        texto = ("Error transitorio del motor o del proveedor. Se repite en %d s (intento %d de %d). Detalle: %s"
-                 % (round(espera), intento, maximo, motivo))
+        texto = ("Error transitorio del motor o del proveedor. Se repite en %d s (intento %d%s). Detalle: %s"
+                 % (round(espera), intento, de, motivo))
     yield {"type": "tool", "id": ident, "name": "agent__retry", "args": {}, "round": rnd + 1, "status": "running"}
     yield {"type": "tool_result", "id": ident, "name": "agent__retry", "result": texto, "ok": True,
            "executed": False, "status": "completed", "elapsed_ms": 0,
@@ -1603,6 +1609,7 @@ def _run_chat_stream(body, control=None):
     archivo_recordado = False     # ya se pidió una vez crear el archivo que solo se mostró en el chat
     action_nudges = 0
     solo_razonamiento = 0         # rondas que acabaron solo pensando (sin texto ni llamada)
+    respuestas_vacias = 0         # respuestas sin nada (ni texto, ni razonamiento, ni llamada): se repiten
     draft_nudged = False
     llamadas = 0
     last_round_failed = False
@@ -1703,6 +1710,7 @@ def _run_chat_stream(body, control=None):
                     "delta": delta, "round": rnd + 1, "status": "drafting"}
 
         intento = 0
+        primer_fallo = None
         while True:
             calls.clear()
             drafts.clear()
@@ -1784,7 +1792,8 @@ def _run_chat_stream(body, control=None):
                 if control.cancelled.is_set():
                     return
                 tipo = agent_resilience.classify(error)
-                if not tipo or intento >= agent_resilience.ATTEMPTS[tipo] or \
+                primer_fallo = primer_fallo or time.monotonic()
+                if not tipo or not agent_resilience.allowed(tipo, intento + 1, time.monotonic() - primer_fallo) or \
                         reintentos_turno >= RECUPERACIONES_TURNO:
                     raise
                 intento += 1
@@ -1804,8 +1813,8 @@ def _run_chat_stream(body, control=None):
                     yield from _tarjeta_contexto(rnd, ajuste)
                     espera = 0.0
                 else:
-                    espera = agent_resilience.delay(intento)
-                yield from _tarjeta_reintento(rnd, intento, agent_resilience.ATTEMPTS[tipo], tipo, error, espera)
+                    espera = agent_resilience.delay(intento, getattr(error, "retry_after_ms", None))
+                yield from _tarjeta_reintento(rnd, intento, agent_resilience.ATTEMPTS.get(tipo), tipo, error, espera)
                 if control.cancelled.wait(espera):
                     return
 
@@ -1978,6 +1987,13 @@ def _run_chat_stream(body, control=None):
                 yield {"type": "content_fixed", "text": final}
                 yield {"type": "done", "content": final, "reasoning_content": reasoning}
                 return
+            # Nothing at all (no text, no reasoning, no call): a provider hiccup more than an answer. Cline
+            # (retry-empty-response middleware) and Roo Code repeat the same request; so does this, twice.
+            if (not content.strip() and not (raw_reasoning or "").strip() and not drafts and not attempted
+                    and not thought_attempted and not wrap_up and rnd < rounds - 1 and respuestas_vacias < 2):
+                respuestas_vacias += 1
+                yield from _tarjeta_reintento(rnd, respuestas_vacias, 2, "empty", "", 0)
+                continue
             # Only thinking, no reply and no call (seen 2026-11-17 with an API model planning a voxel island:
             # the provider's output limit ran out inside the reasoning). Ending here showed "the model
             # finished without returning text" and the work was lost; ask it to act instead.

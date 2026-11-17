@@ -4,6 +4,18 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.1.5
+
+Release aligning provider error handling with the open-source agent harnesses (OpenCode, Goose, Roo Code, Cline, Aider), so a busy provider no longer ends an autonomous run. Includes the 1.1.4 C1 fixes.
+
+- **Retry policy (`agent/agent_resilience.py`, `agent/agent.py`):** Busy or throttled providers (HTTP 408/409/425/429, 5xx, 529 "Overloaded", dropped streams) are retried 10 times with exponential waits of 2, 4, 8, 16 then 30 s and ±20 % jitter (about 3.5 minutes), never shorter than the provider's `Retry-After` / `retry-after-ms` (capped at 15 min). With no network path (DNS or route failures) retries continue for up to an hour; timed-out attempts are retried at most 3 times. Exhausted balance or quota (402, `insufficient_quota`/balance on 429) and other rejected requests stop at once. A 429 worded like an overflow is treated as a throttle.
+- **Empty replies:** A reply with no text, no reasoning and no tool call is repeated (twice at most), as Cline and Roo Code do.
+- **Provider errors keep their status (`agent/engine_manager.py`):** `ProviderHTTPError` carries the HTTP status and the requested wait; new plain-language hints for 402 (no balance), 503 and 529 (provider overloaded).
+- **Output limit as OpenCode computes it:** The catalog's output maximum, 32,000 when the provider does not declare one, never above 256,000, fitted to the room left in the window with 15 % estimate error and 1 % headroom (minimum 1,024).
+- **Translated provider errors (`agent/ui/standalone/i18n.js`):** "Provider error (N): …. Detail: …" is translated part by part into `en`, `pt`, `fr` and `de`; retry cards cover no-connection and empty-reply cases.
+- **From 1.1.4 C1:** *Render HTML* works on pages with a `<canvas>` again (3D/voxel scene diagnostics), and the composer has a double edge with a clear gap.
+- **Tests:** `tests/test_agent_resilience.py` covers the new classes, schedule, jitter and `Retry-After`; `tests/test_remote_providers.py` checks the status and `Retry-After` of a real 529 response and the output limits; `tests/smoke/agent_autonomy_ui.py` adds an empty reply and an exhausted balance (`14/14`).
+
 ## 1.1.4
 
 Fix release: API models no longer run out of output inside their reasoning, a reasoning-only round is followed by action instead of an empty reply, and the remaining untranslated interface text is translated.

@@ -11566,5 +11566,107 @@
     "pt": "O modelo recebeu",
     "fr": "Le modèle a reçu",
     "de": "Das Modell erhielt"
+  },
+  "Sin conexión con el proveedor; se sigue intentando hasta 1 hora.": {
+    "en": "No connection to the provider; still trying for up to 1 hour.",
+    "pt": "Sem conexão com o provedor; continua tentando por até 1 hora.",
+    "fr": "Pas de connexion au fournisseur ; nouvelles tentatives pendant 1 heure au plus.",
+    "de": "Keine Verbindung zum Anbieter; es wird bis zu 1 Stunde weiter versucht."
+  },
+  "El modelo devolvió una respuesta vacía; se repite la misma petición.": {
+    "en": "The model returned an empty reply; the same request is repeated.",
+    "pt": "O modelo devolveu uma resposta vazia; a mesma solicitação é repetida.",
+    "fr": "Le modèle a renvoyé une réponse vide ; la même requête est relancée.",
+    "de": "Das Modell hat eine leere Antwort geliefert; dieselbe Anfrage wird wiederholt."
+  },
+  "Error del proveedor": {
+    "en": "Provider error",
+    "pt": "Erro do provedor",
+    "fr": "Erreur du fournisseur",
+    "de": "Anbieterfehler"
+  },
+  "Detalle": {
+    "en": "Detail",
+    "pt": "Detalhe",
+    "fr": "Détail",
+    "de": "Detail"
+  },
+  "la clave de la API no es válida o caducó": {
+    "en": "the API key is invalid or expired",
+    "pt": "a chave da API é inválida ou expirou",
+    "fr": "la clé d'API est invalide ou a expiré",
+    "de": "der API-Schlüssel ist ungültig oder abgelaufen"
+  },
+  "no queda saldo o crédito en la cuenta del proveedor": {
+    "en": "there is no balance or credit left in the provider account",
+    "pt": "não há saldo ou crédito na conta do provedor",
+    "fr": "il ne reste ni solde ni crédit sur le compte du fournisseur",
+    "de": "im Konto des Anbieters ist kein Guthaben mehr"
+  },
+  "la clave no tiene permiso para este modelo": {
+    "en": "the key has no permission for this model",
+    "pt": "a chave não tem permissão para este modelo",
+    "fr": "la clé n'a pas l'autorisation pour ce modèle",
+    "de": "der Schlüssel hat keine Berechtigung für dieses Modell"
+  },
+  "la URL o el modelo no existen en este proveedor": {
+    "en": "the URL or the model does not exist at this provider",
+    "pt": "a URL ou o modelo não existem neste provedor",
+    "fr": "l'URL ou le modèle n'existe pas chez ce fournisseur",
+    "de": "die URL oder das Modell gibt es bei diesem Anbieter nicht"
+  },
+  "el proveedor tardó demasiado": {
+    "en": "the provider took too long",
+    "pt": "o provedor demorou demais",
+    "fr": "le fournisseur a mis trop de temps",
+    "de": "der Anbieter hat zu lange gebraucht"
+  },
+  "la conversación es demasiado larga para este proveedor": {
+    "en": "the conversation is too long for this provider",
+    "pt": "a conversa é longa demais para este provedor",
+    "fr": "la conversation est trop longue pour ce fournisseur",
+    "de": "das Gespräch ist für diesen Anbieter zu lang"
+  },
+  "se alcanzó el límite de uso o de velocidad del proveedor; espera un poco": {
+    "en": "the provider's usage or rate limit was reached; wait a little",
+    "pt": "o limite de uso ou de velocidade do provedor foi atingido; espere um pouco",
+    "fr": "la limite d'utilisation ou de débit du fournisseur est atteinte ; patientez un peu",
+    "de": "das Nutzungs- oder Ratenlimit des Anbieters ist erreicht; warte kurz"
+  },
+  "el proveedor tuvo un error interno": {
+    "en": "the provider had an internal error",
+    "pt": "o provedor teve um erro interno",
+    "fr": "le fournisseur a eu une erreur interne",
+    "de": "beim Anbieter ist ein interner Fehler aufgetreten"
+  },
+  "el proveedor no está disponible ahora mismo": {
+    "en": "the provider is not available right now",
+    "pt": "o provedor não está disponível agora",
+    "fr": "le fournisseur n'est pas disponible pour le moment",
+    "de": "der Anbieter ist gerade nicht erreichbar"
+  },
+  "el proveedor está saturado o no disponible ahora mismo": {
+    "en": "the provider is overloaded or unavailable right now",
+    "pt": "o provedor está sobrecarregado ou indisponível agora",
+    "fr": "le fournisseur est saturé ou indisponible pour le moment",
+    "de": "der Anbieter ist gerade überlastet oder nicht erreichbar"
+  },
+  "el proveedor está saturado ahora mismo": {
+    "en": "the provider is overloaded right now",
+    "pt": "o provedor está sobrecarregado agora",
+    "fr": "le fournisseur est saturé pour le moment",
+    "de": "der Anbieter ist gerade überlastet"
+  },
+  "el proveedor tuvo un error": {
+    "en": "the provider had an error",
+    "pt": "o provedor teve um erro",
+    "fr": "le fournisseur a eu une erreur",
+    "de": "beim Anbieter ist ein Fehler aufgetreten"
+  },
+  "el proveedor rechazó la petición": {
+    "en": "the provider rejected the request",
+    "pt": "o provedor recusou a solicitação",
+    "fr": "le fournisseur a refusé la requête",
+    "de": "der Anbieter hat die Anfrage abgelehnt"
   }
 }

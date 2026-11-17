@@ -106,14 +106,39 @@ class RemoteProvidersTests(unittest.TestCase):
    def ask(model,limit=0):
     m.load({'id':ids[model]},None,None)
     return b''.join(m.stream({'model':model,'messages':[{'role':'user','content':'x'*3500}],'max_tokens':limit},Control())).decode()
-   ask('known');self.assertTrue(98000<requests[-1]['max_tokens']<=100000,requests[-1].get('max_tokens'))
-   ask('unknown');self.assertEqual(requests[-1]['max_tokens'],65536)
+   ask('known');self.assertEqual(requests[-1]['max_tokens'],100000)
+   ask('unknown');self.assertEqual(requests[-1]['max_tokens'],32000)  # OpenCode's fallback when the provider does not say
    ask('known',2048);self.assertEqual(requests[-1]['max_tokens'],2048)  # a limit the user set is kept
    refuse['on']=True;before=len(requests)
    self.assertIn('"ok"',ask('unknown'))
    self.assertEqual([('max_tokens' in r) for r in requests[before:]],[True,False])
    ask('unknown');self.assertNotIn('max_tokens',requests[-1])  # remembered for this model
   finally:server.shutdown();server.server_close()
+ def test_provider_refusal_keeps_its_status_and_retry_after(self):
+  class Handler(BaseHTTPRequestHandler):
+   def log_message(self,*args):pass
+   def do_GET(self):
+    raw=json.dumps({'data':[{'id':'m','context_length':8192}]}).encode()
+    self.send_response(200);self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw)
+   def do_POST(self):
+    self.rfile.read(int(self.headers['Content-Length']))
+    raw=json.dumps({'error':{'message':'Overloaded'}}).encode()
+    self.send_response(529);self.send_header('Retry-After','7');self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw)
+  server=ThreadingHTTPServer(('127.0.0.1',0),Handler);threading.Thread(target=server.serve_forever,daemon=True).start()
+  class Control:
+   cancelled=threading.Event()
+   def attach(self,*args):pass
+   def detach(self,*args):pass
+  try:
+   m=self.manager;m.configure({'engine':'api','base_url':f'http://127.0.0.1:{server.server_port}/v1','api_key':'local-test'});m.connect()
+   m.load({'id':m.remote_identifier(m.remote_models[0])},None,None)
+   with self.assertRaises(engine_manager.ProviderHTTPError) as caught:
+    b''.join(m.stream({'model':'m','messages':[{'role':'user','content':'x'}]},Control()))
+   self.assertEqual((caught.exception.status,caught.exception.retry_after_ms),(529,7000))
+   self.assertIn('(529): el proveedor está saturado ahora mismo',str(caught.exception))
+  finally:server.shutdown();server.server_close()
+  self.assertEqual(engine_manager.retry_after_ms({'retry-after-ms':'1500'}),1500)
+  self.assertIsNone(engine_manager.retry_after_ms({}))
  def test_stream_errors_are_failures_not_empty_success(self):
   with self.assertRaises(ValueError):ClaudeStream().packet({'type':'error','error':{'message':'overloaded'}})
 if __name__=='__main__':unittest.main()

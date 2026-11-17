@@ -12,6 +12,7 @@ request, and the interface is driven in the bundled headless browser like a user
   is repeated and the task finishes;
 - a round that only reasons until the output limit is asked to act, and the task finishes;
 - with no output limit set, the provider gets the model's own output maximum, not its small default;
+- an empty reply is repeated; an exhausted balance (402) stops at once without retries;
 - a request without `ask_user` (an API client) never gets the question tool.
 """
 import asyncio
@@ -85,6 +86,14 @@ def script(body):
         if last_tool is None or 'output budget' in str(last_tool):
             return 200, call('pc__fs_write', {'path': 'isla.html', 'content': '<!doctype html><title>isla</title>'})
         return 200, say('ISLA-LISTA')
+    if 'saldo' in user:
+        STATE['quota_requests'] = STATE.get('quota_requests', 0) + 1
+        return 402, json.dumps({'error': {'message': 'Insufficient Balance'}})
+    if 'vacía' in user:
+        STATE['empty_requests'] = STATE.get('empty_requests', 0) + 1
+        if STATE['empty_requests'] == 1:
+            return 200, sse([{'choices': [{'delta': {}, 'finish_reason': 'stop'}]}])
+        return 200, say('RESPUESTA-TRAS-VACIA')
     if 'api client' in user:
         return 200, say('TOOLS:' + ','.join(tools))
     return 200, say('ok')
@@ -179,6 +188,17 @@ async def run(core):
         done = await browser.run(WAIT_DONE)
         check('a reasoning-only round cut by the output limit is followed by action, not an empty reply',
               'ISLA-LISTA' in done['text'] and 'sin devolver texto' not in done['text'], done['text'][-200:])
+        # 6. An empty reply (no text, no reasoning, no call) is repeated, as Cline and Roo Code do.
+        await browser.run(SEND % json.dumps('Prueba respuesta vacía'))
+        done = await browser.run(WAIT_DONE)
+        check('an empty reply is repeated and the answer arrives', 'RESPUESTA-TRAS-VACIA' in done['text'] and STATE.get('empty_requests') == 2,
+              (done['text'][-120:], STATE.get('empty_requests')))
+        # 7. An exhausted balance is not retried (OpenCode's quota class): one request, a clear message.
+        await browser.run(SEND % json.dumps('Prueba saldo agotado'))
+        done = await browser.run(WAIT_DONE)
+        shown = await browser.run("return document.getElementById('chat').innerText.slice(-600)")
+        check('an exhausted balance stops at once with a clear message', STATE.get('quota_requests') == 1 and 'no queda saldo' in shown,
+              (STATE.get('quota_requests'), shown[-200:]))
         errors = await browser.run("return (window.__errors||[]).slice(-5)")
         check('no page errors', not errors and not browser.errors, (errors, browser.errors))
     return ok
