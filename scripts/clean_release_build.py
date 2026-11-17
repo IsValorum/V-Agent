@@ -225,11 +225,15 @@ def verify_clean_release_output(core_dir: Path, exe_paths: list[Path], home_dir:
         raise SystemExit('Clean release verification failed:\n  ' + '\n  '.join(errors[:25]))
 
 
-def _run_checked(cmd: list[str], cwd: Path, env: dict[str, str] | None = None) -> None:
-    print('>', ' '.join(cmd), flush=True)
+def _run_checked(cmd: list[str] | str, cwd: Path, env: dict[str, str] | None = None) -> None:
+    if isinstance(cmd, str):  # a command line passed to Windows as written (no re-quoting)
+        cmd_text = cmd
+    else:
+        cmd_text = ' '.join(cmd)
+    print('>', cmd_text, flush=True)
     result = subprocess.run(cmd, cwd=str(cwd), env=env)
     if result.returncode != 0:
-        raise SystemExit(f'Command exited with code {result.returncode}: {" ".join(cmd)}')
+        raise SystemExit(f'Command exited with code {result.returncode}: {cmd_text}')
 
 
 def _run_tauri_nsis(worktree: Path, env: dict[str, str]) -> None:
@@ -240,7 +244,9 @@ def _run_tauri_nsis(worktree: Path, env: dict[str, str]) -> None:
         return
     if not VCVARS64.is_file():
         raise SystemExit(f'Missing Visual Studio Build Tools environment script: {VCVARS64}')
-    _run_checked(['cmd', '/c', f'call "{VCVARS64}" && {tauri_cmd}'], cwd=desktop_dir, env=env)
+    # As one command line: from a list, Python would escape the inner quotes as \" and cmd.exe would
+    # not find vcvars64.bat (the path has spaces). /s keeps the quotes around the path intact.
+    _run_checked(f'cmd /d /s /c ""{VCVARS64}" && {tauri_cmd}"', cwd=desktop_dir, env=env)
 
 
 def _cleanup_worktree(repo_root: Path, worktree: Path) -> None:
