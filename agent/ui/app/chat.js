@@ -137,7 +137,21 @@ function readableDraft(call) {
 }
 function toolTitle(call) {
   const name=toolName(call);
-  return uiText(({hf_account:'Cuenta de Hugging Face',hf_cli:'Hugging Face CLI',hf_transfer:'Archivos de Hugging Face',web_search:'Web Search',web_visit:'Web Visit',fs_list:'Listar archivos',fs_read:'Leer archivo',doc_read:'Leer documento',fs_write:'Guardar archivo',fs_edit:'Editar archivo',fs_copy:'Copiar texto',draft_resume:'Continuar borrador',file_history:'Versiones del archivo',code_check:'Comprobar código',project_map:'Mapa del proyecto',web_render:'Renderizar HTML',invalid_call:'Llamada inválida',draft:'Herramienta',shell_run:'Comandos',sys_info:'Información del equipo'})[name]||name||'Herramienta');
+  return uiText(({hf_account:'Cuenta de Hugging Face',hf_cli:'Hugging Face CLI',hf_transfer:'Archivos de Hugging Face',web_search:'Web Search',web_visit:'Web Visit',fs_list:'Listar archivos',fs_read:'Leer archivo',doc_read:'Leer documento',fs_write:'Guardar archivo',fs_edit:'Editar archivo',fs_copy:'Copiar texto',draft_resume:'Continuar borrador',file_history:'Versiones del archivo',code_check:'Comprobar código',project_map:'Mapa del proyecto',web_render:'Renderizar HTML',invalid_call:'Llamada inválida',ask_user:'Pregunta al usuario',retry:'Reintento automático',context:'Contexto acotado',draft:'Herramienta',shell_run:'Comandos',sys_info:'Información del equipo'})[name]||name||'Herramienta');
+}
+// What the agent did on its own (retry, trimmed context) or asked, in the interface language.
+function toolNotice(call) {
+  const n=call&&call.notice;if(!n||typeof n!=='object')return '';
+  const attempt=n.attempt&&n.max?' '+uiText('Intento')+' '+n.attempt+'/'+n.max+'.':'';
+  if(n.kind==='transient')return uiText('Error transitorio del motor o del proveedor; se repite automáticamente.')+attempt+(n.wait?' '+uiText('Espera')+': '+n.wait+' s.':'');
+  if(n.kind==='overflow')return uiText('El modelo rechazó la petición por superar su contexto; se acortó el historial y se repite.')+attempt;
+  if(n.kind==='context')return uiText('Se apartaron resultados antiguos del contexto para seguir trabajando.')+' '+formatTokens(n.before||0)+' → '+formatTokens(n.after||0)+' '+uiText('caracteres')+(n.archived?' · '+n.archived+' '+uiText('bloques guardados en la carpeta context/ del chat'):'')+'.';
+  if(n.kind==='question'){
+    if(n.outcome==='answered')return uiText('Tu respuesta')+': '+String(n.answer||'');
+    if(n.outcome==='skipped')return uiText('Dejaste que el agente decidiera.');
+    if(n.outcome==='timeout')return uiText('Sin respuesta en 15 minutos; el agente siguió con su criterio.');
+  }
+  return '';
 }
 function toolState(call) {
   return uiText(({drafting:'Redactando',validating:'Validando',running:'Ejecutando',completed:'Resultado recibido',error:'Error',blocked:'No ejecutada',interrupted:'Interrumpida',missing:'Sin resultado recibido'})[call.status]||(Object.hasOwn(call,'result')?(call.ok===false?'Error':'Resultado recibido'):'Sin resultado guardado'));
@@ -351,6 +365,8 @@ function updateToolTrace(section,trace) {
       history.onclick=()=>openFileHistory(args.path||args.destino);body.append(history);
     }
     const meta=document.createElement('div');meta.className='tool-meta';meta.textContent=String(call.name||'')+(call.round?' · '+uiText('Ronda')+' '+call.round:'');body.append(meta);
+    const notice=toolNotice(call);
+    if(notice){const text=document.createElement('p');text.className='tool-note tool-notice';text.textContent=notice;body.append(text);}
     const block=(title,text)=>{const heading=document.createElement('div');heading.className='tool-block-head';const label=document.createElement('span');label.textContent=title;heading.append(label);const pre=document.createElement('pre');pre.tabIndex=0;pre.textContent=text;body.append(heading,pre);return heading;};
     const failed=call.ok===false||['error','blocked','interrupted','missing'].includes(call.status);
     const hasParsedArgs=args&&typeof args==='object'&&Object.keys(args).length>0;

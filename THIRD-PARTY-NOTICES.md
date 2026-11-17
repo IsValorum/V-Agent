@@ -72,6 +72,7 @@ V-Agent downloads them from their official sources only when the user asks, unde
 | pydantic-settings | 2.16.2 | MIT |
 | pydantic_core | 2.50.4 | MIT |
 | PyJWT | 2.15.1 | MIT |
+| pyflakes | 3.4.0 | MIT License |
 | pypdf | 7.1.0 | BSD-3-Clause |
 | pypdfium2 | 5.15.2 | BSD-3-Clause AND Apache-2.0 |
 | python-dateutil | 4.0.0 | BSD-3-Clause |

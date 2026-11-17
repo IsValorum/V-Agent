@@ -82,7 +82,7 @@ def _sintaxis(cuerpo, module=None, mantener=False):
 _NO_COMPROBADO = 'NOT CHECKED: '
 
 
-def verificar_html(html):
+def verificar_html(html, ruta=None):
     blocks = scripts(html)
     executable = [(attrs, body) for attrs, body in blocks if body.strip()
         and 'src' not in attrs and (attrs.get('type') or '').strip().lower() in JAVASCRIPT_TYPES]
@@ -105,9 +105,12 @@ def verificar_html(html):
                 render_check.cierra_sesion()
             except Exception:
                 pass
+    import code_insight
+    extra_errors, extra_warnings = code_insight.html(html, ruta, [body for _, body in executable])
+    errors += extra_errors
     if unchecked and not errors:
-        return {'ok':None,'checked':False,'errores':[],'avisos':unchecked,'info':info}
-    return {'ok':not errors,'checked':True,'errores':errors,'avisos':unchecked, 'info':info}
+        return {'ok':None,'checked':False,'errores':[],'avisos':unchecked + extra_warnings,'info':info}
+    return {'ok':not errors,'checked':True,'errores':errors,'avisos':unchecked + extra_warnings, 'info':info}
 
 
 def verificar_contenido(texto, ruta):
@@ -120,8 +123,12 @@ def verificar_contenido(texto, ruta):
                 with warnings.catch_warnings():
                     warnings.simplefilter('ignore')
                     compile(texto, str(ruta), 'exec', dont_inherit=True)
-            else:
-                json.loads(texto)
+                # It compiles; now what fails only when it runs (undefined names, missing modules...).
+                import code_insight
+                errores, avisos = code_insight.python(texto, ruta)
+                info['checker'] = 'compile+pyflakes'
+                return {'ok':not errores,'checked':True,'errores':errores,'avisos':avisos,'info':info}
+            json.loads(texto)
             return {'ok':True,'checked':True,'errores':[],'avisos':[],'info':info}
         except (SyntaxError, ValueError) as error:
             return {'ok':False,'checked':True,'errores':[str(error)],'avisos':[],'info':info}
@@ -141,16 +148,23 @@ def verificar_contenido(texto, ruta):
             return {'ok':True,'checked':True,'errores':[],'avisos':[],'info':info}
         except Exception as error:return {'ok':False,'checked':True,'errores':[str(error)[:600]],'avisos':[],'info':info}
     if extension in ('.html', '.htm'):
-        return verificar_html(texto)
+        return verificar_html(texto, ruta)
     if extension in ('.js', '.mjs', '.cjs'):
+        import code_insight
         error = _sintaxis(texto, module=True if extension == '.mjs' else False if extension == '.cjs' else None)
+        extra_errors, extra_warnings = code_insight.javascript(texto, ruta)
         if error and error.startswith(_NO_COMPROBADO):
-            return {'ok':None,'checked':False,'errores':[],'avisos':[error[len(_NO_COMPROBADO):]],'info':info}
-        return {'ok':not error,'checked':True,'errores':[error] if error else [],'avisos':[],'info':info}
+            return {'ok':False if extra_errors else None,'checked':bool(extra_errors),'errores':extra_errors,
+                    'avisos':[error[len(_NO_COMPROBADO):]] + extra_warnings,'info':info}
+        errores = ([error] if error else []) + extra_errors
+        return {'ok':not errores,'checked':True,'errores':errores,'avisos':extra_warnings,'info':info}
     if extension == '.java':
         return _java(texto, ruta, info)
     if extension == '.css':
-        return _css(texto, info)
+        result = _css(texto, info)
+        import code_insight
+        result['avisos'] = result['avisos'] + code_insight.css(texto, ruta)[1]
+        return result
     if extension in ('.ps1', '.psm1', '.psd1'):
         return _powershell(texto, info)
     if extension in EXTERNOS:

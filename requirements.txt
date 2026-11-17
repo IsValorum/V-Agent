@@ -9,6 +9,7 @@ mcp==1.27.2
 ddgs==9.14.4
 huggingface_hub==2.4.0
 PyYAML==6.0.3
+pyflakes==3.4.0  # code_check: undefined names and other static errors in Python
 Pillow==13.0.0  # computer MCP: screen capture (ImageGrab)
 pypdf==7.1.0
 pdfplumber==0.11.10

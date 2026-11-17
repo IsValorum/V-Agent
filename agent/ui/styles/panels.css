@@ -1810,3 +1810,9 @@ a.release-notes-link,#settings-system a{display:inline-block;padding:4px 2px;}
 .mcp-option-server>summary::after{content:"⌄";margin-left:auto;color:var(--muted);font-size:14px;transition:transform var(--motion-duration,.15s) ease;}
 .mcp-option-server[open]>summary::after{transform:rotate(180deg);}
 
+/* The agent's question to the user (ask_user): readable question, options as large targets. */
+.agent-question .agent-question-text{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.5;margin:4px 0 12px;}
+.agent-question .agent-question-options{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-start!important;margin:0 0 10px;}
+.agent-question .agent-question-option{min-height:32px;text-align:left;white-space:normal;}
+.agent-question .agent-question-answer{width:100%;box-sizing:border-box;resize:vertical;min-height:64px;margin:0 0 6px;font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px;}
+.agent-question .agent-question-status{min-height:1em;margin:0 0 8px;color:var(--muted);}

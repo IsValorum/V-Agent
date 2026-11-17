@@ -362,7 +362,7 @@ async function generateResponse(replaceIndex=null) {
     if(pcAccess.mode!=='full_pc'&&!pcAccess.isolation?.available)functions.shell=false;
     const resumeDraftId=autoResumeDraftId(history,functions);
     const modelMessages=cleanModelMessages(conversationForModel(history),Boolean(resumeDraftId));
-    const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},signal:generation.controller.signal,body:JSON.stringify({model:requestModel,model_name:modelNames[requestModel]||requestModel,context_limit:contextCapacity||modelContexts[requestModel],conversation_id:currentId,messages:modelMessages,resume_draft:resumeDraftId,effort:requestSettings.effort,functions,sampling:requestSettings.sampling,profile:requestSettings.profile||"custom",rounds:requestSettings.rounds,permission_mode:S.permissionMode||"ask",agent_profile:S.agentProfile||"balanced",native_stream:true})});
+    const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},signal:generation.controller.signal,body:JSON.stringify({model:requestModel,model_name:modelNames[requestModel]||requestModel,context_limit:contextCapacity||modelContexts[requestModel],conversation_id:currentId,messages:modelMessages,resume_draft:resumeDraftId,effort:requestSettings.effort,functions,sampling:requestSettings.sampling,profile:requestSettings.profile||"custom",rounds:requestSettings.rounds,permission_mode:S.permissionMode||"ask",agent_profile:S.agentProfile||"balanced",ask_user:true,native_stream:true})});
     if(!response.ok){let data;try{data=await response.json();}catch{}throw new Error(data?.error||'Error HTTP '+response.status);}
     if(!response.body||!response.headers.get('content-type')?.includes('text/event-stream'))throw new Error('El servidor no devolvió una respuesta de chat válida.');
     generation.runId=response.headers.get('X-Strata-Run-Id');
@@ -383,6 +383,7 @@ async function generateResponse(replaceIndex=null) {
         queuePaint();return;
       }
       if(event.type==='approval'){showToolApproval(event);}
+      else if(event.type==='question'){showAgentQuestion(event);}
       else if(event.type==='reasoning'){finalReasoning+=event.text||'';if(!finalText)streamNote='Razonando…';}
       else if(event.type==='reasoning_fixed'){finalReasoning=event.text||'';}   // el agente quito marcas de llamada crudas del razonamiento
       else if(event.type==='content'){finalText+=event.text||'';}

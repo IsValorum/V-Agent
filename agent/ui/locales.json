@@ -11428,5 +11428,113 @@
     "pt": "Aguarde a operação atual terminar.",
     "fr": "Attendez la fin de l'opération en cours.",
     "de": "Warte, bis der aktuelle Vorgang abgeschlossen ist."
+  },
+  "El agente necesita tu respuesta": {
+    "en": "The agent needs your answer",
+    "pt": "O agente precisa da sua resposta",
+    "fr": "L'agent a besoin de votre réponse",
+    "de": "Der Agent braucht deine Antwort"
+  },
+  "Escribe tu respuesta…": {
+    "en": "Type your answer…",
+    "pt": "Escreva sua resposta…",
+    "fr": "Écrivez votre réponse…",
+    "de": "Schreib deine Antwort …"
+  },
+  "Tu respuesta": {
+    "en": "Your answer",
+    "pt": "Sua resposta",
+    "fr": "Votre réponse",
+    "de": "Deine Antwort"
+  },
+  "Escribe una respuesta o deja que decida el agente.": {
+    "en": "Type an answer or let the agent decide.",
+    "pt": "Escreva uma resposta ou deixe o agente decidir.",
+    "fr": "Écrivez une réponse ou laissez l'agent décider.",
+    "de": "Schreib eine Antwort oder lass den Agenten entscheiden."
+  },
+  "Que decida el agente": {
+    "en": "Let the agent decide",
+    "pt": "Deixar o agente decidir",
+    "fr": "Laisser l'agent décider",
+    "de": "Agent entscheiden lassen"
+  },
+  "El agente seguirá con su mejor criterio y te dirá qué supuso.": {
+    "en": "The agent will continue with its best judgment and tell you what it assumed.",
+    "pt": "O agente seguirá com o melhor critério e dirá o que supôs.",
+    "fr": "L'agent continuera selon son meilleur jugement et vous dira ce qu'il a supposé.",
+    "de": "Der Agent macht nach bestem Ermessen weiter und sagt dir, wovon er ausgegangen ist."
+  },
+  "Enviar respuesta": {
+    "en": "Send answer",
+    "pt": "Enviar resposta",
+    "fr": "Envoyer la réponse",
+    "de": "Antwort senden"
+  },
+  "Pregunta al usuario": {
+    "en": "Question for you",
+    "pt": "Pergunta para você",
+    "fr": "Question pour vous",
+    "de": "Frage an dich"
+  },
+  "Reintento automático": {
+    "en": "Automatic retry",
+    "pt": "Nova tentativa automática",
+    "fr": "Nouvelle tentative automatique",
+    "de": "Automatischer neuer Versuch"
+  },
+  "Contexto acotado": {
+    "en": "Context trimmed",
+    "pt": "Contexto reduzido",
+    "fr": "Contexte réduit",
+    "de": "Kontext gekürzt"
+  },
+  "Intento": {
+    "en": "Attempt",
+    "pt": "Tentativa",
+    "fr": "Tentative",
+    "de": "Versuch"
+  },
+  "Espera": {
+    "en": "Wait",
+    "pt": "Espera",
+    "fr": "Attente",
+    "de": "Wartezeit"
+  },
+  "Error transitorio del motor o del proveedor; se repite automáticamente.": {
+    "en": "Temporary engine or provider error; retrying automatically.",
+    "pt": "Erro temporário do motor ou do provedor; repetindo automaticamente.",
+    "fr": "Erreur temporaire du moteur ou du fournisseur ; nouvelle tentative automatique.",
+    "de": "Vorübergehender Fehler des Motors oder Anbieters; wird automatisch wiederholt."
+  },
+  "El modelo rechazó la petición por superar su contexto; se acortó el historial y se repite.": {
+    "en": "The model refused the request for exceeding its context; the history was shortened and the request is repeated.",
+    "pt": "O modelo recusou a solicitação por exceder seu contexto; o histórico foi encurtado e ela é repetida.",
+    "fr": "Le modèle a refusé la requête car elle dépassait son contexte ; l'historique a été raccourci et la requête est relancée.",
+    "de": "Das Modell hat die Anfrage abgelehnt, weil sie seinen Kontext überschritt; der Verlauf wurde gekürzt und die Anfrage wird wiederholt."
+  },
+  "Se apartaron resultados antiguos del contexto para seguir trabajando.": {
+    "en": "Older results were moved out of the context to keep working.",
+    "pt": "Resultados antigos foram retirados do contexto para continuar trabalhando.",
+    "fr": "Les anciens résultats ont été retirés du contexte pour continuer à travailler.",
+    "de": "Ältere Ergebnisse wurden aus dem Kontext genommen, um weiterzuarbeiten."
+  },
+  "bloques guardados en la carpeta context/ del chat": {
+    "en": "blocks saved in the chat's context/ folder",
+    "pt": "blocos salvos na pasta context/ do chat",
+    "fr": "blocs enregistrés dans le dossier context/ du chat",
+    "de": "Blöcke im Ordner context/ des Chats gespeichert"
+  },
+  "Dejaste que el agente decidiera.": {
+    "en": "You let the agent decide.",
+    "pt": "Você deixou o agente decidir.",
+    "fr": "Vous avez laissé l'agent décider.",
+    "de": "Du hast den Agenten entscheiden lassen."
+  },
+  "Sin respuesta en 15 minutos; el agente siguió con su criterio.": {
+    "en": "No answer in 15 minutes; the agent continued on its own judgment.",
+    "pt": "Sem resposta em 15 minutos; o agente seguiu com o próprio critério.",
+    "fr": "Pas de réponse en 15 minutes ; l'agent a continué selon son jugement.",
+    "de": "Keine Antwort in 15 Minuten; der Agent hat nach eigenem Ermessen weitergemacht."
   }
 }

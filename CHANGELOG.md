@@ -4,6 +4,17 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.1.3
+
+Release making long autonomous runs survive provider errors and full context windows, letting the agent ask the user mid-task, and strengthening the code checker.
+
+- **Ask the user mid-task (`agent/ask_user.py`, `agent/agent.py`, `agent/ui/app/shell.js`, `agent/ui/app/chat.js`):** New built-in `agent__ask_user` tool for every engine (local and API providers) when the request comes from the interface. The model asks one short question with up to 4 options; the user picks one, types an answer, or lets the agent decide. At most 3 questions per turn; after 15 minutes without an answer the agent continues on its own judgment and states its assumptions. Tool instructions are in English; the dialog and cards are translated into `en`, `pt`, `fr` and `de`.
+- **Automatic retries (`agent/agent_resilience.py`, `agent/agent.py`):** Transient engine/provider failures in the middle of a turn (HTTP 408/429/5xx/529, dropped connections, replies cut before their end mark) repeat the round up to 3 times (2, 6 and 15 s), shown as an "Automatic retry" card; authentication, bad-request and missing-model errors still stop the turn.
+- **Context kept within the window during long turns:** Past 60 % of the model's window, old tool batches are archived to the chat's `context/` folder and old outputs shortened; when the engine still refuses a prompt as too long, the history is shortened further and the round repeated. Shown as a "Context trimmed" card.
+- **Stronger `code_check` (`agent/code_insight.py`, `agent/verify.py`, `agent/pc_mcp.py`):** Python adds `pyflakes` static analysis (undefined names, locals used before assignment, unused imports) and flags imported modules missing from the user's Python; HTML reports missing local scripts/styles/frames as errors, plus duplicate ids and script lookups of ids the page lacks; CSS `url(...)` and JavaScript relative `import`/`require` targets that do not exist are reported. Results also appear in the write-time check.
+- **Dependencies:** `pyflakes 3.4.0` (MIT) bundled.
+- **Tests:** new `tests/test_agent_resilience.py`, `tests/test_code_insight.py` and `tests/smoke/agent_autonomy_ui.py` (real interface against a scripted local provider: question with options, "let the agent decide", a mid-turn 503 and a context overflow).
+
 ## 1.1.2
 
 Fix release: buttons that did nothing when clicked now act or say why.

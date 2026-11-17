@@ -48,7 +48,7 @@ from mcp_options import options
 TOOLS = [
     {"name":"project_map","description":"List project files and key symbols on demand, without reading whole files into context.","inputSchema":{"type":"object","properties":{"path":{"type":"string"}},"required":[]}},
     {"name":"file_history","description":"List previous versions of a file, or restore one. Omit revision to list; use a listed revision ID to restore.","inputSchema":{"type":"object","properties":{"path":{"type":"string"},"revision":{"type":"string"}},"required":["path"]}},
-    {"name":"code_check","description":"Check file syntax by default. A listed project check ID plus run=true executes commands (full-PC only).","inputSchema":{"type":"object","properties":{"path":{"type":"string"},"check":{"type":"string"},"run":{"type":"boolean"},"timeout":{"type":"integer","minimum":1,"maximum":120}},"required":["path"]}},
+    {"name":"code_check","description":"Check a file without running it: syntax plus static analysis (Python: undefined names, unused imports, modules not installed; HTML/CSS/JS: local files that do not exist, ids that scripts look up but the page lacks). A directory, or a listed project check ID plus run=true, runs the project's own checks (full-PC only).","inputSchema":{"type":"object","properties":{"path":{"type":"string"},"check":{"type":"string"},"run":{"type":"boolean"},"timeout":{"type":"integer","minimum":1,"maximum":120}},"required":["path"]}},
     {"name": "draft_resume", "description": "Resume the latest saved draft in this conversation without regenerating it. Takes no arguments.",
      "inputSchema": {"type": "object", "properties": {}}},
     {"name": "fs_list", "description": "List a directory.",
@@ -722,9 +722,11 @@ def syntax_report(path):
     import verify
     if pathlib.Path(path).suffix.lower() not in verify.COMPROBABLES:return ''
     report=verify.verificar_archivo(str(path))
-    if report.get('ok') is True:return '\nSyntax checked; program behavior was not tested.'
+    if report.get('ok') is True:
+        notes=' | '.join(report.get('avisos') or [])[:600]
+        return '\nChecked (syntax and static analysis); program behavior was not tested.'+('\nWarnings: '+notes if notes else '')
     if report.get('ok') is None:return '\nSyntax not checked: '+ ' | '.join(report.get('avisos') or [])[:600]
-    return '\nSyntax check failed; file is saved. Fix only the failing block with fs_edit: '+ ' | '.join(report.get('errores') or report.get('avisos') or [])[:1200]
+    return '\nSyntax or static check failed; file is saved. Fix only the failing block with fs_edit: '+ ' | '.join(report.get('errores') or report.get('avisos') or [])[:1200]
 
 
 def _local_json(path, body=None, timeout=15):

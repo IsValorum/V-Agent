@@ -199,7 +199,7 @@ class EditingTests(unittest.TestCase):
             policy=AccessPolicy(Path(directory))
             for name,text in (('a.yaml','k: [1, 2\nx: 3\n'),('a.toml','[t\nk = 1\n'),('a.xml','<r><a></r>')):
                 result=pc_mcp.call('fs_write',{'path':name,'content':text},policy=policy)
-                self.assertIn('Syntax check failed',result,name)
+                self.assertIn('Syntax or static check failed',result,name)
     def test_java_is_compiled_not_run(self):
         import shutil as sh
         if not sh.which('javac'):self.skipTest('javac not installed')

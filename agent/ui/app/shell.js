@@ -262,6 +262,36 @@ function showToolApproval(event){
 }
 
 
+// The agent asks something it cannot decide alone; the turn waits for this answer.
+function showAgentQuestion(event){
+  const dialog=document.createElement('dialog');dialog.className='tool-approval agent-question';
+  const title=document.createElement('h3');title.textContent=uiText('El agente necesita tu respuesta');
+  const question=document.createElement('p');question.className='agent-question-text';question.textContent=String(event.question||'');
+  const options=document.createElement('div');options.className='agent-question-options';
+  const field=document.createElement('textarea');field.className='agent-question-answer';field.rows=3;field.maxLength=4000;
+  field.placeholder=uiText('Escribe tu respuesta…');field.setAttribute('aria-label',uiText('Tu respuesta'));
+  const status=document.createElement('p');status.className='mini agent-question-status';status.setAttribute('role','status');
+  const actions=document.createElement('div');
+  let sent=false;
+  const reply=async(answer,skip=false)=>{
+    if(sent)return;if(!skip&&!String(answer||'').trim()){status.textContent=uiText('Escribe una respuesta o deja que decida el agente.');field.focus();return;}
+    sent=true;for(const button of dialog.querySelectorAll('button'))button.disabled=true;
+    try{await requestJSON('/api/harness/question',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:event.id,answer:skip?null:String(answer).trim(),skip})});dialog.close();dialog.remove();}
+    catch(error){if(activeGeneration?.controller.signal.aborted){dialog.remove();return;}sent=false;for(const button of dialog.querySelectorAll('button'))button.disabled=false;status.textContent=error.message;}
+  };
+  for(const option of (Array.isArray(event.options)?event.options:[]).slice(0,4)){const button=document.createElement('button');button.type='button';button.className='soft-btn agent-question-option';button.textContent=String(option);button.onclick=()=>reply(String(option));options.append(button);}
+  const decide=document.createElement('button');decide.type='button';decide.className='soft-btn';decide.textContent=uiText('Que decida el agente');decide.title=uiText('El agente seguirá con su mejor criterio y te dirá qué supuso.');decide.onclick=()=>reply(null,true);
+  const send=document.createElement('button');send.type='button';send.className='soft-btn primary';send.textContent=uiText('Enviar respuesta');send.onclick=()=>reply(field.value);
+  field.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();reply(field.value);}});
+  actions.append(decide,send);
+  dialog.append(title,question,...(options.childElementCount?[options]:[]),field,status,actions);
+  // Esc means "let the agent decide", never a silent stop of the turn.
+  dialog.addEventListener('cancel',e=>{e.preventDefault();reply(null,true);});
+  activeGeneration?.controller.signal.addEventListener('abort',()=>dialog.remove(),{once:true});
+  document.body.append(dialog);dialog.showModal();window.VALI18n?.observe(dialog);(options.querySelector('button')||field).focus();
+}
+
+
 const AGENT_MODES={
   light:{name:'Agente ligero',short:'Ligero',desc:'Herramientas esenciales y comandos con aprobación. El acceso y las aprobaciones se eligen por separado.'},
   balanced:{name:'Agente estándar',short:'Estándar',desc:'Herramientas de archivos, web, consola y Hugging Face seleccionadas. El acceso y las aprobaciones se eligen por separado.'},

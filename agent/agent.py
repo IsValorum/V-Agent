@@ -317,6 +317,58 @@ def _cierre_bucle(control, previo, guardado_en_turno):
     return (previo + recado) if previo else recado.strip()
 
 
+RECUPERACIONES_TURNO = 8      # reintentos por errores del motor/proveedor en todo un turno
+
+
+def _entero(value):
+    try:
+        return max(0, int(value or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def ventana_contexto():
+    """Tokens of the loaded model's window (any engine), or 0 when the engine does not say."""
+    try:
+        return int(engine_context() or 0)
+    except Exception:
+        return 0
+
+
+def _tarjeta_contexto(rnd, ajuste):
+    """A trace card saying that old tool results left the prompt (and where they are)."""
+    ident = "tool_%d_context_%s" % (rnd + 1, secrets.token_hex(3))
+    partes = []
+    if ajuste.get("archived_batches"):
+        partes.append("%d bloques de resultados antiguos archivados en la carpeta context/ del chat"
+                      % ajuste["archived_batches"])
+    if ajuste.get("shortened_chars"):
+        partes.append("%d caracteres de salidas antiguas acortados" % ajuste["shortened_chars"])
+    texto = ("Contexto acotado para seguir trabajando: " + "; ".join(partes or ["historial reducido"]) +
+             ". Tamaño: %d → %d caracteres." % (ajuste["before_chars"], ajuste["after_chars"]))
+    yield {"type": "tool", "id": ident, "name": "agent__context", "args": {}, "round": rnd + 1, "status": "running"}
+    yield {"type": "tool_result", "id": ident, "name": "agent__context", "result": texto, "ok": True,
+           "executed": False, "status": "completed", "elapsed_ms": 0,
+           "notice": {"kind": "context", "before": ajuste["before_chars"], "after": ajuste["after_chars"],
+                      "archived": ajuste.get("archived_batches") or 0}}
+
+
+def _tarjeta_reintento(rnd, intento, maximo, tipo, error, espera):
+    """A trace card for an automatic retry after an engine/provider error."""
+    ident = "tool_%d_retry_%d_%s" % (rnd + 1, intento, secrets.token_hex(3))
+    motivo = str(error)[:300] or type(error).__name__
+    if tipo == "overflow":
+        texto = ("El modelo rechazó la petición por superar su contexto. Se acortó el historial y se repite "
+                 "(intento %d de %d). Detalle: %s" % (intento, maximo, motivo))
+    else:
+        texto = ("Error transitorio del motor o del proveedor. Se repite en %d s (intento %d de %d). Detalle: %s"
+                 % (round(espera), intento, maximo, motivo))
+    yield {"type": "tool", "id": ident, "name": "agent__retry", "args": {}, "round": rnd + 1, "status": "running"}
+    yield {"type": "tool_result", "id": ident, "name": "agent__retry", "result": texto, "ok": True,
+           "executed": False, "status": "completed", "elapsed_ms": 0,
+           "notice": {"kind": tipo, "attempt": intento, "max": maximo, "wait": round(espera)}}
+
+
 PORT = int(os.environ.get("STRATA_HARNESS_PORT","19380"))
 TAURI_ORIGINS = ('http://tauri.localhost','https://tauri.localhost','tauri://localhost')
 def ui_origin_allowed(origin, port=None):
@@ -1487,6 +1539,10 @@ def _run_chat_stream(body, control=None):
         if not contract['ok']:
             raise RuntimeError('Las herramientas de este modelo no superaron la comprobación de plantilla: ' +
                                contract.get('error', 'protocolo incompatible') + '. El chat sin MCP sigue disponible.')
+    import ask_user
+    if tools and body.get("ask_user") is True:
+        # Only the interface can answer: API clients never get this tool.
+        tools = tools + [ask_user.TOOL]
     if workspace is not ACCESS and any(t['function']['name'] == 'pc__draft_resume' for t in tools):
         from draft_recovery import extract_file, pending_draft, resume_draft
         pending = pending_draft(workspace)
@@ -1538,7 +1594,10 @@ def _run_chat_stream(body, control=None):
     allowed = {t["function"]["name"]: t["function"].get("parameters") or {} for t in tools}
     routes = HUB.routes() if HUB and tools else {}
     aliases = web_tool_aliases(allowed, routes)
-    guardado_en_turno = None      # ruta guardada con exito en esta vuelta, si la hubo
+    if ask_user.NAME in allowed:
+        aliases.setdefault("ask_user", ask_user.NAME)
+    preguntas = 0
+    guardado_en_turno = None     # ruta guardada con exito en esta vuelta, si la hubo
     denegada = None               # herramienta que el usuario rechazo; corta el turno
     escrituras_fallidas = 0       # fs_write grandes que fallaron en este turno (1 reintento)
     archivo_recordado = False     # ya se pidió una vez crear el archivo que solo se mostró en el chat
@@ -1555,10 +1614,23 @@ def _run_chat_stream(body, control=None):
     blocked_search_tools = set()
     wrap_up = False
     reasoning = ""
+    import agent_resilience
+    ventana = (ventana_contexto() or _entero(body.get("context_limit"))) if tools else 0
+    if workspace is not ACCESS and (body.get('functions') or {}).get('files'):
+        from context_policy import project_messages as _archivar
+        archivar = lambda msgs, keep: _archivar(msgs, workspace, keep_batches=keep)  # noqa: E731
+    else:
+        archivar = None
+    reintentos_turno = 0
     for rnd in range(rounds):
         final_round = bool(tools) and (wrap_up or rnd == rounds - 1)
         if control.cancelled.is_set():
             return
+        if rnd and tools:
+            # A long autonomous turn: keep the prompt within the model's window as results pile up.
+            messages, ajuste = agent_resilience.fit(messages, ventana, tools=tools, archive=archivar)
+            if ajuste:
+                yield from _tarjeta_contexto(rnd, ajuste)
         payload = {
             "model": model,
             "messages": messages,
@@ -1629,77 +1701,112 @@ def _run_chat_stream(body, control=None):
             return {"type": "tool_draft", "id": draft["id"], "name": draft["name"],
                     "delta": delta, "round": rnd + 1, "status": "drafting"}
 
-        finish_reason = None
-        content_parts = []
-        blank_tail = 0
-        reasoning_parts = []
-        f_content, f_reason = CallFilter(), CallFilter()   # para que la marca cruda no se vea ni un instante
-        stream = engine_chat_stream(payload, control)
-        for raw in stream:
-            line = raw.decode("utf-8", "ignore").strip()
-            if not line.startswith("data:"):
-                continue
-            data = line[5:].strip()
-            if data == "[DONE]":
-                break
+        intento = 0
+        while True:
+            calls.clear()
+            drafts.clear()
+            finish_reason = None
+            content_parts = []
+            blank_tail = 0
+            reasoning_parts = []
+            f_content, f_reason = CallFilter(), CallFilter()   # para que la marca cruda no se vea ni un instante
+            stream = engine_chat_stream(payload, control)
             try:
-                obj = json.loads(data)
-            except ValueError:
-                continue
-            if obj.get("error"):
-                error = obj["error"]
-                raise RuntimeError(error.get("message", "El motor interrumpió la respuesta.") if isinstance(error, dict) else str(error))
-            draft = obj.get("strata_tool_draft")
-            if isinstance(draft, dict) and draft.get("id"):
-                yield draft_event(draft["id"], draft.get("name"), draft.get("delta", ""), raw=True)
-            complete = obj.get("strata_tool_complete")
-            if isinstance(complete, dict) and isinstance(complete.get("arguments"), dict):
-                slot = next((call for call in calls.values() if call["id"] == complete.get("id")), None)
-                if slot is not None and slot["name"] == complete.get("name"):
-                    slot["arguments"] = json.dumps(complete["arguments"], ensure_ascii=False)
-            if isinstance(obj.get("usage"), dict):
-                yield {"type": "usage", "usage": obj["usage"], "round": rnd + 1}
-            if isinstance(obj.get("timings"), dict):
-                yield {"type": "timings", "timings": obj["timings"], "round": rnd + 1}
-            ch = (obj.get("choices") or [{}])[0]
-            finish_reason = ch.get("finish_reason") or finish_reason
-            d = ch.get("delta") or {}
-            reason_chunk = d.get("reasoning_content") or d.get("reasoning")
-            if reason_chunk:
-                reasoning_parts.append(reason_chunk)
-                show = f_reason.feed(reason_chunk)
-                if show:
-                    yield {"type": "reasoning", "text": show}
-                if tools and f_reason.empty_openers >= 3:
-                    finish_reason = "tool_loop"
-                    break
-            if d.get("content"):
-                fragment=d["content"]
-                blank_tail=0 if fragment.strip() else blank_tail+fragment.count("\n")
-                if blank_tail>64:
-                    control.bucle="repeated empty output";finish_reason="tool_loop";break
-                content_parts.append(d["content"])
-                show = f_content.feed(d["content"])
-                if show:
-                    yield {"type": "content", "text": show}
-                if tools and f_content.empty_openers >= 3:
-                    finish_reason = "tool_loop"
-                    break
-            for tc in d.get("tool_calls") or []:
-                index = tc.get("index", 0)
-                slot = calls.setdefault(index, {"id": "", "name": "", "arguments": ""})
-                if tc.get("id"):
-                    slot["id"] = tc["id"]
-                fn = tc.get("function") or {}
-                if fn.get("name"):
-                    slot["name"] = fn["name"]
-                delta = fn.get("arguments") or ""
-                slot["arguments"] += delta
-                key = slot.setdefault("draft_key", slot["id"] or f"index_{index}")
-                prior = drafts.get(key)
-                if not prior or not prior["raw"]:
-                    yield draft_event(key, slot["name"], delta)
-                slot["trace_id"] = drafts[key]["id"]
+                for raw in stream:
+                    line = raw.decode("utf-8", "ignore").strip()
+                    if not line.startswith("data:"):
+                        continue
+                    data = line[5:].strip()
+                    if data == "[DONE]":
+                        break
+                    try:
+                        obj = json.loads(data)
+                    except ValueError:
+                        continue
+                    if obj.get("error"):
+                        error = obj["error"]
+                        raise RuntimeError(error.get("message", "El motor interrumpió la respuesta.") if isinstance(error, dict) else str(error))
+                    draft = obj.get("strata_tool_draft")
+                    if isinstance(draft, dict) and draft.get("id"):
+                        yield draft_event(draft["id"], draft.get("name"), draft.get("delta", ""), raw=True)
+                    complete = obj.get("strata_tool_complete")
+                    if isinstance(complete, dict) and isinstance(complete.get("arguments"), dict):
+                        slot = next((call for call in calls.values() if call["id"] == complete.get("id")), None)
+                        if slot is not None and slot["name"] == complete.get("name"):
+                            slot["arguments"] = json.dumps(complete["arguments"], ensure_ascii=False)
+                    if isinstance(obj.get("usage"), dict):
+                        yield {"type": "usage", "usage": obj["usage"], "round": rnd + 1}
+                    if isinstance(obj.get("timings"), dict):
+                        yield {"type": "timings", "timings": obj["timings"], "round": rnd + 1}
+                    ch = (obj.get("choices") or [{}])[0]
+                    finish_reason = ch.get("finish_reason") or finish_reason
+                    d = ch.get("delta") or {}
+                    reason_chunk = d.get("reasoning_content") or d.get("reasoning")
+                    if reason_chunk:
+                        reasoning_parts.append(reason_chunk)
+                        show = f_reason.feed(reason_chunk)
+                        if show:
+                            yield {"type": "reasoning", "text": show}
+                        if tools and f_reason.empty_openers >= 3:
+                            finish_reason = "tool_loop"
+                            break
+                    if d.get("content"):
+                        fragment=d["content"]
+                        blank_tail=0 if fragment.strip() else blank_tail+fragment.count("\n")
+                        if blank_tail>64:
+                            control.bucle="repeated empty output";finish_reason="tool_loop";break
+                        content_parts.append(d["content"])
+                        show = f_content.feed(d["content"])
+                        if show:
+                            yield {"type": "content", "text": show}
+                        if tools and f_content.empty_openers >= 3:
+                            finish_reason = "tool_loop"
+                            break
+                    for tc in d.get("tool_calls") or []:
+                        index = tc.get("index", 0)
+                        slot = calls.setdefault(index, {"id": "", "name": "", "arguments": ""})
+                        if tc.get("id"):
+                            slot["id"] = tc["id"]
+                        fn = tc.get("function") or {}
+                        if fn.get("name"):
+                            slot["name"] = fn["name"]
+                        delta = fn.get("arguments") or ""
+                        slot["arguments"] += delta
+                        key = slot.setdefault("draft_key", slot["id"] or f"index_{index}")
+                        prior = drafts.get(key)
+                        if not prior or not prior["raw"]:
+                            yield draft_event(key, slot["name"], delta)
+                        slot["trace_id"] = drafts[key]["id"]
+                break
+            except Exception as error:
+                stream.close()
+                if control.cancelled.is_set():
+                    return
+                tipo = agent_resilience.classify(error)
+                if not tipo or intento >= agent_resilience.ATTEMPTS[tipo] or \
+                        reintentos_turno >= RECUPERACIONES_TURNO:
+                    raise
+                intento += 1
+                reintentos_turno += 1
+                # What this attempt already showed is withdrawn: the retry writes it again.
+                if content_parts:
+                    yield {"type": "content_fixed", "text": "".join(full)}
+                for draft in drafts.values():
+                    yield {"type": "tool_result", "id": draft["id"], "name": draft["name"], "ok": False,
+                           "executed": False, "status": "interrupted",
+                           "result": "La respuesta se interrumpió antes de completar la llamada; se repite."}
+                if tipo == "overflow":
+                    messages, ajuste = agent_resilience.fit(messages, ventana, tools=tools, archive=archivar, force=True)
+                    payload["messages"] = messages
+                    if not ajuste:
+                        raise
+                    yield from _tarjeta_contexto(rnd, ajuste)
+                    espera = 0.0
+                else:
+                    espera = agent_resilience.delay(intento)
+                yield from _tarjeta_reintento(rnd, intento, agent_resilience.ATTEMPTS[tipo], tipo, error, espera)
+                if control.cancelled.wait(espera):
+                    return
 
         stream.close()          # si la barrera corto la lectura, se suelta la peticion al motor
         if control.cancelled.is_set():
@@ -1941,6 +2048,7 @@ def _run_chat_stream(body, control=None):
             ok = executed = False
             source_truncated = False
             source_chars = None
+            aviso = None
             status = "error"
             firma = (name, hashlib.sha256(json.dumps(args, sort_keys=True, ensure_ascii=False).encode("utf-8")).digest())
             try:
@@ -1970,6 +2078,23 @@ def _run_chat_stream(body, control=None):
                             "For HTML use pc__web_render to inspect console errors."
                             % (args["path"], int(PARECIDO_MIN * 100)))
                     status, ok = "blocked", False
+                elif name == ask_user.NAME:
+                    pregunta, opciones = ask_user.clean_args(args)
+                    if preguntas >= ask_user.MAX_PER_TURN:
+                        text = ("error: you already asked %d questions in this turn. Do not ask again; continue with "
+                                "your best judgment and state your assumptions." % preguntas)
+                        status = "blocked"
+                    else:
+                        preguntas += 1
+                        yield {"type": "tool_state", "id": trace_id, "name": name, "status": "running"}
+                        question = ask_user.QUESTIONS.create(pregunta, opciones, chat_id)
+                        yield {**question, "tool_id": trace_id}
+                        executed = True
+                        outcome, answer = ask_user.QUESTIONS.wait(question["id"], control.cancelled)
+                        if outcome == "cancelled":
+                            return
+                        text, ok, status = ask_user.result_text(outcome, answer), True, "completed"
+                        aviso = {"kind": "question", "outcome": outcome, "answer": answer}
                 elif HUB and name in HUB.routes():
                     validate_tool_arguments(allowed[name], args, strict=name.startswith(("pc__","hf__","duckduckgo__","web__","autobrowser__","admin__","computer__")))
                     check_search_arguments(name, args)
@@ -2055,7 +2180,8 @@ def _run_chat_stream(body, control=None):
                    "elapsed_ms": round((time.monotonic() - started) * 1000),
                    "chars": len(text), "model_chars": len(model_text),
                    "truncated": len(text) > result_limit,
-                   "source_truncated": source_truncated, "source_chars": source_chars}
+                   "source_truncated": source_truncated, "source_chars": source_chars,
+                   **({"notice": aviso} if aviso else {})}
             if ok and status == "completed" and name in ("pc__fs_write", "pc__fs_edit", "pc__fs_copy"):
                 wrote_file = True
                 escrituras_fallidas = 0

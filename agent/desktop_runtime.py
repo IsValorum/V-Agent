@@ -836,6 +836,12 @@ def install(a):
                     self._json(200,result)
                 except (ValueError,OSError,KeyError,TypeError) as error:self._json(400,{'error':str(error)[:300]})
                 return
+            if self.path=='/api/harness/question':
+                try:
+                    from ask_user import QUESTIONS
+                    body=self._read_json_dict(16384,'Invalid request.');QUESTIONS.resolve(body.get('id'),body.get('answer'),bool(body.get('skip',False)));self._json(200,{'ok':True})
+                except (ValueError,OSError) as error:self._json(400,{'error':str(error)})
+                return
             if self.path=='/api/harness/approval':
                 try:
                     body=self._read_json_dict(4096,'Invalid request.');APPROVALS.resolve(body.get('id'),body.get('allowed'),bool(body.get('remember',False)));self._json(200,{'ok':True})
