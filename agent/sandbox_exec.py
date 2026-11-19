@@ -118,7 +118,10 @@ def _config(root,script,timeout):
     extra=list(runtimes().values())
     environment={'SystemRoot':str(windows),'WINDIR':str(windows),'PATH':';'.join([str(windows/'System32'),*extra]),
                  'TEMP':str(root),'TMP':str(root),'USERPROFILE':str(root),'LOCALAPPDATA':str(root),
-                 'PYTHONIOENCODING':'utf-8','PYTHONDONTWRITEBYTECODE':'1'}
+                 'PYTHONIOENCODING':'utf-8','PYTHONDONTWRITEBYTECODE':'1',
+                 # No colours, unbuffered and UTF-8 output, no pip prompts (see shell_hygiene).
+                 'NO_COLOR':'1','FORCE_COLOR':'0','PY_COLORS':'0','TERM':'dumb','PYTHONUNBUFFERED':'1',
+                 'PIP_NO_INPUT':'1','PIP_DISABLE_PIP_VERSION_CHECK':'1'}
     return {'version':'0.8.0-alpha','containerId':'val-'+uuid.uuid4().hex,'containment':'processcontainer',
       'lifecycle':{'destroyOnExit':True,'preservePolicy':False},
       'process':{'commandLine':subprocess.list2cmdline([str(executable),'/d','/c',script.name]),
@@ -182,8 +185,19 @@ def run(root,command,shell='cmd',timeout=60,background=False):
     from access_policy import AccessPolicy
     AccessPolicy._check_links(Path(root))
     _scan(root)
-    code,out,err=_launch(root,command,max(5,min(int(timeout or 60),300)))
+    import shell_hygiene
+    try:code,out,err=_launch(root,command,max(5,min(int(timeout or 60),300)))
+    except TimeoutError as error:
+        raise TimeoutError(str(error)+shell_hygiene.failure_hint(command,'',timed_out=True,sandboxed=True)) from None
+    out,err=shell_hygiene.clean(out),shell_hygiene.clean(err)
     result=f'exit={code}\nshell={shell}\nisolation=Windows process container (preview); network blocked\n[stdout]\n'+(out.strip() or '(empty)')
     if err.strip():result+='\n[stderr]\n'+err.strip()
-    if code:raise RuntimeError(result+_hint(code,err))
+    def save(text):
+        try:
+            folder=Path(root)/'outputs';folder.mkdir(parents=True,exist_ok=True)
+            path=folder/('shell-%s.txt'%uuid.uuid4().hex[:10]);path.write_text(text,encoding='utf-8')
+            return 'outputs/'+path.name
+        except OSError:return None
+    result=shell_hygiene.fit_output(result,8000,save)+shell_hygiene.command_notes(command,'cmd')
+    if code:raise RuntimeError(shell_hygiene.add_hint(result,_hint(code,err) or shell_hygiene.failure_hint(command,out+'\n'+err,sandboxed=True)))
     return result

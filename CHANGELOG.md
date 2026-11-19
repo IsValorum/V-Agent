@@ -4,6 +4,19 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.1.6
+
+Release making the terminal tools usable by any model without a harness-specific fine-tune: Linux habits are explained instead of failing silently, output is clean, background jobs and servers behave, and nothing changes what a working program does.
+
+- **Clean, non-interactive console (`agent/shell_hygiene.py`, `agent/pc_mcp.py`, `agent/sandbox_exec.py`):** Every command runs without colours, prompts or pagers (`NO_COLOR`, `GIT_TERMINAL_PROMPT=0`, `PIP_NO_INPUT`…) and with unbuffered Python output. `CI`, `PYTHONUTF8` and `PAGER` are deliberately not set, since they change what users' programs do. Output is cleaned the way a person reads a terminal: escape codes removed, carriage-return progress bars collapsed to their final state, padding stripped, repeated lines summarised, PowerShell CLIXML errors made readable, the console's old code page and UTF-16 decoded line by line, and binary output replaced by one line.
+- **Several lines actually run:** `cmd /c` ran only the first line of a multi-line command and reported success; such commands now run as a batch script with the last exit code.
+- **Bash habits explained:** A note is added even on success for single quotes, `$VAR`, `;`, `/dev/null`, `-x` options on cmd built-ins, `%%i` in batch `for` loops, and `find`/`timeout` when this PC really runs the Windows programs of that name. Failures get a hint for `ls`/`cat`/`grep`/`rm`/`export`…, `./script`, `python3`, `mkdir -p`, `NAME=value cmd`, prompt signs and markdown fences, PowerShell `&&` and `curl`, missing keyboard input, Git credentials and timeouts.
+- **Background jobs and servers:** A trailing `&` or `nohup` is refused at once (it blocked the call until its time limit) with the way to run it in the background. `job_wait` takes `until` and returns as soon as a server prints its ready line, or when the job goes quiet. Jobs keep their latest output in a rolling buffer, and each check returns only what is new. The last lines are no longer lost when a job ends.
+- **Long output:** The beginning and the end are shown; the whole output (up to 4 MB) is saved to `outputs/` for `fs_read`.
+- **Tool description the model actually receives (`agent/mcp_prompt.py`):** It now states the cmd quoting, variables and separators, the configured time limit, and how to run servers. The description in `pc_mcp.py` was always replaced by an older one.
+- **Engine cleanup:** Old engine folders briefly locked by antivirus right after an update are retried instead of left until the next start.
+- **Tests:** `tests/test_shell_hygiene.py` (`30` cases, including real commands and background jobs). A small real model on `llama.cpp` completed console tasks that previously failed or stalled for over 10 minutes.
+
 ## 1.1.5
 
 Release aligning provider error handling with the open-source agent harnesses (OpenCode, Goose, Roo Code, Cline, Aider), so a busy provider no longer ends an autonomous run. Includes the 1.1.4 C1 fixes.

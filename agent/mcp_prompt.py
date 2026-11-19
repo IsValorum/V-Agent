@@ -88,15 +88,25 @@ def _dynamic_description(name, enabled_names):
             return DESCRIPTIONS['web__download']
         return 'Stream a URL to a file atomically; returns path, bytes and sha256. No browser session cookies. Does not execute or validate the file.'
     if name == 'pc__shell_run':
+        # What models trained on Linux transcripts get wrong in a Windows shell, said once up front
+        # (the tool also notes or hints each of these when it happens).
+        try:
+            from mcp_options import options
+            limit = int(options('pc').get('command_timeout') or 60)
+        except Exception:
+            limit = 60
         parts = [
-            'Run a Windows cmd command (not bash: no ls/cat/which). With limited access only CMD built-ins and python run, offline; use fs_list/fs_read for files.'
+            'Run a Windows cmd command (default) or shell="powershell"; not bash: no ls/cat/grep/which, quote with "double '
+            'quotes" (single quotes are literal in cmd), %VAR% not $VAR, & or && between commands. No keyboard input: pass '
+            'flags such as -y. Several lines run as a batch script. Default time limit LIMIT s (timeout up to 300). With limited '
+            'access only CMD built-ins and python run, offline; use fs_list/fs_read for files.'.replace('LIMIT', str(limit))
         ]
         if 'pc__job_wait' in enabled_names:
-            parts.append('background=true starts a job for job_wait/job_status/job_stop.')
+            parts.append('For servers, watchers and long builds use background=true, then job_wait (until="ready text").')
         if 'pc__console' in enabled_names:
-            parts.append('Environment is not kept between calls; use console for a persistent session.')
+            parts.append('Each call starts in the working folder and cd/set are not kept; use console for a persistent session.')
         else:
-            parts.append('Environment is not kept between calls.')
+            parts.append('Each call starts in the working folder and cd/set are not kept: chain with &&.')
         return ' '.join(parts)
     return DESCRIPTIONS[name]
 

@@ -20,6 +20,7 @@ import json
 import base64
 import difflib
 import os
+import collections
 import pathlib
 import subprocess
 import sys
@@ -124,16 +125,19 @@ TOOLS = [
          "modo": {"type": "string", "enum": ["nuevo", "pegar_antes", "pegar_despues", "reemplazar"]},
          "cortar": {"type": "boolean", "description": "Move instead of copying."}},
          "required": ["desde", "destino"]}},
-    {"name": "shell_run", "description": "Run a Windows cmd (default) or PowerShell command; not bash, so no ls/cat/which. "
+    {"name": "shell_run", "description": "Run a Windows cmd (default) or PowerShell command; not bash, so no ls/cat/grep/which. "
+        "Each call starts in the working folder (cd does not persist: chain with &&). No keyboard input: pass flags such as -y. "
+        "Several lines run as a batch script. "
         "Returns exit code, stdout and stderr. With limited access only CMD built-ins and python run; use fs_list/fs_read for files.",
      "inputSchema": {"type": "object", "properties": {
          "command": {"type": "string", "description": "Command to run."},
          "shell": {"type": "string", "enum": ["cmd", "powershell"], "default": "cmd"},
          "timeout": {"type": "integer", "minimum": 5, "maximum": 300, "description": "Seconds; omit for user settings."},
          "background": {"type": "boolean", "description": "Start without waiting; use job_wait once with the returned id."}}, "required": ["command"]}},
-    {"name": "job_wait", "description": "Wait for a background shell job to finish and return its output once. Prefer this over repeated job_status polling.",
-     "inputSchema": {"type": "object", "properties": {"job_id": {"type": "string"}, "timeout": {"type": "integer", "minimum": 1, "maximum": 600, "description": "Seconds; default 60."}}, "required": ["job_id"]}},
-    {"name": "job_status", "description": "Return the current status and last output of a background job without waiting.",
+    {"name": "job_wait", "description": "Wait for a background shell job to finish, or until its output shows a given text (e.g. a server's ready line), and return the output that is new since the last check. Prefer this over repeated job_status polling.",
+     "inputSchema": {"type": "object", "properties": {"job_id": {"type": "string"}, "timeout": {"type": "integer", "minimum": 1, "maximum": 600, "description": "Seconds; default 60."},
+         "until": {"type": "string", "description": "Return as soon as the new output contains this text (case-insensitive), e.g. \"ready\" or \"listening on\"."}}, "required": ["job_id"]}},
+    {"name": "job_status", "description": "Return the current status of a background job and the output that is new since the last check, without waiting.",
      "inputSchema": {"type": "object", "properties": {"job_id": {"type": "string"}}, "required": ["job_id"]}},
     {"name": "job_list", "description": "List background shell jobs and their state.", "inputSchema": {"type": "object", "properties": {}}},
     {"name": "job_stop", "description": "Stop a background shell job and its process tree.",
@@ -169,11 +173,20 @@ def _background_argv(command: str, mode: str):
     windows = os.environ.get("SystemRoot", r"C:\Windows")
     environment = os.environ.copy()
     environment.pop('STRATA_PC_ACCESS_KEY', None)
+    import shell_hygiene
+    # PYTHONUNBUFFERED among them: a job's output must arrive while it runs, not only when it ends.
+    environment.update(shell_hygiene.QUIET_ENV)
     if mode == "cmd":
         executable = os.path.join(windows, "System32", "cmd.exe")
-        environment["STRATA_MCP_COMMAND"] = command
-        argv = (f'"{executable}" /d /v:on /s /c "chcp 65001>nul & '
-                f'"{executable}" /d /v:off /s /c "!STRATA_MCP_COMMAND!""')
+        if chr(10) in command.strip():
+            # Several lines: a batch file (cmd /c would run only the first line); removed when the job ends.
+            batch = _temp_batch(command)
+            environment["STRATA_MCP_BATCH"] = batch
+            argv = f'"{executable}" /d /s /c ""{batch}""'
+        else:
+            environment["STRATA_MCP_COMMAND"] = command
+            argv = (f'"{executable}" /d /v:on /s /c "chcp 65001>nul & '
+                    f'"{executable}" /d /v:off /s /c "!STRATA_MCP_COMMAND!""')
     elif mode == "powershell":
         executable = os.path.join(windows, "System32", "WindowsPowerShell", "v1.0", "powershell.exe")
         nl = chr(10)
@@ -190,6 +203,7 @@ def _background_argv(command: str, mode: str):
     return argv, environment
 
 def _start_background(args, policy):
+    import shell_hygiene
     command = args.get("command")
     if not isinstance(command, str) or not command.strip():
         raise ValueError("command must contain a non-empty command string")
@@ -200,35 +214,83 @@ def _start_background(args, policy):
     startup = subprocess.STARTUPINFO()
     startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
     startup.wShowWindow = subprocess.SW_HIDE
+    # Bytes, not text mode: text mode turns every \r of a progress bar into a new line, and the job's
+    # output became hundreds of lines; shell_hygiene.clean collapses them when the \r are kept.
     process = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=str(policy.root),
-                               env=environment, text=True, encoding="utf-8", errors="replace",
-                               bufsize=1, creationflags=subprocess.CREATE_NEW_CONSOLE, startupinfo=startup)
+                               env=environment, creationflags=subprocess.CREATE_NEW_CONSOLE, startupinfo=startup)
     ident = uuid.uuid4().hex[:10]
-    job = {"id": ident, "process": process, "output": [], "chars": 0, "command": command[:500],
-           "started": time.time(), "exit": None}
+    job = {"id": ident, "process": process, "lines": collections.deque(), "chars": 0, "kept": 0, "read": 0,
+           "command": command[:500], "started": time.time(), "exit": None}
     with JOBS_LOCK:
         JOBS[ident] = job
     def reader():
         assert process.stdout is not None
-        for line in process.stdout:
+        for raw in process.stdout:
+            line = shell_hygiene.decode(raw)
             with JOBS_LOCK:
-                if job["chars"] < 200000:
-                    job["output"].append(line)
-                    job["chars"] += len(line)
+                _job_append(job, line)
         process.wait()
         with JOBS_LOCK:
             job["exit"] = process.returncode
+        if environment.get("STRATA_MCP_BATCH"):
+            try:
+                os.unlink(environment["STRATA_MCP_BATCH"])
+            except OSError:
+                pass
     threading.Thread(target=reader, daemon=True).start()
-    return json.dumps({"job_id": ident, "status": "running", "command": command[:500],
-                       "hint": "Use job_wait once with this id; do not poll."}, ensure_ascii=False)
+    reply = {"job_id": ident, "status": "running", "command": command[:500],
+             "hint": "Use job_wait once with this id; for a server pass until with a word it prints when ready (e.g. until=\"Serving\" or until=\"listening\"); do not poll."}
+    notes = shell_hygiene.command_notes(command, args.get("shell", "cmd")).replace("\n[note] ", " ").strip()
+    if notes:
+        reply["note"] = notes
+    return json.dumps(reply, ensure_ascii=False)
+
+
+# A job keeps its most recent output (a server's log grows for hours; its latest lines matter most) and
+# each check returns only what is new since the previous one, instead of the same 40,000 characters again.
+JOB_BUFFER = 200000
+JOB_REPLY = 12000
+JOB_QUIET = 15
+
+
+def _job_append(job, line):
+    job["lines"].append((job["chars"], line))
+    job["chars"] += len(line)
+    job["kept"] += len(line)
+    while job["kept"] > JOB_BUFFER and len(job["lines"]) > 1:
+        job["kept"] -= len(job["lines"].popleft()[1])
+
+
+def _job_new_text(job):
+    """Output since the previous check (cleaned), and whether part of it was dropped or shortened."""
+    import shell_hygiene
+    read = job["read"]
+    parts = [line[max(0, read - start):] for start, line in job["lines"] if start + len(line) > read]
+    first = job["lines"][0][0] if job["lines"] else job["chars"]
+    dropped = max(0, first - read)
+    text = shell_hygiene.clean("".join(parts))
+    if len(text) > JOB_REPLY:
+        head, tail = JOB_REPLY // 6, JOB_REPLY - JOB_REPLY // 6
+        text = text[:head] + "\n[... %d characters omitted ...]\n" % (len(text) - head - tail) + text[-tail:]
+    if dropped:
+        text = "[... %d earlier characters were not kept ...]\n" % dropped + text
+    return text
 
 
 def _job_view(job, include_output=True):
-    text = "".join(job["output"])
     code = job["process"].poll()
-    return {"job_id": job["id"], "status": "running" if code is None else "completed",
-            "exit_code": code, "chars": job["chars"], "elapsed_s": round(time.time() - job["started"], 1),
-            **({"output": text[-40000:]} if include_output else {})}
+    view = {"job_id": job["id"], "status": "running" if code is None else "completed",
+            "exit_code": code, "chars": job["chars"], "elapsed_s": round(time.time() - job["started"], 1)}
+    if include_output:
+        import shell_hygiene
+        text = _job_new_text(job)
+        if not text and code is not None and job["chars"]:
+            # Nothing new and the job is over: its last lines again, said to be already shown.
+            text = shell_hygiene.clean("".join(line for _, line in job["lines"]))[-2000:]
+            view["already_shown"] = True
+        job["read"] = job["chars"]
+        view["output"] = text
+    return view
 
 
 def _job(job_id):
@@ -240,14 +302,42 @@ def _job(job_id):
 
 
 def job_wait(args):
+    """Until the job ends, `until` appears in its new output (a server's "ready" line), or the timeout."""
     job = _job(args.get("job_id"))
     timeout = max(1, min(int(args.get("timeout") or 60), 600))
-    try:
-        job["process"].wait(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        pass
+    until = str(args.get("until") or "").strip().lower()
+    deadline = time.monotonic() + timeout
+    found = quiet = False
+    last_chars, last_change = job["chars"], time.monotonic()
+    while time.monotonic() < deadline and job["process"].poll() is None:
+        if until:
+            with JOBS_LOCK:
+                fresh = "".join(line for start, line in job["lines"] if start + len(line) > job["read"]).lower()
+            if until in fresh:
+                found = True
+                break
+            if job["chars"] != last_chars:
+                last_chars, last_change = job["chars"], time.monotonic()
+            elif last_chars and time.monotonic() - last_change >= JOB_QUIET:
+                # The awaited text never came but the program printed and then went quiet (a server waiting
+                # for requests prints nothing more): return what it said instead of the whole timeout.
+                quiet = True
+                break
+        time.sleep(0.2)
+    if job["process"].poll() is not None:
+        # The process has ended, but its reader may still be taking the last lines from the pipe (often the
+        # error): wait for it to finish (it records the exit code when it has read everything).
+        settle = time.monotonic() + 3
+        while job.get("exit") is None and time.monotonic() < settle:
+            time.sleep(0.05)
     with JOBS_LOCK:
-        return json.dumps(_job_view(job), ensure_ascii=False)
+        view = _job_view(job)
+    if until:
+        view["until_found"] = found or until in view.get("output", "").lower()
+        if quiet and not view["until_found"]:
+            view["note"] = ("The text in until did not appear, but the job printed this and has been quiet for %d s. "
+                            "Read the output to see whether it is ready." % JOB_QUIET)
+    return json.dumps(view, ensure_ascii=False)
 
 
 def job_status(args):
@@ -301,6 +391,31 @@ def command_failure_hint(command, stderr):
     return ''
 
 
+def _temp_batch(command):
+    import shell_hygiene
+    fd, path = tempfile.mkstemp(prefix="val-cmd-", suffix=".cmd")
+    with os.fdopen(fd, "w", encoding="utf-8", newline="") as file:
+        file.write(shell_hygiene.batch_script(command))
+    return path
+
+
+def _save_output(policy, text):
+    """Full output of a long command, in the working folder, for fs_read; its relative path or None."""
+    try:
+        folder = pathlib.Path(policy.root) / "outputs"
+        folder.mkdir(parents=True, exist_ok=True)
+        path = folder / ("shell-%s-%s.txt" % (time.strftime("%Y%m%d-%H%M%S"), uuid.uuid4().hex[:6]))
+        limit = 4 * 2**20
+        if len(text) > limit:
+            # A command that ran away (94 MB seen) must not fill the disk: its beginning and its end are kept.
+            text = (text[:limit // 2] + "\n[... %d characters not saved ...]\n" % (len(text) - limit)
+                    + text[-limit // 2:])
+        path.write_text(text, encoding="utf-8")
+        return "outputs/" + path.name
+    except OSError:
+        return None
+
+
 def shell_run(args, policy=None):
     policy = POLICY if policy is None else policy
     command = args.get("command")
@@ -308,19 +423,28 @@ def shell_run(args, policy=None):
         raise ValueError("command must contain a shell command.")
     mode = args.get("shell", "cmd")
     cwd = str(policy.root)
+    batch = None
     timeout = max(5, min(int(args.get("timeout") or options("pc")["command_timeout"]), 300))
     windows = os.environ.get("SystemRoot", r"C:\Windows")
     environment = os.environ.copy()
     environment.pop('STRATA_PC_ACCESS_KEY', None)
+    import shell_hygiene
+    environment.update(shell_hygiene.QUIET_ENV)
     if mode == "cmd":
         # cmd.exe does not understand the backslash-escaped quotes produced by
         # subprocess.list2cmdline. Pass its /s /c command line verbatim instead.
         executable = os.path.join(windows, "System32", "cmd.exe")
-        # Parse the user's command only AFTER switching code pages; otherwise
-        # cmd irreversibly converts Unicode arguments using the old OEM page.
-        environment["STRATA_MCP_COMMAND"] = command
-        argv = (f'"{executable}" /d /v:on /s /c "chcp 65001>nul & '
-                f'"{executable}" /d /v:off /s /c "!STRATA_MCP_COMMAND!""')
+        if "\n" in command.strip():
+            # cmd /c runs only the first line of a multi-line command line (and reported success):
+            # several lines run as a batch file instead.
+            batch = _temp_batch(command)
+            argv = f'"{executable}" /d /s /c ""{batch}""'
+        else:
+            # Parse the user's command only AFTER switching code pages; otherwise
+            # cmd irreversibly converts Unicode arguments using the old OEM page.
+            environment["STRATA_MCP_COMMAND"] = command
+            argv = (f'"{executable}" /d /v:on /s /c "chcp 65001>nul & '
+                    f'"{executable}" /d /v:off /s /c "!STRATA_MCP_COMMAND!""')
     elif mode == "powershell":
         executable = os.path.join(windows, "System32", "WindowsPowerShell", "v1.0", "powershell.exe")
         script = ("$ProgressPreference = 'SilentlyContinue'; "
@@ -359,15 +483,24 @@ def shell_run(args, policy=None):
         err_file.seek(0)
         stdout = out_file.read()
         stderr = err_file.read()
-    out = stdout.decode("utf-8", "replace").strip()
-    err = stderr.decode("utf-8", "replace").strip()
+    if batch:
+        try:
+            os.unlink(batch)
+        except OSError:
+            pass
+    out = shell_hygiene.clean(shell_hygiene.decode(stdout)).strip()
+    err = shell_hygiene.clean(shell_hygiene.decode(stderr)).strip()
     result = f"exit={p.returncode}\nshell={mode}\ncwd={cwd}\n[stdout]\n" + (out or "(no output)")
     if err:
         result += "\n[stderr]\n" + err
+    result = shell_hygiene.fit_output(result, options("pc")["max_result_chars"], lambda text: _save_output(policy, text))
+    result += shell_hygiene.command_notes(command, mode)
     if timed_out:
-        raise RuntimeError(f"Timed out ({timeout}s).\n" + result)
+        raise RuntimeError(f"Timed out ({timeout}s).\n" + result +
+                           shell_hygiene.failure_hint(command, out + "\n" + err, timed_out=True))
     if p.returncode:
-        raise RuntimeError(result + command_failure_hint(command, err))
+        raise RuntimeError(shell_hygiene.add_hint(result, command_failure_hint(command, err) or
+                                                  shell_hygiene.failure_hint(command, out + "\n" + err)))
     return result
 
 
@@ -876,11 +1009,17 @@ def _console_tool(args, full_access, policy):
                 state = _local_json('/api/harness/console', {'action': 'stop'}, timeout=15)
             except Exception:
                 pass
-        output = state.get('run_text') or ''
+        import shell_hygiene
+        output = shell_hygiene.clean(state.get('run_text') or '')
         header = 'shell=' + str(state.get('shell')) + ' cwd=' + str(state.get('cwd')) + ' exit=' + str(state.get('exit_code'))
         if timed_out:
             header += ' (timed out; session stopped)'
-        return header + '\n[shared console]\n' + (output or '(no output)')
+        result = header + '\n[shared console]\n' + (output or '(no output)')
+        result = shell_hygiene.fit_output(result, options('pc')['max_result_chars'], lambda text: _save_output(policy, text))
+        result += shell_hygiene.command_notes(command, shell)
+        if timed_out or state.get('exit_code') not in (0, None):
+            result = shell_hygiene.add_hint(result, shell_hygiene.failure_hint(command, output, timed_out=timed_out))
+        return result
     if action == 'status':
         state = _local_json('/api/harness/console', None, timeout=10)
         return json.dumps({key: state.get(key) for key in ('id','running','exit_code','shell','cwd','session')}, ensure_ascii=False)
@@ -1502,6 +1641,10 @@ def call(name, args, *, full_access=False, policy=None):
             return ("moved: " if action == "move" else "copied: ") + str(source) + " -> " + str(destination)
         raise ValueError("Invalid fs_manage action.")
     if name == "shell_run":
+        import shell_hygiene
+        refusal = shell_hygiene.background_idiom(args.get("command"), args.get("shell", "cmd"), sandboxed=not full_access)
+        if refusal:
+            raise ValueError(refusal)
         if not full_access:
             from sandbox_exec import run
             return run(policy.root,args.get('command'),args.get('shell','cmd'),args.get('timeout') or options('pc')['command_timeout'],args.get('background',False))
