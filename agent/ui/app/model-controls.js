@@ -88,8 +88,8 @@ async function loadModels() {
   } catch (e) {
     if(revision!==modelStateRevision||requestId!==catalogRevision)return;
     console.warn('Model catalogue:',e);
-    $("#modelStatus").textContent = "No se pudo leer la lista de modelos: " + e.message;
-    if (!$("#model").options.length || !$("#model").value) $("#model").replaceChildren(new Option("No se pudo leer la lista", ""));
+    $("#modelStatus").textContent = uiText("No se pudo leer la lista de modelos:") + " " + e.message;
+    if (!$("#model").options.length || !$("#model").value) $("#model").replaceChildren(new Option(uiText("No se pudo leer la lista"), ""));
     syncModelPicker();
   }
 }
@@ -108,7 +108,7 @@ async function powerEngine() {
     await loadModels();
     status.textContent=starting?"Motor encendido. Pulsa Cargar modelo para preparar el modelo seleccionado.":"Motor apagado. Puedes encenderlo cuando lo necesites.";
     note(starting?"Motor encendido.":"Motor apagado y memoria del modelo liberada.");
-  } catch(e) { status.textContent="No se pudo "+(starting?"encender":"apagar")+" el motor: "+e.message; note(status.textContent); }
+  } catch(e) { status.textContent=uiText(starting?"No se pudo encender el motor:":"No se pudo apagar el motor:")+" "+e.message; note(status.textContent); }
   finally { modelStateRevision++; setEngineBusy(false); pollStats(); }
 }
 $("#engineToggle").onclick=powerEngine;
@@ -142,7 +142,9 @@ async function loadModel() {
   if(!$('#model').value){note('Selecciona un modelo disponible.');return;}
   if(loadedModel){note('Descarga primero el modelo en memoria.');return;}
   const selected=$('#model').value,name=modelNames[selected]||selected;
-  await flushModelPreferences();
+  // Saving the model's settings must never swallow the click: if it fails, say so and load anyway
+  // (a refused setting used to stop "Use model" silently on every click).
+  try{await flushModelPreferences();}catch(error){note(uiText('No se pudieron guardar los ajustes del modelo:')+' '+error.message);}
   const context=pendingModelContexts.get(selected)??modelPreferences[selected]?.context;
   S.model=selected;saveSettings();modelStateRevision++;loadingModelId=selected;setEngineBusy(true);schedulePreparationPoll();syncModelSelectionSummary();
   const button=$('#load');button.textContent=uiText('Cargando…');const started=Date.now();
@@ -361,7 +363,7 @@ function renderHardwareStats(s) {
   const g=s?.gpu||{}, ram=s?.ram||{}, live=s?.live||{}, last=s?.last||{}, ex=s?.expert||{}, disk=s?.disk||{};
   const active=!!s?.loaded&&['reading','generating','decoding'].includes(live.state);
   $('#engineCard').dataset.active=String(active);
-  $('#st-state').textContent=!s?'Sin conexión':s.engine_online===false?'Motor apagado':!s.loaded?'Sin modelo':live.state==='reading'?'Leyendo':active?'Generando':'En reposo';
+  $('#st-state').textContent=!s?'Sin conexión':s.engine_online===false?'Motor apagado':!s.loaded?'Sin modelo':live.state==='reading'?(number(live.prompt_total)>0&&number(live.prompt_read)!==null?uiText('Leyendo')+' · '+Math.min(100,Math.floor(100*live.prompt_read/live.prompt_total))+' %':'Leyendo'):active?'Generando':'En reposo';
   const dec=s?.loaded?number(live.tok_s)??number(last.decode):null;
   const promptMs=number(last.prompt_ms), promptRead=number(last.prompt_read);
   const pre=s?.loaded?number(live.prefill)??number(last.prefill)??(promptMs>0&&promptRead!==null?promptRead/(promptMs/1000):null):null;

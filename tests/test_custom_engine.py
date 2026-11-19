@@ -34,13 +34,12 @@ class EngineCustomTests(unittest.TestCase):
   with patch('engine_manager.urllib.request.urlopen',return_value=io.BytesIO(body)):
    result=manager.metrics()
   self.assertEqual((result['live']['prompt_tokens'],result['live']['generated']),(900,12))
-  # Live tokens/s from two samples of the same reply.
-  manager._decode_mark=None
-  for generated,clock in ((10,100.0),(70,102.0)):
-   body=json.dumps([{'n_ctx':8192,'is_processing':True,'n_prompt_tokens':900,'next_token':{'n_decoded':generated}}]).encode()
-   with patch('engine_manager.urllib.request.urlopen',return_value=io.BytesIO(body)),patch('engine_manager.time.monotonic',return_value=clock):
-    result=manager.metrics()
-  self.assertEqual(result['live']['tok_s'],30.0)
+  # Once chunks arrive, llama-server's own per-chunk timings are the live figures (timings_per_token).
+  manager.live_timing={'prompt_n':880,'cache_n':20,'predicted_n':70,'predicted_per_second':30.04}
+  body=json.dumps([{'n_ctx':8192,'is_processing':True,'n_prompt_tokens':900,'next_token':{'n_decoded':12}}]).encode()
+  with patch('engine_manager.urllib.request.urlopen',return_value=io.BytesIO(body)):
+   result=manager.metrics()
+  self.assertEqual((result['live']['prompt_tokens'],result['live']['generated'],result['live']['tok_s']),(900,70,30.0))
 
  def test_all_four_local_engines_support_and_preserve_custom_builds(self):
   import json,kv_settings,runtime_paths

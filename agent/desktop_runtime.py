@@ -256,6 +256,14 @@ def install(a):
             except Exception:pass
         return pids
 
+    def local_model_loaded():
+        """A model in memory on a local engine. A provider (API) model is only a selection: nothing to unload
+        before updating engines or the app (users were asked to "unload" an API model, then it failed anyway)."""
+        return manager.kind!='api' and bool((health() or {}).get('loaded'))
+
+    def local_preparing():
+        return manager.kind!='api' and bool(a.PREPARATION.snapshot().get('active'))
+
     def health():
         if manager.kind=='strata':return original['engine_health']()
         if manager.kind in ('llama','rust','maya') and manager.process and manager.process.poll() is not None:manager.stop();_clear_hw_cache()
@@ -348,9 +356,10 @@ def install(a):
         if manager.kind=='strata':return system_metrics(original['stats']())
         import psutil
         metrics=manager.metrics();usage=a.context_usage(metrics,bool(manager.loaded))
-        timing=manager.last_timing
+        # Each engine's own figures (EngineManager.metrics): nothing here is computed from text sizes.
+        last=metrics.get('last') or {}
         return system_metrics({'engine_online':manager.online or manager.kind in ('llama','rust','maya'),'loaded':bool(manager.loaded),'model':manager.loaded,'preparation':a.PREPARATION.snapshot(),
-                'live':metrics['live'],'last':{'decode':timing.get('predicted_per_second'),'prefill':timing.get('prompt_per_second')},'context_usage':usage,
+                'live':metrics['live'],'last':{'decode':last.get('decode'),'prefill':last.get('prefill')},'context_usage':usage,
                 **a.hardware_stats.snapshot()})
 
     import psutil
@@ -367,6 +376,7 @@ def install(a):
         result=models()
         for model in result.get('data',[]):model['thinking']=thinking_policy.capability(model,manager.kind)
         return result
+    a.PROMPT_TOKEN_COUNTER=lambda messages,tools:None if manager.kind=='strata' else manager.count_prompt_tokens(messages,tools)
     a.REMOTE_ENGINE=lambda:manager.kind=='api';a.installed_models=annotated_models;a.selected_model=selected;a.engine_health=health;a.load_agent_model=load;a.require_loaded_model=require;a.change_context=context;a.engine_chat_stream=stream;a.stats=stats
     a.current_model=lambda:original['current_model']() if manager.kind=='strata' else (manager.loaded,selected(manager.loaded).get('config') if manager.loaded else None)
     def _unload():
@@ -784,7 +794,7 @@ def install(a):
                         if not app_update.snapshot().get('available'):raise ValueError('No hay una actualización verificada.')
                         threading.Thread(target=_safe,args=(app_update.download,),daemon=True).start();result=app_update.snapshot()
                     elif action=='launch':
-                        if (health() or {}).get('loaded'):raise ValueError('Descarga el modelo antes de instalar la actualización.')
+                        if local_model_loaded():raise ValueError('Descarga el modelo antes de instalar la actualización.')
                         lang=body.get('language') or body.get('lang') or preferences.get().get('language') or 'en'
                         result={**app_update.snapshot(),**app_update.launch(language=lang)}
                     else:raise ValueError('Unknown action.')
@@ -799,7 +809,7 @@ def install(a):
                     elif action in ('install','rollback','uninstall'):
                         if not a.ENGINE_LOCK.acquire(blocking=False):raise ValueError('Espera a que termine la operación actual.')
                         try:
-                            if (health() or {}).get('loaded') or a.PREPARATION.snapshot().get('active'):
+                            if local_model_loaded() or local_preparing():
                                 raise ValueError('Descarga el modelo antes de eliminar motores.' if action=='uninstall' else 'Descarga el modelo antes de actualizar motores.')
                             if action in ('rollback','uninstall'):a.stop_engine()
                             result=updates.install(body.get('engine')) if action=='install' else updates.rollback(body.get('engine')) if action=='rollback' else updates.uninstall(body.get('engine'))
@@ -897,7 +907,7 @@ def install(a):
                             updates.state.setdefault('releases',{})['maya']=rel;updates.save()
                         self._json(200,{'release':rel,'prerequisites':maya_engine.check_prerequisites(profile_snapshot(),body.get('root') or maya_cfg.get('root'),body.get('backend') or maya_cfg.get('backend','auto')),'build':maya_engine.build_status()})
                     elif act in ('clone_or_pull','update'):
-                        if (health() or {}).get('loaded') or a.PREPARATION.snapshot().get('active'):raise ValueError('Descarga el modelo actual antes de actualizar motores.')
+                        if local_model_loaded() or local_preparing():raise ValueError('Descarga el modelo actual antes de actualizar motores.')
                         target=str(body.get('root') or maya_cfg.get('root') or '').strip() or None
                         res=maya_engine.clone_or_update_repo(target,tag=str(body.get('tag') or '').strip())
                         maya_cfg['root']=res['root']
@@ -909,7 +919,7 @@ def install(a):
                             updates.save()
                         self._json(200,{**res,'snapshot':manager.snapshot(),'prerequisites':maya_engine.check_prerequisites(profile_snapshot(),res['root'],maya_cfg.get('backend','auto')),'configs':maya_engine.list_configs(Path(res['root'])),'build':maya_engine.build_status()})
                     elif act=='build':
-                        if (health() or {}).get('loaded') or a.PREPARATION.snapshot().get('active'):raise ValueError('Descarga el modelo actual antes de preparar otro modelo.')
+                        if local_model_loaded() or local_preparing():raise ValueError('Descarga el modelo actual antes de preparar otro modelo.')
                         root = body.get('root') or maya_cfg.get('root')
                         backend = body.get('backend') or maya_cfg.get('backend','auto')
                         setup_model = body.get('setup_model', '')
@@ -930,7 +940,7 @@ def install(a):
                     elif act=='cancel_setup':
                         self._json(200,{'build':maya_engine.cancel_setup()})
                     elif act=='uninstall':
-                        if (health() or {}).get('loaded') or a.PREPARATION.snapshot().get('active'):raise ValueError('Descarga el modelo actual antes de eliminar motores.')
+                        if local_model_loaded() or local_preparing():raise ValueError('Descarga el modelo actual antes de eliminar motores.')
                         a.stop_engine()
                         res=maya_engine.uninstall_installation(maya_cfg.get('root'))
                         manager.settings['maya']={'root':'','backend':'auto'};manager.save()

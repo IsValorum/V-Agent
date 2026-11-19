@@ -218,9 +218,21 @@ class Updates:
                 if not self.busy or self.installing:break
             time.sleep(.25)
         with self.lock:
+            release=self.state.get('releases',{}).get(key,{})
+        if not release.get('asset'):
+            # No release information yet (just after a start, or an earlier check failed): look it up now
+            # and go on, instead of "check the official versions first" after the user pressed Update.
+            self.check(force=True)
+            deadline=time.time()+90
+            while time.time()<deadline:
+                with self.lock:
+                    if not self.busy:break
+                time.sleep(.25)
+        with self.lock:
             if self.busy:raise ValueError('Hay otra operación en curso.')
             release=self.state.get('releases',{}).get(key,{})
-            if not release.get('asset'):raise ValueError('Comprueba primero las versiones oficiales.')
+            if not release.get('asset'):
+                raise ValueError(str(release.get('error') or '') or 'No se encontró una versión publicada de este motor. Vuelve a intentarlo en unos minutos.')
             self.progress={'engine':key,'received':0,'total':sum(a.get('size',0) for a in [release['asset'],*release.get('dependencies',[])]),'phase':'download'};self.busy=True;self.installing=True;self.state['operation']='Descargando '+key;self.state.pop('error',None)
         def work():
             try:

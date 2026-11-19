@@ -144,6 +144,16 @@ def main():
                                              'base_url': f'http://127.0.0.1:{server.server_port}/v1', 'api_key': 'fixture-only-key'})
         core.post('/api/harness/connect', {})
         passed = asyncio.run(run(core))
+        # A KV cache value left from a local engine must not make the save (and so "Use model") fail.
+        status, data = core.request('POST', '/api/models/preferences', {'model': 'api--b8c94473905a4b99b53ab75b9612c08f--' + IDS[0], 'settings': {'kv': 'q8_0'}})
+        good = status == 200
+        passed = passed and good
+        print(f"  {'OK  ' if good else 'FAIL'} preferences with a local KV value on an API model: {status} {str(data)[:200]}", flush=True)
+        # A provider model is not "loaded" in memory: it must not block updates with "unload the model".
+        status, data = core.request('POST', '/api/harness/app-update', {'action': 'launch'})
+        good = 'Descarga el modelo' not in str(data)
+        passed = passed and good
+        print(f"  {'OK  ' if good else 'FAIL'} app update not blocked by an API model: {status} {str(data)[:200]}", flush=True)
     print('RESULT', 'OK' if passed else 'FAIL')
     sys.exit(0 if passed else 1)
 

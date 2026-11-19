@@ -41,21 +41,12 @@ class RustReadinessTests(unittest.TestCase):
 
 
 class LiveNumbersTests(unittest.TestCase):
-    def test_speeds_are_measured_for_engines_that_only_count_tokens(self):
+    def test_a_provider_gets_its_own_counts_and_the_received_output_speed_only(self):
         t = engine_manager.measured_timings({'prompt_tokens': 1200, 'completion_tokens': 101,
                                              'prompt_tokens_details': {'cached_tokens': 1000}}, 0, 0.5, 2.5)
-        self.assertEqual((t['prompt_per_second'], t['predicted_per_second'], t['cache_n']), (400.0, 50.0, 1000))
-        cached = engine_manager.measured_timings({'prompt_tokens': 1200, 'completion_tokens': 50,
-                                                  'prompt_tokens_details': {'cached_tokens': 1198}}, 0, .05, 1.05)
-        self.assertNotIn('prompt_per_second', cached)  # 2 new tokens: no meaningful reading speed
-
-    def test_rust_reports_the_reply_in_progress_not_the_previous_one(self):
-        m = engine_manager.EngineManager.__new__(engine_manager.EngineManager)
-        m.kind, m.loaded, m.live, m.loaded_context = 'rust', 'rust--x', True, 8192
-        m.last_usage = {'prompt_tokens': 3000, 'completion_tokens': 400}
-        m.live_prompt, m.live_generated = 3400, 37
-        live = m.metrics()
-        self.assertEqual((live['live']['prompt_tokens'], live['live']['generated'], live['engine']['max_context']), (3400, 37, 8192))
+        self.assertEqual((t['predicted_per_second'], t['cache_n'], t['prompt_n']), (50.0, 1000, 200))
+        # The wait before the first token is network + queue + reading: not reported as a reading speed.
+        self.assertNotIn('prompt_per_second', t)
 
 
 class LoadFailureTests(unittest.TestCase):

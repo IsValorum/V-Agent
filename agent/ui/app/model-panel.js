@@ -185,7 +185,8 @@ function queueModelPreferences(){
   const id=$('#model').value;if(!id)return;
   const settings={sampling:{...S.sampling},effort:S.effort,rounds:S.rounds,
     context:pendingModelContexts.get(id)??modelPreferences[id]?.context??modelContexts[id]??16384};
-  if($('#kvCache')?.value)settings.kv=$('#kvCache').value;
+  // The KV cache exists only on local engines; with an API its select keeps the last local value.
+  if(activeEngine!=='api'&&$('#kvCache')?.value)settings.kv=$('#kvCache').value;
   if(['llama','strata'].includes(activeEngine)&&document.getElementById('modelLoadSettings'))settings.load=structuredClone(loadCurrent);
   if(activeEngine==='llama'&&document.getElementById('modelDraftSettings'))settings.draft=structuredClone(draftCurrent);
   if(['llama','strata','rust'].includes(activeEngine)&&document.getElementById('engineOptions'))settings.engine=structuredClone(engineCurrent);

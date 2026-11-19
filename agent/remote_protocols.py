@@ -280,12 +280,35 @@ def infer_provider_preset(protocol, base_url='', preset='auto'):
     return 'openai'
 
 
+_OPENCODE_INFERENCE = re.compile(r'^(/inference(?:/go)?)/?$', re.I)
+
+
+def opencode_inference_url(base_url, path, preset):
+    """OpenCode's current endpoints (https://opencode.ai/inference and /inference/go) are per protocol:
+    /openai/v1/chat/completions, /anthropic/v1/messages, and the model list at /v1/models. The older
+    /zen/v1 and /zen/go/v1 bases keep the plain OpenAI layout, so they return None here."""
+    if preset != 'opencode':
+        return None
+    parts = urlsplit(str(base_url or ''))
+    match = _OPENCODE_INFERENCE.match(parts.path or '')
+    if not match:
+        return None
+    root = parts.scheme + '://' + parts.netloc + match.group(1)
+    if path.startswith('/models'):
+        return root + '/v1' + path
+    if path.startswith('/messages'):
+        return root + '/anthropic/v1' + path
+    return root + '/openai/v1' + path
+
+
 def resolve_auth_mode(cfg, preset):
     explicit = str((cfg or {}).get('auth_mode') or 'auto').strip().lower()
     if explicit in AUTH_MODES and explicit != 'auto':
         return explicit
     protocol = str((cfg or {}).get('protocol') or 'openai').strip().lower()
-    if preset == 'anthropic' or (preset in ('auto', 'opencode') and protocol == 'anthropic'):
+    if preset == 'opencode':
+        return 'bearer'   # OpenCode documents Authorization: Bearer for every protocol, Anthropic included
+    if preset == 'anthropic' or (preset == 'auto' and protocol == 'anthropic'):
         return 'x-api-key'
     if preset == 'azure':
         return 'api-key'

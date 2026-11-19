@@ -11668,5 +11668,1871 @@
     "pt": "o provedor recusou a solicitação",
     "fr": "le fournisseur a refusé la requête",
     "de": "der Anbieter hat die Anfrage abgelehnt"
+  },
+  "No se guardó nada en este turno.": {
+    "en": "Nothing was saved in this turn.",
+    "pt": "Nada foi salvo neste turno.",
+    "fr": "Rien n'a été enregistré pendant ce tour.",
+    "de": "In diesem Durchgang wurde nichts gespeichert."
+  },
+  "el modelo devolvió respuestas vacías varias veces seguidas": {
+    "en": "the model returned empty responses several times in a row",
+    "pt": "o modelo retornou respostas vazias várias vezes seguidas",
+    "fr": "le modèle a renvoyé des réponses vides plusieurs fois de suite",
+    "de": "das Modell hat mehrmals hintereinander leere Antworten geliefert"
+  },
+  "Strata no respondió al arrancar. Revisa el registro: {}": {
+    "en": "Strata did not respond on startup. Check the log: {}",
+    "pt": "O Strata não respondeu ao iniciar. Verifique o registro: {}",
+    "fr": "Strata n'a pas répondu au démarrage. Consultez le journal : {}",
+    "de": "Strata hat beim Start nicht geantwortet. Prüfe das Protokoll: {}"
+  },
+  "Lo guardado en este turno sigue en {}. Revisa el último error en la lista de herramientas o pide un cambio concreto.": {
+    "en": "What was saved in this turn is still in {}. Check the last error in the tool list or ask for a specific change.",
+    "pt": "O que foi salvo neste turno continua em {}. Verifique o último erro na lista de ferramentas ou peça uma alteração concreta.",
+    "fr": "Ce qui a été enregistré pendant ce tour reste dans {}. Consultez la dernière erreur dans la liste des outils ou demandez une modification précise.",
+    "de": "Das in diesem Durchgang Gespeicherte liegt weiterhin in {}. Prüfe den letzten Fehler in der Werkzeugliste oder bitte um eine konkrete Änderung."
+  },
+  "Contexto acotado para seguir trabajando:": {
+    "en": "Context trimmed to keep working:",
+    "pt": "Contexto reduzido para continuar trabalhando:",
+    "fr": "Contexte réduit pour continuer à travailler :",
+    "de": "Kontext gekürzt, um weiterzuarbeiten:"
+  },
+  "El modelo rechazó la petición por superar su contexto. Se acortó el historial y se repite (intento {}{}). Detalle: {}": {
+    "en": "The model rejected the request for exceeding its context. The history was shortened and the request is retried (attempt {}{}). Details: {}",
+    "pt": "O modelo rejeitou a solicitação por exceder seu contexto. O histórico foi encurtado e a solicitação será repetida (tentativa {}{}). Detalhe: {}",
+    "fr": "Le modèle a refusé la requête car elle dépassait son contexte. L'historique a été raccourci et la requête est relancée (tentative {}{}). Détail : {}",
+    "de": "Das Modell hat die Anfrage abgelehnt, weil sie seinen Kontext überschreitet. Der Verlauf wurde gekürzt und die Anfrage wird wiederholt (Versuch {}{}). Details: {}"
+  },
+  "Strata no respondió al arrancar. Revisa el registro:": {
+    "en": "Strata did not respond on startup. Check the log:",
+    "pt": "O Strata não respondeu ao iniciar. Verifique o registro:",
+    "fr": "Strata n'a pas répondu au démarrage. Consultez le journal :",
+    "de": "Strata hat beim Start nicht geantwortet. Prüfe das Protokoll:"
+  },
+  "Descarga y vuelve a cargar el modelo para que use la plantilla re-aplicada.": {
+    "en": "Unload and reload the model so it uses the re-applied template.",
+    "pt": "Descarregue e recarregue o modelo para que ele use o modelo de chat reaplicado.",
+    "fr": "Déchargez puis rechargez le modèle pour qu'il utilise le modèle de conversation réappliqué.",
+    "de": "Entlade das Modell und lade es neu, damit es die erneut angewendete Vorlage verwendet."
+  },
+  "No hay historial suficiente para comprimir.": {
+    "en": "There is not enough history to compress.",
+    "pt": "Não há histórico suficiente para comprimir.",
+    "fr": "L'historique est insuffisant pour être compressé.",
+    "de": "Es gibt nicht genug Verlauf zum Komprimieren."
+  },
+  "Se alcanzó el límite de generación antes de completar la llamada.": {
+    "en": "The generation limit was reached before the call was complete.",
+    "pt": "O limite de geração foi atingido antes de concluir a chamada.",
+    "fr": "La limite de génération a été atteinte avant la fin de l'appel.",
+    "de": "Das Generierungslimit wurde erreicht, bevor der Aufruf vollständig war."
+  },
+  "El borrador no contiene una llamada completa con el formato esperado.": {
+    "en": "The draft does not contain a complete call in the expected format.",
+    "pt": "O rascunho não contém uma chamada completa no formato esperado.",
+    "fr": "Le brouillon ne contient pas d'appel complet au format attendu.",
+    "de": "Der Entwurf enthält keinen vollständigen Aufruf im erwarteten Format."
+  },
+  "{} bloques de resultados antiguos archivados en la carpeta context/ del chat": {
+    "en": "{} old result blocks archived in the chat's context/ folder",
+    "pt": "{} blocos de resultados antigos arquivados na pasta context/ do chat",
+    "fr": "{} anciens blocs de résultats archivés dans le dossier context/ du chat",
+    "de": "{} alte Ergebnisblöcke im Ordner context/ des Chats archiviert"
+  },
+  "El modelo devolvió una respuesta vacía; se repite la misma petición (intento {}{}).": {
+    "en": "The model returned an empty response; the same request is retried (attempt {}{}).",
+    "pt": "O modelo retornou uma resposta vazia; a mesma solicitação será repetida (tentativa {}{}).",
+    "fr": "Le modèle a renvoyé une réponse vide ; la même requête est relancée (tentative {}{}).",
+    "de": "Das Modell hat eine leere Antwort geliefert; dieselbe Anfrage wird wiederholt (Versuch {}{})."
+  },
+  "El modelo no se puede cargar:": {
+    "en": "The model cannot be loaded:",
+    "pt": "O modelo não pode ser carregado:",
+    "fr": "Le modèle ne peut pas être chargé :",
+    "de": "Das Modell kann nicht geladen werden:"
+  },
+  "Strata no pudo arrancar. Revisa el registro: {}": {
+    "en": "Strata could not start. Check the log: {}",
+    "pt": "O Strata não conseguiu iniciar. Verifique o registro: {}",
+    "fr": "Strata n'a pas pu démarrer. Consultez le journal : {}",
+    "de": "Strata konnte nicht starten. Prüfe das Protokoll: {}"
+  },
+  "plantilla: no se pudo comprobar ({})": {
+    "en": "template: could not be checked ({})",
+    "pt": "modelo de chat: não foi possível verificar ({})",
+    "fr": "modèle de conversation : vérification impossible ({})",
+    "de": "Vorlage: konnte nicht geprüft werden ({})"
+  },
+  "Inicializando el modelo en el motor…": {
+    "en": "Initializing the model in the engine…",
+    "pt": "Inicializando o modelo no motor…",
+    "fr": "Initialisation du modèle dans le moteur…",
+    "de": "Modell wird in der Engine initialisiert…"
+  },
+  "Añade un modelo compatible primero; Strata se iniciará al cargarlo.": {
+    "en": "Add a compatible model first; Strata will start when it loads.",
+    "pt": "Adicione primeiro um modelo compatível; o Strata será iniciado ao carregá-lo.",
+    "fr": "Ajoutez d'abord un modèle compatible ; Strata démarrera au chargement.",
+    "de": "Füge zuerst ein kompatibles Modell hinzu; Strata startet beim Laden."
+  },
+  "Error del motor ({}): {}": {
+    "en": "Engine error ({}): {}",
+    "pt": "Erro do motor ({}): {}",
+    "fr": "Erreur du moteur ({}) : {}",
+    "de": "Engine-Fehler ({}): {}"
+  },
+  "El modelo no devolvió texto al comprimir el contexto.": {
+    "en": "The model returned no text while compressing the context.",
+    "pt": "O modelo não retornou texto ao comprimir o contexto.",
+    "fr": "Le modèle n'a renvoyé aucun texte lors de la compression du contexte.",
+    "de": "Das Modell hat beim Komprimieren des Kontexts keinen Text geliefert."
+  },
+  "No se pudo guardar el archivo. Puedes copiarlo o descargarlo desde la llamada Guardar archivo.": {
+    "en": "The file could not be saved. You can copy or download it from the Save file call.",
+    "pt": "Não foi possível salvar o arquivo. Você pode copiá-lo ou baixá-lo na chamada Salvar arquivo.",
+    "fr": "Impossible d'enregistrer le fichier. Vous pouvez le copier ou le télécharger depuis l'appel Enregistrer le fichier.",
+    "de": "Die Datei konnte nicht gespeichert werden. Du kannst sie im Aufruf „Datei speichern“ kopieren oder herunterladen."
+  },
+  "Host no permitido (protección contra DNS rebinding).": {
+    "en": "Host not allowed (DNS rebinding protection).",
+    "pt": "Host não permitido (proteção contra DNS rebinding).",
+    "fr": "Hôte non autorisé (protection contre le DNS rebinding).",
+    "de": "Host nicht erlaubt (Schutz vor DNS-Rebinding)."
+  },
+  "{} llamadas seguidas rechazadas antes de ejecutarse (herramienta, argumentos o llamada repetida)": {
+    "en": "{} calls in a row rejected before running (tool, arguments or repeated call)",
+    "pt": "{} chamadas seguidas rejeitadas antes de executar (ferramenta, argumentos ou chamada repetida)",
+    "fr": "{} appels consécutifs refusés avant exécution (outil, arguments ou appel répété)",
+    "de": "{} Aufrufe hintereinander vor der Ausführung abgelehnt (Werkzeug, Argumente oder wiederholter Aufruf)"
+  },
+  "No hay conexión con el proveedor. Se repite en {} s (intento {}; se sigue intentando hasta 1 hora). Detalle: {}": {
+    "en": "No connection to the provider. Retrying in {} s (attempt {}; retries continue for up to 1 hour). Details: {}",
+    "pt": "Sem conexão com o provedor. Nova tentativa em {} s (tentativa {}; continua tentando por até 1 hora). Detalhe: {}",
+    "fr": "Pas de connexion avec le fournisseur. Nouvelle tentative dans {} s (tentative {} ; les tentatives continuent jusqu'à 1 heure). Détail : {}",
+    "de": "Keine Verbindung zum Anbieter. Neuer Versuch in {} s (Versuch {}; Wiederholungen bis zu 1 Stunde). Details: {}"
+  },
+  "Error transitorio del motor o del proveedor. Se repite en {} s (intento {}{}). Detalle: {}": {
+    "en": "Temporary engine or provider error. Retrying in {} s (attempt {}{}). Details: {}",
+    "pt": "Erro temporário do motor ou do provedor. Nova tentativa em {} s (tentativa {}{}). Detalhe: {}",
+    "fr": "Erreur temporaire du moteur ou du fournisseur. Nouvelle tentative dans {} s (tentative {}{}). Détail : {}",
+    "de": "Vorübergehender Fehler der Engine oder des Anbieters. Neuer Versuch in {} s (Versuch {}{}). Details: {}"
+  },
+  "El motor sigue ocupado. Detén la respuesta antes de descargar el modelo.": {
+    "en": "The engine is still busy. Stop the response before unloading the model.",
+    "pt": "O motor ainda está ocupado. Interrompa a resposta antes de descarregar o modelo.",
+    "fr": "Le moteur est toujours occupé. Arrêtez la réponse avant de décharger le modèle.",
+    "de": "Die Engine ist noch beschäftigt. Stoppe die Antwort, bevor du das Modell entlädst."
+  },
+  "Strata devolvió un error HTTP {}": {
+    "en": "Strata returned HTTP error {}",
+    "pt": "O Strata retornou um erro HTTP {}",
+    "fr": "Strata a renvoyé une erreur HTTP {}",
+    "de": "Strata hat den HTTP-Fehler {} zurückgegeben"
+  },
+  "Strata no pudo arrancar. Revisa el registro:": {
+    "en": "Strata could not start. Check the log:",
+    "pt": "O Strata não conseguiu iniciar. Verifique o registro:",
+    "fr": "Strata n'a pas pu démarrer. Consultez le journal :",
+    "de": "Strata konnte nicht starten. Prüfe das Protokoll:"
+  },
+  "El modelo no pudo completar otra llamada. Las acciones pendientes quedaron sin ejecutar.": {
+    "en": "The model could not complete another call. Pending actions were not run.",
+    "pt": "O modelo não conseguiu concluir outra chamada. As ações pendentes não foram executadas.",
+    "fr": "Le modèle n'a pas pu terminer un autre appel. Les actions en attente n'ont pas été exécutées.",
+    "de": "Das Modell konnte keinen weiteren Aufruf abschließen. Ausstehende Aktionen wurden nicht ausgeführt."
+  },
+  "Se alcanzó el límite de rondas de herramientas. Las llamadas pendientes quedaron sin ejecutar.": {
+    "en": "The tool round limit was reached. Pending calls were not run.",
+    "pt": "O limite de rodadas de ferramentas foi atingido. As chamadas pendentes não foram executadas.",
+    "fr": "La limite de tours d'outils a été atteinte. Les appels en attente n'ont pas été exécutés.",
+    "de": "Das Limit für Werkzeugrunden wurde erreicht. Ausstehende Aufrufe wurden nicht ausgeführt."
+  },
+  "El archivo quedó como borrador. Ábrelo en la llamada Guardar archivo para copiarlo o descargarlo.": {
+    "en": "The file was kept as a draft. Open it in the Save file call to copy or download it.",
+    "pt": "O arquivo ficou como rascunho. Abra-o na chamada Salvar arquivo para copiá-lo ou baixá-lo.",
+    "fr": "Le fichier est resté à l'état de brouillon. Ouvrez-le dans l'appel Enregistrer le fichier pour le copier ou le télécharger.",
+    "de": "Die Datei wurde als Entwurf behalten. Öffne sie im Aufruf „Datei speichern“, um sie zu kopieren oder herunterzuladen."
+  },
+  "El modelo repitió el inicio de la llamada sin escribir argumentos.": {
+    "en": "The model repeated the start of the call without writing arguments.",
+    "pt": "O modelo repetiu o início da chamada sem escrever argumentos.",
+    "fr": "Le modèle a répété le début de l'appel sans écrire d'arguments.",
+    "de": "Das Modell hat den Anfang des Aufrufs wiederholt, ohne Argumente zu schreiben."
+  },
+  "La llamada no se ejecutó.": {
+    "en": "The call was not run.",
+    "pt": "A chamada não foi executada.",
+    "fr": "L'appel n'a pas été exécuté.",
+    "de": "Der Aufruf wurde nicht ausgeführt."
+  },
+  "No he ejecutado `{}` porque denegaste el permiso. Dime cómo quieres continuar.": {
+    "en": "I did not run `{}` because you denied permission. Tell me how you want to continue.",
+    "pt": "Não executei `{}` porque você negou a permissão. Diga como quer continuar.",
+    "fr": "Je n'ai pas exécuté `{}` car vous avez refusé l'autorisation. Dites-moi comment continuer.",
+    "de": "Ich habe `{}` nicht ausgeführt, weil du die Berechtigung verweigert hast. Sag mir, wie es weitergehen soll."
+  },
+  "«messages» debe ser una lista de mensajes.": {
+    "en": "“messages” must be a list of messages.",
+    "pt": "“messages” deve ser uma lista de mensagens.",
+    "fr": "« messages » doit être une liste de messages.",
+    "de": "„messages“ muss eine Liste von Nachrichten sein."
+  },
+  "Ya hay una respuesta en curso (puede ser en otra conversación) o el motor está cargando. Espera a que termine o detenla.": {
+    "en": "A response is already in progress (possibly in another conversation) or the engine is loading. Wait for it to finish or stop it.",
+    "pt": "Já há uma resposta em andamento (pode ser em outra conversa) ou o motor está carregando. Aguarde terminar ou interrompa-a.",
+    "fr": "Une réponse est déjà en cours (peut-être dans une autre conversation) ou le moteur est en cours de chargement. Attendez la fin ou arrêtez-la.",
+    "de": "Es läuft bereits eine Antwort (eventuell in einer anderen Unterhaltung) oder die Engine lädt. Warte, bis sie fertig ist, oder stoppe sie."
+  },
+  "Las herramientas de este modelo no superaron la comprobación de plantilla:": {
+    "en": "This model's tools did not pass the template check:",
+    "pt": "As ferramentas deste modelo não passaram na verificação do modelo de chat:",
+    "fr": "Les outils de ce modèle n'ont pas passé la vérification du modèle de conversation :",
+    "de": "Die Werkzeuge dieses Modells haben die Vorlagenprüfung nicht bestanden:"
+  },
+  "Se alcanzó el límite de rondas.": {
+    "en": "The round limit was reached.",
+    "pt": "O limite de rodadas foi atingido.",
+    "fr": "La limite de tours a été atteinte.",
+    "de": "Das Rundenlimit wurde erreicht."
+  },
+  "La herramienta no se ejecutó.": {
+    "en": "The tool was not run.",
+    "pt": "A ferramenta não foi executada.",
+    "fr": "L'outil n'a pas été exécuté.",
+    "de": "Das Werkzeug wurde nicht ausgeführt."
+  },
+  "La llamada quedó interrumpida por el límite de generación.": {
+    "en": "The call was cut off by the generation limit.",
+    "pt": "A chamada foi interrompida pelo limite de geração.",
+    "fr": "L'appel a été interrompu par la limite de génération.",
+    "de": "Der Aufruf wurde durch das Generierungslimit abgebrochen."
+  },
+  "El modelo emitió una llamada con formato o argumentos inválidos.": {
+    "en": "The model issued a call with an invalid format or arguments.",
+    "pt": "O modelo emitiu uma chamada com formato ou argumentos inválidos.",
+    "fr": "Le modèle a émis un appel au format ou aux arguments invalides.",
+    "de": "Das Modell hat einen Aufruf mit ungültigem Format oder ungültigen Argumenten ausgegeben."
+  },
+  "La guía no está disponible.": {
+    "en": "The guide is not available.",
+    "pt": "O guia não está disponível.",
+    "fr": "Le guide n'est pas disponible.",
+    "de": "Die Anleitung ist nicht verfügbar."
+  },
+  "Falló la carga y no se pudo restaurar la configuración anterior:": {
+    "en": "Loading failed and the previous configuration could not be restored:",
+    "pt": "O carregamento falhou e não foi possível restaurar a configuração anterior:",
+    "fr": "Le chargement a échoué et la configuration précédente n'a pas pu être restaurée :",
+    "de": "Das Laden ist fehlgeschlagen und die vorherige Konfiguration konnte nicht wiederhergestellt werden:"
+  },
+  "Contexto anterior restaurado en disco. No se pudo recuperar el motor: {}": {
+    "en": "Previous context restored on disk. The engine could not be recovered: {}",
+    "pt": "Contexto anterior restaurado no disco. Não foi possível recuperar o motor: {}",
+    "fr": "Contexte précédent restauré sur le disque. Impossible de récupérer le moteur : {}",
+    "de": "Vorheriger Kontext auf der Festplatte wiederhergestellt. Die Engine konnte nicht wiederhergestellt werden: {}"
+  },
+  "No se pudo comprobar el modelo cargado:": {
+    "en": "The loaded model could not be checked:",
+    "pt": "Não foi possível verificar o modelo carregado:",
+    "fr": "Impossible de vérifier le modèle chargé :",
+    "de": "Das geladene Modell konnte nicht geprüft werden:"
+  },
+  "No se pudo guardar la ejecución local:": {
+    "en": "The local run could not be saved:",
+    "pt": "Não foi possível salvar a execução local:",
+    "fr": "Impossible d'enregistrer l'exécution locale :",
+    "de": "Die lokale Ausführung konnte nicht gespeichert werden:"
+  },
+  "No se pudo terminar de cancelar:": {
+    "en": "Cancelling could not be completed:",
+    "pt": "Não foi possível concluir o cancelamento:",
+    "fr": "Impossible de terminer l'annulation :",
+    "de": "Das Abbrechen konnte nicht abgeschlossen werden:"
+  },
+  "Falló la carga y no se pudo liberar el modelo de respaldo:": {
+    "en": "Loading failed and the fallback model could not be released:",
+    "pt": "O carregamento falhou e não foi possível liberar o modelo de reserva:",
+    "fr": "Le chargement a échoué et le modèle de secours n'a pas pu être libéré :",
+    "de": "Das Laden ist fehlgeschlagen und das Ersatzmodell konnte nicht freigegeben werden:"
+  },
+  "Contexto anterior restaurado en disco. No se pudo recuperar el motor:": {
+    "en": "Previous context restored on disk. The engine could not be recovered:",
+    "pt": "Contexto anterior restaurado no disco. Não foi possível recuperar o motor:",
+    "fr": "Contexte précédent restauré sur le disque. Impossible de récupérer le moteur :",
+    "de": "Vorheriger Kontext auf der Festplatte wiederhergestellt. Die Engine konnte nicht wiederhergestellt werden:"
+  },
+  "La respuesta se interrumpió antes de completar la llamada; se repite.": {
+    "en": "The response was interrupted before the call was complete; retrying.",
+    "pt": "A resposta foi interrompida antes de concluir a chamada; repetindo.",
+    "fr": "La réponse a été interrompue avant la fin de l'appel ; nouvelle tentative.",
+    "de": "Die Antwort wurde vor Abschluss des Aufrufs unterbrochen; wird wiederholt."
+  },
+  "No se pudieron guardar los ajustes:": {
+    "en": "The settings could not be saved:",
+    "pt": "Não foi possível salvar as configurações:",
+    "fr": "Impossible d'enregistrer les réglages :",
+    "de": "Die Einstellungen konnten nicht gespeichert werden:"
+  },
+  "No se pudo añadir el modelo:": {
+    "en": "The model could not be added:",
+    "pt": "Não foi possível adicionar o modelo:",
+    "fr": "Impossible d'ajouter le modèle :",
+    "de": "Das Modell konnte nicht hinzugefügt werden:"
+  },
+  "Duración no admitida.": {
+    "en": "Unsupported duration.",
+    "pt": "Duração não suportada.",
+    "fr": "Durée non prise en charge.",
+    "de": "Nicht unterstützte Dauer."
+  },
+  "Verificando el paquete de actualización…": {
+    "en": "Verifying the update package…",
+    "pt": "Verificando o pacote de atualização…",
+    "fr": "Vérification du paquet de mise à jour…",
+    "de": "Updatepaket wird überprüft…"
+  },
+  "Por favor espera. V-Agent se abrirá automáticamente al terminar.": {
+    "en": "Please wait. V-Agent will reopen automatically when finished.",
+    "pt": "Aguarde. O V-Agent será reaberto automaticamente ao concluir.",
+    "fr": "Veuillez patienter. V-Agent se rouvrira automatiquement une fois terminé.",
+    "de": "Bitte warten. V-Agent wird nach Abschluss automatisch wieder geöffnet."
+  },
+  "El navegador integrado no está disponible.": {
+    "en": "The built-in browser is not available.",
+    "pt": "O navegador integrado não está disponível.",
+    "fr": "Le navigateur intégré n'est pas disponible.",
+    "de": "Der integrierte Browser ist nicht verfügbar."
+  },
+  "La ventana de V-Agent no respondió. Abre la aplicación de escritorio.": {
+    "en": "The V-Agent window did not respond. Open the desktop app.",
+    "pt": "A janela do V-Agent não respondeu. Abra o aplicativo de desktop.",
+    "fr": "La fenêtre de V-Agent n'a pas répondu. Ouvrez l'application de bureau.",
+    "de": "Das V-Agent-Fenster hat nicht reagiert. Öffne die Desktop-App."
+  },
+  "La aplicación se cerró.": {
+    "en": "The app closed.",
+    "pt": "O aplicativo foi fechado.",
+    "fr": "L'application s'est fermée.",
+    "de": "Die App wurde geschlossen."
+  },
+  "La compatibilidad se comprobará al cargar en el motor.": {
+    "en": "Compatibility will be checked when loading into the engine.",
+    "pt": "A compatibilidade será verificada ao carregar no motor.",
+    "fr": "La compatibilité sera vérifiée lors du chargement dans le moteur.",
+    "de": "Die Kompatibilität wird beim Laden in die Engine geprüft."
+  },
+  "Ajustes de modelo no válidos.": {
+    "en": "Invalid model settings.",
+    "pt": "Configurações de modelo inválidas.",
+    "fr": "Réglages du modèle invalides.",
+    "de": "Ungültige Modelleinstellungen."
+  },
+  "Selecciona un motor local antes de importar modelos.": {
+    "en": "Select a local engine before importing models.",
+    "pt": "Selecione um motor local antes de importar modelos.",
+    "fr": "Sélectionnez un moteur local avant d'importer des modèles.",
+    "de": "Wähle eine lokale Engine, bevor du Modelle importierst."
+  },
+  "Strata Rust no aplica la plantilla importada; usa la plantilla admitida por el motor.": {
+    "en": "Strata Rust does not apply the imported template; it uses the template supported by the engine.",
+    "pt": "O Strata Rust não aplica o modelo de chat importado; usa o modelo de chat suportado pelo motor.",
+    "fr": "Strata Rust n'applique pas le modèle de conversation importé ; il utilise celui pris en charge par le moteur.",
+    "de": "Strata Rust wendet die importierte Vorlage nicht an; es verwendet die von der Engine unterstützte Vorlage."
+  },
+  "La plantilla es demasiado grande (máximo 256 KB).": {
+    "en": "The template is too large (maximum 256 KB).",
+    "pt": "O modelo de chat é grande demais (máximo de 256 KB).",
+    "fr": "Le modèle de conversation est trop volumineux (256 Ko maximum).",
+    "de": "Die Vorlage ist zu groß (maximal 256 KB)."
+  },
+  "Incluida en el GGUF": {
+    "en": "Included in the GGUF",
+    "pt": "Incluído no GGUF",
+    "fr": "Inclus dans le GGUF",
+    "de": "Im GGUF enthalten"
+  },
+  "Predeterminada del motor": {
+    "en": "Engine default",
+    "pt": "Padrão do motor",
+    "fr": "Par défaut du moteur",
+    "de": "Engine-Standard"
+  },
+  "Ese modelo no está disponible en el motor seleccionado.": {
+    "en": "That model is not available in the selected engine.",
+    "pt": "Esse modelo não está disponível no motor selecionado.",
+    "fr": "Ce modèle n'est pas disponible dans le moteur sélectionné.",
+    "de": "Dieses Modell ist in der gewählten Engine nicht verfügbar."
+  },
+  "Espera a que termine la comprobación o actualización del motor.": {
+    "en": "Wait for the engine check or update to finish.",
+    "pt": "Aguarde a verificação ou atualização do motor terminar.",
+    "fr": "Attendez la fin de la vérification ou de la mise à jour du moteur.",
+    "de": "Warte, bis die Prüfung oder Aktualisierung der Engine abgeschlossen ist."
+  },
+  "El contexto del modelo externo lo administra el proveedor.": {
+    "en": "The external model's context is managed by the provider.",
+    "pt": "O contexto do modelo externo é gerenciado pelo provedor.",
+    "fr": "Le contexte du modèle externe est géré par le fournisseur.",
+    "de": "Der Kontext des externen Modells wird vom Anbieter verwaltet."
+  },
+  "Selecciona o carga un modelo para ajustar su contexto.": {
+    "en": "Select or load a model to adjust its context.",
+    "pt": "Selecione ou carregue um modelo para ajustar seu contexto.",
+    "fr": "Sélectionnez ou chargez un modèle pour ajuster son contexte.",
+    "de": "Wähle oder lade ein Modell, um seinen Kontext anzupassen."
+  },
+  "Selecciona y carga un modelo en el motor actual.": {
+    "en": "Select and load a model in the current engine.",
+    "pt": "Selecione e carregue um modelo no motor atual.",
+    "fr": "Sélectionnez et chargez un modèle dans le moteur actuel.",
+    "de": "Wähle ein Modell in der aktuellen Engine und lade es."
+  },
+  "El modelo seleccionado no está cargado.": {
+    "en": "The selected model is not loaded.",
+    "pt": "O modelo selecionado não está carregado.",
+    "fr": "Le modèle sélectionné n'est pas chargé.",
+    "de": "Das gewählte Modell ist nicht geladen."
+  },
+  "Plantilla no válida.": {
+    "en": "Invalid template.",
+    "pt": "Modelo de chat inválido.",
+    "fr": "Modèle de conversation invalide.",
+    "de": "Ungültige Vorlage."
+  },
+  "El modelo ya estaba registrado; su plantilla existente no se sobrescribió.": {
+    "en": "The model was already registered; its existing template was not overwritten.",
+    "pt": "O modelo já estava registrado; seu modelo de chat existente não foi sobrescrito.",
+    "fr": "Le modèle était déjà enregistré ; son modèle de conversation existant n'a pas été écrasé.",
+    "de": "Das Modell war bereits registriert; seine vorhandene Vorlage wurde nicht überschrieben."
+  },
+  "Formato KV no habilitado para esta compilación.": {
+    "en": "KV format not enabled for this build.",
+    "pt": "Formato KV não habilitado para esta compilação.",
+    "fr": "Format KV non activé pour cette compilation.",
+    "de": "KV-Format für diesen Build nicht aktiviert."
+  },
+  "Formato de caché KV configurado en Project Maya.": {
+    "en": "KV cache format configured in Project Maya.",
+    "pt": "Formato de cache KV configurado no Project Maya.",
+    "fr": "Format du cache KV configuré dans Project Maya.",
+    "de": "KV-Cache-Format in Project Maya konfiguriert."
+  },
+  "Selecciona un modelo de la API antes de chatear.": {
+    "en": "Select an API model before chatting.",
+    "pt": "Selecione um modelo da API antes de conversar.",
+    "fr": "Sélectionnez un modèle de l'API avant de discuter.",
+    "de": "Wähle ein API-Modell, bevor du chattest."
+  },
+  "Esta acción requiere los controles locales de V-Agent.": {
+    "en": "This action requires V-Agent's local controls.",
+    "pt": "Esta ação requer os controles locais do V-Agent.",
+    "fr": "Cette action nécessite les commandes locales de V-Agent.",
+    "de": "Diese Aktion erfordert die lokalen Steuerelemente von V-Agent."
+  },
+  "Solicitud de compactación no válida.": {
+    "en": "Invalid compaction request.",
+    "pt": "Solicitação de compactação inválida.",
+    "fr": "Demande de compactage invalide.",
+    "de": "Ungültige Komprimierungsanfrage."
+  },
+  "Solicitud de memoria no válida.": {
+    "en": "Invalid memory request.",
+    "pt": "Solicitação de memória inválida.",
+    "fr": "Demande de mémoire invalide.",
+    "de": "Ungültige Speicheranfrage."
+  },
+  "Solicitud de navegador no válida.": {
+    "en": "Invalid browser request.",
+    "pt": "Solicitação de navegador inválida.",
+    "fr": "Demande de navigateur invalide.",
+    "de": "Ungültige Browseranfrage."
+  },
+  "Solicitud de plugin no válida.": {
+    "en": "Invalid plugin request.",
+    "pt": "Solicitação de plugin inválida.",
+    "fr": "Demande de plugin invalide.",
+    "de": "Ungültige Plugin-Anfrage."
+  },
+  "Detén la generación antes de cambiar el motor.": {
+    "en": "Stop the generation before changing the engine.",
+    "pt": "Interrompa a geração antes de trocar o motor.",
+    "fr": "Arrêtez la génération avant de changer de moteur.",
+    "de": "Stoppe die Generierung, bevor du die Engine wechselst."
+  },
+  "Elige un modelo válido.": {
+    "en": "Choose a valid model.",
+    "pt": "Escolha um modelo válido.",
+    "fr": "Choisissez un modèle valide.",
+    "de": "Wähle ein gültiges Modell."
+  },
+  "La memoria del proveedor no se administra en este equipo.": {
+    "en": "The provider's memory is not managed on this computer.",
+    "pt": "A memória do provedor não é gerenciada neste computador.",
+    "fr": "La mémoire du fournisseur n'est pas gérée sur cet ordinateur.",
+    "de": "Der Speicher des Anbieters wird nicht auf diesem Computer verwaltet."
+  },
+  "Acción de administrador no admitida.": {
+    "en": "Unsupported administrator action.",
+    "pt": "Ação de administrador não suportada.",
+    "fr": "Action d'administrateur non prise en charge.",
+    "de": "Nicht unterstützte Administratoraktion."
+  },
+  "Los MCP todavía no están listos.": {
+    "en": "The MCPs are not ready yet.",
+    "pt": "Os MCPs ainda não estão prontos.",
+    "fr": "Les MCP ne sont pas encore prêts.",
+    "de": "Die MCPs sind noch nicht bereit."
+  },
+  "No hay una actualización verificada.": {
+    "en": "There is no verified update.",
+    "pt": "Não há uma atualização verificada.",
+    "fr": "Aucune mise à jour vérifiée.",
+    "de": "Es gibt kein verifiziertes Update."
+  },
+  "La consola requiere Acceso completo. Actívalo manualmente en el chat.": {
+    "en": "The console requires Full access. Turn it on manually in the chat.",
+    "pt": "O console requer Acesso completo. Ative-o manualmente no chat.",
+    "fr": "La console nécessite l'Accès complet. Activez-le manuellement dans le chat.",
+    "de": "Die Konsole erfordert Vollzugriff. Aktiviere ihn manuell im Chat."
+  },
+  "Estado de plugin no válido.": {
+    "en": "Invalid plugin state.",
+    "pt": "Estado de plugin inválido.",
+    "fr": "État du plugin invalide.",
+    "de": "Ungültiger Plugin-Status."
+  },
+  "Acción de plugin desconocida.": {
+    "en": "Unknown plugin action.",
+    "pt": "Ação de plugin desconhecida.",
+    "fr": "Action de plugin inconnue.",
+    "de": "Unbekannte Plugin-Aktion."
+  },
+  "Descarga el modelo antes de instalar la actualización.": {
+    "en": "Unload the model before installing the update.",
+    "pt": "Descarregue o modelo antes de instalar a atualização.",
+    "fr": "Déchargez le modèle avant d'installer la mise à jour.",
+    "de": "Entlade das Modell, bevor du das Update installierst."
+  },
+  "La carpeta de la consola no existe.": {
+    "en": "The console folder does not exist.",
+    "pt": "A pasta do console não existe.",
+    "fr": "Le dossier de la console n'existe pas.",
+    "de": "Der Konsolenordner existiert nicht."
+  },
+  "Elige al menos un modelo.": {
+    "en": "Choose at least one model.",
+    "pt": "Escolha pelo menos um modelo.",
+    "fr": "Choisissez au moins un modèle.",
+    "de": "Wähle mindestens ein Modell."
+  },
+  "Acción desconocida.": {
+    "en": "Unknown action.",
+    "pt": "Ação desconhecida.",
+    "fr": "Action inconnue.",
+    "de": "Unbekannte Aktion."
+  },
+  "no responde (¿está en marcha y es correcta la dirección?)": {
+    "en": "not responding (is it running and is the address correct?)",
+    "pt": "não responde (está em execução e o endereço está correto?)",
+    "fr": "ne répond pas (est-il démarré et l'adresse est-elle correcte ?)",
+    "de": "antwortet nicht (läuft er und ist die Adresse richtig?)"
+  },
+  "tardó demasiado en responder": {
+    "en": "took too long to respond",
+    "pt": "demorou demais para responder",
+    "fr": "a mis trop de temps à répondre",
+    "de": "hat zu lange für die Antwort gebraucht"
+  },
+  "Elemento de modelo no válido.": {
+    "en": "Invalid model item.",
+    "pt": "Item de modelo inválido.",
+    "fr": "Élément de modèle invalide.",
+    "de": "Ungültiges Modellelement."
+  },
+  "no se encontró el servidor (revisa la dirección)": {
+    "en": "server not found (check the address)",
+    "pt": "servidor não encontrado (verifique o endereço)",
+    "fr": "serveur introuvable (vérifiez l'adresse)",
+    "de": "Server nicht gefunden (prüfe die Adresse)"
+  },
+  "falló la conexión segura (certificado)": {
+    "en": "secure connection failed (certificate)",
+    "pt": "a conexão segura falhou (certificado)",
+    "fr": "échec de la connexion sécurisée (certificat)",
+    "de": "sichere Verbindung fehlgeschlagen (Zertifikat)"
+  },
+  "No se pudo conectar con": {
+    "en": "Could not connect to",
+    "pt": "Não foi possível conectar a",
+    "fr": "Impossible de se connecter à",
+    "de": "Verbindung nicht möglich mit"
+  },
+  "No se guardó nada en este turno. Revisa el último resultado en la lista de herramientas o pide el siguiente paso de forma concreta (qué archivo y qué cambio).": {
+    "en": "Nothing was saved in this turn. Check the last result in the tool list or ask for the next step specifically (which file and which change).",
+    "pt": "Nada foi salvo neste turno. Verifique o último resultado na lista de ferramentas ou peça o próximo passo de forma concreta (qual arquivo e qual alteração).",
+    "fr": "Rien n'a été enregistré pendant ce tour. Consultez le dernier résultat dans la liste des outils ou demandez précisément l'étape suivante (quel fichier et quelle modification).",
+    "de": "In diesem Durchgang wurde nichts gespeichert. Prüfe das letzte Ergebnis in der Werkzeugliste oder bitte konkret um den nächsten Schritt (welche Datei und welche Änderung)."
+  },
+  "La respuesta del proveedor se cortó antes de terminar (la conexión se cerró a mitad). Vuelve a intentarlo; si se repite, revisa la conexión o el estado del proveedor.": {
+    "en": "The provider's response was cut off before finishing (the connection closed midway). Try again; if it happens again, check the connection or the provider's status.",
+    "pt": "A resposta do provedor foi cortada antes de terminar (a conexão foi fechada no meio). Tente novamente; se se repetir, verifique a conexão ou o status do provedor.",
+    "fr": "La réponse du fournisseur a été coupée avant la fin (la connexion s'est fermée en cours de route). Réessayez ; si cela se reproduit, vérifiez la connexion ou l'état du fournisseur.",
+    "de": "Die Antwort des Anbieters wurde vor dem Ende abgebrochen (die Verbindung wurde mittendrin geschlossen). Versuche es erneut; wenn es wieder passiert, prüfe die Verbindung oder den Status des Anbieters."
+  },
+  "No se pudo conectar con {}: {}.": {
+    "en": "Could not connect to {}: {}.",
+    "pt": "Não foi possível conectar a {}: {}.",
+    "fr": "Impossible de se connecter à {} : {}.",
+    "de": "Verbindung mit {} nicht möglich: {}."
+  },
+  "la API": {
+    "en": "the API",
+    "pt": "a API",
+    "fr": "l'API",
+    "de": "der API"
+  },
+  "La caché KV {} no está disponible para este motor o modelo; se conservó el valor actual.": {
+    "en": "KV cache {} is not available for this engine or model; the current value was kept.",
+    "pt": "O cache KV {} não está disponível para este motor ou modelo; o valor atual foi mantido.",
+    "fr": "Le cache KV {} n'est pas disponible pour ce moteur ou ce modèle ; la valeur actuelle a été conservée.",
+    "de": "Der KV-Cache {} ist für diese Engine oder dieses Modell nicht verfügbar; der aktuelle Wert wurde beibehalten."
+  },
+  "No se pudo encender el motor:": {
+    "en": "Could not start the engine:",
+    "pt": "Não foi possível ligar o motor:",
+    "fr": "Impossible de démarrer le moteur :",
+    "de": "Die Engine konnte nicht gestartet werden:"
+  },
+  "No se pudo apagar el motor:": {
+    "en": "Could not shut down the engine:",
+    "pt": "Não foi possível desligar o motor:",
+    "fr": "Impossible d'arrêter le moteur :",
+    "de": "Die Engine konnte nicht heruntergefahren werden:"
+  },
+  "Guardado. La comprobación encontró errores en": {
+    "en": "Saved. The check found errors in",
+    "pt": "Salvo. A verificação encontrou erros em",
+    "fr": "Enregistré. La vérification a trouvé des erreurs dans",
+    "de": "Gespeichert. Die Prüfung hat Fehler gefunden in"
+  },
+  "Iniciando el motor…": {
+    "en": "Starting the engine…",
+    "pt": "Iniciando o motor…",
+    "fr": "Démarrage du moteur…",
+    "de": "Engine wird gestartet…"
+  },
+  "Apagando el motor y liberando memoria…": {
+    "en": "Shutting down the engine and freeing memory…",
+    "pt": "Desligando o motor e liberando memória…",
+    "fr": "Arrêt du moteur et libération de la mémoire…",
+    "de": "Engine wird heruntergefahren und Speicher freigegeben…"
+  },
+  "Motor encendido.": {
+    "en": "Engine started.",
+    "pt": "Motor ligado.",
+    "fr": "Moteur démarré.",
+    "de": "Engine gestartet."
+  },
+  "Motor apagado y memoria del modelo liberada.": {
+    "en": "Engine shut down and model memory freed.",
+    "pt": "Motor desligado e memória do modelo liberada.",
+    "fr": "Moteur arrêté et mémoire du modèle libérée.",
+    "de": "Engine heruntergefahren und Modellspeicher freigegeben."
+  },
+  "Project commands require Toda la PC. Syntax checks remain available without it.": {
+    "en": "Project commands require Whole computer. Syntax checks remain available without it.",
+    "pt": "Os comandos do projeto exigem PC inteiro. As verificações de sintaxe continuam disponíveis sem ele.",
+    "fr": "Les commandes du projet nécessitent le PC entier. Les vérifications de syntaxe restent disponibles sans cela.",
+    "de": "Projektbefehle erfordern den ganzen PC. Syntaxprüfungen bleiben auch ohne ihn verfügbar."
+  },
+  "Falta la dependencia 'pypdf' para leer archivos PDF.": {
+    "en": "The 'pypdf' dependency is missing to read PDF files.",
+    "pt": "Falta a dependência 'pypdf' para ler arquivos PDF.",
+    "fr": "La dépendance 'pypdf' manque pour lire les fichiers PDF.",
+    "de": "Die Abhängigkeit 'pypdf' zum Lesen von PDF-Dateien fehlt."
+  },
+  "Falta la dependencia 'python-docx' para leer archivos Word (.docx).": {
+    "en": "The 'python-docx' dependency is missing to read Word files (.docx).",
+    "pt": "Falta a dependência 'python-docx' para ler arquivos Word (.docx).",
+    "fr": "La dépendance 'python-docx' manque pour lire les fichiers Word (.docx).",
+    "de": "Die Abhängigkeit 'python-docx' zum Lesen von Word-Dateien (.docx) fehlt."
+  },
+  "Falta la dependencia 'openpyxl' para leer archivos Excel (.xlsx).": {
+    "en": "The 'openpyxl' dependency is missing to read Excel files (.xlsx).",
+    "pt": "Falta a dependência 'openpyxl' para ler arquivos Excel (.xlsx).",
+    "fr": "La dépendance 'openpyxl' manque pour lire les fichiers Excel (.xlsx).",
+    "de": "Die Abhängigkeit 'openpyxl' zum Lesen von Excel-Dateien (.xlsx) fehlt."
+  },
+  "Falta la dependencia 'python-pptx' para leer presentaciones (.pptx).": {
+    "en": "The 'python-pptx' dependency is missing to read presentations (.pptx).",
+    "pt": "Falta a dependência 'python-pptx' para ler apresentações (.pptx).",
+    "fr": "La dépendance 'python-pptx' manque pour lire les présentations (.pptx).",
+    "de": "Die Abhängigkeit 'python-pptx' zum Lesen von Präsentationen (.pptx) fehlt."
+  },
+  "Ajustes de draft no válidos.": {
+    "en": "Invalid draft settings.",
+    "pt": "Configurações de draft inválidas.",
+    "fr": "Réglages du draft invalides.",
+    "de": "Ungültige Draft-Einstellungen."
+  },
+  "Estado de draft no válido.": {
+    "en": "Invalid draft state.",
+    "pt": "Estado de draft inválido.",
+    "fr": "État du draft invalide.",
+    "de": "Ungültiger Draft-Status."
+  },
+  "Ruta de draft no válida.": {
+    "en": "Invalid draft path.",
+    "pt": "Caminho de draft inválido.",
+    "fr": "Chemin du draft invalide.",
+    "de": "Ungültiger Draft-Pfad."
+  },
+  "El draft debe ser un archivo GGUF.": {
+    "en": "The draft must be a GGUF file.",
+    "pt": "O draft deve ser um arquivo GGUF.",
+    "fr": "Le draft doit être un fichier GGUF.",
+    "de": "Der Draft muss eine GGUF-Datei sein."
+  },
+  "Mínimo de draft fuera de rango.": {
+    "en": "Draft minimum out of range.",
+    "pt": "Mínimo de draft fora do intervalo.",
+    "fr": "Minimum du draft hors limites.",
+    "de": "Draft-Minimum außerhalb des Bereichs."
+  },
+  "El archivo draft seleccionado no existe.": {
+    "en": "The selected draft file does not exist.",
+    "pt": "O arquivo de draft selecionado não existe.",
+    "fr": "Le fichier draft sélectionné n'existe pas.",
+    "de": "Die gewählte Draft-Datei existiert nicht."
+  },
+  "Selecciona una fuente MTP.": {
+    "en": "Select an MTP source.",
+    "pt": "Selecione uma fonte MTP.",
+    "fr": "Sélectionnez une source MTP.",
+    "de": "Wähle eine MTP-Quelle."
+  },
+  "No se pudo comprobar el modelo.": {
+    "en": "The model could not be checked.",
+    "pt": "Não foi possível verificar o modelo.",
+    "fr": "Impossible de vérifier le modèle.",
+    "de": "Das Modell konnte nicht geprüft werden."
+  },
+  "Selecciona primero una fuente MTP.": {
+    "en": "Select an MTP source first.",
+    "pt": "Selecione primeiro uma fonte MTP.",
+    "fr": "Sélectionnez d'abord une source MTP.",
+    "de": "Wähle zuerst eine MTP-Quelle."
+  },
+  "Este modelo no incluye MTP integrado.": {
+    "en": "This model does not include built-in MTP.",
+    "pt": "Este modelo não inclui MTP integrado.",
+    "fr": "Ce modèle n'inclut pas de MTP intégré.",
+    "de": "Dieses Modell enthält kein integriertes MTP."
+  },
+  "Selecciona un archivo GGUF MTP existente.": {
+    "en": "Select an existing MTP GGUF file.",
+    "pt": "Selecione um arquivo GGUF MTP existente.",
+    "fr": "Sélectionnez un fichier GGUF MTP existant.",
+    "de": "Wähle eine vorhandene MTP-GGUF-Datei."
+  },
+  "El archivo no contiene una cabeza MTP con las dimensiones de este modelo.": {
+    "en": "The file does not contain an MTP head with this model's dimensions.",
+    "pt": "O arquivo não contém uma cabeça MTP com as dimensões deste modelo.",
+    "fr": "Le fichier ne contient pas de tête MTP aux dimensions de ce modèle.",
+    "de": "Die Datei enthält keinen MTP-Kopf mit den Dimensionen dieses Modells."
+  },
+  "Identificador de borrador no válido.": {
+    "en": "Invalid draft identifier.",
+    "pt": "Identificador de rascunho inválido.",
+    "fr": "Identifiant de brouillon invalide.",
+    "de": "Ungültige Entwurfskennung."
+  },
+  "No se pudo respaldar el borrador en disco:": {
+    "en": "The draft could not be backed up to disk:",
+    "pt": "Não foi possível fazer backup do rascunho no disco:",
+    "fr": "Impossible de sauvegarder le brouillon sur le disque :",
+    "de": "Der Entwurf konnte nicht auf der Festplatte gesichert werden:"
+  },
+  "{} no pudo cargar el GGUF: {}": {
+    "en": "{} could not load the GGUF: {}",
+    "pt": "{} não conseguiu carregar o GGUF: {}",
+    "fr": "{} n'a pas pu charger le GGUF : {}",
+    "de": "{} konnte das GGUF nicht laden: {}"
+  },
+  "Error del proveedor ({}): {}.": {
+    "en": "Provider error ({}): {}.",
+    "pt": "Erro do provedor ({}): {}.",
+    "fr": "Erreur du fournisseur ({}) : {}.",
+    "de": "Anbieterfehler ({}): {}."
+  },
+  "La conexión redirige a otra dirección; configura la dirección final explícitamente.": {
+    "en": "The connection redirects to another address; set the final address explicitly.",
+    "pt": "A conexão redireciona para outro endereço; configure o endereço final explicitamente.",
+    "fr": "La connexion redirige vers une autre adresse ; configurez explicitement l'adresse finale.",
+    "de": "Die Verbindung leitet an eine andere Adresse weiter; gib die endgültige Adresse ausdrücklich an."
+  },
+  "{} no ejecuta modelos de arquitectura «{}» (admite: {}). Usa llama.cpp para este modelo.": {
+    "en": "{} does not run “{}” architecture models (supports: {}). Use llama.cpp for this model.",
+    "pt": "{} não executa modelos de arquitetura “{}” (suporta: {}). Use o llama.cpp para este modelo.",
+    "fr": "{} n'exécute pas les modèles d'architecture « {} » (prend en charge : {}). Utilisez llama.cpp pour ce modèle.",
+    "de": "{} führt keine Modelle der Architektur „{}“ aus (unterstützt: {}). Verwende llama.cpp für dieses Modell."
+  },
+  "Esta compilación de {} no reconoce la arquitectura «{}». Actualiza el motor o usa otro.": {
+    "en": "This {} build does not recognize the “{}” architecture. Update the engine or use another one.",
+    "pt": "Esta compilação do {} não reconhece a arquitetura “{}”. Atualize o motor ou use outro.",
+    "fr": "Cette compilation de {} ne reconnaît pas l'architecture « {} ». Mettez le moteur à jour ou utilisez-en un autre.",
+    "de": "Dieser {}-Build erkennt die Architektur „{}“ nicht. Aktualisiere die Engine oder verwende eine andere."
+  },
+  "{} se quedó sin memoria al cargar el modelo. Baja el contexto o elige una cuantización más pequeña.": {
+    "en": "{} ran out of memory while loading the model. Lower the context or choose a smaller quantization.",
+    "pt": "{} ficou sem memória ao carregar o modelo. Reduza o contexto ou escolha uma quantização menor.",
+    "fr": "{} a manqué de mémoire en chargeant le modèle. Réduisez le contexte ou choisissez une quantification plus petite.",
+    "de": "{} hatte beim Laden des Modells nicht genug Speicher. Verringere den Kontext oder wähle eine kleinere Quantisierung."
+  },
+  "{} no pudo cargar el GGUF: {}. Puede que el archivo esté incompleto o dañado, o que esta versión del motor no lo admita.": {
+    "en": "{} could not load the GGUF: {}. The file may be incomplete or damaged, or this engine version may not support it.",
+    "pt": "{} não conseguiu carregar o GGUF: {}. O arquivo pode estar incompleto ou danificado, ou esta versão do motor pode não suportá-lo.",
+    "fr": "{} n'a pas pu charger le GGUF : {}. Le fichier est peut-être incomplet ou endommagé, ou cette version du moteur ne le prend pas en charge.",
+    "de": "{} konnte das GGUF nicht laden: {}. Die Datei ist möglicherweise unvollständig oder beschädigt, oder diese Engine-Version unterstützt sie nicht."
+  },
+  "Identificador de conexión no válido.": {
+    "en": "Invalid connection identifier.",
+    "pt": "Identificador de conexão inválido.",
+    "fr": "Identifiant de connexion invalide.",
+    "de": "Ungültige Verbindungskennung."
+  },
+  "Motor desconocido.": {
+    "en": "Unknown engine.",
+    "pt": "Motor desconhecido.",
+    "fr": "Moteur inconnu.",
+    "de": "Unbekannte Engine."
+  },
+  "Configura la dirección de la API.": {
+    "en": "Set the API address.",
+    "pt": "Configure o endereço da API.",
+    "fr": "Configurez l'adresse de l'API.",
+    "de": "Gib die API-Adresse an."
+  },
+  "La lista de modelos excede el límite de páginas.": {
+    "en": "The model list exceeds the page limit.",
+    "pt": "A lista de modelos excede o limite de páginas.",
+    "fr": "La liste des modèles dépasse la limite de pages.",
+    "de": "Die Modellliste überschreitet das Seitenlimit."
+  },
+  "Selecciona un modelo de la conexión actual.": {
+    "en": "Select a model from the current connection.",
+    "pt": "Selecione um modelo da conexão atual.",
+    "fr": "Sélectionnez un modèle de la connexion actuelle.",
+    "de": "Wähle ein Modell der aktuellen Verbindung."
+  },
+  "El contexto debe ser un número positivo de tokens.": {
+    "en": "The context must be a positive number of tokens.",
+    "pt": "O contexto deve ser um número positivo de tokens.",
+    "fr": "Le contexte doit être un nombre positif de tokens.",
+    "de": "Der Kontext muss eine positive Anzahl Tokens sein."
+  },
+  "Compilación desconocida.": {
+    "en": "Unknown build.",
+    "pt": "Compilação desconhecida.",
+    "fr": "Compilation inconnue.",
+    "de": "Unbekannter Build."
+  },
+  "Descarga primero el modelo actual.": {
+    "en": "Unload the current model first.",
+    "pt": "Descarregue primeiro o modelo atual.",
+    "fr": "Déchargez d'abord le modèle actuel.",
+    "de": "Entlade zuerst das aktuelle Modell."
+  },
+  "Activa imágenes en esta conexión API antes de enviarlas al proveedor.": {
+    "en": "Enable images on this API connection before sending them to the provider.",
+    "pt": "Ative imagens nesta conexão de API antes de enviá-las ao provedor.",
+    "fr": "Activez les images sur cette connexion API avant de les envoyer au fournisseur.",
+    "de": "Aktiviere Bilder für diese API-Verbindung, bevor du sie an den Anbieter sendest."
+  },
+  "Selecciona y carga un modelo antes de comprimir el contexto.": {
+    "en": "Select and load a model before compressing the context.",
+    "pt": "Selecione e carregue um modelo antes de comprimir o contexto.",
+    "fr": "Sélectionnez et chargez un modèle avant de compresser le contexte.",
+    "de": "Wähle und lade ein Modell, bevor du den Kontext komprimierst."
+  },
+  "Capas GPU: auto, all o un número entre 0 y 999.": {
+    "en": "GPU layers: auto, all or a number between 0 and 999.",
+    "pt": "Camadas de GPU: auto, all ou um número entre 0 e 999.",
+    "fr": "Couches GPU : auto, all ou un nombre entre 0 et 999.",
+    "de": "GPU-Schichten: auto, all oder eine Zahl zwischen 0 und 999."
+  },
+  "Modo de autenticación API desconocido.": {
+    "en": "Unknown API authentication mode.",
+    "pt": "Modo de autenticação da API desconhecido.",
+    "fr": "Mode d'authentification API inconnu.",
+    "de": "Unbekannter API-Authentifizierungsmodus."
+  },
+  "Escribe una URL base sin credenciales ni parámetros.": {
+    "en": "Enter a base URL without credentials or parameters.",
+    "pt": "Digite uma URL base sem credenciais nem parâmetros.",
+    "fr": "Saisissez une URL de base sans identifiants ni paramètres.",
+    "de": "Gib eine Basis-URL ohne Zugangsdaten oder Parameter ein."
+  },
+  "Las API externas requieren HTTPS; HTTP está permitido para conexiones locales.": {
+    "en": "External APIs require HTTPS; HTTP is allowed for local connections.",
+    "pt": "APIs externas exigem HTTPS; HTTP é permitido para conexões locais.",
+    "fr": "Les API externes nécessitent HTTPS ; HTTP est autorisé pour les connexions locales.",
+    "de": "Externe APIs erfordern HTTPS; HTTP ist für lokale Verbindungen erlaubt."
+  },
+  "Versión Claude: usa AAAA-MM-DD.": {
+    "en": "Claude version: use YYYY-MM-DD.",
+    "pt": "Versão Claude: use AAAA-MM-DD.",
+    "fr": "Version Claude : utilisez AAAA-MM-JJ.",
+    "de": "Claude-Version: verwende JJJJ-MM-TT."
+  },
+  "Tiempo de espera: entre 10 y 1800 segundos.": {
+    "en": "Timeout: between 10 and 1800 seconds.",
+    "pt": "Tempo limite: entre 10 e 1800 segundos.",
+    "fr": "Délai d'attente : entre 10 et 1800 secondes.",
+    "de": "Zeitlimit: zwischen 10 und 1800 Sekunden."
+  },
+  "User-Agent demasiado largo (máximo 200 caracteres).": {
+    "en": "User-Agent too long (maximum 200 characters).",
+    "pt": "User-Agent longo demais (máximo de 200 caracteres).",
+    "fr": "User-Agent trop long (200 caractères maximum).",
+    "de": "User-Agent zu lang (maximal 200 Zeichen)."
+  },
+  "Valor de sesión por conversación no válido.": {
+    "en": "Invalid per-conversation session value.",
+    "pt": "Valor de sessão por conversa inválido.",
+    "fr": "Valeur de session par conversation invalide.",
+    "de": "Ungültiger Sitzungswert pro Unterhaltung."
+  },
+  "Cabecera de conexión no válida.": {
+    "en": "Invalid connection header.",
+    "pt": "Cabeçalho de conexão inválido.",
+    "fr": "En-tête de connexion invalide.",
+    "de": "Ungültiger Verbindungsheader."
+  },
+  "La lista de modelos tardó más de un minuto. Vuelve a conectar.": {
+    "en": "The model list took more than a minute. Connect again.",
+    "pt": "A lista de modelos demorou mais de um minuto. Conecte novamente.",
+    "fr": "La liste des modèles a pris plus d'une minute. Reconnectez-vous.",
+    "de": "Die Modellliste hat länger als eine Minute gedauert. Verbinde dich erneut."
+  },
+  "La API devolvió una paginación de modelos no válida.": {
+    "en": "The API returned invalid model pagination.",
+    "pt": "A API retornou uma paginação de modelos inválida.",
+    "fr": "L'API a renvoyé une pagination des modèles invalide.",
+    "de": "Die API hat eine ungültige Modell-Paginierung zurückgegeben."
+  },
+  "Conecta la API antes de elegir un modelo.": {
+    "en": "Connect the API before choosing a model.",
+    "pt": "Conecte a API antes de escolher um modelo.",
+    "fr": "Connectez l'API avant de choisir un modèle.",
+    "de": "Verbinde die API, bevor du ein Modell wählst."
+  },
+  "Ese modelo no aparece en la API conectada.": {
+    "en": "That model does not appear in the connected API.",
+    "pt": "Esse modelo não aparece na API conectada.",
+    "fr": "Ce modèle n'apparaît pas dans l'API connectée.",
+    "de": "Dieses Modell erscheint nicht in der verbundenen API."
+  },
+  "Project Maya se actualizó. Pulsa Preparar modelo con Maya para reconstruir el binario.": {
+    "en": "Project Maya was updated. Press Prepare model with Maya to rebuild the binary.",
+    "pt": "O Project Maya foi atualizado. Clique em Preparar modelo com Maya para reconstruir o binário.",
+    "fr": "Project Maya a été mis à jour. Appuyez sur Préparer le modèle avec Maya pour reconstruire le binaire.",
+    "de": "Project Maya wurde aktualisiert. Drücke „Modell mit Maya vorbereiten“, um die Binärdatei neu zu erstellen."
+  },
+  "Instala Python o ejecuta la configuración oficial de Project Maya.": {
+    "en": "Install Python or run the official Project Maya setup.",
+    "pt": "Instale o Python ou execute a configuração oficial do Project Maya.",
+    "fr": "Installez Python ou lancez la configuration officielle de Project Maya.",
+    "de": "Installiere Python oder führe die offizielle Project-Maya-Einrichtung aus."
+  },
+  "Falta el ejecutable {}. Prepara este modelo con Project Maya.": {
+    "en": "The {} executable is missing. Prepare this model with Project Maya.",
+    "pt": "Falta o executável {}. Prepare este modelo com o Project Maya.",
+    "fr": "L'exécutable {} est manquant. Préparez ce modèle avec Project Maya.",
+    "de": "Die ausführbare Datei {} fehlt. Bereite dieses Modell mit Project Maya vor."
+  },
+  "Falta el tokenizador en la configuración de Project Maya.": {
+    "en": "The tokenizer is missing from the Project Maya setup.",
+    "pt": "Falta o tokenizador na configuração do Project Maya.",
+    "fr": "Le tokenizer manque dans la configuration de Project Maya.",
+    "de": "Der Tokenizer fehlt in der Project-Maya-Einrichtung."
+  },
+  "Falta vocab.json. Prepara el tokenizador con la configuración oficial de Maya.": {
+    "en": "vocab.json is missing. Prepare the tokenizer with the official Maya setup.",
+    "pt": "Falta o vocab.json. Prepare o tokenizador com a configuração oficial do Maya.",
+    "fr": "vocab.json est manquant. Préparez le tokenizer avec la configuration officielle de Maya.",
+    "de": "vocab.json fehlt. Bereite den Tokenizer mit der offiziellen Maya-Einrichtung vor."
+  },
+  "Cargando con Project Maya…": {
+    "en": "Loading with Project Maya…",
+    "pt": "Carregando com o Project Maya…",
+    "fr": "Chargement avec Project Maya…",
+    "de": "Wird mit Project Maya geladen…"
+  },
+  "Project Maya no terminó de cargar en treinta minutos.": {
+    "en": "Project Maya did not finish loading in thirty minutes.",
+    "pt": "O Project Maya não terminou de carregar em trinta minutos.",
+    "fr": "Project Maya n'a pas fini de charger en trente minutes.",
+    "de": "Project Maya wurde nicht innerhalb von dreißig Minuten fertig geladen."
+  },
+  "El puerto privado 19383 está ocupado; no se ha tocado ese proceso.": {
+    "en": "Private port 19383 is in use; that process was not touched.",
+    "pt": "A porta privada 19383 está ocupada; esse processo não foi alterado.",
+    "fr": "Le port privé 19383 est occupé ; ce processus n'a pas été touché.",
+    "de": "Der private Port 19383 ist belegt; dieser Prozess wurde nicht angetastet."
+  },
+  "{} no terminó de cargar en diez minutos.": {
+    "en": "{} did not finish loading in ten minutes.",
+    "pt": "{} não terminou de carregar em dez minutos.",
+    "fr": "{} n'a pas fini de charger en dix minutes.",
+    "de": "{} wurde nicht innerhalb von zehn Minuten fertig geladen."
+  },
+  "La API no devolvió un resumen de compactación.": {
+    "en": "The API did not return a compaction summary.",
+    "pt": "A API não retornou um resumo de compactação.",
+    "fr": "L'API n'a pas renvoyé de résumé de compactage.",
+    "de": "Die API hat keine Komprimierungszusammenfassung zurückgegeben."
+  },
+  "El servidor no devolvió una respuesta JSON válida al comprimir.": {
+    "en": "The server did not return a valid JSON response while compressing.",
+    "pt": "O servidor não retornou uma resposta JSON válida ao comprimir.",
+    "fr": "Le serveur n'a pas renvoyé de réponse JSON valide lors de la compression.",
+    "de": "Der Server hat beim Komprimieren keine gültige JSON-Antwort zurückgegeben."
+  },
+  "Elige un ejecutable llama-server.exe válido.": {
+    "en": "Choose a valid llama-server.exe executable.",
+    "pt": "Escolha um executável llama-server.exe válido.",
+    "fr": "Choisissez un exécutable llama-server.exe valide.",
+    "de": "Wähle eine gültige ausführbare Datei llama-server.exe."
+  },
+  "La API no devolvió una respuesta JSON válida al comprimir.": {
+    "en": "The API did not return a valid JSON response while compressing.",
+    "pt": "A API não retornou uma resposta JSON válida ao comprimir.",
+    "fr": "L'API n'a pas renvoyé de réponse JSON valide lors de la compression.",
+    "de": "Die API hat beim Komprimieren keine gültige JSON-Antwort zurückgegeben."
+  },
+  "La API no devolvió una respuesta JSON válida.": {
+    "en": "The API did not return a valid JSON response.",
+    "pt": "A API não retornou uma resposta JSON válida.",
+    "fr": "L'API n'a pas renvoyé de réponse JSON valide.",
+    "de": "Die API hat keine gültige JSON-Antwort zurückgegeben."
+  },
+  "No se pudo cargar con Project Maya; revisa el diagnóstico de carga.": {
+    "en": "Could not load with Project Maya; check the load diagnostics.",
+    "pt": "Não foi possível carregar com o Project Maya; verifique o diagnóstico de carregamento.",
+    "fr": "Impossible de charger avec Project Maya ; consultez le diagnostic de chargement.",
+    "de": "Laden mit Project Maya nicht möglich; prüfe die Ladediagnose."
+  },
+  "El motor se cerró y el modelo ya no está cargado. Vuelve a cargarlo; si vuelve a pasar, revisa el diagnóstico de carga.": {
+    "en": "The engine closed and the model is no longer loaded. Load it again; if it happens again, check the load diagnostics.",
+    "pt": "O motor foi fechado e o modelo não está mais carregado. Carregue-o novamente; se acontecer de novo, verifique o diagnóstico de carregamento.",
+    "fr": "Le moteur s'est fermé et le modèle n'est plus chargé. Rechargez-le ; si cela se reproduit, consultez le diagnostic de chargement.",
+    "de": "Die Engine wurde beendet und das Modell ist nicht mehr geladen. Lade es erneut; wenn es wieder passiert, prüfe die Ladediagnose."
+  },
+  "Elige un ejecutable válido para {}.": {
+    "en": "Choose a valid executable for {}.",
+    "pt": "Escolha um executável válido para {}.",
+    "fr": "Choisissez un exécutable valide pour {}.",
+    "de": "Wähle eine gültige ausführbare Datei für {}."
+  },
+  "No se encuentra instalado {}. Instálalo desde Ajustes → General → Motor o usa una API externa.": {
+    "en": "{} is not installed. Install it from Settings → General → Engine or use an external API.",
+    "pt": "{} não está instalado. Instale-o em Configurações → Geral → Motor ou use uma API externa.",
+    "fr": "{} n'est pas installé. Installez-le depuis Réglages → Général → Moteur ou utilisez une API externe.",
+    "de": "{} ist nicht installiert. Installiere es unter Einstellungen → Allgemein → Engine oder verwende eine externe API."
+  },
+  "No se pudo cargar con {}; revisa el diagnóstico de carga.": {
+    "en": "Could not load with {}; check the load diagnostics.",
+    "pt": "Não foi possível carregar com {}; verifique o diagnóstico de carregamento.",
+    "fr": "Impossible de charger avec {} ; consultez le diagnostic de chargement.",
+    "de": "Laden mit {} nicht möglich; prüfe die Ladediagnose."
+  },
+  "Valor no válido para «{}».": {
+    "en": "Invalid value for “{}”.",
+    "pt": "Valor inválido para “{}”.",
+    "fr": "Valeur invalide pour « {} ».",
+    "de": "Ungültiger Wert für „{}“."
+  },
+  "Opciones del motor no válidas.": {
+    "en": "Invalid engine options.",
+    "pt": "Opções do motor inválidas.",
+    "fr": "Options du moteur invalides.",
+    "de": "Ungültige Engine-Optionen."
+  },
+  "«{}» debe ser sí o no.": {
+    "en": "“{}” must be yes or no.",
+    "pt": "“{}” deve ser sim ou não.",
+    "fr": "« {} » doit être oui ou non.",
+    "de": "„{}“ muss ja oder nein sein."
+  },
+  "«{}» debe ser un número entero.": {
+    "en": "“{}” must be a whole number.",
+    "pt": "“{}” deve ser um número inteiro.",
+    "fr": "« {} » doit être un nombre entier.",
+    "de": "„{}“ muss eine ganze Zahl sein."
+  },
+  "«{}» debe ser un número.": {
+    "en": "“{}” must be a number.",
+    "pt": "“{}” deve ser um número.",
+    "fr": "« {} » doit être un nombre.",
+    "de": "„{}“ muss eine Zahl sein."
+  },
+  "Opción del motor desconocida:": {
+    "en": "Unknown engine option:",
+    "pt": "Opção do motor desconhecida:",
+    "fr": "Option du moteur inconnue :",
+    "de": "Unbekannte Engine-Option:"
+  },
+  "La caché KV cuantizada ({}) necesita Flash Attention: ponlo en Automático o Activado en Ajustes avanzados del motor, o usa la caché FP16.": {
+    "en": "The quantized KV cache ({}) needs Flash Attention: set it to Automatic or On in the engine's advanced settings, or use the FP16 cache.",
+    "pt": "O cache KV quantizado ({}) precisa de Flash Attention: defina-o como Automático ou Ativado nas configurações avançadas do motor, ou use o cache FP16.",
+    "fr": "Le cache KV quantifié ({}) nécessite Flash Attention : réglez-le sur Automatique ou Activé dans les réglages avancés du moteur, ou utilisez le cache FP16.",
+    "de": "Der quantisierte KV-Cache ({}) benötigt Flash Attention: stelle es in den erweiterten Engine-Einstellungen auf Automatisch oder Ein, oder verwende den FP16-Cache."
+  },
+  "necesita el controlador NVIDIA {} o posterior": {
+    "en": "needs NVIDIA driver {} or later",
+    "pt": "precisa do driver NVIDIA {} ou posterior",
+    "fr": "nécessite le pilote NVIDIA {} ou ultérieur",
+    "de": "benötigt NVIDIA-Treiber {} oder neuer"
+  },
+  "No hay una versión anterior disponible.": {
+    "en": "No previous version is available.",
+    "pt": "Não há uma versão anterior disponível.",
+    "fr": "Aucune version précédente n'est disponible.",
+    "de": "Keine vorherige Version verfügbar."
+  },
+  "No se encontró una versión publicada de este motor. Vuelve a intentarlo en unos minutos.": {
+    "en": "No published version of this engine was found. Try again in a few minutes.",
+    "pt": "Nenhuma versão publicada deste motor foi encontrada. Tente novamente em alguns minutos.",
+    "fr": "Aucune version publiée de ce moteur n'a été trouvée. Réessayez dans quelques minutes.",
+    "de": "Keine veröffentlichte Version dieser Engine gefunden. Versuche es in ein paar Minuten erneut."
+  },
+  "No se encontró un único ejecutable compatible.": {
+    "en": "A single compatible executable was not found.",
+    "pt": "Não foi encontrado um único executável compatível.",
+    "fr": "Aucun exécutable compatible unique n'a été trouvé.",
+    "de": "Es wurde keine eindeutige kompatible ausführbare Datei gefunden."
+  },
+  "(código {})": {
+    "en": "(code {})",
+    "pt": "(código {})",
+    "fr": "(code {})",
+    "de": "(Code {})"
+  },
+  "No se pudo eliminar el motor porque sigue en uso:": {
+    "en": "The engine could not be removed because it is still in use:",
+    "pt": "Não foi possível remover o motor porque ele ainda está em uso:",
+    "fr": "Impossible de supprimer le moteur car il est toujours utilisé :",
+    "de": "Die Engine konnte nicht entfernt werden, da sie noch verwendet wird:"
+  },
+  "No se encontró Unsloth Studio en este equipo.": {
+    "en": "Unsloth Studio was not found on this computer.",
+    "pt": "O Unsloth Studio não foi encontrado neste computador.",
+    "fr": "Unsloth Studio est introuvable sur cet ordinateur.",
+    "de": "Unsloth Studio wurde auf diesem Computer nicht gefunden."
+  },
+  "LM Studio solo ve los modelos que están dentro de su carpeta ({}).": {
+    "en": "LM Studio only sees models inside its folder ({}).",
+    "pt": "O LM Studio só vê os modelos que estão dentro da pasta dele ({}).",
+    "fr": "LM Studio ne voit que les modèles situés dans son dossier ({}).",
+    "de": "LM Studio sieht nur Modelle in seinem Ordner ({})."
+  },
+  "No hay una versión anterior para este archivo en esta conversación.": {
+    "en": "There is no previous version of this file in this conversation.",
+    "pt": "Não há uma versão anterior deste arquivo nesta conversa.",
+    "fr": "Il n'existe pas de version précédente de ce fichier dans cette conversation.",
+    "de": "Es gibt keine vorherige Version dieser Datei in dieser Unterhaltung."
+  },
+  "Ajustes de carga no válidos.": {
+    "en": "Invalid load settings.",
+    "pt": "Configurações de carregamento inválidas.",
+    "fr": "Réglages de chargement invalides.",
+    "de": "Ungültige Ladeeinstellungen."
+  },
+  "Modo automático no válido.": {
+    "en": "Invalid automatic mode.",
+    "pt": "Modo automático inválido.",
+    "fr": "Mode automatique invalide.",
+    "de": "Ungültiger Automatikmodus."
+  },
+  "Esta compilación no admite Context checkpoints.": {
+    "en": "This build does not support Context checkpoints.",
+    "pt": "Esta compilação não suporta Context checkpoints.",
+    "fr": "Cette compilation ne prend pas en charge les Context checkpoints.",
+    "de": "Dieser Build unterstützt keine Context checkpoints."
+  },
+  "Esta compilación de llama.cpp no admite --n-cpu-moe.": {
+    "en": "This llama.cpp build does not support --n-cpu-moe.",
+    "pt": "Esta compilação do llama.cpp não suporta --n-cpu-moe.",
+    "fr": "Cette compilation de llama.cpp ne prend pas en charge --n-cpu-moe.",
+    "de": "Dieser llama.cpp-Build unterstützt --n-cpu-moe nicht."
+  },
+  "Cambia de consola cuando la sesión esté inactiva.": {
+    "en": "Switch consoles when the session is idle.",
+    "pt": "Troque de console quando a sessão estiver inativa.",
+    "fr": "Changez de console lorsque la session est inactive.",
+    "de": "Wechsle die Konsole, wenn die Sitzung inaktiv ist."
+  },
+  "La sesión de consola se cerró. Inténtalo de nuevo.": {
+    "en": "The console session closed. Try again.",
+    "pt": "A sessão do console foi fechada. Tente novamente.",
+    "fr": "La session de console s'est fermée. Réessayez.",
+    "de": "Die Konsolensitzung wurde geschlossen. Versuche es erneut."
+  },
+  "CUDA {} con VS 2026: necesita CUDA 13.2+": {
+    "en": "CUDA {} with VS 2026: needs CUDA 13.2+",
+    "pt": "CUDA {} com VS 2026: precisa de CUDA 13.2+",
+    "fr": "CUDA {} avec VS 2026 : nécessite CUDA 13.2+",
+    "de": "CUDA {} mit VS 2026: benötigt CUDA 13.2+"
+  },
+  "La carpeta no usa el repositorio oficial de Project Maya.": {
+    "en": "The folder does not use the official Project Maya repository.",
+    "pt": "A pasta não usa o repositório oficial do Project Maya.",
+    "fr": "Le dossier n'utilise pas le dépôt officiel de Project Maya.",
+    "de": "Der Ordner verwendet nicht das offizielle Project-Maya-Repository."
+  },
+  "El ajuste de memoria debe estar entre 0 y 4096 GB.": {
+    "en": "The memory setting must be between 0 and 4096 GB.",
+    "pt": "O ajuste de memória deve estar entre 0 e 4096 GB.",
+    "fr": "Le réglage de mémoire doit être compris entre 0 et 4096 Go.",
+    "de": "Die Speichereinstellung muss zwischen 0 und 4096 GB liegen."
+  },
+  "La ventana KV debe indicarse en tokens.": {
+    "en": "The KV window must be given in tokens.",
+    "pt": "A janela KV deve ser indicada em tokens.",
+    "fr": "La fenêtre KV doit être indiquée en tokens.",
+    "de": "Das KV-Fenster muss in Tokens angegeben werden."
+  },
+  "No se pudo clonar Project Maya.": {
+    "en": "Project Maya could not be cloned.",
+    "pt": "Não foi possível clonar o Project Maya.",
+    "fr": "Impossible de cloner Project Maya.",
+    "de": "Project Maya konnte nicht geklont werden."
+  },
+  "No se pudo clonar Project Maya:": {
+    "en": "Project Maya could not be cloned:",
+    "pt": "Não foi possível clonar o Project Maya:",
+    "fr": "Impossible de cloner Project Maya :",
+    "de": "Project Maya konnte nicht geklont werden:"
+  },
+  "No se pudo actualizar Project Maya:": {
+    "en": "Project Maya could not be updated:",
+    "pt": "Não foi possível atualizar o Project Maya:",
+    "fr": "Impossible de mettre à jour Project Maya :",
+    "de": "Project Maya konnte nicht aktualisiert werden:"
+  },
+  "Instala rocm[libraries,devel]=={} o HIP_PATH": {
+    "en": "Install rocm[libraries,devel]=={} or HIP_PATH",
+    "pt": "Instale rocm[libraries,devel]=={} ou HIP_PATH",
+    "fr": "Installez rocm[libraries,devel]=={} ou HIP_PATH",
+    "de": "Installiere rocm[libraries,devel]=={} oder HIP_PATH"
+  },
+  "{} GB: amplía el archivo de paginación en Windows para GPUs AMD": {
+    "en": "{} GB: enlarge the Windows paging file for AMD GPUs",
+    "pt": "{} GB: aumente o arquivo de paginação do Windows para GPUs AMD",
+    "fr": "{} Go : agrandissez le fichier d'échange de Windows pour les GPU AMD",
+    "de": "{} GB: vergrößere die Windows-Auslagerungsdatei für AMD-GPUs"
+  },
+  "{} GB asignados": {
+    "en": "{} GB assigned",
+    "pt": "{} GB atribuídos",
+    "fr": "{} Go attribués",
+    "de": "{} GB zugewiesen"
+  },
+  "Repositorio no válido.": {
+    "en": "Invalid repository.",
+    "pt": "Repositório inválido.",
+    "fr": "Dépôt invalide.",
+    "de": "Ungültiges Repository."
+  },
+  "Archivo no válido.": {
+    "en": "Invalid file.",
+    "pt": "Arquivo inválido.",
+    "fr": "Fichier invalide.",
+    "de": "Ungültige Datei."
+  },
+  "Elige una carpeta completa.": {
+    "en": "Choose a complete folder.",
+    "pt": "Escolha uma pasta completa.",
+    "fr": "Choisissez un dossier complet.",
+    "de": "Wähle einen vollständigen Ordner."
+  },
+  "Ese archivo no está en el repositorio.": {
+    "en": "That file is not in the repository.",
+    "pt": "Esse arquivo não está no repositório.",
+    "fr": "Ce fichier n'est pas dans le dépôt.",
+    "de": "Diese Datei ist nicht im Repository."
+  },
+  "Descarga desconocida.": {
+    "en": "Unknown download.",
+    "pt": "Download desconhecido.",
+    "fr": "Téléchargement inconnu.",
+    "de": "Unbekannter Download."
+  },
+  "La descarga quedó incompleta; vuelve a intentarlo para continuarla.": {
+    "en": "The download is incomplete; try again to resume it.",
+    "pt": "O download ficou incompleto; tente novamente para continuá-lo.",
+    "fr": "Le téléchargement est incomplet ; réessayez pour le reprendre.",
+    "de": "Der Download ist unvollständig; versuche es erneut, um ihn fortzusetzen."
+  },
+  "El archivo descargado no coincide con el publicado (SHA-256).": {
+    "en": "The downloaded file does not match the published one (SHA-256).",
+    "pt": "O arquivo baixado não corresponde ao publicado (SHA-256).",
+    "fr": "Le fichier téléchargé ne correspond pas à celui publié (SHA-256).",
+    "de": "Die heruntergeladene Datei stimmt nicht mit der veröffentlichten überein (SHA-256)."
+  },
+  "Descarga cancelada.": {
+    "en": "Download cancelled.",
+    "pt": "Download cancelado.",
+    "fr": "Téléchargement annulé.",
+    "de": "Download abgebrochen."
+  },
+  "Este modelo requiere aceptar sus condiciones en Hugging Face e iniciar sesión (hf auth login).": {
+    "en": "This model requires accepting its terms on Hugging Face and signing in (hf auth login).",
+    "pt": "Este modelo exige aceitar seus termos no Hugging Face e fazer login (hf auth login).",
+    "fr": "Ce modèle nécessite d'accepter ses conditions sur Hugging Face et de se connecter (hf auth login).",
+    "de": "Dieses Modell erfordert, seine Bedingungen auf Hugging Face zu akzeptieren und sich anzumelden (hf auth login)."
+  },
+  "Strata no ejecuta modelos de arquitectura «{}». Usa llama.cpp para este modelo (Ajustes → Modelo → Motor) o busca una versión de Strata que la admita.": {
+    "en": "Strata does not run “{}” architecture models. Use llama.cpp for this model (Settings → Model → Engine) or look for a Strata version that supports it.",
+    "pt": "O Strata não executa modelos de arquitetura “{}”. Use o llama.cpp para este modelo (Configurações → Modelo → Motor) ou procure uma versão do Strata que a suporte.",
+    "fr": "Strata n'exécute pas les modèles d'architecture « {} ». Utilisez llama.cpp pour ce modèle (Réglages → Modèle → Moteur) ou cherchez une version de Strata qui la prend en charge.",
+    "de": "Strata führt keine Modelle der Architektur „{}“ aus. Verwende llama.cpp für dieses Modell (Einstellungen → Modell → Engine) oder suche eine Strata-Version, die sie unterstützt."
+  },
+  "El GGUF no contiene los pesos de un modelo.": {
+    "en": "The GGUF does not contain a model's weights.",
+    "pt": "O GGUF não contém os pesos de um modelo.",
+    "fr": "Le GGUF ne contient pas les poids d'un modèle.",
+    "de": "Das GGUF enthält keine Modellgewichte."
+  },
+  "Elige un archivo primero.": {
+    "en": "Choose a file first.",
+    "pt": "Escolha um arquivo primeiro.",
+    "fr": "Choisissez d'abord un fichier.",
+    "de": "Wähle zuerst eine Datei."
+  },
+  "El modelo no trae plantilla. Elige su archivo Jinja en «Plantilla».": {
+    "en": "The model has no template. Choose its Jinja file in “Template”.",
+    "pt": "O modelo não tem modelo de chat. Escolha o arquivo Jinja em “Modelo de chat”.",
+    "fr": "Le modèle n'a pas de modèle de conversation. Choisissez son fichier Jinja dans « Modèle ».",
+    "de": "Das Modell hat keine Vorlage. Wähle seine Jinja-Datei unter „Vorlage“."
+  },
+  "Ese modelo está oculto de tu lista.": {
+    "en": "That model is hidden from your list.",
+    "pt": "Esse modelo está oculto da sua lista.",
+    "fr": "Ce modèle est masqué de votre liste.",
+    "de": "Dieses Modell ist in deiner Liste ausgeblendet."
+  },
+  "Ya se está añadiendo otro modelo. Espera a que termine.": {
+    "en": "Another model is already being added. Wait for it to finish.",
+    "pt": "Outro modelo já está sendo adicionado. Aguarde terminar.",
+    "fr": "Un autre modèle est déjà en cours d'ajout. Attendez la fin.",
+    "de": "Es wird bereits ein anderes Modell hinzugefügt. Warte, bis es fertig ist."
+  },
+  "Tipo de archivo no válido.": {
+    "en": "Invalid file type.",
+    "pt": "Tipo de arquivo inválido.",
+    "fr": "Type de fichier invalide.",
+    "de": "Ungültiger Dateityp."
+  },
+  "No se pudo abrir el selector de archivos. Puedes pegar la ruta del archivo.": {
+    "en": "The file picker could not be opened. You can paste the file path.",
+    "pt": "Não foi possível abrir o seletor de arquivos. Você pode colar o caminho do arquivo.",
+    "fr": "Impossible d'ouvrir le sélecteur de fichiers. Vous pouvez coller le chemin du fichier.",
+    "de": "Die Dateiauswahl konnte nicht geöffnet werden. Du kannst den Dateipfad einfügen."
+  },
+  "Elige la primera parte del modelo: …-00001-of-….gguf.": {
+    "en": "Choose the first part of the model: …-00001-of-….gguf.",
+    "pt": "Escolha a primeira parte do modelo: …-00001-of-….gguf.",
+    "fr": "Choisissez la première partie du modèle : …-00001-of-….gguf.",
+    "de": "Wähle den ersten Teil des Modells: …-00001-of-….gguf."
+  },
+  "La compatibilidad de esta arquitectura se comprobará al cargar el modelo.": {
+    "en": "This architecture's compatibility will be checked when loading the model.",
+    "pt": "A compatibilidade desta arquitetura será verificada ao carregar o modelo.",
+    "fr": "La compatibilité de cette architecture sera vérifiée au chargement du modèle.",
+    "de": "Die Kompatibilität dieser Architektur wird beim Laden des Modells geprüft."
+  },
+  "Escribe un nombre para el modelo.": {
+    "en": "Enter a name for the model.",
+    "pt": "Digite um nome para o modelo.",
+    "fr": "Saisissez un nom pour le modèle.",
+    "de": "Gib einen Namen für das Modell ein."
+  },
+  "No se pudo leer ese GGUF:": {
+    "en": "That GGUF could not be read:",
+    "pt": "Não foi possível ler esse GGUF:",
+    "fr": "Impossible de lire ce GGUF :",
+    "de": "Dieses GGUF konnte nicht gelesen werden:"
+  },
+  "No se encontró un archivo {} en esa ruta.": {
+    "en": "No {} file was found at that path.",
+    "pt": "Nenhum arquivo {} foi encontrado nesse caminho.",
+    "fr": "Aucun fichier {} trouvé à cet emplacement.",
+    "de": "Unter diesem Pfad wurde keine {}-Datei gefunden."
+  },
+  "La plantilla debe estar guardada como UTF-8.": {
+    "en": "The template must be saved as UTF-8.",
+    "pt": "O modelo de chat deve estar salvo como UTF-8.",
+    "fr": "Le modèle de conversation doit être enregistré en UTF-8.",
+    "de": "Die Vorlage muss als UTF-8 gespeichert sein."
+  },
+  "La plantilla Jinja contiene un error:": {
+    "en": "The Jinja template contains an error:",
+    "pt": "O modelo Jinja contém um erro:",
+    "fr": "Le modèle Jinja contient une erreur :",
+    "de": "Die Jinja-Vorlage enthält einen Fehler:"
+  },
+  "Falta la parte {} de {}. Coloca todas las partes en la misma carpeta.": {
+    "en": "Part {} of {} is missing. Put all parts in the same folder.",
+    "pt": "Falta a parte {} de {}. Coloque todas as partes na mesma pasta.",
+    "fr": "La partie {} sur {} est manquante. Placez toutes les parties dans le même dossier.",
+    "de": "Teil {} von {} fehlt. Lege alle Teile in denselben Ordner."
+  },
+  "Ruta temporal no válida.": {
+    "en": "Invalid temporary path.",
+    "pt": "Caminho temporário inválido.",
+    "fr": "Chemin temporaire invalide.",
+    "de": "Ungültiger temporärer Pfad."
+  },
+  "La plantilla no produjo un mensaje válido.": {
+    "en": "The template did not produce a valid message.",
+    "pt": "O modelo de chat não produziu uma mensagem válida.",
+    "fr": "Le modèle de conversation n'a pas produit de message valide.",
+    "de": "Die Vorlage hat keine gültige Nachricht erzeugt."
+  },
+  "No se pudo preparar el tokenizador:": {
+    "en": "The tokenizer could not be prepared:",
+    "pt": "Não foi possível preparar o tokenizador:",
+    "fr": "Impossible de préparer le tokenizer :",
+    "de": "Der Tokenizer konnte nicht vorbereitet werden:"
+  },
+  "La plantilla no pudo preparar una conversación:": {
+    "en": "The template could not prepare a conversation:",
+    "pt": "O modelo de chat não conseguiu preparar uma conversa:",
+    "fr": "Le modèle de conversation n'a pas pu préparer de conversation :",
+    "de": "Die Vorlage konnte keine Unterhaltung vorbereiten:"
+  },
+  "Ajustes no válidos.": {
+    "en": "Invalid settings.",
+    "pt": "Configurações inválidas.",
+    "fr": "Réglages invalides.",
+    "de": "Ungültige Einstellungen."
+  },
+  "Formato de preferencias no válido.": {
+    "en": "Invalid preferences format.",
+    "pt": "Formato de preferências inválido.",
+    "fr": "Format des préférences invalide.",
+    "de": "Ungültiges Einstellungsformat."
+  },
+  "Sin recomendación pública verificada": {
+    "en": "No verified public recommendation",
+    "pt": "Sem recomendação pública verificada",
+    "fr": "Aucune recommandation publique vérifiée",
+    "de": "Keine verifizierte öffentliche Empfehlung"
+  },
+  "Muestreo no válido.": {
+    "en": "Invalid sampling.",
+    "pt": "Amostragem inválida.",
+    "fr": "Échantillonnage invalide.",
+    "de": "Ungültiges Sampling."
+  },
+  "Formato KV no válido.": {
+    "en": "Invalid KV format.",
+    "pt": "Formato KV inválido.",
+    "fr": "Format KV invalide.",
+    "de": "Ungültiges KV-Format."
+  },
+  "Razonamiento no válido.": {
+    "en": "Invalid reasoning.",
+    "pt": "Raciocínio inválido.",
+    "fr": "Raisonnement invalide.",
+    "de": "Ungültiges Reasoning."
+  },
+  "Número de partes del modelo no válido.": {
+    "en": "Invalid number of model parts.",
+    "pt": "Número de partes do modelo inválido.",
+    "fr": "Nombre de parties du modèle invalide.",
+    "de": "Ungültige Anzahl von Modellteilen."
+  },
+  "Esa carga ya no está activa. Actualiza su estado.": {
+    "en": "That load is no longer active. Refresh its status.",
+    "pt": "Esse carregamento não está mais ativo. Atualize seu status.",
+    "fr": "Ce chargement n'est plus actif. Actualisez son état.",
+    "de": "Dieser Ladevorgang ist nicht mehr aktiv. Aktualisiere seinen Status."
+  },
+  "No se puede leer el archivo de pesos:": {
+    "en": "The weights file cannot be read:",
+    "pt": "Não é possível ler o arquivo de pesos:",
+    "fr": "Impossible de lire le fichier de poids :",
+    "de": "Die Gewichtsdatei kann nicht gelesen werden:"
+  },
+  "El archivo de pesos cambió durante la lectura:": {
+    "en": "The weights file changed while being read:",
+    "pt": "O arquivo de pesos mudou durante a leitura:",
+    "fr": "Le fichier de poids a changé pendant la lecture :",
+    "de": "Die Gewichtsdatei hat sich beim Lesen geändert:"
+  },
+  "Elegir carpeta del plugin": {
+    "en": "Choose plugin folder",
+    "pt": "Escolher pasta do plugin",
+    "fr": "Choisir le dossier du plugin",
+    "de": "Plugin-Ordner wählen"
+  },
+  "Elegir carpeta de Project Maya": {
+    "en": "Choose Project Maya folder",
+    "pt": "Escolher pasta do Project Maya",
+    "fr": "Choisir le dossier de Project Maya",
+    "de": "Project-Maya-Ordner wählen"
+  },
+  "Elegir codificador de visión": {
+    "en": "Choose vision encoder",
+    "pt": "Escolher codificador de visão",
+    "fr": "Choisir l'encodeur de vision",
+    "de": "Vision-Encoder wählen"
+  },
+  "Elegir motor": {
+    "en": "Choose engine",
+    "pt": "Escolher motor",
+    "fr": "Choisir le moteur",
+    "de": "Engine wählen"
+  },
+  "Motor ejecutable": {
+    "en": "Engine executable",
+    "pt": "Executável do motor",
+    "fr": "Exécutable du moteur",
+    "de": "Ausführbare Engine-Datei"
+  },
+  "Modelo GGUF": {
+    "en": "GGUF model",
+    "pt": "Modelo GGUF",
+    "fr": "Modèle GGUF",
+    "de": "GGUF-Modell"
+  },
+  "El plugin intenta leer un archivo fuera de su carpeta.": {
+    "en": "The plugin is trying to read a file outside its folder.",
+    "pt": "O plugin tenta ler um arquivo fora de sua pasta.",
+    "fr": "Le plugin tente de lire un fichier hors de son dossier.",
+    "de": "Das Plugin versucht, eine Datei außerhalb seines Ordners zu lesen."
+  },
+  "El archivo {} supera el límite de {} KB.": {
+    "en": "The file {} exceeds the {} KB limit.",
+    "pt": "O arquivo {} excede o limite de {} KB.",
+    "fr": "Le fichier {} dépasse la limite de {} Ko.",
+    "de": "Die Datei {} überschreitet das Limit von {} KB."
+  },
+  "commands debe ser una lista de hasta {} elementos.": {
+    "en": "commands must be a list of up to {} items.",
+    "pt": "commands deve ser uma lista de até {} itens.",
+    "fr": "commands doit être une liste de {} éléments au maximum.",
+    "de": "commands muss eine Liste mit höchstens {} Elementen sein."
+  },
+  "El manifiesto del plugin debe ser un objeto JSON.": {
+    "en": "The plugin manifest must be a JSON object.",
+    "pt": "O manifesto do plugin deve ser um objeto JSON.",
+    "fr": "Le manifeste du plugin doit être un objet JSON.",
+    "de": "Das Plugin-Manifest muss ein JSON-Objekt sein."
+  },
+  "El plugin necesita un nombre de hasta 80 caracteres.": {
+    "en": "The plugin needs a name of up to 80 characters.",
+    "pt": "O plugin precisa de um nome de até 80 caracteres.",
+    "fr": "Le plugin a besoin d'un nom de 80 caractères au maximum.",
+    "de": "Das Plugin braucht einen Namen mit höchstens 80 Zeichen."
+  },
+  "Las instrucciones superan el límite de {} KB.": {
+    "en": "The instructions exceed the {} KB limit.",
+    "pt": "As instruções excedem o limite de {} KB.",
+    "fr": "Les instructions dépassent la limite de {} Ko.",
+    "de": "Die Anweisungen überschreiten das Limit von {} KB."
+  },
+  "La carpeta del plugin no existe.": {
+    "en": "The plugin folder does not exist.",
+    "pt": "A pasta do plugin não existe.",
+    "fr": "Le dossier du plugin n'existe pas.",
+    "de": "Der Plugin-Ordner existiert nicht."
+  },
+  "Cada comando debe ser un objeto con name y prompt.": {
+    "en": "Each command must be an object with name and prompt.",
+    "pt": "Cada comando deve ser um objeto com name e prompt.",
+    "fr": "Chaque commande doit être un objet avec name et prompt.",
+    "de": "Jeder Befehl muss ein Objekt mit name und prompt sein."
+  },
+  "Ya existe un plugin con ese nombre. Elimínalo antes de reinstalarlo.": {
+    "en": "A plugin with that name already exists. Remove it before reinstalling.",
+    "pt": "Já existe um plugin com esse nome. Remova-o antes de reinstalá-lo.",
+    "fr": "Un plugin portant ce nom existe déjà. Supprimez-le avant de le réinstaller.",
+    "de": "Ein Plugin mit diesem Namen existiert bereits. Entferne es vor der Neuinstallation."
+  },
+  "La carpeta no contiene plugin.json ni SKILL.md.": {
+    "en": "The folder contains neither plugin.json nor SKILL.md.",
+    "pt": "A pasta não contém plugin.json nem SKILL.md.",
+    "fr": "Le dossier ne contient ni plugin.json ni SKILL.md.",
+    "de": "Der Ordner enthält weder plugin.json noch SKILL.md."
+  },
+  "plugin.json no es JSON válido:": {
+    "en": "plugin.json is not valid JSON:",
+    "pt": "plugin.json não é um JSON válido:",
+    "fr": "plugin.json n'est pas un JSON valide :",
+    "de": "plugin.json ist kein gültiges JSON:"
+  },
+  "Cabecera HTTP no válida: contiene saltos de línea.": {
+    "en": "Invalid HTTP header: it contains line breaks.",
+    "pt": "Cabeçalho HTTP inválido: contém quebras de linha.",
+    "fr": "En-tête HTTP invalide : il contient des sauts de ligne.",
+    "de": "Ungültiger HTTP-Header: enthält Zeilenumbrüche."
+  },
+  "Cabecera HTTP no válida: usa solo caracteres ASCII/Latin-1 en cabeceras HTTP.": {
+    "en": "Invalid HTTP header: use only ASCII/Latin-1 characters in HTTP headers.",
+    "pt": "Cabeçalho HTTP inválido: use apenas caracteres ASCII/Latin-1 em cabeçalhos HTTP.",
+    "fr": "En-tête HTTP invalide : utilisez uniquement des caractères ASCII/Latin-1 dans les en-têtes HTTP.",
+    "de": "Ungültiger HTTP-Header: verwende in HTTP-Headern nur ASCII-/Latin-1-Zeichen."
+  },
+  "Formato de cabeceras personalizadas no válido.": {
+    "en": "Invalid custom header format.",
+    "pt": "Formato de cabeçalhos personalizados inválido.",
+    "fr": "Format des en-têtes personnalisés invalide.",
+    "de": "Ungültiges Format für benutzerdefinierte Header."
+  },
+  "Nombre de cabecera no válido: {}.": {
+    "en": "Invalid header name: {}.",
+    "pt": "Nome de cabeçalho inválido: {}.",
+    "fr": "Nom d'en-tête invalide : {}.",
+    "de": "Ungültiger Header-Name: {}."
+  },
+  "Los argumentos de la herramienta deben ser un objeto JSON.": {
+    "en": "The tool arguments must be a JSON object.",
+    "pt": "Os argumentos da ferramenta devem ser um objeto JSON.",
+    "fr": "Les arguments de l'outil doivent être un objet JSON.",
+    "de": "Die Werkzeugargumente müssen ein JSON-Objekt sein."
+  },
+  "Distribución no válida.": {
+    "en": "Invalid layout.",
+    "pt": "Layout inválido.",
+    "fr": "Disposition invalide.",
+    "de": "Ungültiges Layout."
+  },
+  "Faltan los lados del cuadro de mensaje.": {
+    "en": "The message box sides are missing.",
+    "pt": "Faltam os lados da caixa de mensagem.",
+    "fr": "Les côtés de la zone de message sont manquants.",
+    "de": "Die Seiten des Nachrichtenfelds fehlen."
+  },
+  "Los botones deben aparecer una sola vez.": {
+    "en": "Buttons must appear only once.",
+    "pt": "Os botões devem aparecer apenas uma vez.",
+    "fr": "Les boutons ne doivent apparaître qu'une seule fois.",
+    "de": "Schaltflächen dürfen nur einmal vorkommen."
+  },
+  "Posición del chat vacío no válida.": {
+    "en": "Invalid empty chat position.",
+    "pt": "Posição do chat vazio inválida.",
+    "fr": "Position du chat vide invalide.",
+    "de": "Ungültige Position für den leeren Chat."
+  },
+  "Tema no válido.": {
+    "en": "Invalid theme.",
+    "pt": "Tema inválido.",
+    "fr": "Thème invalide.",
+    "de": "Ungültiges Design."
+  },
+  "El nombre debe tener entre 1 y 32 caracteres.": {
+    "en": "The name must be between 1 and 32 characters.",
+    "pt": "O nome deve ter entre 1 e 32 caracteres.",
+    "fr": "Le nom doit comporter entre 1 et 32 caractères.",
+    "de": "Der Name muss zwischen 1 und 32 Zeichen lang sein."
+  },
+  "Opción showMark no válida.": {
+    "en": "Invalid showMark option.",
+    "pt": "Opção showMark inválida.",
+    "fr": "Option showMark invalide.",
+    "de": "Ungültige showMark-Option."
+  },
+  "Campos de tema no válidos.": {
+    "en": "Invalid theme fields.",
+    "pt": "Campos de tema inválidos.",
+    "fr": "Champs du thème invalides.",
+    "de": "Ungültige Designfelder."
+  },
+  "Identificador no válido.": {
+    "en": "Invalid identifier.",
+    "pt": "Identificador inválido.",
+    "fr": "Identifiant invalide.",
+    "de": "Ungültige Kennung."
+  },
+  "Secuencia no válida.": {
+    "en": "Invalid sequence.",
+    "pt": "Sequência inválida.",
+    "fr": "Séquence invalide.",
+    "de": "Ungültige Sequenz."
+  },
+  "Falta el modo {} del tema.": {
+    "en": "The theme's {} mode is missing.",
+    "pt": "Falta o modo {} do tema.",
+    "fr": "Le mode {} du thème est manquant.",
+    "de": "Der Modus {} des Designs fehlt."
+  },
+  "Color no válido:": {
+    "en": "Invalid color:",
+    "pt": "Cor inválida:",
+    "fr": "Couleur invalide :",
+    "de": "Ungültige Farbe:"
+  },
+  "Opción no válida:": {
+    "en": "Invalid option:",
+    "pt": "Opção inválida:",
+    "fr": "Option invalide :",
+    "de": "Ungültige Option:"
+  },
+  "Indica si quieres activar visión.": {
+    "en": "Say whether you want to turn on vision.",
+    "pt": "Indique se deseja ativar a visão.",
+    "fr": "Indiquez si vous voulez activer la vision.",
+    "de": "Gib an, ob du Vision aktivieren möchtest."
+  },
+  "La integración visual de este motor no está verificada para esta arquitectura.": {
+    "en": "This engine's vision integration is not verified for this architecture.",
+    "pt": "A integração visual deste motor não está verificada para esta arquitetura.",
+    "fr": "L'intégration visuelle de ce moteur n'est pas vérifiée pour cette architecture.",
+    "de": "Die Vision-Integration dieser Engine ist für diese Architektur nicht verifiziert."
+  },
+  "Elige el mmproj correspondiente a este modelo.": {
+    "en": "Choose the mmproj that matches this model.",
+    "pt": "Escolha o mmproj correspondente a este modelo.",
+    "fr": "Choisissez le mmproj correspondant à ce modèle.",
+    "de": "Wähle das zu diesem Modell passende mmproj."
+  },
+  "Falta strata-vision. Selecciona el codificador visual instalado con Strata.": {
+    "en": "strata-vision is missing. Select the vision encoder installed with Strata.",
+    "pt": "Falta o strata-vision. Selecione o codificador visual instalado com o Strata.",
+    "fr": "strata-vision est manquant. Sélectionnez l'encodeur visuel installé avec Strata.",
+    "de": "strata-vision fehlt. Wähle den mit Strata installierten Vision-Encoder."
+  },
+  "El mmproj entrega {} dimensiones; este modelo requiere {}.": {
+    "en": "The mmproj outputs {} dimensions; this model requires {}.",
+    "pt": "O mmproj entrega {} dimensões; este modelo exige {}.",
+    "fr": "Le mmproj produit {} dimensions ; ce modèle en nécessite {}.",
+    "de": "Das mmproj liefert {} Dimensionen; dieses Modell benötigt {}."
+  },
+  "Guardado por recuperación del borrador.": {
+    "en": "Saved by recovering the draft.",
+    "pt": "Salvo pela recuperação do rascunho.",
+    "fr": "Enregistré par récupération du brouillon.",
+    "de": "Durch Wiederherstellung des Entwurfs gespeichert."
+  },
+  "Modelo seleccionado.": {
+    "en": "Model selected.",
+    "pt": "Modelo selecionado.",
+    "fr": "Modèle sélectionné.",
+    "de": "Modell ausgewählt."
+  },
+  "Instrucciones y comandos para este agente.": {
+    "en": "Instructions and commands for this agent.",
+    "pt": "Instruções e comandos para este agente.",
+    "fr": "Instructions et commandes pour cet agent.",
+    "de": "Anweisungen und Befehle für diesen Agenten."
+  },
+  "Importación parcial; la copia original se conserva en disco.": {
+    "en": "Partial import; the original copy is kept on disk.",
+    "pt": "Importação parcial; a cópia original é mantida no disco.",
+    "fr": "Importation partielle ; la copie d'origine est conservée sur le disque.",
+    "de": "Teilweiser Import; die Originalkopie bleibt auf der Festplatte erhalten."
+  },
+  "Perfil adaptado al modelo. Puedes ajustar cualquier valor; las herramientas del equipo se controlan por separado.": {
+    "en": "Profile adapted to the model. You can adjust any value; computer tools are controlled separately.",
+    "pt": "Perfil adaptado ao modelo. Você pode ajustar qualquer valor; as ferramentas do computador são controladas separadamente.",
+    "fr": "Profil adapté au modèle. Vous pouvez ajuster n'importe quelle valeur ; les outils de l'ordinateur sont contrôlés séparément.",
+    "de": "Profil an das Modell angepasst. Du kannst jeden Wert anpassen; die Computer-Werkzeuge werden separat gesteuert."
+  },
+  "Acceso a toda la PC habilitado.": {
+    "en": "Whole-computer access enabled.",
+    "pt": "Acesso ao PC inteiro habilitado.",
+    "fr": "Accès au PC entier activé.",
+    "de": "Zugriff auf den ganzen PC aktiviert."
+  },
+  "Acceso del agente:": {
+    "en": "Agent access:",
+    "pt": "Acesso do agente:",
+    "fr": "Accès de l'agent :",
+    "de": "Agentenzugriff:"
+  },
+  "No se pudo medir el coste de las herramientas:": {
+    "en": "Could not measure the tool cost:",
+    "pt": "Não foi possível medir o custo das ferramentas:",
+    "fr": "Impossible de mesurer le coût des outils :",
+    "de": "Die Werkzeugkosten konnten nicht gemessen werden:"
+  },
+  "El archivo es demasiado grande.": {
+    "en": "The file is too large.",
+    "pt": "O arquivo é grande demais.",
+    "fr": "Le fichier est trop volumineux.",
+    "de": "Die Datei ist zu groß."
+  },
+  "Falta strata-vision. Puedes guardar el mmproj y seleccionar el codificador cuando lo instales.": {
+    "en": "strata-vision is missing. You can save the mmproj and select the encoder once you install it.",
+    "pt": "Falta o strata-vision. Você pode salvar o mmproj e selecionar o codificador quando instalá-lo.",
+    "fr": "strata-vision est manquant. Vous pouvez enregistrer le mmproj et sélectionner l'encodeur une fois installé.",
+    "de": "strata-vision fehlt. Du kannst das mmproj speichern und den Encoder wählen, sobald du ihn installiert hast."
+  },
+  "No se pudo guardar.": {
+    "en": "Could not save.",
+    "pt": "Não foi possível salvar.",
+    "fr": "Impossible d'enregistrer.",
+    "de": "Speichern nicht möglich."
+  },
+  "No se pudo leer el tema.": {
+    "en": "Could not read the theme.",
+    "pt": "Não foi possível ler o tema.",
+    "fr": "Impossible de lire le thème.",
+    "de": "Das Design konnte nicht gelesen werden."
+  },
+  "Copia local · sin conexión": {
+    "en": "Local copy · offline",
+    "pt": "Cópia local · sem conexão",
+    "fr": "Copie locale · hors ligne",
+    "de": "Lokale Kopie · offline"
+  },
+  "El agente puede usar este navegador.": {
+    "en": "The agent can use this browser.",
+    "pt": "O agente pode usar este navegador.",
+    "fr": "L'agent peut utiliser ce navigateur.",
+    "de": "Der Agent kann diesen Browser verwenden."
+  },
+  "El agente no puede usar este navegador.": {
+    "en": "The agent cannot use this browser.",
+    "pt": "O agente não pode usar este navegador.",
+    "fr": "L'agent ne peut pas utiliser ce navigateur.",
+    "de": "Der Agent kann diesen Browser nicht verwenden."
+  },
+  "No se pudo guardar el tamaño.": {
+    "en": "Could not save the size.",
+    "pt": "Não foi possível salvar o tamanho.",
+    "fr": "Impossible d'enregistrer la taille.",
+    "de": "Die Größe konnte nicht gespeichert werden."
+  },
+  "sin conexión": {
+    "en": "offline",
+    "pt": "sem conexão",
+    "fr": "hors ligne",
+    "de": "offline"
+  },
+  "No se pudieron guardar los ajustes del modelo:": {
+    "en": "Could not save the model settings:",
+    "pt": "Não foi possível salvar as configurações do modelo:",
+    "fr": "Impossible d'enregistrer les réglages du modèle :",
+    "de": "Die Modelleinstellungen konnten nicht gespeichert werden:"
+  },
+  "OpenCode Zen · saldo de la cuenta. Los modelos gratis solo funcionan dentro de la app OpenCode.": {
+    "en": "OpenCode Zen · account balance. Free models only work inside the OpenCode app.",
+    "pt": "OpenCode Zen · saldo da conta. Os modelos gratuitos só funcionam dentro do app OpenCode.",
+    "fr": "OpenCode Zen · solde du compte. Les modèles gratuits ne fonctionnent que dans l'application OpenCode.",
+    "de": "OpenCode Zen · Kontoguthaben. Kostenlose Modelle funktionieren nur in der OpenCode-App."
+  },
+  "OpenCode Go / Go Plus · el plan lo define tu clave; sesión por conversación": {
+    "en": "OpenCode Go / Go Plus · your key sets the plan; one session per conversation",
+    "pt": "OpenCode Go / Go Plus · o plano é definido pela sua chave; uma sessão por conversa",
+    "fr": "OpenCode Go / Go Plus · votre clé détermine le forfait ; une session par conversation",
+    "de": "OpenCode Go / Go Plus · dein Schlüssel bestimmt den Tarif; eine Sitzung pro Unterhaltung"
   }
 }

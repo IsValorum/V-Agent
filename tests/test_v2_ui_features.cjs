@@ -296,6 +296,7 @@ class FakeElement {
     updateBusy: false,
     busy: false,
     loadedModel: null,
+    localModelLoaded: () => false,
     UPDATE_LABELS: { 'llama-cuda': 'llama.cpp CUDA', rust: 'Strata Rust' },
     appUpdateState: { update_available: false },
     engineUpdateState: {},

@@ -158,6 +158,85 @@ def _nvidia_profile():
         return []
 
 
+def _dxgi_adapters():
+    """(description, dedicated VRAM in MiB) of each hardware adapter, from DXGI: a 64-bit SIZE_T, right on every
+    vendor (Win32_VideoController.AdapterRAM is a uint32 and stops at 4095 MiB)."""
+    if os.name!='nt':
+        return []
+    import ctypes
+    from ctypes import wintypes
+    class LUID(ctypes.Structure):
+        _fields_=[('LowPart',wintypes.DWORD),('HighPart',wintypes.LONG)]
+    class DESC1(ctypes.Structure):
+        _fields_=[('Description',wintypes.WCHAR*128),('VendorId',wintypes.UINT),('DeviceId',wintypes.UINT),
+                  ('SubSysId',wintypes.UINT),('Revision',wintypes.UINT),('DedicatedVideoMemory',ctypes.c_size_t),
+                  ('DedicatedSystemMemory',ctypes.c_size_t),('SharedSystemMemory',ctypes.c_size_t),
+                  ('AdapterLuid',LUID),('Flags',wintypes.UINT)]
+    class GUID(ctypes.Structure):
+        _fields_=[('Data1',wintypes.DWORD),('Data2',wintypes.WORD),('Data3',wintypes.WORD),('Data4',ctypes.c_ubyte*8)]
+    def method(pointer,index,*argtypes):
+        vtable=ctypes.cast(pointer,ctypes.POINTER(ctypes.POINTER(ctypes.c_void_p))).contents
+        return ctypes.WINFUNCTYPE(ctypes.HRESULT,ctypes.c_void_p,*argtypes)(vtable[index])
+    result=[]
+    try:
+        # IID_IDXGIFactory1 {770aae78-f26f-4dba-a829-253c83d1b387}
+        iid=GUID(0x770aae78,0xf26f,0x4dba,(ctypes.c_ubyte*8)(0xa8,0x29,0x25,0x3c,0x83,0xd1,0xb3,0x87))
+        factory=ctypes.c_void_p()
+        if ctypes.WinDLL('dxgi').CreateDXGIFactory1(ctypes.byref(iid),ctypes.byref(factory))!=0 or not factory.value:
+            return []
+        try:
+            for index in range(16):
+                adapter=ctypes.c_void_p()
+                try:method(factory,12,wintypes.UINT,ctypes.POINTER(ctypes.c_void_p))(factory,index,ctypes.byref(adapter))  # EnumAdapters1
+                except OSError:break                                     # DXGI_ERROR_NOT_FOUND: no more adapters
+                if not adapter.value:break
+                try:
+                    desc=DESC1()
+                    method(adapter,10,ctypes.POINTER(DESC1))(adapter,ctypes.byref(desc))                          # GetDesc1
+                    if not desc.Flags & 2 and desc.DedicatedVideoMemory:   # DXGI_ADAPTER_FLAG_SOFTWARE: skipped
+                        result.append((desc.Description,round(desc.DedicatedVideoMemory/2**20)))
+                finally:method(adapter,2)(adapter)                       # Release
+        finally:method(factory,2)(factory)
+    except (OSError,AttributeError,ValueError):
+        return result
+    return result
+
+
+def _registry_adapters():
+    """(DriverDesc, MiB) from the display class key's HardwareInformation.qwMemorySize (REG_QWORD)."""
+    if os.name!='nt':
+        return []
+    result=[]
+    try:
+        import winreg
+        root=r'SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}'
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,root) as key:
+            for index in range(winreg.QueryInfoKey(key)[0]):
+                sub=winreg.EnumKey(key,index)
+                if not sub.isdigit():continue
+                try:
+                    with winreg.OpenKey(key,sub) as adapter:
+                        name=str(winreg.QueryValueEx(adapter,'DriverDesc')[0])
+                        size=winreg.QueryValueEx(adapter,'HardwareInformation.qwMemorySize')[0]
+                except OSError:continue
+                if isinstance(size,bytes):size=int.from_bytes(size[:8],'little')
+                if isinstance(size,int) and size>0:result.append((name,round(size/2**20)))
+    except (ImportError,OSError):
+        return result
+    return result
+
+
+def _vram_64bit():
+    """Name -> [MiB, ...] (one per adapter of that name, in order) and the source used."""
+    found={}
+    # The registry first: the board's memory, the figure Task Manager and nvidia-smi show; DXGI (dedicated
+    # memory minus what the system reserves) where the driver writes no qwMemorySize.
+    for source,adapters in (('registry',_registry_adapters()),('dxgi',_dxgi_adapters())):
+        for name,mib in adapters:
+            found.setdefault(source,{}).setdefault(' '.join(name.lower().split()),[]).append(mib)
+    return found
+
+
 def _wmi_gpus():
     if os.name!='nt':
         return []
@@ -168,14 +247,26 @@ def _wmi_gpus():
         if proc.returncode or not proc.stdout.strip():return []
         data=json.loads(proc.stdout)
         if isinstance(data,dict):data=[data]
-        result=[]
+        result=[];wide=_vram_64bit();used={}
         for item in data if isinstance(data,list) else []:
             name=str(item.get('Name') or '').strip()
             if not name or 'basic display' in name.lower():continue
             try:vram=round(int(item.get('AdapterRAM') or 0)/2**20) or None
             except (TypeError,ValueError):vram=None
+            source='wmi'
+            # AdapterRAM is a uint32: any card with 4 GB or more reads 4095 MiB (issue #1, a 12 GB RX 6700 XT).
+            key=' '.join(name.lower().split())
+            for origin in ('registry','dxgi'):
+                sizes=wide.get(origin,{}).get(key) or []
+                position=used.get((origin,key),0)
+                if position<len(sizes):
+                    used[(origin,key)]=position+1
+                    # Only a larger figure replaces WMI's: an integrated GPU's dedicated carve-out (128 MiB) must
+                    # not replace the shared memory WMI reports for it.
+                    if sizes[position]>(vram or 0):vram,source=sizes[position],origin
+                    break
             vendor='NVIDIA' if 'nvidia' in name.lower() else 'AMD' if 'amd' in name.lower() or 'radeon' in name.lower() else 'Intel' if 'intel' in name.lower() else 'Other'
-            result.append({'name':name,'vendor':vendor,'driver':str(item.get('DriverVersion') or ''),'vram_mib':vram,'cuda_capability':None,'source':'wmi'})
+            result.append({'name':name,'vendor':vendor,'driver':str(item.get('DriverVersion') or ''),'vram_mib':vram,'cuda_capability':None,'source':source})
         return result
     except (OSError,subprocess.SubprocessError,ValueError,json.JSONDecodeError):
         return []

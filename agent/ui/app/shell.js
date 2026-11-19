@@ -446,7 +446,7 @@ function setupAgentProfilesAndUpdates(){
           actions.append(manage);
         }
       }
-      else if(row.asset){const install=document.createElement('button');install.type='button';install.textContent=uiText('Instalar');install.disabled=!!state.busy||!!loadedModel;install.onclick=()=>action('install',{engine:row.key});actions.append(install);}
+      else if(row.asset){const install=document.createElement('button');install.type='button';install.textContent=uiText('Instalar');install.disabled=!!state.busy||localModelLoaded();install.onclick=()=>action('install',{engine:row.key});actions.append(install);}
       else {const check=document.createElement('button');check.type='button';check.textContent=uiText('Comprobar');check.disabled=!!state.busy;check.onclick=()=>action('check');actions.append(check);}
       card.append(head,reason,asset,actions);box.append(card);
     }
@@ -505,7 +505,7 @@ function setupAgentProfilesAndUpdates(){
       const actions=document.createElement('div');actions.className='engine-update-actions';
       if(key==='maya'){
         if(installedHere&&release.available){
-          const updateBtn=document.createElement('button');updateBtn.textContent=uiText('Actualizar');updateBtn.disabled=state.busy||busy||!!loadedModel;
+          const updateBtn=document.createElement('button');updateBtn.textContent=uiText('Actualizar');updateBtn.disabled=state.busy||busy||localModelLoaded();
           updateBtn.onclick=async()=>{
             try{
               const res=await requestJSON('/api/harness/maya/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'update',tag:release.tag||''})});
@@ -520,14 +520,14 @@ function setupAgentProfilesAndUpdates(){
         openBtn.onclick=()=>{setDrawer(false);setChatControls('model');const eo=$('#modelEngineOptions');if(eo)eo.open=true;$('#engineKind')?.focus({preventScroll:true});};
         actions.append(openBtn);
         if(installedHere){
-          const remove=document.createElement('button');remove.className='soft-btn danger';remove.textContent=uiText('Eliminar');remove.disabled=state.busy||busy||!!loadedModel;
+          const remove=document.createElement('button');remove.className='soft-btn danger';remove.textContent=uiText('Eliminar');remove.disabled=state.busy||busy||localModelLoaded();
           remove.onclick=async()=>{if(!await valConfirm({title:uiText('¿Desvincular Project Maya?'),message:uiText('La carpeta de Maya y sus modelos se conservan en el disco.'),confirm:uiText('Desvincular')}))return;await action('uninstall',{engine:'maya'});requestJSON('/api/harness/state').then(snapshot=>{engineSnapshot=snapshot;syncEngineVersions();syncSettingsSummary();}).catch(()=>{});};
           actions.append(remove);
         }
       }else{
-        if(release.asset&&(release.available||!installedHere)){const button=document.createElement('button');button.textContent=uiText(installedHere?'Actualizar':'Instalar');button.disabled=state.busy||busy||!!loadedModel;button.onclick=()=>action('install',{engine:key});actions.append(button);}
-        if(Object.hasOwn(state.previous||{},key)){const rollback=document.createElement('button');rollback.textContent=uiText('Restaurar anterior');rollback.disabled=state.busy||busy||!!loadedModel;rollback.onclick=()=>action('rollback',{engine:key});actions.append(rollback);}
-        if(managedInstalled){const remove=document.createElement('button');remove.className='soft-btn danger';remove.textContent=uiText('Eliminar');remove.disabled=state.busy||busy||!!loadedModel;remove.onclick=async()=>{if(!await valConfirm({title:uiText('¿Eliminar este motor?'),message:uiText('Se borrarán los archivos descargados del motor. Podrás volver a instalarlo cuando quieras.'),confirm:uiText('Eliminar'),danger:true}))return;action('uninstall',{engine:key});};actions.append(remove);}
+        if(release.asset&&(release.available||!installedHere)){const button=document.createElement('button');button.textContent=uiText(installedHere?'Actualizar':'Instalar');button.disabled=state.busy||busy||localModelLoaded();button.onclick=()=>action('install',{engine:key});actions.append(button);}
+        if(Object.hasOwn(state.previous||{},key)){const rollback=document.createElement('button');rollback.textContent=uiText('Restaurar anterior');rollback.disabled=state.busy||busy||localModelLoaded();rollback.onclick=()=>action('rollback',{engine:key});actions.append(rollback);}
+        if(managedInstalled){const remove=document.createElement('button');remove.className='soft-btn danger';remove.textContent=uiText('Eliminar');remove.disabled=state.busy||busy||localModelLoaded();remove.onclick=async()=>{if(!await valConfirm({title:uiText('¿Eliminar este motor?'),message:uiText('Se borrarán los archivos descargados del motor. Podrás volver a instalarlo cuando quieras.'),confirm:uiText('Eliminar'),danger:true}))return;action('uninstall',{engine:key});};actions.append(remove);}
       }
       if(actions.children.length)row.append(actions);
       list.append(row);
@@ -563,7 +563,7 @@ function setupAgentProfilesAndUpdates(){
     // entrance animation (the window "blinked"); rebuild only when what is shown changes.
     const progressFor=key=>state.progress&&state.progress.engine===key&&state.progress.phase!=='complete'&&state.progress.phase!=='error'?state.progress:null;
     const progressText=progress=>{const percent=progress.total?Math.min(100,progress.received/progress.total*100):0;return [percent,uiText({download:'Descargando',link:'Vinculando',extract:'Extrayendo',verify:'Verificando',complete:'Completado',error:'Error'}[progress.phase]||'Procesando')+' · '+percent.toFixed(1)+' % · '+(progress.received/1048576).toFixed(1)+' / '+(progress.total/1048576).toFixed(1)+' MB'];};
-    const installDisabled=!!state.busy||busy||!!loadedModel;
+    const installDisabled=!!state.busy||busy||localModelLoaded();
     const lang=window.VALI18n?.language||'es';
     const cardError=state.error||'';
     const signature=JSON.stringify([shown.map(([key,release])=>{const p=progressFor(key);return [key,release.tag,release.current,release.summary||'',p?p.phase:''];}),remaining,lang,cardError]);
@@ -572,7 +572,7 @@ function setupAgentProfilesAndUpdates(){
         const card=stack.querySelector('.update-card'),progress=progressFor(key);if(!card)continue;
         if(progress){const [percent,text]=progressText(progress);const label=card.querySelector('.update-progress span'),bar=card.querySelector('.update-progress progress');if(label&&label.textContent!==text)label.textContent=text;if(bar)bar.value=percent;}
         else{card.querySelector('.update-progress')?.remove();}
-        const install=card.querySelector('.update-install');if(install){install.disabled=installDisabled;install.title=loadedModel?uiText('Descarga el modelo antes de actualizar.'):'';}
+        const install=card.querySelector('.update-install');if(install){install.disabled=installDisabled;install.title=localModelLoaded()?uiText('Descarga el modelo antes de actualizar.'):'';}
       }
       return;
     }
@@ -617,7 +617,7 @@ function setupAgentProfilesAndUpdates(){
       }
       const install=document.createElement('button');install.type='button';install.className='update-install';install.textContent=uiText('Actualizar');
       install.disabled=installDisabled;
-      if(loadedModel)install.title=uiText('Descarga el modelo antes de actualizar.');
+      if(localModelLoaded())install.title=uiText('Descarga el modelo antes de actualizar.');
       if(key==='maya'){
         install.onclick=async()=>{
           install.disabled=true;

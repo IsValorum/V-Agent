@@ -4,6 +4,18 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.1.7
+
+Release fixing API connections and updates, reading every statistic from the engine itself, translating the rest of the interface and correcting the GPU memory reported on Windows.
+
+- **GPU memory on Windows (`agent/hardware_stats.py`, issue #1):** `Win32_VideoController.AdapterRAM` is a 32-bit value, so every card with 4 GB or more was reported as 4 GB (a 12 GB Radeon RX 6700 XT read 4095 MiB), shrinking model-fit labels and automatic sizing. The size now comes from the driver's 64-bit `HardwareInformation.qwMemorySize`, or from DXGI when the driver does not write it; WMI is kept only when nothing larger is reported, so integrated GPUs keep their shared memory. The `source` field records which one was used.
+- **Statistics from the engine, never estimated (`agent/engine_manager.py`, `agent/desktop_runtime.py`):** llama.cpp sends its own timings on every chunk and the prompt read's progress (`timings_per_token`, `return_progress`); Strata Rust is read from its `/api/stats` (live tokens, and each request's exact read and write times); Project Maya from its `/metrics`. Strata (PolyStrata) now also shows the prompt read's progress. Prompt sizes are no longer estimated from character counts, and streamed chunks are no longer counted as tokens. With an API, the provider's own counts are used (Claude reports the input at the start), the output speed is measured as received, and the wait before the first token is no longer shown as a reading speed.
+- **Exact tool cost:** The token cost of the enabled tools (*Settings*) is counted by the engine or provider (llama.cpp `/apply-template` + `/tokenize`, Maya `/tokenize`, Strata Rust and Claude `count_tokens`, Strata's own tokenizer and template). It is marked as estimated only on OpenAI-compatible APIs, which have no counting endpoint.
+- **"Use model" with an API did nothing:** A KV-cache setting left over from a local engine was sent with the API model, the core refused it and the button failed silently. API models now ignore local-only settings, and a failed save is reported.
+- **Updates with an API model:** Engine and app updates no longer ask to unload an API model (only a model loaded in local memory blocks them). Installing an engine right after a restart checks for the release first instead of failing.
+- **OpenCode plans (`agent/remote_protocols.py`, connection form):** Separate presets for **OpenCode Go / Go Plus** (one endpoint; the plan comes from the key) and **OpenCode Zen** (account balance; its free models only work inside the OpenCode app). The current `https://opencode.ai/inference` endpoints are supported with their per-protocol paths, and OpenCode always uses `Authorization: Bearer`.
+- **Translations (`agent/ui/locales.json`, `agent/ui/standalone/i18n.js`):** Over 300 interface, status and error messages from the core added in English, Portuguese, French and German, including update notices. Messages with values (paths, counts, models) are translated through templates, and "prefix: detail" and multi-sentence messages part by part. The language audit now also fails on Spanish that is missing from the catalog.
+
 ## 1.1.6
 
 Release making the terminal tools usable by any model without a harness-specific fine-tune: Linux habits are explained instead of failing silently, output is clean, background jobs and servers behave, and nothing changes what a working program does.

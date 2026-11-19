@@ -69,6 +69,8 @@ function setLoadedModel(id,known=true,capacity=null){
   if((changed||contextCapacity!==previousCapacity)&&typeof syncContextSelection==='function')syncContextSelection();
 }
 // A local load still preparing (or one left over) never blocks a provider model: nothing is prepared for it.
+// A local model in memory blocks engine/app updates; a provider (API) model is only a selection.
+function localModelLoaded(){return !!loadedModel&&activeEngine!=='api';}
 function localPreparing(){return !!preparationState?.active&&activeEngine!=='api';}
 // A click that cannot act now says why (and returns true) instead of doing nothing.
 function refuseWhileBusy(){const why=busy?'Espera a que termine la respuesta en curso o detenla.':engineBusy?'Espera a que termine la operación del motor.':'';if(why)note(why);return !!why;}

@@ -60,10 +60,15 @@ class Provider(BaseHTTPRequestHandler):
 
 SCAN = """const catalog=window.__catalog;const lang=%s;const found=new Set();
 const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+// Spanish that is not even in the catalog: only for en/de, where Spanish words cannot be the translation.
+const SPANISH=/[ñ¿¡]|\b(?:el|los|las|del|una|está|aún|ningún|ninguna|selecciona|pulsa|descarga|conexión|también|después|todavía|cargando|guardar|actualizar)\b/i;
+const translated=new Set(Object.values(catalog).map(e=>e[lang]).filter(Boolean));
+const spanishLike=text=>['en','de'].includes(lang)&&text.length<300&&SPANISH.test(text)&&!translated.has(text);
 const visible=el=>{for(let n=el;n&&n!==document.body;n=n.parentElement){const s=getComputedStyle(n);if(s.display==='none'||s.visibility==='hidden')return false;if(n.hidden)return false;}return true;};
 for(let node=walker.nextNode();node;node=walker.nextNode()){const text=node.textContent.trim();if(text.length<3)continue;
   const el=node.parentElement;if(!el||!visible(el)||el.closest('pre,code,textarea,.msg-body .markdown,.markdown'))continue;
-  const entry=catalog[text];if(entry&&entry[lang]&&entry[lang]!==text)found.add(text);}
+  const entry=catalog[text];if(entry&&entry[lang]&&entry[lang]!==text)found.add(text);
+  else if(!entry&&spanishLike(text)&&!el.closest('.msg,.message,.conv-list,#convList,[data-user-content],#uiLanguage'))found.add('not in catalog: '+text);}
 for(const el of document.querySelectorAll('[title],[placeholder],[aria-label]')){if(!visible(el))continue;for(const a of ['title','placeholder','aria-label']){const v=(el.getAttribute(a)||'').trim();const entry=catalog[v];if(entry&&entry[lang]&&entry[lang]!==v)found.add(a+': '+v);}}
 return [...found];"""
 

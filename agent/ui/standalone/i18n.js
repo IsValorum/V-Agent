@@ -1,7 +1,7 @@
 /* Local UI localization. Never observes conversation content or tool output. */
 (()=>{
   let language='es',catalog={},ready=false,queued=false;
-  const records=new WeakMap(),attributes=new WeakMap(),roots=new Set(),observers=new Map(),reverse=new Map(),callbacks=new Set();
+  const templates=[],records=new WeakMap(),attributes=new WeakMap(),roots=new Set(),observers=new Map(),reverse=new Map(),callbacks=new Set();
   const codes=new Set(['es','en','pt','fr','de']);
   const localeMap={es:'es-ES',en:'en-US',pt:'pt-BR',fr:'fr-FR',de:'de-DE'};
   function canonical(text){return catalog[text]?text:reverse.get(text)||text;}
@@ -94,8 +94,24 @@
     if((m=text.match(/^Variable de entorno no válida: (.+)$/)))return ({en:'Invalid environment variable: ',pt:'Variável de ambiente inválida: ',fr:'Variable d\'environnement invalide : ',de:'Ungültige Umgebungsvariable: '})[language]+m[1];
     if((m=text.match(/^Instalar elegido · (.+)$/)))return t('Instalar elegido')+' · '+t(m[1]);
     if((m=text.match(/^([\d.]+) GB recomendados$/)))return Intl.NumberFormat(localeMap[language]).format(Number(m[1]))+' '+t('GB recomendados');
+    for(const [pattern,key] of templates){
+      const found=text.match(pattern);if(!found)continue;
+      const values=found.slice(1);let index=0;
+      return raw.replace(raw.trim(),catalog[key][language].replace(/\{\}/g,()=>{const value=values[index++]??'';return value.length<80?t(value):value;}));
+    }
     if(text.includes(' · '))return text.split(' · ').map(part=>t(part)).join(' · ');
+    if((m=text.match(/^([^:\n]{3,120}?):\s+([\s\S]+)$/))&&(catalog[m[1]+':']?.[language]||catalog[m[1]]?.[language]))
+      return raw.replace(raw.trim(),(catalog[m[1]+':']?.[language]||catalog[m[1]][language]+':')+' '+t(m[2]));
+    const sentences=text.split(/(?<=[.!?…])\s+(?=[¿¡A-ZÁÉÍÓÚÑ(])/);
+    if(sentences.length>1){const parts=sentences.map(part=>t(part));if(parts.some((part,i)=>part!==sentences[i]))return raw.replace(raw.trim(),parts.join(' '));}
     return raw;
+  }
+  function escapeRegExp(text){return text.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+  function buildTemplates(){
+    templates.length=0;
+    for(const key of Object.keys(catalog))if(key.includes('{}'))
+      templates.push([new RegExp('^'+key.split('{}').map(escapeRegExp).join('([\\s\\S]+?)')+'$'),key]);
+    templates.sort((a,b)=>b[1].replace(/\{\}/g,'').length-a[1].replace(/\{\}/g,'').length);
   }
   function ignored(el){
     if(!el)return true;
@@ -143,7 +159,7 @@
   }
   async function init(next){
     if(!ready){const response=await fetch('/assets/locales.json');if(!response.ok)throw new Error('Translations unavailable');catalog=await response.json();
-      for(const [source,translations] of Object.entries(catalog))for(const translated of Object.values(translations))if(!reverse.has(translated))reverse.set(translated,source);ready=true;
+      for(const [source,translations] of Object.entries(catalog))for(const translated of Object.values(translations))if(!reverse.has(translated))reverse.set(translated,source);buildTemplates();ready=true;
     }
     setLanguage(codes.has(next)?next:'es');
   }

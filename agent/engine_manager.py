@@ -15,7 +15,7 @@ import uuid
 from remote_protocols import (
     model_info,positive_int,claude_payload,ClaudeStream,openai_payload,normalize_orphan_tool_messages,
     COMPACT_INSTRUCTIONS,compact_transcript,openai_responses_compact_payload,extract_responses_compact_summary,
-    DEFAULT_ANTHROPIC_VERSION,PROVIDER_PRESETS,AUTH_MODES,default_user_agent,infer_provider_preset,
+    DEFAULT_ANTHROPIC_VERSION,PROVIDER_PRESETS,AUTH_MODES,default_user_agent,infer_provider_preset,opencode_inference_url,
     parse_extra_headers,append_api_version_query,build_provider_headers,
     extract_azure_deployment,decode_http_body,iter_http_lines,
 )
@@ -62,22 +62,38 @@ def load_failure(engine, log):
 
 
 def measured_timings(usage, sent, first, end):
-    """llama-server's `timings` for engines that only report token counts (Strata Rust, APIs)."""
+    """`timings` for a provider (API) that reports only token counts: the provider's own counts, and the
+    output speed as received here (its tokens over the time they took to arrive). No reading speed: the
+    wait before the first token is network, queue and reading together, not a reading speed."""
     details = usage.get('prompt_tokens_details') or {}
     cached = details.get('cached_tokens') if isinstance(details, dict) else 0
     cached = cached if isinstance(cached, int) and cached >= 0 else 0
     prompt = usage.get('prompt_tokens') or 0
     completion = usage.get('completion_tokens') or 0
     new = max(0, prompt - cached)
-    reading, writing = max(0.0, first - sent), max(0.0, end - first)
+    writing = max(0.0, end - first)
     timing = {'prompt_n': new, 'cache_n': cached, 'predicted_n': completion}
-    # A handful of new tokens gives a meaningless rate; the interface then says "from cache".
     # A reply delivered in one burst (short answers, providers that buffer) has no measurable speed:
     # dividing by a few milliseconds showed tens of thousands of tokens per second.
-    if new >= 8 and reading >= 0.05:
-        timing['prompt_per_second'] = round(new / reading, 1)
     if completion > 3 and writing >= 0.1:
         timing['predicted_per_second'] = round((completion - 1) / writing, 1)
+    return timing
+
+
+def strata_rust_timings(entry):
+    """llama-server's `timings` from one of Strata Rust's finished requests (GET /api/stats `recent`):
+    the engine's own clocks, as its own panel computes them (decode time starts after the first token)."""
+    if not isinstance(entry, dict):
+        return {}
+    number = lambda key: entry.get(key) if isinstance(entry.get(key), (int, float)) and entry.get(key) >= 0 else 0
+    prompt, cached, completion = number('prompt_tokens'), number('cached_tokens'), number('completion_tokens')
+    prefill_ms, decode_ms = number('prefill_ms'), number('decode_ms')
+    new = max(0, prompt - cached)
+    timing = {'prompt_n': new, 'cache_n': cached, 'predicted_n': completion, 'prompt_ms': prefill_ms, 'predicted_ms': decode_ms}
+    if new > 0 and prefill_ms > 0:
+        timing['prompt_per_second'] = round(new / (prefill_ms / 1000), 1)
+    if completion > 1 and decode_ms > 0:
+        timing['predicted_per_second'] = round((completion - 1) / (decode_ms / 1000), 1)
     return timing
 
 def stream_finished(line):
@@ -303,6 +319,7 @@ class EngineManager:
         if self.kind=='api':
             cfg=self.settings.get('api',{})
             preset=infer_provider_preset(cfg.get('protocol','openai'),cfg.get('base_url',''),cfg.get('provider_preset','auto'))
+            target=opencode_inference_url(base,path,preset) or target
             target=append_api_version_query(target,cfg,preset)
         return target
     def session_uuid(self,conversation_id=None):
@@ -749,6 +766,10 @@ class EngineManager:
         if self.kind in ('llama','maya'):
             if self.kind=='llama':body['repeat_penalty']=payload.get('repetition_penalty',1.0)
             body['chat_template_kwargs']=dict(payload.get('chat_template_kwargs') or {})
+        if self.kind=='llama':
+            # llama-server's own live figures: its timings on every chunk and the prompt read's progress
+            # while it reads (timings_per_token, return_progress), and the final usage.
+            body['timings_per_token']=True;body['return_progress']=True;body['stream_options']={'include_usage':True}
         cfg=self.settings.get('api',{});claude=self.kind=='api' and cfg.get('protocol')=='anthropic'
         if self.kind=='api' and not cfg.get('vision') and any(isinstance(m,dict) and isinstance(m.get('content'),list) and any(p.get('type')=='image_url' for p in m['content'] if isinstance(p,dict)) for m in payload.get('messages',[])):
             raise ValueError('Activa imágenes en esta conexión API antes de enviarlas al proveedor.')
@@ -761,11 +782,11 @@ class EngineManager:
         connection=(http.client.HTTPSConnection(target.hostname,target.port or 443,timeout=timeout,context=ssl.create_default_context())
                     if target.scheme=='https' else http.client.HTTPConnection(target.hostname,target.port or 80,timeout=timeout))
         self.live=True;self.last_usage={}
-        # Engines without live counters (Strata Rust, APIs) report the prompt only when a round ends:
-        # estimate it now from the request, calibrated on the last exact count, so the meter moves
-        # while the engine reads the prompt and generates (reasoning and tool rounds included).
-        chars=len(json.dumps(body.get('messages') or [],ensure_ascii=False))+len(json.dumps(body.get('tools') or [],ensure_ascii=False))
-        self._live_chars=chars;self.live_prompt=self.estimate_prompt(chars);self.live_generated=0;self.live_reading=True
+        # What the engine itself reports during this request (never a guess): llama-server's per-chunk
+        # timings and prompt progress, a provider's usage when it sends it before the end (Claude's
+        # message_start, providers that stream usage). Strata Rust and Maya are asked directly (metrics()).
+        self.live_usage={};self.live_timing={};self.live_progress=None;self.live_reading=True
+        self._live_chars=len(json.dumps(body.get('messages') or [],ensure_ascii=False))+len(json.dumps(body.get('tools') or [],ensure_ascii=False))
         try:
             if control.cancelled.is_set():return
             try:connection.connect()
@@ -793,13 +814,13 @@ class EngineManager:
                     return
                 raise ProviderHTTPError(provider_error(response.status,text,key),response.status,
                                         retry_after_ms({k.lower():v for k,v in response.getheaders()}))
-            # Only llama-server reports its own speeds and live counts. For the others they are measured
-            # here: each streamed delta is about one token, and reading lasts until the first one arrives.
-            sent=time.monotonic();first=None;chunks=0;ended=False
+            sent=time.monotonic();first=None;ended=False;held=None
             for line in iter_http_lines(response):
                 if control.cancelled.is_set():return
-                if self.kind!='llama' and line.startswith(b'data: {') and b'"delta"' in line:
-                    chunks+=1;first=first or time.monotonic();self.live_generated=chunks;self.live_reading=False
+                if first is None and self.kind!='llama' and line.startswith(b'data: {') and b'"delta"' in line:
+                    first=time.monotonic();self.live_reading=False
+                if held is not None and line.startswith(b'data: [DONE]'):
+                    yield self._with_engine_timings(held);held=None
                 if decoder:
                     if not line.startswith(b'data:'):continue
                     raw_data=line[5:].strip()
@@ -808,18 +829,31 @@ class EngineManager:
                     except ValueError as error:
                         key=self.key();raise ValueError(str(error).replace(key,'[oculta]') if key else str(error)) from None
                     self.last_usage=dict(decoder.usage)
+                    # message_start carries the exact input count; the output count only comes at the end.
+                    if self.last_usage.get('prompt_tokens'):self.live_usage={'prompt_tokens':self.last_usage['prompt_tokens']}
                     if packet:
                         ended=ended or stream_finished(packet)
                         yield packet
                     continue
-                if line.startswith(b'data: ') and (b'"usage"' in line or b'"timings"' in line):
+                if line.startswith(b'data: ') and (b'"usage"' in line or b'"timings"' in line or b'"prompt_progress"' in line):
                     try:
                         packet=json.loads(line[6:]);usage=packet.get('usage');timing=packet.get('timings')
+                        if not usage and (timing or packet.get('prompt_progress')) and self.kind=='llama':
+                            # A live figure, not the reply's result: kept for the meters, not passed on.
+                            self.live_timing=timing or self.live_timing
+                            self.live_progress=packet.pop('prompt_progress',None) or self.live_progress
+                            if (self.live_timing.get('predicted_n') or 0)>0:self.live_reading=False
+                            packet.pop('timings',None);line=('data: '+json.dumps(packet,ensure_ascii=False)+'\n').encode()
+                            timing=None
                         if usage:
-                            self.last_usage=usage
+                            self.last_usage=usage;self.live_usage=dict(usage)
                             if isinstance(usage.get('prompt_tokens'),int) and usage['prompt_tokens']>0:
                                 self._calibration=(self._live_chars,usage['prompt_tokens'],self.loaded)
-                        if usage and not timing and self.kind!='llama' and first:
+                        if usage and not timing and self.kind=='rust':
+                            # Strata Rust's exact clocks are in its /api/stats once the request is recorded:
+                            # this line waits for [DONE] and then carries them.
+                            held=packet;continue
+                        if usage and not timing and self.kind=='api' and first:
                             timing=measured_timings(usage,sent,first,time.monotonic())
                             packet['timings']=timing;line=('data: '+json.dumps(packet,ensure_ascii=False)+'\n').encode()
                         if timing:
@@ -831,12 +865,33 @@ class EngineManager:
                     except ValueError:pass
                 ended=ended or stream_finished(line)
                 yield line
+            if held is not None:yield self._with_engine_timings(held)
             if self.kind in ('api','maya') and not ended and not control.cancelled.is_set():
                 # The provider closed the connection without its end-of-reply mark: what arrived is a
                 # fragment, not an answer, and must not be shown as complete.
                 raise ValueError('La respuesta del proveedor se cortó antes de terminar (la conexión se cerró a mitad). '
                                  'Vuelve a intentarlo; si se repite, revisa la conexión o el estado del proveedor.')
         finally:self.live=False;self.live_reading=False;control.detach(connection);connection.close()
+    def _engine_json(self,path,body=None,timeout=1.5):
+        """A local engine's own JSON endpoint (port 19383, its private key), or None."""
+        try:
+            data=None if body is None else json.dumps(body,ensure_ascii=False).encode()
+            request=urllib.request.Request('http://127.0.0.1:19383'+path,data=data,headers={'Authorization':'Bearer '+self.llama_key,'Accept':'application/json','Content-Type':'application/json'})
+            with urllib.request.urlopen(request,timeout=timeout) as response:result=json.load(response)
+            return result if isinstance(result,dict) else None
+        except (OSError,ValueError,urllib.error.URLError):return None
+    def _with_engine_timings(self,packet):
+        """Strata Rust's usage line with that request's timings from the engine (GET /api/stats)."""
+        usage=packet.get('usage') or {};entry=None
+        for _ in range(20):
+            recent=(self._engine_json('/api/stats') or {}).get('recent') or []
+            last=recent[-1] if recent and isinstance(recent[-1],dict) else None
+            if last and last.get('prompt_tokens')==usage.get('prompt_tokens') and last.get('completion_tokens')==usage.get('completion_tokens'):
+                entry=last;break
+            time.sleep(.05)
+        timing=strata_rust_timings(entry) if entry else {}
+        if timing:packet['timings']=timing;self.last_timing=timing
+        return ('data: '+json.dumps(packet,ensure_ascii=False)+'\n').encode()
     def estimate_prompt(self,chars):
         """Prompt tokens of a request, from its size: the last exact count for this model plus the
         new characters at that model's measured characters-per-token (3.5 before any measure)."""
@@ -848,37 +903,110 @@ class EngineManager:
         return int(chars/3.5)
 
     def metrics(self):
+        """Live and last figures as each engine reports them; a figure the engine does not report is None.
+
+        llama.cpp: its per-chunk timings and prompt progress (stream()) and /slots. Strata Rust: GET /api/stats.
+        Project Maya: GET /metrics, already in this shape. A provider (API): its usage, at the end of a reply
+        (Claude also at the start), and the output speed as received."""
+        number=lambda value:value if isinstance(value,(int,float)) and not isinstance(value,bool) and value>=0 else None
+        if self.kind=='maya' and self.loaded:
+            data=self._engine_json('/metrics',timeout=2) or {}
+            if data:
+                engine=dict(data.get('engine') or {});engine.setdefault('max_context',getattr(self,'loaded_context',None))
+                live=dict(data.get('live') or {});live['prefill']=live.get('prefill_tok_s_mean')
+                requests=[dict(row) for row in (data.get('requests') or []) if isinstance(row,dict)]
+                newest=requests[0] if requests else {}
+                return {'engine':engine,'live':live,'requests':requests,
+                        'last':{'decode':newest.get('decode_tok_s'),'prefill':newest.get('prefill_tok_s')}}
+        if self.kind=='rust' and self.loaded:
+            data=self._engine_json('/api/stats') or {}
+            recent=[row for row in (data.get('recent') or []) if isinstance(row,dict)]
+            newest=recent[-1] if recent else None
+            busy=bool(data.get('busy'));generated=number(data.get('live_tokens')) if busy else None
+            state='generating' if busy and generated else 'reading' if busy else 'idle'
+            tok_s=self._counter_rate(generated if busy else None)
+            timing=strata_rust_timings(newest)
+            requests=[{'prompt_tokens':newest.get('prompt_tokens'),'output_tokens':newest.get('completion_tokens')}] if newest else []
+            # The prompt of the request being written is counted by the engine only when it ends: until then
+            # the meter shows the last measured request, not a guess.
+            return {'engine':{'max_context':number(data.get('ctx')) or getattr(self,'loaded_context',None)},
+                    'live':{'state':state,'prompt_tokens':None,'generated':generated,'tok_s':tok_s},
+                    'requests':requests,'last':{'decode':timing.get('predicted_per_second'),'prefill':timing.get('prompt_per_second')}}
         limit=(self.selected_remote() or {}).get('context') if self.kind=='api' else getattr(self,'loaded_context',None) if self.kind in ('rust','maya') and self.loaded else None
         prompt=self.last_usage.get('prompt_tokens');generated=self.last_usage.get('completion_tokens')
-        if self.kind!='llama' and self.live:
-            # The previous reply's numbers were reported as "live" and the meter stood still.
-            prompt=getattr(self,'live_prompt',prompt);generated=getattr(self,'live_generated',0)
+        last=[{'prompt_tokens':prompt,'output_tokens':generated}] if number(prompt) is not None and number(generated) is not None else []
+        tok_s=prefill=prompt_read=prompt_total=None;live_prompt=live_generated=None
         if self.kind=='llama' and self.loaded:
+            slot={}
             try:
                 with urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:19383/slots',headers={'Authorization':'Bearer '+self.llama_key}),timeout=1) as response:slots=json.load(response)
                 slots=slots.get('slots') if isinstance(slots,dict) else slots
-                slot=slots[0] if isinstance(slots,list) and slots else {}
-                if not isinstance(slot,dict):slot={}
-                limit=slot.get('n_ctx')
-                if slot.get('is_processing'):
-                    # Newer llama.cpp builds report next_token as a list (one entry per sequence).
+                slot=slots[0] if isinstance(slots,list) and slots and isinstance(slots[0],dict) else {}
+            except (OSError,ValueError,TypeError,AttributeError,KeyError):pass
+            limit=slot.get('n_ctx') or limit
+            if self.live:
+                timing=getattr(self,'live_timing',{}) or {};progress=getattr(self,'live_progress',None) or {}
+                if timing:
+                    live_prompt=(timing.get('prompt_n') or 0)+(timing.get('cache_n') or 0);live_generated=timing.get('predicted_n') or 0
+                    if live_generated>0:tok_s=number(timing.get('predicted_per_second'))
+                    elif number(timing.get('prompt_per_second')):prefill=round(timing['prompt_per_second'],1)
+                if progress:
+                    prompt_total=number(progress.get('total'));prompt_read=number(progress.get('processed'))
+                    if prompt_total is not None and not live_generated:live_prompt=prompt_total
+                if not timing and slot.get('is_processing'):
+                    # Before the first chunk: the slot's own counters.
                     next_token=slot.get('next_token') or {}
                     if isinstance(next_token,list):next_token=next(iter(next_token),{})
-                    if isinstance(next_token,dict):
-                        prompt=next_token.get('n_prompt_tokens',prompt);generated=next_token.get('n_decoded',generated)
-                    # ...and moved the prompt count up to the slot itself.
-                    if isinstance(slot.get('n_prompt_tokens'),int):prompt=slot['n_prompt_tokens']
-            except (OSError,ValueError,TypeError,AttributeError,KeyError):pass
-        last=[{'prompt_tokens':prompt,'output_tokens':generated}] if prompt is not None and generated is not None else []
-        # Live decode speed: llama.cpp only reports timings when a reply ends, so measure the tokens
-        # produced since this reply's first sample (an average, steadier than poll-to-poll deltas).
-        tok_s=None;now=time.monotonic();mark=getattr(self,'_decode_mark',None)
-        if self.live and isinstance(generated,int):
-            if mark is None or generated<mark[1]:self._decode_mark=mark=(now,generated)
-            elif generated>mark[1] and now-mark[0]>=0.5:tok_s=round((generated-mark[1])/(now-mark[0]),1)
-        else:self._decode_mark=None
-        state='reading' if self.live and self.kind!='llama' and getattr(self,'live_reading',False) else 'decoding' if self.live else 'idle'
-        return {'engine':{'max_context':limit},'live':{'state':state,'prompt_tokens':prompt,'generated':generated,'tok_s':tok_s},'requests':last}
+                    live_prompt=slot.get('n_prompt_tokens') if isinstance(slot.get('n_prompt_tokens'),int) else (next_token or {}).get('n_prompt_tokens')
+                    live_generated=(next_token or {}).get('n_decoded')
+                if tok_s is not None:tok_s=round(tok_s,1)
+        elif self.kind=='api' and self.live:
+            live_prompt=(getattr(self,'live_usage',{}) or {}).get('prompt_tokens')
+            live_generated=(getattr(self,'live_usage',{}) or {}).get('completion_tokens')
+        if self.live:prompt,generated=live_prompt,live_generated
+        reading=self.live and (getattr(self,'live_reading',False) or (prompt_total is not None and prompt_read is not None and prompt_read<prompt_total and not generated))
+        state='reading' if reading else 'decoding' if self.live else 'idle'
+        timing=getattr(self,'last_timing',{}) or {}
+        return {'engine':{'max_context':limit},
+                'live':{'state':state,'prompt_tokens':prompt,'generated':generated,'tok_s':tok_s,'prefill':prefill,
+                        'prompt_read':prompt_read,'prompt_total':prompt_total},
+                'requests':last,'last':{'decode':timing.get('predicted_per_second'),'prefill':timing.get('prompt_per_second')}}
+
+    def count_prompt_tokens(self,messages,tools=None):
+        """The exact prompt tokens of `messages` (+ `tools`, OpenAI function shapes), counted by the engine or the
+        provider with the model's own tokenizer and template; None where nothing can count them (a plain
+        OpenAI-compatible API has no counting endpoint)."""
+        functions=[t.get('function',t) if isinstance(t,dict) else {} for t in (tools or [])]
+        openai_tools=[{'type':'function','function':f} for f in functions]
+        claude_tools=[{'name':f.get('name',''),'description':f.get('description',''),
+                       'input_schema':f.get('parameters') or {'type':'object','properties':{}}} for f in functions]
+        if self.kind=='llama' and self.loaded:
+            rendered=self._engine_json('/apply-template',{'messages':messages,**({'tools':openai_tools} if openai_tools else {})},timeout=15)
+            if not rendered or not isinstance(rendered.get('prompt'),str):return None
+            tokens=self._engine_json('/tokenize',{'content':rendered['prompt'],'add_special':True,'parse_special':True},timeout=15)
+            return len(tokens['tokens']) if tokens and isinstance(tokens.get('tokens'),list) else None
+        if self.kind=='maya' and self.loaded:
+            counted=self._engine_json('/tokenize',{'messages':messages,**({'tools':openai_tools} if openai_tools else {})},timeout=15)
+            return counted.get('count') if counted and isinstance(counted.get('count'),int) else None
+        claude_messages=[{'role':m.get('role'),'content':m.get('content')} for m in messages if isinstance(m,dict) and m.get('role') in ('user','assistant')]
+        if self.kind=='rust' and self.loaded:
+            counted=self._engine_json('/v1/messages/count_tokens',{'model':str(self.loaded),'messages':claude_messages,**({'tools':claude_tools} if claude_tools else {})},timeout=15)
+            return counted.get('input_tokens') if counted and isinstance(counted.get('input_tokens'),int) else None
+        if self.kind=='api' and self.settings.get('api',{}).get('protocol')=='anthropic' and self.selected_remote():
+            try:
+                status,raw=self._post_json('/messages/count_tokens',{'model':self.selected_remote()['id'],'messages':claude_messages,**({'tools':claude_tools} if claude_tools else {})},timeout=20)
+                counted=json.loads(raw) if status==200 else {}
+            except (OSError,ValueError):return None
+            return counted.get('input_tokens') if isinstance(counted,dict) and isinstance(counted.get('input_tokens'),int) else None
+        return None
+
+    def _counter_rate(self,count):
+        """Tokens per second from an engine's own live counter (Strata Rust's live_tokens) over the time between
+        two readings of it: the engine's count, this clock. None until two readings half a second apart."""
+        now=time.monotonic();mark=getattr(self,'_decode_mark',None)
+        if count is None:self._decode_mark=None;return None
+        if mark is None or count<mark[1]:self._decode_mark=(now,count);return None
+        return round((count-mark[1])/(now-mark[0]),1) if count>mark[1] and now-mark[0]>=0.5 else None
 
     def _post_json(self,path,payload,extra_headers=None,timeout=120,session_id=None):
         target=urllib.parse.urlsplit(self.url(path))

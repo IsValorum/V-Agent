@@ -229,7 +229,7 @@ function draftActions(heading,call,text) {
         button.title=result.path||file.filename;
         call.recovery={path:result.path||file.filename,result:'Guardado por recuperación del borrador. '+(result.path||file.filename)};
         persistConv();
-        note((result.verificacion?.ok===false?'Guardado. La comprobación encontró errores en ':'Guardado en ')+(result.path||file.filename));
+        note(uiText(result.verificacion?.ok===false?'Guardado. La comprobación encontró errores en':'Guardado en')+' '+(result.path||file.filename));
       } catch(error) {
         button.disabled=false;
         button.textContent=uiText('Guardar en este chat');

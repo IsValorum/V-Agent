@@ -1085,6 +1085,28 @@ def with_date(messages):
 _DISK = {"t": 0.0, "read": 0, "write": 0}
 
 
+PROMPT_TOKEN_COUNTER = None   # (messages, tools) -> exact prompt tokens or None; set by the desktop runtime
+
+
+def exact_tool_tokens(tools, tpath=None):
+    """Tokens the tool block adds to a prompt, counted for real, or None when nothing can count them."""
+    if not tools:
+        return 0
+    probe = [{"role": "user", "content": "hola"}]
+    try:
+        if PROMPT_TOKEN_COUNTER:
+            without, with_tools = PROMPT_TOKEN_COUNTER(probe, None), PROMPT_TOKEN_COUNTER(probe, tools)
+            if isinstance(without, int) and isinstance(with_tools, int):
+                return max(0, with_tools - without)
+            return None
+        if tpath:
+            counted = tool_budget.coste(probe, tools, tpath)
+            return counted if counted > 0 else None   # (0: the template could not be rendered)
+    except Exception:
+        return None
+    return None
+
+
 def context_usage(metrics, loaded):
     """Measured prompt + output tokens; cache reuse is already part of the prompt."""
     engine = metrics.get("engine") or {}
@@ -1094,7 +1116,9 @@ def context_usage(metrics, loaded):
     limit = int(limit) if isinstance(limit, (int, float)) and limit > 0 else None
     prompt = generated = source = None
     if loaded:
-        if live.get("state") in ("reading", "generating", "decoding"):
+        # The request being answered, when the engine reports its prompt count; otherwise the last
+        # measured request (an engine that counts the prompt only at the end), never an estimate.
+        if live.get("state") in ("reading", "generating", "decoding") and isinstance(live.get("prompt_tokens"), (int, float)):
             prompt = live.get("prompt_tokens")
             generated = live.get("generated") or 0
             source = "live"
@@ -1153,7 +1177,8 @@ def stats():
     out["context_usage"] = context_usage(m, out["loaded"])
     out["live"] = {"state": live.get("state"), "tok_s": live.get("tok_s"),
                    "mean": live.get("tok_s_mean"), "prefill": live.get("prefill_tok_s_mean"),
-                   "generated": live.get("generated")}
+                   "generated": live.get("generated"), "prompt_tokens": live.get("prompt_tokens"),
+                   "prompt_read": live.get("prompt_read"), "prompt_total": live.get("prompt_total")}
     out["last"] = {"decode": last.get("decode_tok_s"), "prompt_ms": last.get("prompt_ms"),
                    "prompt_read": last.get("prompt_read"), "prefill": last.get("prompt_per_second"),
                    "hit": last.get("hit_rate"), "file_mb": last.get("file_mb")}
@@ -2532,6 +2557,11 @@ class Handler(BaseHTTPRequestHandler):
                 # Cuanto cuesta el bloque de tools con lo que hay activado ahora mismo.
                 herramientas = tools_for(funciones, tokenizer_del_modelo((engine_health() or {}).get("model")),q.get("agent_profile",["balanced"])[0])
                 info["presupuesto"] = dict(ULTIMO_PRESUPUESTO or {})
+                # The real cost: the prompt counted with and without the tools by the engine or provider
+                # (or this model's tokenizer and template); the estimate stays only where nothing can count.
+                exact = exact_tool_tokens(herramientas, tokenizer_del_modelo((engine_health() or {}).get("model")))
+                if exact is not None:
+                    info["presupuesto"].update(token_antes=exact, token_despues=exact, aproximado=False)
                 info["presupuesto"]["tools"] = len(herramientas)
                 info["presupuesto"]["limite_por_defecto"] = tool_budget.LIMITE
                 info["presupuesto"]["activadas"] = sorted(k for k, v in funciones.items() if v)
@@ -2631,8 +2661,13 @@ class Handler(BaseHTTPRequestHandler):
                 body = json.loads(self.rfile.read(size))
                 target = selected_model(body.get('model'))
                 settings = body.get('settings')
+                if isinstance(settings,dict) and (REMOTE_ENGINE() or target.get('remote')):
+                    # A provider model has no local cache, load options, draft model or engine flags: settings
+                    # left from a local engine are ignored, not a reason to refuse the whole save (that refusal
+                    # made "Use model" do nothing, seen 2026-11-19).
+                    settings = {k: v for k, v in settings.items() if k not in ('kv', 'load', 'draft', 'engine')}
                 if isinstance(settings,dict) and 'kv' in settings:kv_settings.validate(target['config'],settings['kv'])
-                saved = MODEL_PREFERENCES.save(target['id'],body.get('settings'))
+                saved = MODEL_PREFERENCES.save(target['id'],settings)
                 self._json(200, {'model':target['id'],'settings':saved})
             except (ValueError, TypeError, KeyError) as error:
                 self._json(400, {'error':str(error)})
