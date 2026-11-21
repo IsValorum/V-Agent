@@ -1,8 +1,19 @@
 /* ---------- eventos (solo los que no tienen handler previo) ---------- */
 function bind(id, ev, fn) { const el = document.getElementById(id); if (el) el.addEventListener(ev, fn); }
 bind("send", "click", ()=>busy?stopGeneration():sendMsg());
-bind("input", "keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); sendMsg(); } });
-bind("newchat", "click", newConv);
+bind("input", "keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (busy) queueFollowUp(e.ctrlKey || e.metaKey); else sendMsg(); } });
+bind("newchat", "click", ()=>newConv());
+bind("newTempChat", "click", newTempConv);
+bind("promoteTempChat", "click", promoteTemporaryChat);
+bind("turnPrev", "click", ()=>jumpTurn(-1));
+bind("turnNext", "click", ()=>jumpTurn(1));
+document.addEventListener("keydown", (e) => {
+  if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+    if (document.querySelector('dialog[open]')) return;
+    const nodes = typeof turnNodes === 'function' ? turnNodes() : [];
+    if (nodes.length >= 2) { e.preventDefault(); jumpTurn(e.key === "ArrowUp" ? -1 : 1); }
+  }
+});
 bind("load", "click", loadModel);
 bind("unload", "click", unloadModel);
 

@@ -13534,5 +13534,755 @@
     "pt": "OpenCode Go / Go Plus · o plano é definido pela sua chave; uma sessão por conversa",
     "fr": "OpenCode Go / Go Plus · votre clé détermine le forfait ; une session par conversation",
     "de": "OpenCode Go / Go Plus · dein Schlüssel bestimmt den Tarif; eine Sitzung pro Unterhaltung"
+  },
+  "Lectura del prompt": {
+    "en": "Prompt reading",
+    "pt": "Leitura do prompt",
+    "fr": "Lecture du prompt",
+    "de": "Prompt-Verarbeitung"
+  },
+  "tokens nuevos": {
+    "en": "new tokens",
+    "pt": "tokens novos",
+    "fr": "nouveaux tokens",
+    "de": "neue Tokens"
+  },
+  "en caché": {
+    "en": "cached",
+    "pt": "em cache",
+    "fr": "en cache",
+    "de": "im Cache"
+  },
+  "Primer token": {
+    "en": "First token",
+    "pt": "Primeiro token",
+    "fr": "Premier token",
+    "de": "Erstes Token"
+  },
+  "Total": {
+    "en": "Total",
+    "pt": "Total",
+    "fr": "Total",
+    "de": "Gesamt"
+  },
+  "Rondas": {
+    "en": "Rounds",
+    "pt": "Rodadas",
+    "fr": "Tours",
+    "de": "Runden"
+  },
+  "Final": {
+    "en": "Ending",
+    "pt": "Final",
+    "fr": "Fin",
+    "de": "Ende"
+  },
+  "Terminó por sí mismo": {
+    "en": "Finished on its own",
+    "pt": "Terminou por conta própria",
+    "fr": "Terminé de lui-même",
+    "de": "Von selbst beendet"
+  },
+  "Llegó al límite de salida": {
+    "en": "Hit the output limit",
+    "pt": "Atingiu o limite de saída",
+    "fr": "Limite de sortie atteinte",
+    "de": "Ausgabelimit erreicht"
+  },
+  "Llamada de herramienta": {
+    "en": "Tool call",
+    "pt": "Chamada de ferramenta",
+    "fr": "Appel d'outil",
+    "de": "Werkzeugaufruf"
+  },
+  "Detenida por ti": {
+    "en": "Stopped by you",
+    "pt": "Interrompida por você",
+    "fr": "Arrêtée par vous",
+    "de": "Von dir gestoppt"
+  },
+  "Leyendo el prompt": {
+    "en": "Reading the prompt",
+    "pt": "Lendo o prompt",
+    "fr": "Lecture du prompt",
+    "de": "Prompt wird gelesen"
+  },
+  "Escribiendo la respuesta": {
+    "en": "Writing the reply",
+    "pt": "Escrevendo a resposta",
+    "fr": "Rédaction de la réponse",
+    "de": "Antwort wird geschrieben"
+  },
+  "Razonando": {
+    "en": "Reasoning",
+    "pt": "Raciocinando",
+    "fr": "Raisonnement",
+    "de": "Denkt nach"
+  },
+  "Esperando al modelo": {
+    "en": "Waiting for the model",
+    "pt": "Aguardando o modelo",
+    "fr": "En attente du modèle",
+    "de": "Warten auf das Modell"
+  },
+  "En cola": {
+    "en": "Queued",
+    "pt": "Na fila",
+    "fr": "En file d'attente",
+    "de": "In Warteschlange"
+  },
+  "Enviar ahora": {
+    "en": "Send now",
+    "pt": "Enviar agora",
+    "fr": "Envoyer maintenant",
+    "de": "Jetzt senden"
+  },
+  "Quitar de la cola": {
+    "en": "Remove from queue",
+    "pt": "Remover da fila",
+    "fr": "Retirer de la file",
+    "de": "Aus der Warteschlange entfernen"
+  },
+  "Enter: en cola · Ctrl+Enter: redirigir la respuesta": {
+    "en": "Enter: queue · Ctrl+Enter: redirect the reply",
+    "pt": "Enter: na fila · Ctrl+Enter: redirecionar a resposta",
+    "fr": "Entrée : en file · Ctrl+Entrée : rediriger la réponse",
+    "de": "Enter: in Warteschlange · Strg+Enter: Antwort umlenken"
+  },
+  "Quitar de favoritos": {
+    "en": "Remove from favorites",
+    "pt": "Remover dos favoritos",
+    "fr": "Retirer des favoris",
+    "de": "Aus Favoriten entfernen"
+  },
+  "Añadir a favoritos": {
+    "en": "Add to favorites",
+    "pt": "Adicionar aos favoritos",
+    "fr": "Ajouter aux favoris",
+    "de": "Zu Favoriten hinzufügen"
+  },
+  "Estimación con su contexto y caché guardados": {
+    "en": "Estimate with its saved context and cache",
+    "pt": "Estimativa com o contexto e cache salvos",
+    "fr": "Estimation avec son contexte et son cache enregistrés",
+    "de": "Schätzung mit gespeichertem Kontext und Cache"
+  },
+  "VRAM libre": {
+    "en": "Free VRAM",
+    "pt": "VRAM livre",
+    "fr": "VRAM libre",
+    "de": "Freier VRAM"
+  },
+  "RAM libre": {
+    "en": "Free RAM",
+    "pt": "RAM livre",
+    "fr": "RAM libre",
+    "de": "Freier RAM"
+  },
+  "GPU + RAM, más lento": {
+    "en": "GPU + RAM, slower",
+    "pt": "GPU + RAM, mais lento",
+    "fr": "GPU + RAM, plus lent",
+    "de": "GPU + RAM, langsamer"
+  },
+  "Supera la memoria libre": {
+    "en": "Exceeds free memory",
+    "pt": "Excede a memória livre",
+    "fr": "Dépasse la mémoire libre",
+    "de": "Übersteigt den freien Speicher"
+  },
+  "Renombrar": {
+    "en": "Rename",
+    "pt": "Renomear",
+    "fr": "Renommer",
+    "de": "Umbenennen"
+  },
+  "Renombrar conversación": {
+    "en": "Rename conversation",
+    "pt": "Renomear conversa",
+    "fr": "Renommer la conversation",
+    "de": "Unterhaltung umbenennen"
+  },
+  "Nombre de la conversación": {
+    "en": "Conversation name",
+    "pt": "Nome da conversa",
+    "fr": "Nom de la conversation",
+    "de": "Name der Unterhaltung"
+  },
+  "Chat temporal": {
+    "en": "Temporary chat",
+    "pt": "Chat temporário",
+    "fr": "Chat temporaire",
+    "de": "Temporärer Chat"
+  },
+  "Temporal": {
+    "en": "Temporary",
+    "pt": "Temporário",
+    "fr": "Temporaire",
+    "de": "Temporär"
+  },
+  "Guardar chat": {
+    "en": "Save chat",
+    "pt": "Salvar chat",
+    "fr": "Enregistrer le chat",
+    "de": "Chat speichern"
+  },
+  "¿Descartar este chat temporal?": {
+    "en": "Discard this temporary chat?",
+    "pt": "Descartar este chat temporário?",
+    "fr": "Supprimer ce chat temporaire ?",
+    "de": "Diesen temporären Chat verwerfen?"
+  },
+  "Los mensajes de este chat temporal no se han guardado. Si quieres conservarlos, usa Guardar chat.": {
+    "en": "Messages in this temporary chat are not saved. To keep them, use Save chat.",
+    "pt": "As mensagens deste chat temporário não foram salvas. Para mantê-las, use Salvar chat.",
+    "fr": "Les messages de ce chat temporaire ne sont pas enregistrés. Pour les garder, utilisez Enregistrer le chat.",
+    "de": "Die Nachrichten dieses temporären Chats wurden nicht gespeichert. Nutze «Chat speichern», um sie zu behalten."
+  },
+  "Descartar": {
+    "en": "Discard",
+    "pt": "Descartar",
+    "fr": "Supprimer",
+    "de": "Verwerfen"
+  },
+  "Chat guardado en el historial.": {
+    "en": "Chat saved to history.",
+    "pt": "Chat salvo no histórico.",
+    "fr": "Chat enregistré dans l'historique.",
+    "de": "Chat im Verlauf gespeichert."
+  },
+  "El chat temporal no crea una carpeta permanente.": {
+    "en": "A temporary chat does not create a permanent folder.",
+    "pt": "Um chat temporário não cria uma pasta permanente.",
+    "fr": "Un chat temporaire ne crée pas de dossier permanent.",
+    "de": "Ein temporärer Chat erstellt keinen dauerhaften Ordner."
+  },
+  "Chat temporal: no se guarda en el historial.": {
+    "en": "Temporary chat: not saved to history.",
+    "pt": "Chat temporário: não é salvo no histórico.",
+    "fr": "Chat temporaire : non enregistré dans l'historique.",
+    "de": "Temporärer Chat: wird nicht im Verlauf gespeichert."
+  },
+  "Chat temporal: no se guardará en tu historial.": {
+    "en": "Temporary chat: it will not be saved to your history.",
+    "pt": "Chat temporário: não será salvo no seu histórico.",
+    "fr": "Chat temporaire : il ne sera pas enregistré dans votre historique.",
+    "de": "Temporärer Chat: wird nicht in deinem Verlauf gespeichert."
+  },
+  "Navegar entre turnos": {
+    "en": "Navigate between turns",
+    "pt": "Navegar entre turnos",
+    "fr": "Naviguer entre les tours",
+    "de": "Zwischen Zügen wechseln"
+  },
+  "Turno anterior": {
+    "en": "Previous turn",
+    "pt": "Turno anterior",
+    "fr": "Tour précédent",
+    "de": "Vorheriger Zug"
+  },
+  "Turno siguiente": {
+    "en": "Next turn",
+    "pt": "Próximo turno",
+    "fr": "Tour suivant",
+    "de": "Nächster Zug"
+  },
+  "Respuesta lista": {
+    "en": "Reply ready",
+    "pt": "Resposta pronta",
+    "fr": "Réponse prête",
+    "de": "Antwort fertig"
+  },
+  "V-Agent necesita tu respuesta": {
+    "en": "V-Agent needs your input",
+    "pt": "V-Agent precisa da sua resposta",
+    "fr": "V-Agent attend votre réponse",
+    "de": "V-Agent wartet auf deine Antwort"
+  },
+  "La respuesta terminó con un error": {
+    "en": "Reply ended with an error",
+    "pt": "A resposta terminou com erro",
+    "fr": "La réponse s'est terminée par une erreur",
+    "de": "Die Antwort endete mit einem Fehler"
+  },
+  "Avisar al terminar una respuesta en segundo plano": {
+    "en": "Notify when a reply finishes in the background",
+    "pt": "Avisar ao terminar uma resposta em segundo plano",
+    "fr": "Avertir lorsqu'une réponse se termine en arrière-plan",
+    "de": "Benachrichtigen, wenn eine Antwort im Hintergrund fertig ist"
+  },
+  "Instrucciones permanentes (AGENTS.md)": {
+    "en": "Persistent instructions (AGENTS.md)",
+    "pt": "Instruções permanentes (AGENTS.md)",
+    "fr": "Instructions permanentes (AGENTS.md)",
+    "de": "Dauerhafte Anweisungen (AGENTS.md)"
+  },
+  "Se aplican a todos tus chats. Si un proyecto tiene su propio archivo AGENTS.md, también se carga automáticamente.": {
+    "en": "Applied to all your chats. If a project has its own AGENTS.md file, it is also loaded automatically.",
+    "pt": "Aplicadas a todos os seus chats. Se um projeto tiver seu próprio arquivo AGENTS.md, ele também será carregado automaticamente.",
+    "fr": "Appliquées à tous vos chats. Si un projet possède son propre fichier AGENTS.md, il est aussi chargé automatiquement.",
+    "de": "Gilt für alle deine Chats. Wenn ein Projekt eine eigene AGENTS.md-Datei hat, wird sie automatisch mitgeladen."
+  },
+  "Por ejemplo: responde de forma concisa, usa Python 3.12…": {
+    "en": "For example: answer concisely, use Python 3.12…",
+    "pt": "Por exemplo: responda de forma concisa, use Python 3.12…",
+    "fr": "Par exemple : réponds de façon concise, utilise Python 3.12…",
+    "de": "Zum Beispiel: antworte knapp, nutze Python 3.12…"
+  },
+  "Instrucciones permanentes": {
+    "en": "Persistent instructions",
+    "pt": "Instruções permanentes",
+    "fr": "Instructions permanentes",
+    "de": "Dauerhafte Anweisungen"
+  },
+  "Guardar instrucciones": {
+    "en": "Save instructions",
+    "pt": "Salvar instruções",
+    "fr": "Enregistrer les instructions",
+    "de": "Anweisungen speichern"
+  },
+  "Proyecto activo con AGENTS.md": {
+    "en": "Active project with AGENTS.md",
+    "pt": "Projeto ativo com AGENTS.md",
+    "fr": "Projet actif avec AGENTS.md",
+    "de": "Aktives Projekt mit AGENTS.md"
+  },
+  "No se pudieron guardar las instrucciones.": {
+    "en": "Could not save instructions.",
+    "pt": "Não foi possível salvar as instruções.",
+    "fr": "Impossible d'enregistrer les instructions.",
+    "de": "Anweisungen konnten nicht gespeichert werden."
+  },
+  "Las instrucciones deben ser texto.": {
+    "en": "Instructions must be text.",
+    "pt": "As instruções devem ser texto.",
+    "fr": "Les instructions doivent être du texte.",
+    "de": "Anweisungen müssen Text sein."
+  },
+  "Fijados": {
+    "en": "Pinned",
+    "pt": "Fixados",
+    "fr": "Épinglés",
+    "de": "Angeheftet"
+  },
+  "Hoy": {
+    "en": "Today",
+    "pt": "Hoje",
+    "fr": "Aujourd'hui",
+    "de": "Heute"
+  },
+  "Ayer": {
+    "en": "Yesterday",
+    "pt": "Ontem",
+    "fr": "Hier",
+    "de": "Gestern"
+  },
+  "Últimos 7 días": {
+    "en": "Last 7 days",
+    "pt": "Últimos 7 dias",
+    "fr": "7 derniers jours",
+    "de": "Letzte 7 Tage"
+  },
+  "Anteriores": {
+    "en": "Older",
+    "pt": "Anteriores",
+    "fr": "Plus anciens",
+    "de": "Älter"
+  },
+  "Fijar": {
+    "en": "Pin",
+    "pt": "Fixar",
+    "fr": "Épingler",
+    "de": "Anheften"
+  },
+  "Desfijar": {
+    "en": "Unpin",
+    "pt": "Desafixar",
+    "fr": "Désépingler",
+    "de": "Lösen"
+  },
+  "Chat fijado.": {
+    "en": "Chat pinned.",
+    "pt": "Chat fixado.",
+    "fr": "Chat épinglé.",
+    "de": "Chat angeheftet."
+  },
+  "Chat desfijado.": {
+    "en": "Chat unpinned.",
+    "pt": "Chat desafixado.",
+    "fr": "Chat désépinglé.",
+    "de": "Chat gelöst."
+  },
+  "Paleta de comandos": {
+    "en": "Command palette",
+    "pt": "Paleta de comandos",
+    "fr": "Palette de commandes",
+    "de": "Befehlspalette"
+  },
+  "Paleta de comandos (Ctrl+K)": {
+    "en": "Command palette (Ctrl+K)",
+    "pt": "Paleta de comandos (Ctrl+K)",
+    "fr": "Palette de commandes (Ctrl+K)",
+    "de": "Befehlspalette (Ctrl+K)"
+  },
+  "Buscar acciones, chats o modelos…": {
+    "en": "Search actions, chats or models…",
+    "pt": "Pesquisar ações, chats ou modelos…",
+    "fr": "Rechercher des actions, chats ou modèles…",
+    "de": "Aktionen, Chats oder Modelle suchen…"
+  },
+  "Acciones": {
+    "en": "Actions",
+    "pt": "Ações",
+    "fr": "Actions",
+    "de": "Aktionen"
+  },
+  "Actual": {
+    "en": "Current",
+    "pt": "Atual",
+    "fr": "Actuel",
+    "de": "Aktuell"
+  },
+  "Buscar en la conversación": {
+    "en": "Find in conversation",
+    "pt": "Buscar na conversa",
+    "fr": "Rechercher dans la conversation",
+    "de": "Im Chat suchen"
+  },
+  "Buscar en esta conversación…": {
+    "en": "Find in this conversation…",
+    "pt": "Buscar nesta conversa…",
+    "fr": "Rechercher dans cette conversation…",
+    "de": "In diesem Chat suchen…"
+  },
+  "Resultado anterior": {
+    "en": "Previous match",
+    "pt": "Resultado anterior",
+    "fr": "Résultat précédent",
+    "de": "Vorheriger Treffer"
+  },
+  "Resultado siguiente": {
+    "en": "Next match",
+    "pt": "Próximo resultado",
+    "fr": "Résultat suivant",
+    "de": "Nächster Treffer"
+  },
+  "Cerrar búsqueda": {
+    "en": "Close search",
+    "pt": "Fechar busca",
+    "fr": "Fermer la recherche",
+    "de": "Suche schließen"
+  },
+  "Biblioteca de prompts": {
+    "en": "Prompt library",
+    "pt": "Biblioteca de prompts",
+    "fr": "Bibliothèque de prompts",
+    "de": "Prompt-Bibliothek"
+  },
+  "Buscar plantillas…": {
+    "en": "Search templates…",
+    "pt": "Buscar modelos…",
+    "fr": "Rechercher des modèles…",
+    "de": "Vorlagen suchen…"
+  },
+  "+ Nueva plantilla": {
+    "en": "+ New template",
+    "pt": "+ Novo modelo",
+    "fr": "+ Nouveau modèle",
+    "de": "+ Neue Vorlage"
+  },
+  "Nombre de la plantilla": {
+    "en": "Template name",
+    "pt": "Nome do modelo",
+    "fr": "Nom du modèle",
+    "de": "Vorlagenname"
+  },
+  "Texto del prompt…": {
+    "en": "Prompt text…",
+    "pt": "Texto do prompt…",
+    "fr": "Texte du prompt…",
+    "de": "Prompt-Text…"
+  },
+  "No hay plantillas que coincidan.": {
+    "en": "No matching templates.",
+    "pt": "Nenhum modelo corresponde.",
+    "fr": "Aucun modèle correspondant.",
+    "de": "Keine passenden Vorlagen."
+  },
+  "Insertar en el mensaje": {
+    "en": "Insert into message",
+    "pt": "Inserir na mensagem",
+    "fr": "Insérer dans le message",
+    "de": "In Nachricht einfügen"
+  },
+  "Resumir puntos clave": {
+    "en": "Summarize key points",
+    "pt": "Resumir pontos-chave",
+    "fr": "Résumer les points clés",
+    "de": "Kernpunkte zusammenfassen"
+  },
+  "Revisar y mejorar texto": {
+    "en": "Review and polish text",
+    "pt": "Revisar e melhorar texto",
+    "fr": "Relire et améliorer le texte",
+    "de": "Text prüfen und verbessern"
+  },
+  "Plan paso a paso": {
+    "en": "Step-by-step plan",
+    "pt": "Plano passo a passo",
+    "fr": "Plan étape par étape",
+    "de": "Schritt-für-Schritt-Plan"
+  },
+  "Uso": {
+    "en": "Usage",
+    "pt": "Uso",
+    "fr": "Utilisation",
+    "de": "Nutzung"
+  },
+  "Estadísticas de uso": {
+    "en": "Usage statistics",
+    "pt": "Estatísticas de uso",
+    "fr": "Statistiques d'utilisation",
+    "de": "Nutzungsstatistiken"
+  },
+  "Calculadas solo en este equipo a partir de tu historial guardado. Nunca se envían fuera.": {
+    "en": "Computed locally on this device from your saved history. Never sent anywhere.",
+    "pt": "Calculadas apenas neste dispositivo a partir do seu histórico salvo. Nunca são enviadas.",
+    "fr": "Calculées uniquement sur cet appareil à partir de votre historique. Jamais envoyées.",
+    "de": "Nur lokal auf diesem Gerät aus deinem gespeicherten Verlauf berechnet. Nie versendet."
+  },
+  "fijadas": {
+    "en": "pinned",
+    "pt": "fixadas",
+    "fr": "épinglées",
+    "de": "angeheftet"
+  },
+  "Mensajes enviados": {
+    "en": "Messages sent",
+    "pt": "Mensagens enviadas",
+    "fr": "Messages envoyés",
+    "de": "Gesendete Nachrichten"
+  },
+  "respuestas": {
+    "en": "replies",
+    "pt": "respostas",
+    "fr": "réponses",
+    "de": "Antworten"
+  },
+  "Tokens generados": {
+    "en": "Generated tokens",
+    "pt": "Tokens gerados",
+    "fr": "Tokens générés",
+    "de": "Generierte Tokens"
+  },
+  "solo cifras reales": {
+    "en": "real counts only",
+    "pt": "apenas números reais",
+    "fr": "chiffres réels uniquement",
+    "de": "nur echte Werte"
+  },
+  "Velocidad media": {
+    "en": "Average speed",
+    "pt": "Velocidade média",
+    "fr": "Vitesse moyenne",
+    "de": "Durchschnittsgeschwindigkeit"
+  },
+  "generación": {
+    "en": "generation",
+    "pt": "geração",
+    "fr": "génération",
+    "de": "Generierung"
+  },
+  "Modelos más usados": {
+    "en": "Most used models",
+    "pt": "Modelos mais usados",
+    "fr": "Modèles les plus utilisés",
+    "de": "Meistgenutzte Modelle"
+  },
+  "Atajos de teclado": {
+    "en": "Keyboard shortcuts",
+    "pt": "Atalhos de teclado",
+    "fr": "Raccourcis clavier",
+    "de": "Tastenkürzel"
+  },
+  "Enviar mensaje (o encolar durante una respuesta)": {
+    "en": "Send message (or queue during a reply)",
+    "pt": "Enviar mensagem (ou colocar na fila durante uma resposta)",
+    "fr": "Envoyer le message (ou mettre en file pendant une réponse)",
+    "de": "Nachricht senden (oder während einer Antwort einreihen)"
+  },
+  "Salto de línea": {
+    "en": "New line",
+    "pt": "Quebra de linha",
+    "fr": "Saut de ligne",
+    "de": "Zeilenumbruch"
+  },
+  "Redirigir la respuesta en curso": {
+    "en": "Redirect the current reply",
+    "pt": "Redirecionar a resposta em andamento",
+    "fr": "Rediriger la réponse en cours",
+    "de": "Laufende Antwort umleiten"
+  },
+  "Ver atajos de teclado": {
+    "en": "Show keyboard shortcuts",
+    "pt": "Ver atalhos de teclado",
+    "fr": "Afficher les raccourcis clavier",
+    "de": "Tastenkürzel anzeigen"
+  },
+  "Cerrar ventana, menú o búsqueda": {
+    "en": "Close window, menu or search",
+    "pt": "Fechar janela, menu ou busca",
+    "fr": "Fermer la fenêtre, le menu ou la recherche",
+    "de": "Fenster, Menü oder Suche schließen"
+  },
+  "Cambiar tema claro/oscuro": {
+    "en": "Toggle light/dark theme",
+    "pt": "Alternar tema claro/escuro",
+    "fr": "Basculer thème clair/sombre",
+    "de": "Helles/dunkles Design umschalten"
+  },
+  "Ningún modelo cargado": {
+    "en": "No model loaded",
+    "pt": "Nenhum modelo carregado",
+    "fr": "Aucun modèle chargé",
+    "de": "Kein Modell geladen"
+  },
+  "El modelo seleccionado está listo para cargarse": {
+    "en": "The selected model is ready to load",
+    "pt": "O modelo selecionado está pronto para carregar",
+    "fr": "Le modèle sélectionné est prêt à être chargé",
+    "de": "Das ausgewählte Modell ist ladebereit"
+  },
+  "Elegir otro modelo": {
+    "en": "Choose another model",
+    "pt": "Escolher outro modelo",
+    "fr": "Choisir un autre modèle",
+    "de": "Anderes Modell wählen"
+  },
+  "Todo": {
+    "en": "All",
+    "pt": "Tudo",
+    "fr": "Tout",
+    "de": "Alle"
+  },
+  "Guardar texto actual": {
+    "en": "Save current text",
+    "pt": "Salvar texto atual",
+    "fr": "Enregistrer le texte actuel",
+    "de": "Aktuellen Text speichern"
+  },
+  "Resume lo siguiente en 5 puntos claros y accionables:": {
+    "en": "Summarize the following into 5 clear, actionable bullet points:",
+    "pt": "Resuma o seguinte em 5 pontos claros e acionáveis:",
+    "fr": "Résume ce qui suit en 5 points clairs et concrets :",
+    "de": "Fasse Folgendes in 5 klaren, umsetzbaren Punkten zusammen:"
+  },
+  "Revisa este texto para mejorar claridad, tono y precisión sin cambiar su significado:": {
+    "en": "Review this text to improve clarity, tone, and precision without changing its meaning:",
+    "pt": "Revise este texto para melhorar clareza, tom e precisão sem mudar o significado:",
+    "fr": "Relis ce texte pour améliorer sa clarté, son ton et sa précision sans en changer le sens :",
+    "de": "Überarbeite diesen Text für mehr Klarheit, Ton und Präzision, ohne die Bedeutung zu ändern:"
+  },
+  "Ayúdame a dividir este objetivo en pasos concretos, indicando riesgos y orden recomendado:": {
+    "en": "Help me break this goal into concrete steps, noting risks and recommended order:",
+    "pt": "Ajude-me a dividir este objetivo em etapas concretas, indicando riscos e ordem recomendada:",
+    "fr": "Aide-moi à découper cet objectif en étapes concrètes, avec les risques et l'ordre recommandé :",
+    "de": "Hilf mir, dieses Ziel in konkrete Schritte aufzuteilen, inklusive Risiken und empfohlener Reihenfolge:"
+  },
+  "Guarda el chat temporal antes de asignarle un proyecto.": {
+    "en": "Save the temporary chat before assigning a project.",
+    "pt": "Salve o chat temporário antes de atribuir um projeto.",
+    "fr": "Enregistrez le chat temporaire avant de lui associer un projet.",
+    "de": "Speichere den temporären Chat, bevor du ein Projekt zuweist."
+  },
+  "Mover archivos dentro de V-Agent (models / creador / modelo)": {
+    "en": "Move files into V-Agent (models / creator / model)",
+    "pt": "Mover arquivos para dentro do V-Agent (models / criador / modelo)",
+    "fr": "Déplacer les fichiers dans V-Agent (models / créateur / modèle)",
+    "de": "Dateien in V-Agent verschieben (models / Ersteller / Modell)"
+  },
+  "Cancelando movimiento…": {
+    "en": "Cancelling move…",
+    "pt": "Cancelando movimentação…",
+    "fr": "Annulation du déplacement…",
+    "de": "Verschieben wird abgebrochen…"
+  },
+  "Registrando modelo…": {
+    "en": "Registering model…",
+    "pt": "Registrando modelo…",
+    "fr": "Enregistrement du modèle…",
+    "de": "Modell wird registriert…"
+  },
+  "Moviendo": {
+    "en": "Moving",
+    "pt": "Movendo",
+    "fr": "Déplacement",
+    "de": "Verschieben"
+  },
+  "Movimiento cancelado.": {
+    "en": "Move cancelled.",
+    "pt": "Movimentação cancelada.",
+    "fr": "Déplacement annulé.",
+    "de": "Verschieben abgebrochen."
+  },
+  "movidos a V-Agent": {
+    "en": "moved to V-Agent",
+    "pt": "movidos para o V-Agent",
+    "fr": "déplacés dans V-Agent",
+    "de": "nach V-Agent verschoben"
+  },
+  "archivos": {
+    "en": "files",
+    "pt": "arquivos",
+    "fr": "fichiers",
+    "de": "Dateien"
+  },
+  "Preparando movimiento…": {
+    "en": "Preparing move…",
+    "pt": "Preparando movimentação…",
+    "fr": "Préparation du déplacement…",
+    "de": "Verschieben wird vorbereitet…"
+  },
+  "archivo asociado": {
+    "en": "companion file",
+    "pt": "arquivo associado",
+    "fr": "fichier associé",
+    "de": "zugehörige Datei"
+  },
+  "archivos asociados": {
+    "en": "companion files",
+    "pt": "arquivos associados",
+    "fr": "fichiers associés",
+    "de": "zugehörige Dateien"
+  },
+  "Ya importado (en otra carpeta)": {
+    "en": "Already imported (in another folder)",
+    "pt": "Já importado (em outra pasta)",
+    "fr": "Déjà importé (dans un autre dossier)",
+    "de": "Bereits importiert (in anderem Ordner)"
+  },
+  "Mover a V-Agent": {
+    "en": "Move to V-Agent",
+    "pt": "Mover para o V-Agent",
+    "fr": "Déplacer vers V-Agent",
+    "de": "In V-Agent verschieben"
+  },
+  "Descarga el modelo en memoria antes de mover archivos.": {
+    "en": "Unload the model in memory before moving files.",
+    "pt": "Descarregue o modelo da memória antes de mover arquivos.",
+    "fr": "Déchargez le modèle en mémoire avant de déplacer des fichiers.",
+    "de": "Entlade das geladene Modell, bevor du Dateien verschiebst."
+  },
+  "Ya hay un movimiento de modelos en curso.": {
+    "en": "A model move is already in progress.",
+    "pt": "Já há uma movimentação de modelos em andamento.",
+    "fr": "Un déplacement de modèles est déjà en cours.",
+    "de": "Ein Modell-Verschiebevorgang läuft bereits."
+  },
+  "No se encontraron archivos GGUF válidos para mover.": {
+    "en": "No valid GGUF files found to move.",
+    "pt": "Nenhum arquivo GGUF válido encontrado para mover.",
+    "fr": "Aucun fichier GGUF valide trouvé à déplacer.",
+    "de": "Keine gültigen GGUF-Dateien zum Verschieben gefunden."
   }
 }

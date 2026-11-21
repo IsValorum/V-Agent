@@ -330,6 +330,7 @@ function setupProjectControl(){
   };
   $('#projectBtn').onclick=async()=>{
     if(busy||engineBusy){note('Detén la generación antes de cambiar de proyecto.');return;}
+    if(typeof temporaryChat!=='undefined'&&temporaryChat){note(uiText('Guarda el chat temporal antes de asignarle un proyecto.'));return;}
     const data=await syncProjectButton();if(!data)return;
     closeComposerMenu(false);$('#projectList').replaceChildren();
     for(const item of [{id:null,name:'Sin proyecto',path:'Carpeta independiente para este chat'},...data.projects]){

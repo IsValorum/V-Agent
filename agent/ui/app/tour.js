@@ -153,7 +153,9 @@ const VAL_TOUR=(()=>{
     box.querySelector('h4').textContent=uiText('Actualizaciones de V-Agent');
     box.querySelector('#appUpdateCheck').textContent=uiText('Buscar actualizaciones');
     box.querySelector('#tourAgain').textContent=uiText('Ver el tutorial');
-    general.append(box);
+    // Updates above "Uninstall V-Agent": the everyday action first, the destructive one last.
+    const uninstall=document.getElementById('openUninstaller')?.closest('.settings-data');
+    if(uninstall&&uninstall.parentElement===general)general.insertBefore(box,uninstall);else general.append(box);
     const status=box.querySelector('#appUpdateStatus'),go=box.querySelector('#appUpdateGo'),notesBtn=box.querySelector('#appUpdateNotes');
     notesBtn.textContent=uiText('Notas de versión');
     // Minor updates never change the version number: they show as "1.0.0 C1", "1.0.0 C2"…
@@ -231,7 +233,7 @@ const VAL_TOUR=(()=>{
     });
     cApply.onclick=async()=>{cApply.disabled=true;try{paintComponents(await cPost('apply'));}catch(e){cStatus.textContent=e.message;}finally{cApply.disabled=false;}};
     cReset.onclick=async()=>{if(!await valConfirm({title:'¿Volver a los componentes originales?',message:'Se quitarán las mejoras menores instaladas. Se aplicará al reiniciar V-Agent.',confirm:'Volver a los originales'}))return;try{paintComponents(await cPost('reset'));}catch(e){cStatus.textContent=e.message;}};
-    box.querySelector('#appUpdateCheck').onclick=async()=>{status.textContent=uiText('Comprobando…');try{paint(await post('check'));paintComponents(await cPost('check'));}catch(e){status.textContent=e.message;}};
+    box.querySelector('#appUpdateCheck').onclick=async()=>{const btn=box.querySelector('#appUpdateCheck');btn.disabled=true;status.textContent=uiText('Comprobando…');try{paint(await post('check'));paintComponents(await cPost('check'));}catch(e){status.textContent=e.message;}finally{btn.disabled=false;}};
     go.onclick=async()=>{
       try{
         if(go.dataset.action==='launch'){go.disabled=true;const r=await post('launch');if(r.launched){const ver=r.available?.version||'';status.textContent=uiText('Cerrando V-Agent para instalar la actualización…');showUpdateOverlay(ver);setTimeout(()=>window.__TAURI__?.window?.getCurrentWindow?.().close(),700);}else go.disabled=false;return;}
@@ -240,7 +242,7 @@ const VAL_TOUR=(()=>{
         clearTimeout(go._poll);
         const poll=async()=>{try{const s=await requestJSON('/api/harness/app-update');paint(s);if(s.busy)go._poll=setTimeout(poll,800);}catch(e){status.textContent=e.message;}};
         go._poll=setTimeout(poll,800);
-      }catch(e){status.textContent=e.message;}
+      }catch(e){go.disabled=false;status.textContent=e.message;}
     };
     box.querySelector('#tourAgain').onclick=()=>{window.setDrawer?.(false);document.querySelector('#gear')?.getAttribute('aria-expanded')==='true'&&document.querySelector('#gear').click();setTimeout(start,350);};
     requestJSON('/api/harness/app-update').then(paint).catch(()=>{});

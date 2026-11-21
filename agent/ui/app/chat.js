@@ -35,6 +35,7 @@ chatView.addEventListener("scroll", () => {
   if (chatHasSelection() || selectingChat) setFollow(false);
   else if (!snapped && scrollIntent>0 && performance.now()<scrollIntentUntil && nearBottom(chatView)) setFollow(true);
   else if (!snapped && chatView.scrollHeight - chatView.scrollTop - chatView.clientHeight > 120) setFollow(false);
+  syncTurnNav();
 });
 chatView.addEventListener("wheel", event => {
   const nested=event.target.closest('pre');
@@ -69,7 +70,7 @@ function renderWelcome() {
 function syncWelcomeHint(){
   const input=$('#input');if(!input)return;
   const state=$('#modelBtn')?.dataset.state;
-  input.placeholder=uiText(state==='off'||state==='empty'?'Carga un modelo para empezar…':state==='preparing'?'El modelo se está preparando…':'Mensaje…');
+  input.placeholder=uiText(busy?'Enter: en cola · Ctrl+Enter: redirigir la respuesta':state==='off'||state==='empty'?'Carga un modelo para empezar…':state==='preparing'?'El modelo se está preparando…':'Mensaje…');
 }
 
 
@@ -431,7 +432,7 @@ function updateToolTrace(section,trace) {
     banner.append(info,buttons);section.append(banner);
   }
 }
-if(!window.__valToolTicker)window.__valToolTicker=setInterval(()=>{for(const section of document.querySelectorAll('#chat .tool-trace')){if(!section._started)continue;const label=section.querySelector('.tool-overview-label');if(label)label.textContent=uiText('Ejecutando')+' · '+Math.max(0,Math.round((Date.now()-section._started)/1000))+' s';}},1000);
+if(!window.__valToolTicker)window.__valToolTicker=setInterval(()=>{if(document.hidden||!busy)return;for(const section of document.querySelectorAll('#chat .tool-trace')){if(!section._started)continue;const label=section.querySelector('.tool-overview-label');if(label)label.textContent=uiText('Ejecutando')+' · '+Math.max(0,Math.round((Date.now()-section._started)/1000))+' s';}},1000);
 function recordToolEvent(trace,event) {
   let call=event.id?trace.find(item=>item.id===event.id):null;
   if(!call&&event.type==='tool_result')call=trace.findLast(item=>item.name===event.name&&!Object.hasOwn(item,'result'));
@@ -453,14 +454,26 @@ function recordToolEvent(trace,event) {
 let renderedMessages=new WeakMap();
 function refreshChatTranslations(){if(!busy){renderedMessages=new WeakMap();renderChat();}}
 window.refreshChatTranslations=refreshChatTranslations;
+function formatResponseTime(iso){
+  if(!iso||typeof iso!=='string')return null;
+  const date=new Date(iso);if(Number.isNaN(date.getTime()))return null;
+  const locale=window.VALI18n?.locale||undefined;
+  return {short:date.toLocaleTimeString(locale,{hour:'2-digit',minute:'2-digit'}),full:date.toLocaleString(locale)};
+}
 function showResponseModel(row,message){
   let label=row.querySelector(':scope > .response-model');
   if(!label){label=document.createElement('div');label.className='response-model';row.append(label);}
   const id=typeof message.model==='string'?message.model:'',storedName=typeof message.model_name==='string'?message.model_name:'';
   const name=storedName||(id&&(modelNames[id]||id))||uiText('Modelo no registrado');
-  label.textContent=name;label.dataset.model=id;label.dataset.unknown=String(!id&&!storedName);
+  label.replaceChildren(document.createTextNode(name));
+  const stamp=formatResponseTime(message.generated_at);
+  if(stamp){
+    const time=document.createElement('time');time.className='response-time';time.dateTime=message.generated_at;time.textContent=stamp.short;time.title=stamp.full;
+    label.append(' · ',time);
+  }
+  label.dataset.model=id;label.dataset.unknown=String(!id&&!storedName);
   label.title=id||uiText('Esta respuesta no guardó qué modelo la generó.');
-  label.setAttribute('aria-label',uiText('Modelo que generó la respuesta: ')+name);
+  label.setAttribute('aria-label',uiText('Modelo que generó la respuesta: ')+name+(stamp?' · '+stamp.short:''));
 }
 function updateResponsePerformance(generation,timings,live=false){
   if(!timings||typeof timings!=='object')return;
@@ -469,22 +482,67 @@ function updateResponsePerformance(generation,timings,live=false){
   for(const [key,source] of [['decode','predicted_per_second'],['prefill','prompt_per_second']]){
     const value=timings[source];if(typeof value==='number'&&Number.isFinite(value)&&value>0&&value<1e9&&(!live||!generation.exactPerformance?.[key])){(generation.performance??={})[key]=value;if(!live)(generation.exactPerformance??={})[key]=true;}
   }
+  if(live)return;
+  // One entry per model round (a turn with tools has several): the engine's own counts and clocks, added up.
+  // A provider that reports only a rate gets its time back from that rate; a missing figure stays missing.
+  const n=key=>typeof timings[key]==='number'&&Number.isFinite(timings[key])&&timings[key]>=0?timings[key]:null;
+  const detail=(generation.detail??={rounds:0,promptNew:0,cached:0,promptMs:0,generated:0,genMs:0});detail.rounds++;
+  if(n('prompt_n')!==null)detail.promptNew+=n('prompt_n');
+  if(n('cache_n')!==null)detail.cached+=n('cache_n');
+  if(n('prompt_ms')!==null)detail.promptMs+=n('prompt_ms');else if(n('prompt_n')&&n('prompt_per_second'))detail.promptMs+=n('prompt_n')/n('prompt_per_second')*1000;
+  if(n('predicted_n')!==null)detail.generated+=n('predicted_n');
+  if(n('predicted_ms')!==null)detail.genMs+=n('predicted_ms');else if(n('predicted_n')&&n('predicted_per_second'))detail.genMs+=n('predicted_n')/n('predicted_per_second')*1000;
+}
+const FINISH_LABELS={stop:'Terminó por sí mismo',length:'Llegó al límite de salida',tool_calls:'Llamada de herramienta',stopped:'Detenida por ti',error:'Error'};
+function formatSeconds(ms){return ms<1000?Math.round(ms)+' ms':(ms/1000).toLocaleString(window.VALI18n?.locale||'es-ES',{maximumFractionDigits:ms<10000?2:1})+' s';}
+function responseMetricsDetail(performance){
+  const d=performance?.detail;if(!d)return null;
+  const locale=window.VALI18n?.locale||'es-ES',count=value=>Math.round(value).toLocaleString(locale),rate=(tokens,ms)=>tokens>0&&ms>0?(tokens/(ms/1000)).toLocaleString(locale,{maximumFractionDigits:1})+' tok/s':null;
+  const rows=[];
+  if(d.promptNew>0||d.cached>0)rows.push([uiText('Lectura del prompt'),[count(d.promptNew)+' '+uiText('tokens nuevos'),d.cached>0?count(d.cached)+' '+uiText('en caché'):null,d.promptMs>0?formatSeconds(d.promptMs):null,rate(d.promptNew,d.promptMs)].filter(Boolean).join(' · ')]);
+  if(d.generated>0)rows.push([uiText('Generación'),[count(d.generated)+' tokens',d.genMs>0?formatSeconds(d.genMs):null,rate(d.generated,d.genMs)].filter(Boolean).join(' · ')]);
+  if(Number.isFinite(d.firstMs))rows.push([uiText('Primer token'),formatSeconds(d.firstMs)]);
+  if(Number.isFinite(d.totalMs))rows.push([uiText('Total'),formatSeconds(d.totalMs)]);
+  if(d.rounds>1)rows.push([uiText('Rondas'),count(d.rounds)]);
+  if(d.tools>0)rows.push([uiText('Herramientas'),count(d.tools)]);
+  if(d.finish&&FINISH_LABELS[d.finish])rows.push([uiText('Final'),uiText(FINISH_LABELS[d.finish])]);
+  if(!rows.length)return null;
+  const box=document.createElement('div');box.className='metrics-detail';box.setAttribute('role','tooltip');box.id='metrics-'+Math.random().toString(36).slice(2,9);
+  const list=document.createElement('dl');
+  for(const [label,value] of rows){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=value;list.append(dt,dd);}
+  box.append(list);return box;
 }
 function showResponseMetrics(row,performance){
   const valid=value=>typeof value==='number'&&Number.isFinite(value)&&value>0&&value<1e9;
   let el=row.querySelector(':scope > .response-metrics');
-  if(!valid(performance?.decode)&&!valid(performance?.prefill)&&!performance?.prefillCached){el?.remove();return;}
+  const detail=responseMetricsDetail(performance);
+  if(!valid(performance?.decode)&&!valid(performance?.prefill)&&!performance?.prefillCached&&!detail){el?.remove();return;}
   if(!el){el=document.createElement('div');el.className='response-metrics';row.append(el);}
   el.hidden=false;el.replaceChildren();
+  if(detail){el.dataset.detail='true';el.setAttribute('aria-describedby',detail.id);}else{delete el.dataset.detail;el.removeAttribute('aria-describedby');}
+  el.removeAttribute('tabindex');
   for(const [key,label] of [['decode','Generación'],['prefill','Lectura']])if(valid(performance[key])){
     const group=document.createElement('span'),small=document.createElement('small'),value=document.createElement('strong'),unit=document.createElement('em');
-    small.textContent=uiText(label);value.textContent=key==='decode'?performance[key].toFixed(1):Math.round(performance[key]).toLocaleString(window.VALI18n?.locale||'es-ES');unit.textContent='tok/s';group.append(small,value,unit);el.append(group);
+    small.textContent=uiText(label);value.textContent=key==='decode'?performance[key].toLocaleString(window.VALI18n?.locale||'es-ES',{minimumFractionDigits:1,maximumFractionDigits:1}):Math.round(performance[key]).toLocaleString(window.VALI18n?.locale||'es-ES');unit.textContent='tok/s';group.append(small,value,unit);el.append(group);
   }
   if(!valid(performance?.prefill)&&performance?.prefillCached){
     const group=document.createElement('span'),small=document.createElement('small'),value=document.createElement('strong');
     small.textContent=uiText('Lectura');value.textContent=uiText('desde caché');group.append(small,value);el.append(group);
   }
+  if(detail){
+    if(Number.isFinite(performance.detail.totalMs)){
+      const group=document.createElement('span'),small=document.createElement('small'),value=document.createElement('strong');
+      small.textContent=uiText('Total');value.textContent=formatSeconds(performance.detail.totalMs);group.append(small,value);el.append(group);
+    }
+    const more=document.createElement('button');more.type='button';more.className='metrics-more';more.textContent=uiText('Detalle');
+    more.setAttribute('aria-expanded','false');more.setAttribute('aria-controls',detail.id);
+    more.onclick=event=>{event.stopPropagation();const open=el.dataset.open!=='true';closeMetricsDetails();if(open){el.dataset.open='true';more.setAttribute('aria-expanded','true');}};
+    el.append(more,detail);
+  }
 }
+function closeMetricsDetails(){for(const open of document.querySelectorAll('.response-metrics[data-open="true"]')){open.dataset.open='false';open.querySelector('.metrics-more')?.setAttribute('aria-expanded','false');}}
+document.addEventListener?.('click',event=>{if(!event.target.closest?.('.response-metrics'))closeMetricsDetails();});
+document.addEventListener?.('keydown',event=>{if(event.key==='Escape')closeMetricsDetails();});
 function messageFileList(message) {
   if(message.role!=='assistant'||!Array.isArray(message.tool_trace))return [];
   const out=[],seen=new Set();
@@ -600,6 +658,33 @@ function renderChat(skipIndex=-1) {
   });
   while (chat.childNodes.length > position) chat.lastChild.remove();
   scrollDown();
+  syncTurnNav();
+}
+function turnNodes(){return [...chatView.querySelectorAll(':scope > .msg.user')];}
+function currentTurnIndex(nodes){
+  if(!nodes.length)return 0;
+  const top=chatView.scrollTop+32;let index=0;
+  for(let i=0;i<nodes.length;i++){if(nodes[i].offsetTop<=top)index=i;else break;}
+  return index;
+}
+function syncTurnNav(){
+  const nav=$('#turnNav');if(!nav)return;
+  const nodes=turnNodes();
+  if(nodes.length<2){nav.hidden=true;return;}
+  nav.hidden=false;
+  const idx=currentTurnIndex(nodes);
+  $('#turnPos').textContent=(idx+1)+' / '+nodes.length;
+  $('#turnPrev').disabled=idx<=0;
+  $('#turnNext').disabled=idx>=nodes.length-1;
+}
+function jumpTurn(step){
+  const nodes=turnNodes();if(nodes.length<2)return;
+  const target=Math.max(0,Math.min(nodes.length-1,currentTurnIndex(nodes)+step));
+  setFollow(false);
+  nodes[target].scrollIntoView({behavior:'smooth',block:'start'});
+  $('#turnPos').textContent=(target+1)+' / '+nodes.length;
+  $('#turnPrev').disabled=target<=0;
+  $('#turnNext').disabled=target>=nodes.length-1;
 }
 function addAssistantBox() {
   const row=document.createElement('div');row.className='msg assistant';

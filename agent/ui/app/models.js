@@ -107,6 +107,8 @@
       '<div class="models-pane" data-pane="transfer" hidden>'+
         '<section class="transfer-block"><div class="transfer-head"><div><h3>Traer desde otras apps</h3><p class="mini" id="transferSources"></p></div><button id="transferScan" type="button">Buscar de nuevo</button></div>'+
         '<div class="transfer-tools"><label class="chk"><input type="checkbox" id="transferAll"> Seleccionar todo</label><span id="transferCount" class="mini"></span><button id="transferImport" type="button" disabled>Importar seleccionados</button></div>'+
+        '<label class="chk transfer-move-option"><input type="checkbox" id="transferMoveFiles"> <span>Mover archivos dentro de V-Agent (models / creador / modelo)</span></label>'+
+        '<div id="transferMoveBox" class="transfer-move-box" hidden><div class="transfer-move-head"><span id="transferMoveLabel"></span><span id="transferMoveMeta"></span><button id="transferMoveCancel" type="button" class="text-btn">Cancelar</button></div><progress id="transferMoveBar" max="100" value="0"></progress></div>'+
         '<div id="transferList" class="transfer-list"></div><p id="transferStatus" class="mini" role="status"></p></section>'+
         '<section class="transfer-block"><h3>Enviar ajustes de V-Agent</h3><p class="mini">Parámetros de muestreo, contexto, caché KV y plantilla de chat del modelo elegido.</p>'+
         '<div class="transfer-export"><select id="exportModel" aria-label="Modelo de V-Agent"></select><button id="exportLm" type="button">A LM Studio</button><button id="exportUnsloth" type="button">A Unsloth Studio</button><button id="exportFile" type="button">Guardar archivo</button></div>'+
@@ -119,7 +121,7 @@
     const transferTitle=document.createElement('summary');transferTitle.textContent=T('Importar y exportar');
     transfer=win.querySelector('[data-pane="transfer"]');transfer.hidden=false;transferSection.append(transferTitle,transfer);
     document.getElementById('controls-model').append(transferSection);
-    transferSection.addEventListener('toggle',()=>{if(transferSection.open){scan();fillExportModels();}});
+    transferSection.addEventListener('toggle',()=>{if(transferSection.open){scan();fillExportModels();pollMove();}});
     window.VALWindows?.register('models',win,{onOpen:()=>{refreshJobs();if(!document.querySelector('#hubResults .hub-item'))search();},onClose:()=>clearInterval(poll)});
     const query=win.querySelector('#hubQuery');query.oninput=()=>{clearTimeout(searchTimer);searchTimer=setTimeout(search,380);};
     query.onkeydown=event=>{if(event.key==='Enter'){clearTimeout(searchTimer);search();}};
@@ -128,6 +130,7 @@
     transfer.querySelector('#transferScan').onclick=scan;
     transfer.querySelector('#transferAll').onchange=event=>{transfer.querySelectorAll('#transferList input[type=checkbox]:not(:disabled)').forEach(box=>box.checked=event.target.checked);syncTransfer();};
     transfer.querySelector('#transferImport').onclick=importSelected;
+    transfer.querySelector('#transferMoveCancel').onclick=cancelMove;
     transfer.querySelector('#exportLm').onclick=()=>exportTo('lmstudio');
     transfer.querySelector('#exportUnsloth').onclick=()=>exportTo('unsloth');
     transfer.querySelector('#exportFile').onclick=()=>exportTo('file');
@@ -222,8 +225,55 @@
 
   // ---------------------------------------------------------------- import / export
   const SOURCE={lmstudio:'LM Studio',unsloth:'Unsloth Studio'};
+  let moveTimer=0,moveWasActive=false;
+  function paintMove(state){
+    const box=transfer?.querySelector('#transferMoveBox');if(!box)return;
+    const active=!!state?.active;
+    box.hidden=!active;
+    if(active){
+      const pct=Math.min(100,Math.max(0,Number(state.percent)||0));
+      const label=state.cancel_requested?T('Cancelando movimiento…'):state.phase==='registering'?T('Registrando modelo…'):(T('Moviendo')+': '+(state.current_file||state.current_model||''));
+      box.querySelector('#transferMoveLabel').textContent=label;
+      box.querySelector('#transferMoveMeta').textContent=bytes(state.bytes_done||0)+' / '+bytes(state.bytes_total||0)+' · '+Math.round(pct)+'%';
+      box.querySelector('#transferMoveBar').value=pct;
+      box.querySelector('#transferMoveCancel').disabled=!!state.cancel_requested;
+    }else if(moveWasActive){
+      const status=transfer.querySelector('#transferStatus');
+      const results=state?.results||[];
+      const ok=results.filter(r=>!r.error),bad=results.filter(r=>r.error);
+      if(state?.phase==='cancelled')status.textContent=T('Movimiento cancelado.');
+      else if(ok.length||bad.length){
+        const files=ok.reduce((sum,r)=>sum+(r.files_moved||1),0);
+        status.textContent=ok.length+' '+T('movidos a V-Agent')+' ('+files+' '+T('archivos')+')'+(bad.length?' · '+bad.length+' '+T('con error')+': '+bad.map(r=>r.error).join(' · '):'');
+      }
+      loadModels();scan();
+    }
+    moveWasActive=active;
+  }
+  async function pollMove(){
+    clearTimeout(moveTimer);
+    try{
+      const state=await api('/api/harness/external/move-status');
+      paintMove(state);
+      if(state.active)moveTimer=setTimeout(pollMove,350);
+    }catch{}
+  }
+  async function startMove(items){
+    const status=transfer.querySelector('#transferStatus');
+    if(!items.length)return;
+    status.textContent=T('Preparando movimiento…');
+    try{
+      const state=await api('/api/harness/external/move',{items:items.map(item=>({path:item.path,name:item.name,group:item.group,sampling:item.sampling,context:item.context,kv:item.kv,template:item.template}))});
+      moveWasActive=true;paintMove(state);
+      clearTimeout(moveTimer);if(state.active)moveTimer=setTimeout(pollMove,350);
+    }catch(error){status.textContent=T(error?.message||String(error));}
+  }
+  async function cancelMove(){
+    try{const state=await api('/api/harness/external/move-cancel',{});paintMove(state);}catch(error){note(error.message);}
+  }
   function summary(item){
     const parts=[];const s=item.sampling||{};
+    if(item.companions>0)parts.push('+'+item.companions+' '+T(item.companions===1?'archivo asociado':'archivos asociados'));
     if(item.context)parts.push(count(item.context)+' ctx');
     if(item.kv)parts.push('KV '+item.kv.toUpperCase());
     if(s.temperature!==undefined)parts.push('T '+s.temperature);
@@ -242,16 +292,29 @@
       transfer.querySelector('#transferSources').textContent=sources;
       if(!scanData.models.length){list.innerHTML='<p class="mini hub-note">'+esc(T('No se encontraron modelos GGUF de LM Studio ni de Unsloth Studio.'))+'</p>';syncTransfer();return;}
       list.replaceChildren(...scanData.models.map((item,index)=>{
-        const row=document.createElement('label');row.className='transfer-row';
+        const row=document.createElement('label');row.className='transfer-row'+(item.registered?' is-registered':'');
         row.innerHTML='<input type="checkbox" data-index="'+index+'"><span class="transfer-main"><strong></strong><small></small></span><span class="transfer-source" data-source="'+item.source+'">'+SOURCE[item.source]+'</span><span class="transfer-size">'+bytes(item.size)+'</span>';
-        row.querySelector('strong').textContent=item.name;row.querySelector('small').textContent=(item.registered?T('Ya está en V-Agent')+' · ':'')+summary(item);row.title=item.path;
-        row.querySelector('input').onchange=syncTransfer;return row;
+        const box=row.querySelector('input');
+        if(item.registered){box.disabled=true;box.checked=false;}
+        row.querySelector('strong').textContent=item.name;
+        const stateTag=item.registered?(item.inside_vagent?T('Ya está en V-Agent'):T('Ya importado (en otra carpeta)')):'' ;
+        row.querySelector('small').textContent=(stateTag?stateTag+' · ':'')+summary(item);row.title=item.path;
+        if(item.registered&&!item.inside_vagent){
+          const moveBtn=document.createElement('button');moveBtn.type='button';moveBtn.className='transfer-move-btn';moveBtn.textContent=T('Mover a V-Agent');
+          moveBtn.onclick=event=>{event.preventDefault();event.stopPropagation();startMove([item]);};
+          row.append(moveBtn);
+        }
+        box.onchange=syncTransfer;return row;
       }));
     }catch(error){list.innerHTML='<p class="mini hub-note" data-error="1">'+esc(error.message)+'</p>';}
     syncTransfer();
   }
-  function selected(){return [...transfer.querySelectorAll('#transferList input:checked')].map(box=>scanData.models[+box.dataset.index]);}
-  function syncTransfer(){const n=selected().length;transfer.querySelector('#transferImport').disabled=!n;transfer.querySelector('#transferCount').textContent=n?n+' '+T('seleccionados'):'';}
+  function selected(){return [...transfer.querySelectorAll('#transferList input:checked:not(:disabled)')].map(box=>scanData.models[+box.dataset.index]);}
+  function syncTransfer(){
+    const available=transfer.querySelectorAll('#transferList input[type=checkbox]:not(:disabled)').length;
+    const allBox=transfer.querySelector('#transferAll');if(allBox){allBox.disabled=!available;if(!available)allBox.checked=false;}
+    const n=selected().length;transfer.querySelector('#transferImport').disabled=!n;transfer.querySelector('#transferCount').textContent=n?n+' '+T('seleccionados'):'';
+  }
   async function importItems(items,status){
     status.textContent=T('Importando…');
     try{
@@ -263,7 +326,14 @@
       return data;
     }catch(error){status.textContent=T(error?.message||String(error));}
   }
-  async function importSelected(){const button=transfer.querySelector('#transferImport');button.disabled=true;await importItems(selected(),transfer.querySelector('#transferStatus'));await scan();}
+  async function importSelected(){
+    const items=selected();if(!items.length)return;
+    const button=transfer.querySelector('#transferImport');button.disabled=true;
+    try{
+      if(transfer.querySelector('#transferMoveFiles')?.checked){await startMove(items);}
+      else{await importItems(items,transfer.querySelector('#transferStatus'));await scan();}
+    }finally{if(button)button.disabled=!selected().length;}
+  }
   async function fillExportModels(){
     const select=transfer.querySelector('#exportModel');
     try{const data=await api('/api/models');const models=(data.models||data.data||[]).filter(m=>!m.remote);

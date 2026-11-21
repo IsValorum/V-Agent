@@ -53,6 +53,7 @@ function syncComposerLabels(){
 document.querySelectorAll('[data-controls]').forEach(button=>button.onclick=()=>{
   setChatControls(button.dataset.controls,button.id!=='scopeBtn'||chatControlsFocus===button);
 });
+$('#ctxRing')?.addEventListener('click',()=>setChatControls('context',true));
 $('#closeControls').onclick=()=>{window.VALWindows?.close('model');syncControlButtons();};
 document.getElementById('drawer')?.addEventListener('fw:close',()=>{
   $('#gear').setAttribute('aria-expanded','false');document.body.classList.remove('appearance-open');

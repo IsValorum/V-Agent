@@ -99,7 +99,7 @@ const clickSays=async(name,el)=>{$('toastText').textContent='';el?.click();await
 await clickSays('the file-access choice',document.querySelector('#permissionMenu [data-scope=full_pc]'));
 await clickSays('the approvals choice',document.querySelector('#permissionMenu [data-mode=ask]'));
 await clickSays('"Add files"',$('addFilesMenu'));
-for(let k=0;k<60&&$('input').disabled;k++)await w(250);
+for(let k=0;k<60&&$('chatwrap').dataset.generating==='true';k++)await w(250);
 return {said};"""
 
 

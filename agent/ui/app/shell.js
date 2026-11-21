@@ -22,7 +22,33 @@ function setupSettingsHub(){
   navigation.innerHTML='<input id="settingsSearch" type="search" placeholder="Buscar ajustes…" aria-label="Buscar ajustes…"><div id="settingsNav" role="tablist" aria-orientation="vertical"></div>';
   drawer.insertBefore(navigation,body);
   const general=document.createElement('section');general.id='settings-general';general.className='settings-page';
-  general.innerHTML='<h3>General</h3><div class="setting-row"><label for="uiLanguage">Idioma de la interfaz</label><select id="uiLanguage" aria-label="Seleccionar idioma"><option value="es">Español</option><option value="en">English</option><option value="pt">Português</option><option value="fr">Français</option><option value="de">Deutsch</option></select></div><p id="languageSaveState" class="mini" role="status">Guardado en este equipo</p><div class="setting-row"><span>Versión</span><span id="appBuild"></span></div><div class="settings-data"><h4>Datos locales</h4><code id="settingsDataPath"></code><button id="copyDataPath" type="button">Copiar ruta</button><a id="userGuide" href="/guide.html" target="_blank" rel="noopener">Guía de uso</a></div>';
+  general.innerHTML='<h3>General</h3><div class="setting-row"><label for="uiLanguage">Idioma de la interfaz</label><select id="uiLanguage" aria-label="Seleccionar idioma"><option value="es">Español</option><option value="en">English</option><option value="pt">Português</option><option value="fr">Français</option><option value="de">Deutsch</option></select></div><p id="languageSaveState" class="mini" role="status">Guardado en este equipo</p><label class="chk"><input id="notifyOnDone" type="checkbox" checked> Avisar al terminar una respuesta en segundo plano</label><div class="setting-row"><span>Versión</span><span id="appBuild"></span></div><div class="settings-data settings-instructions" id="instructionsBox"><h4>Instrucciones permanentes (AGENTS.md)</h4><p class="mini">Se aplican a todos tus chats. Si un proyecto tiene su propio archivo AGENTS.md, también se carga automáticamente.</p><textarea id="globalInstructions" rows="4" placeholder="Por ejemplo: responde de forma concisa, usa Python 3.12…" aria-label="Instrucciones permanentes" data-ui-aria="Instrucciones permanentes"></textarea><div class="instructions-actions"><button id="saveGlobalInstructions" type="button">Guardar instrucciones</button><span id="instructionsSaveState" class="mini" role="status"></span></div><p id="projectInstructionsHint" class="mini" hidden></p></div><div class="settings-data"><h4>Datos locales</h4><code id="settingsDataPath"></code><button id="copyDataPath" type="button">Copiar ruta</button><a id="userGuide" href="/guide.html" target="_blank" rel="noopener">Guía de uso</a></div>';
+  const notifyCheck=general.querySelector('#notifyOnDone');
+  try{notifyCheck.checked=localStorage.getItem('valNotifyOnDone')!=='0';}catch{}
+  notifyCheck.onchange=()=>{
+    try{localStorage.setItem('valNotifyOnDone',notifyCheck.checked?'1':'0');}catch{}
+    if(notifyCheck.checked&&typeof Notification==='function'&&Notification.permission==='default'){Notification.requestPermission().catch(()=>{});}
+  };
+  async function loadGlobalInstructions(){
+    try{
+      const q=currentId&&!temporaryChat?'?conversation_id='+encodeURIComponent(currentId):'';
+      const data=await requestJSON('/api/harness/instructions'+q);
+      const area=$('#globalInstructions'),hint=$('#projectInstructionsHint');
+      if(area&&document.activeElement!==area)area.value=data.content||'';
+      if(hint){hint.hidden=!data.project_active;if(data.project_active)hint.textContent=uiText('Proyecto activo con AGENTS.md')+': '+data.project_path;}
+    }catch{}
+  }
+  window.loadGlobalInstructions=loadGlobalInstructions;
+  general.querySelector('#saveGlobalInstructions').onclick=async()=>{
+    const area=$('#globalInstructions'),state=$('#instructionsSaveState'),btn=$('#saveGlobalInstructions');
+    if(!area||!btn)return;btn.disabled=true;if(state)state.textContent=uiText('Guardando…');
+    try{
+      await requestJSON('/api/harness/instructions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:area.value})});
+      if(state)state.textContent=uiText('Guardado en este equipo');
+    }catch(error){if(state)state.textContent=uiText(error?.message||'No se pudieron guardar las instrucciones.');}
+    finally{btn.disabled=false;}
+  };
+  document.getElementById('drawer')?.addEventListener('fw:open',()=>loadGlobalInstructions());
   const guideLink=document.getElementById('userGuide');if(guideLink)guideLink.onclick=event=>{const invoke=window.__TAURI__?.core?.invoke;if(!invoke)return;event.preventDefault();invoke('open_guide').catch(()=>window.open('/guide.html','_blank','noopener'));};
   const uninstall=document.createElement('div');uninstall.className='settings-data';uninstall.innerHTML='<h4>Desinstalar V-Agent</h4><p class="mini">Se abrirá el desinstalador y se cerrará V-Agent. Puedes elegir si conservar tus datos.</p><button id="openUninstaller" type="button">Abrir desinstalador</button>';general.append(uninstall);
   uninstall.querySelector('button').onclick=async()=>{try{if(busy||engineBusy||preparationState?.active){note('Detén la operación actual antes de desinstalar.');return;}const invoke=window.__TAURI__?.core?.invoke;if(!invoke){note('Disponible en la aplicación de escritorio.');return;}await flushSessionSaves();await invoke('open_uninstaller');await window.__TAURI__.window.getCurrentWindow().close();}catch(error){note(String(error));}};
@@ -40,7 +66,7 @@ function setupSettingsHub(){
   for(const element of appearance.querySelectorAll('.theme-actions,.theme-save-line'))appearance.append(element);
   body.replaceChildren(...Object.values(pages));
   // Ordered by how often people need them; names match the buttons they configure.
-  const entries=[['general','General','idioma language langue Sprache dados data datos'],['appearance','Apariencia','colores colors cores couleurs Farben blur theme logo'],['chat','Cuadro de mensaje','layout font fuente letra botones buttons chat composer'],['tools','Tools','tools herramientas MCP Internet buscar arquivos files search'],['market','Mercado','plugins MCP marketplace extensions extensiones'],['plugins','Plugins','plugins extensiones comandos instructions commands'],['system','Sistema y motores','CPU RAM VRAM Strata llama.cpp API engine motor memory storage hardware actualizaciones updates'],['history','Historial','export import conversations chats historial histórico']];
+  const entries=[['general','General','idioma language langue Sprache dados data datos AGENTS.md memoria memory instrucciones instructions notificaciones notifications avisos'],['appearance','Apariencia','colores colors cores couleurs Farben blur theme logo'],['chat','Cuadro de mensaje','layout font fuente letra botones buttons chat composer'],['tools','Tools','tools herramientas MCP Internet buscar arquivos files search'],['market','Mercado','plugins MCP marketplace extensions extensiones'],['plugins','Plugins','plugins extensiones comandos instructions commands'],['system','Sistema y motores','CPU RAM VRAM Strata llama.cpp API engine motor memory storage hardware actualizaciones updates'],['history','Historial','export import conversations chats historial histórico']];
   for(const [id,label,keywords] of entries){
     const button=document.createElement('button');button.type='button';button.id='nav-'+id;button.dataset.category=id;button.dataset.keywords=label+' '+keywords;button.setAttribute('role','tab');button.setAttribute('aria-controls',pages[id].id);button.textContent=label;
     pages[id].setAttribute('role','tabpanel');pages[id].setAttribute('aria-labelledby',button.id);
@@ -204,7 +230,7 @@ function showAgentMenu(menu,anchor){
   // Always open downwards; flip up only when the composer sits at the bottom edge and there is
   // no usable room below (under 220 px). The menu fits the window and scrolls inside.
   const rect=anchor.getBoundingClientRect();menu.style.maxHeight='';menu.dataset.side='below';
-  const below=innerHeight-rect.bottom-14,above=rect.top-14,natural=menu.scrollHeight;
+  const below=innerHeight-rect.bottom-14,above=rect.top-14,natural=menu.scrollHeight+menu.offsetHeight-menu.clientHeight+2;   // (+ its border and rounding: no scrollbar for a menu that fits)
   const up=below<Math.min(natural,220)&&above>below;menu.dataset.side=up?'above':'below';
   const room=Math.max(160,up?above:below);menu.style.maxHeight=Math.min(natural,room)+'px';
   menu.style.left=Math.min(innerWidth-menu.offsetWidth-12,Math.max(12,rect.left))+'px';
@@ -228,7 +254,7 @@ function setupAgentControls(){
 }
 // In-app replacement for window.confirm: follows the palette, translates, and keeps focus on the
 // safe choice. Resolves true only when the user presses the confirm button.
-function valConfirm({title,message='',confirm='Aceptar',cancel='Cancelar',danger=false}={}){
+function valConfirm({title,message='',confirm='Aceptar',cancel='Cancelar',danger=false,input=null}={}){
   return new Promise(resolve=>{
     const dialog=document.createElement('dialog');dialog.className='val-confirm';
     const heading=document.createElement('h3');heading.textContent=uiText(title||'¿Continuar?');
@@ -237,10 +263,14 @@ function valConfirm({title,message='',confirm='Aceptar',cancel='Cancelar',danger
     const no=document.createElement('button');no.type='button';no.className='soft-btn';no.textContent=uiText(cancel);
     const yes=document.createElement('button');yes.type='button';yes.className='soft-btn '+(danger?'danger':'primary');yes.textContent=uiText(confirm);
     let answered=false;const finish=value=>{if(answered)return;answered=true;resolve(value);dialog.close();dialog.remove();};
-    no.onclick=()=>finish(false);yes.onclick=()=>finish(true);
+    // With `input`, the dialog asks for a line of text and resolves with it (false when cancelled or empty).
+    let field=null;
+    if(input){field=document.createElement('input');field.type='text';field.className='val-confirm-input';field.value=input.value||'';field.maxLength=input.maxLength||120;field.setAttribute('aria-label',uiText(input.label||title||''));
+      field.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();yes.click();}});}
+    no.onclick=()=>finish(false);yes.onclick=()=>finish(field?(field.value.trim()||false):true);
     dialog.addEventListener('cancel',event=>{event.preventDefault();finish(false);});
     dialog.addEventListener('click',event=>{if(event.target===dialog)finish(false);});
-    actions.append(no,yes);dialog.append(heading,body,actions);document.body.append(dialog);dialog.showModal();no.focus();
+    actions.append(no,yes);dialog.append(heading,body,...(field?[field]:[]),actions);document.body.append(dialog);dialog.showModal();if(field){field.focus();field.select();}else no.focus();
   });
 }
 window.valConfirm=valConfirm;
@@ -369,6 +399,10 @@ function setupAgentModeSeat(){
     const showSearchTip=()=>showTip(searchBtn,'WebSearch/WebVisit',{compact:true,center:true});
     searchBtn.addEventListener('pointerenter',showSearchTip);searchBtn.addEventListener('focus',showSearchTip);searchBtn.addEventListener('pointerleave',dismissTip);searchBtn.addEventListener('blur',dismissTip);
   }
+  // Every icon-only button says what it does on hover or keyboard focus (its translated name), like the mode buttons.
+  const iconOnly=target=>{const b=target?.closest?.('button');return b&&!b.dataset.tipBound&&!b.closest('#agentModeSegments')&&!b.title&&b.getAttribute('aria-label')&&!b.innerText.trim()?b:null;};
+  document.addEventListener('pointerover',event=>{const b=iconOnly(event.target);if(!b||b===tipAnchor)return;showTip(b,uiText(b.getAttribute('aria-label')),{compact:true,center:true});b.addEventListener('pointerleave',dismissTip,{once:true});});
+  document.addEventListener('focusin',event=>{const b=iconOnly(event.target);if(b&&b.matches(':focus-visible')){showTip(b,uiText(b.getAttribute('aria-label')),{compact:true,center:true});b.addEventListener('blur',dismissTip,{once:true});}});
   addEventListener('resize',dismissTip);document.addEventListener('scroll',dismissTip,true);document.addEventListener('pointerdown',e=>{if(!e.target.closest?.('#searchToggle,#agentModeSegments button'))dismissTip();});document.addEventListener('keydown',e=>{if(e.key==='Escape')dismissTip();});
 
   const menu=document.createElement('div');menu.id='agentModeMenu';menu.className='agent-small-menu agent-mode-menu';menu.setAttribute('popover','manual');menu.setAttribute('role','menu');menu.setAttribute('aria-label',uiText('Modo del agente'));
@@ -395,11 +429,15 @@ function setupAgentProfilesAndUpdates(){
   $('#agentProfile').value=agentModeKey();$('#agentProfile').addEventListener('val-profile-restored',hint);hint();
   $('#agentProfile').onchange=async()=>{const wanted=$('#agentProfile').value;const changed=await setAgentMode(wanted);if(!changed)$('#agentProfile').value=agentModeKey();hint();};
   setupAgentModeSeat();
-  const updates=document.createElement('section');updates.id='engineUpdates';updates.innerHTML='<div id="engineHardware" class="engine-hardware"><div class="engine-hardware-head"><h4>Hardware y motores recomendados</h4><button id="copyHardware" type="button">Copiar informe</button></div><div id="hwChips" class="hardware-chips"></div><p id="hwSummary" class="mini"></p><div id="engineRecommendations" class="engine-recommendations"></div></div><h4>Actualizaciones oficiales</h4><button id="checkEngineUpdates" type="button">Comprobar actualizaciones</button><p id="engineUpdateStatus" class="mini" role="status"></p><div id="engineUpdateList"></div>';
+  const updates=document.createElement('section');updates.id='engineUpdates';updates.innerHTML='<div id="engineHardware" class="engine-hardware"><div class="engine-hardware-head"><h4>Hardware y motores recomendados</h4><div class="engine-hardware-actions"><button id="checkEngineUpdates" type="button">Comprobar actualizaciones</button><button id="copyHardware" type="button">Copiar informe</button></div></div><div id="hwChips" class="hardware-chips"></div><p id="hwSummary" class="mini"></p><p id="engineUpdateStatus" class="mini" role="status"></p><div id="engineRecommendations" class="engine-recommendations"></div></div><div id="engineUpdateList" hidden></div>';
   $('#settings-system').append(updates);
   const stack=document.createElement('div');stack.id='updateStack';stack.className='update-stack';stack.hidden=true;document.body.append(stack);
   const dismissed=new Set();
-  async function action(which,body={}){try{const state=await requestJSON('/api/harness/updates/'+which,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});paintUpdates(state);clearTimeout(updatePollTimer);updatePollTimer=setTimeout(pollUpdates,state.installing?400:10000);}catch(error){const msg=uiText(error.message);$('#engineUpdateStatus').textContent=msg;note(msg);}}
+  async function action(which,body={}){
+    const btn=$('#checkEngineUpdates');if(btn)btn.disabled=true;
+    try{const state=await requestJSON('/api/harness/updates/'+which,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});paintUpdates(state);clearTimeout(updatePollTimer);updatePollTimer=setTimeout(pollUpdates,state.installing?400:10000);}
+    catch(error){const msg=uiText(error.message);$('#engineUpdateStatus').textContent=msg;note(msg);if(btn)btn.disabled=false;}
+  }
   $('#checkEngineUpdates').onclick=()=>action('check');
   let hardwareSignature='';
   function hardwareChip(label,value,title=''){
@@ -409,7 +447,8 @@ function setupAgentProfilesAndUpdates(){
   }
   function paintHardware(state){
     const profile=state.hardware||{},rows=state.recommendations||[];
-    const signature=JSON.stringify({profile,rows,summary:state.hardware_summary,busy:state.busy,loaded:!!loadedModel});
+    const mayaDiskInstalled=Boolean(engineSnapshot?.builds?.maya?.root);
+    const signature=JSON.stringify({profile,rows,summary:state.hardware_summary,busy:state.busy,loaded:localModelLoaded(),releases:state.releases,installed:state.installed,previous:state.previous,mayaDiskInstalled,lang:window.VALI18n?.language||'es'});
     if(signature===hardwareSignature)return;hardwareSignature=signature;
     const chips=$('#hwChips');if(!chips)return;chips.replaceChildren();
     const gpu=profile.primary_gpu||{};
@@ -421,36 +460,74 @@ function setupAgentProfilesAndUpdates(){
     chips.append(hardwareChip(uiText('Sistema'),[profile.os?.product,profile.os?.display].filter(Boolean).join(' · ')||'—'));
     const summary=$('#hwSummary');if(summary)summary.textContent=uiParts(state.hardware_summary||'');
     const box=$('#engineRecommendations');if(!box)return;box.replaceChildren();
+    const seen=new Set();
     for(const row of rows){
+      seen.add(row.key);
+      const release=(state.releases||{})[row.key]||{};
+      const managedInstalled=Object.hasOwn(state.installed||{},row.key);
+      const mayaInstalled=row.key==='maya'&&Boolean(release.current||mayaDiskInstalled);
+      const installedHere=Boolean(row.status==='installed'||release.current||managedInstalled||mayaInstalled);
       const card=document.createElement('article');card.className='engine-recommendation';card.dataset.engine=row.key;
       const head=document.createElement('div');head.className='engine-recommendation-head';
       const name=document.createElement('strong');name.textContent=row.name;
       const badge=document.createElement('span');badge.className='recommendation-badge';badge.textContent=uiText(row.recommended?'Recomendado':'Opcional');head.append(name,badge);
       const reason=document.createElement('p');reason.className='mini';reason.textContent=uiParts(row.reason);
       const asset=document.createElement('div');asset.className='engine-asset';
-      const tag=document.createElement('code');tag.textContent=row.tag||uiText('Sin versión publicada');asset.append(tag);
-      if(row.asset){const filename=document.createElement('code');filename.textContent=row.asset;asset.append(filename);}
+      const tag=document.createElement('code');tag.textContent=row.tag||release.tag||uiText('Sin versión publicada');asset.append(tag);
+      if(row.asset||release.asset){const filename=document.createElement('code');filename.textContent=row.asset||release.asset;asset.append(filename);}
       if(row.dependencies?.length){const extra=document.createElement('small');extra.textContent='+ '+row.dependencies.join(' + ');asset.append(extra);}
       const actions=document.createElement('div');actions.className='engine-recommendation-actions';
       const status=document.createElement('span');status.className='engine-recommendation-status';
-      const installed=row.status==='installed';
       const optionalSource=row.status==='optional';
-      status.textContent=installed?uiText('Instalado'):row.status==='available'?uiText('Actualización disponible'):optionalSource?uiText('Compilación local opcional'):row.asset?uiText('Disponible'):uiText('Comprueba las versiones');
+      status.textContent=release.error?uiText(release.error):installedHere&&release.available?uiText('Actualización disponible'):installedHere?uiText('Instalado'):row.status==='available'?uiText('Actualización disponible'):optionalSource?uiText('Compilación local opcional'):(row.asset||release.asset)?uiText('Disponible'):uiText('Comprueba las versiones');
       status.dataset.state=row.status;
       actions.append(status);
-      if(installed||row.status==='missing'){}
-      else if(optionalSource){
-        if(row.key==='maya'){
-          const manage=document.createElement('button');manage.type='button';manage.textContent=uiText('Gestionar en Motor');
-          manage.onclick=()=>{setDrawer(false);setChatControls('model');const eo=$('#modelEngineOptions');if(eo)eo.open=true;$('#engineKind')?.focus({preventScroll:true});};
-          actions.append(manage);
+      if(release.url){
+        const notesLink=document.createElement('a');notesLink.href=release.url;notesLink.className='engine-notes-link';notesLink.textContent=uiText('Notas de versión');
+        notesLink.onclick=event=>{event.preventDefault();showReleaseNotes({...release,key:row.key});};
+        actions.append(notesLink);
+      }
+      if(row.key==='maya'){
+        if(installedHere&&release.available){
+          const updateBtn=document.createElement('button');updateBtn.type='button';updateBtn.textContent=uiText('Actualizar');updateBtn.disabled=!!state.busy||busy||localModelLoaded();
+          updateBtn.onclick=async()=>{
+            updateBtn.disabled=true;
+            try{
+              const res=await requestJSON('/api/harness/maya/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'update',tag:release.tag||''})});
+              if(res.snapshot){engineSnapshot=res.snapshot;syncEngineVersions();syncSettingsSummary();}
+              note(uiText('Copia de Project Maya actualizada. Compila si hubo cambios en C++.'));
+              action('check',{force:true});
+            }catch(error){note(uiText(error.message));updateBtn.disabled=false;}
+          };
+          actions.append(updateBtn);
+        }
+        const manage=document.createElement('button');manage.type='button';manage.textContent=uiText('Gestionar en Motor');
+        manage.onclick=()=>{setDrawer(false);setChatControls('model');const eo=$('#modelEngineOptions');if(eo)eo.open=true;$('#engineKind')?.focus({preventScroll:true});};
+        actions.append(manage);
+        if(installedHere){
+          const remove=document.createElement('button');remove.type='button';remove.className='soft-btn danger';remove.textContent=uiText('Eliminar');remove.disabled=!!state.busy||busy||localModelLoaded();
+          remove.onclick=async()=>{if(!await valConfirm({title:uiText('¿Desvincular Project Maya?'),message:uiText('La carpeta de Maya y sus modelos se conservan en el disco.'),confirm:uiText('Desvincular')}))return;await action('uninstall',{engine:'maya'});requestJSON('/api/harness/state').then(snapshot=>{engineSnapshot=snapshot;syncEngineVersions();syncSettingsSummary();}).catch(()=>{});};
+          actions.append(remove);
+        }
+      }else{
+        if((row.asset||release.asset)&&(release.available||!installedHere)){
+          const install=document.createElement('button');install.type='button';install.textContent=uiText(installedHere?'Actualizar':'Instalar');install.disabled=!!state.busy||busy||localModelLoaded();install.onclick=()=>action('install',{engine:row.key});actions.append(install);
+        }else if(!installedHere&&row.status!=='missing'){
+          const check=document.createElement('button');check.type='button';check.textContent=uiText('Comprobar');check.disabled=!!state.busy;check.onclick=()=>action('check');actions.append(check);
+        }
+        if(Object.hasOwn(state.previous||{},row.key)){
+          const rollback=document.createElement('button');rollback.type='button';rollback.textContent=uiText('Restaurar anterior');rollback.disabled=!!state.busy||busy||localModelLoaded();rollback.onclick=()=>action('rollback',{engine:row.key});actions.append(rollback);
+        }
+        if(managedInstalled){
+          const remove=document.createElement('button');remove.type='button';remove.className='soft-btn danger';remove.textContent=uiText('Eliminar');remove.disabled=!!state.busy||busy||localModelLoaded();
+          remove.onclick=async()=>{if(!await valConfirm({title:uiText('¿Eliminar este motor?'),message:uiText('Se borrarán los archivos descargados del motor. Podrás volver a instalarlo cuando quieras.'),confirm:uiText('Eliminar'),danger:true}))return;action('uninstall',{engine:row.key});};
+          actions.append(remove);
         }
       }
-      else if(row.asset){const install=document.createElement('button');install.type='button';install.textContent=uiText('Instalar');install.disabled=!!state.busy||localModelLoaded();install.onclick=()=>action('install',{engine:row.key});actions.append(install);}
-      else {const check=document.createElement('button');check.type='button';check.textContent=uiText('Comprobar');check.disabled=!!state.busy;check.onclick=()=>action('check');actions.append(check);}
       card.append(head,reason,asset,actions);box.append(card);
     }
     window.VALI18n?.observe(updates);
+    return seen;
   }
   $('#copyHardware').onclick=async()=>{try{const data=await requestJSON('/api/harness/hardware');await navigator.clipboard.writeText(JSON.stringify({hardware:data.hardware,recommendations:data.recommendations,summary:data.hardware_summary},null,2));note(uiText('Informe copiado.'));}catch(error){note(error.message);}};
   let signature='',installedSignature='',lastUpdateState=null;
@@ -483,11 +560,13 @@ function setupAgentProfilesAndUpdates(){
     const current=JSON.stringify({...state,progress,lang,mayaDiskInstalled});if(current===signature){lastUpdateInstalling=!!state.installing;paintDownloadProgress(state.progress);paintStackProgress(state.progress);return;}signature=current;
     const installed=JSON.stringify(state.installed||{});if((installed!==installedSignature||(lastUpdateInstalling&&!state.installing))&&!state.busy){installedSignature=installed;requestJSON('/api/harness/state').then(snapshot=>{engineSnapshot=snapshot;syncEngineVersions();syncSettingsSummary();}).catch(()=>{});}
     $('#engineUpdateStatus').textContent=(state.error?uiText(state.error):'')||(state.operation?uiText(state.operation):'')||(state.busy?uiText('Comprobando…'):'');$('#checkEngineUpdates').disabled=state.busy;
-    lastUpdateInstalling=!!state.installing;paintDownloadProgress(state.progress);paintHardware(state);
+    lastUpdateInstalling=!!state.installing;paintDownloadProgress(state.progress);
+    const renderedKeys=paintHardware(state)||new Set((state.recommendations||[]).map(r=>r.key));
     const list=$('#engineUpdateList');list.replaceChildren();
     const names={'llama-cpu':'llama.cpp · CPU','llama-cuda':'llama.cpp · CUDA 12.4','llama-vulkan':'llama.cpp · Vulkan',strata:'Strata · PolyStrata',rust:'Strata Rust',maya:'Project Maya'};
-    const releaseEntries=Object.entries(state.releases||{});
-    if(mayaDiskInstalled&&!state.releases?.maya)releaseEntries.push(['maya',{tag:'',current:engineSnapshot?.builds?.maya?.build||engineSnapshot?.builds?.maya?.version||'',source_only:true,url:'https://github.com/mw00/project-maya/releases',repository:'mw00/project-maya'}]);
+    const releaseEntries=Object.entries(state.releases||{}).filter(([key])=>!renderedKeys.has(key));
+    if(mayaDiskInstalled&&!state.releases?.maya&&!renderedKeys.has('maya'))releaseEntries.push(['maya',{tag:'',current:engineSnapshot?.builds?.maya?.build||engineSnapshot?.builds?.maya?.version||'',source_only:true,url:'https://github.com/mw00/project-maya/releases',repository:'mw00/project-maya'}]);
+    list.hidden=!releaseEntries.length;
     for(const [key,release] of releaseEntries){
       const managedInstalled=Object.hasOwn(state.installed||{},key);
       const mayaInstalled=key==='maya'&&Boolean(release.current||mayaDiskInstalled);
@@ -694,8 +773,8 @@ function setupMarket(){
   document.getElementById('marketFind').onclick=async()=>{const button=document.getElementById('marketFind');button.disabled=true;try{const data=await action({action:'search',query:document.getElementById('marketSearch').value});items=[...items.filter(i=>i.source!=='mcp'),...data.items];paint();status(data.items.length+' '+uiText('MCPs encontrados en el registro.'));}catch(error){status(error.message);}finally{button.disabled=false;}};
   document.getElementById('marketSearch').onkeydown=e=>{if(e.key==='Enter')document.getElementById('marketFind').click();};
   document.getElementById('marketSearch').oninput=paint;document.getElementById('marketSource').onchange=paint;
-  document.getElementById('marketRefresh').onclick=async()=>{try{await action({action:'refresh'});await load();}catch(error){status(error.message);}};
-  document.getElementById('addCustomMCP').onclick=async()=>{try{await action({action:'register',manifest:JSON.parse(document.getElementById('customMCPJson').value)});await load();status(uiText('Añadido y desactivado. Actívalo cuando lo necesites.'));}catch(error){status(error.message);}};
+  document.getElementById('marketRefresh').onclick=async()=>{const btn=document.getElementById('marketRefresh');btn.disabled=true;try{await action({action:'refresh'});await load();}catch(error){status(error.message);}finally{btn.disabled=false;}};
+  document.getElementById('addCustomMCP').onclick=async()=>{const btn=document.getElementById('addCustomMCP');btn.disabled=true;try{await action({action:'register',manifest:JSON.parse(document.getElementById('customMCPJson').value)});await load();status(uiText('Añadido y desactivado. Actívalo cuando lo necesites.'));}catch(error){status(error.message);}finally{btn.disabled=false;}};
   const quick=document.createElement('button');quick.type='button';quick.className='configure-mcp-link';quick.textContent=uiText('Mercado de plugins y MCPs');quick.onclick=()=>{setDrawer(true);selectSettingsCategory('market');};document.getElementById('controls-tools').prepend(quick);
   load();setInterval(()=>{if(!document.hidden&&settingsCategory==='market')load();},60000);
 }
@@ -760,15 +839,13 @@ function setupSegmentedSliders(){
     // First placement without a slide from the left edge.
     pill.classList.add('seg-instant');place(group);requestAnimationFrame(()=>requestAnimationFrame(()=>pill.classList.remove('seg-instant')));
   };
-  const scan=()=>document.querySelectorAll(groups).forEach(attach);
-  scan();new MutationObserver(scan).observe(document.body,{childList:true,subtree:true});
-  // A group measured while its window was closed has no pill once the window opens; catch up any
-  // visible group whose pill is hidden or out of step (reads only; writes on mismatch).
-  setInterval(()=>{if(document.hidden)return;for(const group of document.querySelectorAll('[data-segmented]')){
-    if(!group.offsetWidth)continue;const pill=group.querySelector(':scope>.seg-pill');
-    const active=[...group.children].find(el=>el.tagName==='BUTTON'&&(el.getAttribute('aria-pressed')==='true'||el.getAttribute('aria-selected')==='true'));
-    if(pill&&active&&active.offsetWidth&&(pill.style.opacity!=='1'||pill.style.width!==active.offsetWidth+'px'||pill.style.transform!=='translate('+active.offsetLeft+'px,'+active.offsetTop+'px)'))place(group);
-  }},600);
+  const syncAll=()=>{for(const group of document.querySelectorAll('[data-segmented]'))if(group.offsetWidth)place(group);};
+  const scan=()=>{document.querySelectorAll(groups).forEach(attach);syncAll();};
+  scan();
+  // Event-driven refresh when windows/sections open or the viewport changes (no global MutationObserver or polling timer).
+  document.addEventListener('fw:open',()=>requestAnimationFrame(scan),true);
+  document.addEventListener('toggle',()=>requestAnimationFrame(syncAll),true);
+  window.addEventListener('resize',()=>requestAnimationFrame(syncAll));
 }
 setupSegmentedSliders();
 // Screen-reader names of the page regions (sidebar, chat, composer): set here because the chat region is

@@ -1532,6 +1532,7 @@ def run_chat_stream(body, control=None):
 
 def _run_chat_stream(body, control=None):
     """Genera eventos: reasoning, content, tool, round, done, error."""
+    finish_reason = None   # the last round's, reported with "done" (the reply's speed detail shows it)
     control = control or GenerationControl()
     chat_id = body.get("conversation_id")
     workspace = PROJECTS.workspace(ACCESS,chat_id) if chat_id is not None else ACCESS
@@ -1539,9 +1540,21 @@ def _run_chat_stream(body, control=None):
     messages = list(body.get("messages") or [])
     messages = _responde_huerfanas(messages)
     from plugins import prompt_block
+    import instructions
+    project_root = None
+    if chat_id is not None:
+        try:
+            snap = PROJECTS.snapshot(chat_id)
+            proj = next((p for p in snap['projects'] if p['id'] == snap['selected']), None)
+            if proj:
+                project_root = proj.get('path')
+        except Exception:
+            project_root = None
     # Una sola regla fija (no rompe la caché): sin ella, tras leer paginas o salidas en ingles
     # los modelos pequeños contestan en ingles a quien escribio en español.
-    plugin_instructions = "\n\n".join(x for x in (language_rule(messages), prompt_block()) if x)
+    plugin_instructions = "\n\n".join(
+        x for x in (language_rule(messages), prompt_block(), instructions.prompt_section(project_root)) if x
+    )
     if plugin_instructions:
         if messages and messages[0].get('role') == 'system':
             messages[0] = {**messages[0], 'content': messages[0].get('content', '') + '\n\n' + plugin_instructions}
@@ -1855,7 +1868,7 @@ def _run_chat_stream(body, control=None):
             full.append(_cierre_bucle(control, previo, guardado_en_turno))
             final = "".join(full)
             yield {"type": "content_fixed", "text": final}
-            yield {"type": "done", "content": final, "reasoning_content": "".join(reasoning_parts)}
+            yield {"type": "done", "finish_reason": finish_reason or "", "content": final, "reasoning_content": "".join(reasoning_parts)}
             return
         tail_reason, tail_content = f_reason.flush(), f_content.flush()   # lo retenido por si la marca venia partida
         if tail_reason:
@@ -1903,7 +1916,7 @@ def _run_chat_stream(body, control=None):
             final = "".join(full) + content
             if content != raw_content:
                 yield {"type": "content_fixed", "text": final}
-            yield {"type": "done", "content": final, "reasoning_content": reasoning}
+            yield {"type": "done", "finish_reason": finish_reason or "", "content": final, "reasoning_content": reasoning}
             return
 
         full.append(content)
@@ -1969,7 +1982,7 @@ def _run_chat_stream(body, control=None):
                 final = "".join(full).rstrip()
                 final += ("\n\n" if final else "") + "El archivo quedó como borrador. Ábrelo en la llamada Guardar archivo para copiarlo o descargarlo."
                 yield {"type": "content_fixed", "text": final}
-                yield {"type": "done", "content": final, "reasoning_content": reasoning}
+                yield {"type": "done", "finish_reason": finish_reason or "", "content": final, "reasoning_content": reasoning}
                 return
             if tools and (attempted or thought_attempted or cut_call or rejected or finish_reason == "tool_calls"):
                 fallos_forma += 1
@@ -2010,7 +2023,7 @@ def _run_chat_stream(body, control=None):
                 final = "".join(full).rstrip()
                 final = (final + "\n\n" if final else "") + suffix
                 yield {"type": "content_fixed", "text": final}
-                yield {"type": "done", "content": final, "reasoning_content": reasoning}
+                yield {"type": "done", "finish_reason": finish_reason or "", "content": final, "reasoning_content": reasoning}
                 return
             # Nothing at all (no text, no reasoning, no call): a provider hiccup more than an answer. Cline
             # (retry-empty-response middleware) and Roo Code repeat the same request; so does this, twice.
@@ -2088,7 +2101,7 @@ def _run_chat_stream(body, control=None):
                     full.append("\n\n")
                     yield {"type": "content", "text": "\n\n"}
                     continue
-            yield {"type": "done", "content": "".join(full), "reasoning_content": reasoning}
+            yield {"type": "done", "finish_reason": finish_reason or "", "content": "".join(full), "reasoning_content": reasoning}
             return
 
         for call in ordered:
@@ -2293,25 +2306,25 @@ def _run_chat_stream(body, control=None):
             final += ("\n\n" if final else "") + ("No he ejecutado `%s` porque denegaste el permiso. "
                                                   "Dime cómo quieres continuar." % denegada.split("__")[-1])
             yield {"type": "content_fixed", "text": final}
-            yield {"type": "done", "content": final, "reasoning_content": reasoning}
+            yield {"type": "done", "finish_reason": finish_reason or "", "content": final, "reasoning_content": reasoning}
             return
         if failed_file:
             final = "".join(full).rstrip()
             final += ("\n\n" if final else "") + "No se pudo guardar el archivo. Puedes copiarlo o descargarlo desde la llamada Guardar archivo."
             yield {"type": "content_fixed", "text": final}
-            yield {"type": "done", "content": final, "reasoning_content": reasoning}
+            yield {"type": "done", "finish_reason": finish_reason or "", "content": final, "reasoning_content": reasoning}
             return
         if control.bucle:
             # La vuelta se para con el aviso, no con otra ronda de prefill sobre lo mismo.
             final = "".join(full) + _cierre_bucle(control, "", guardado_en_turno)
             yield {"type": "content_fixed", "text": final}
-            yield {"type": "done", "content": final, "reasoning_content": ""}
+            yield {"type": "done", "finish_reason": finish_reason or "", "content": final, "reasoning_content": ""}
             return
         if content.strip():
             full.append("\n\n")
             yield {"type": "content", "text": "\n\n"}
 
-    yield {"type": "done", "content": "".join(full), "reasoning_content": reasoning}
+    yield {"type": "done", "finish_reason": finish_reason or "", "content": "".join(full), "reasoning_content": reasoning}
 
 
 def con_ejecucion(veredicto, ruta):

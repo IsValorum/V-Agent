@@ -227,8 +227,19 @@ class Downloads:
                         job['state'] = 'error'
                         job['error'] = str(error)[:300]
 
+    def _target_dir(self, repo):
+        parts = [p for p in str(repo or '').split('/') if p and p not in ('.', '..')]
+        if len(parts) >= 2:
+            creator, model_name = parts[0], parts[-1]
+        elif len(parts) == 1:
+            creator, model_name = 'local', parts[0]
+        else:
+            creator, model_name = 'local', 'model'
+        import model_mover
+        return self.folder() / model_mover._clean_segment(creator, 'local') / model_mover._clean_segment(model_name, 'model')
+
     def _download(self, job):
-        target_dir = self.folder() / job['repo'].replace('/', '__')
+        target_dir = self._target_dir(job['repo'])
         target_dir.mkdir(parents=True, exist_ok=True)
         token = _token()
         done = 0

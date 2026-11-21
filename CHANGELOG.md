@@ -4,6 +4,18 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.1.8
+
+Release focused on workspace ergonomics, model organization, persistent instructions, and interface polish across all themes and languages.
+
+- **Detailed response metrics and timestamps (`agent/agent.py`, `agent/ui/app/chat.js`, `agent/ui/app/composer.js`):** Every reply shows its total time and a **Details** breakdown (prompt read, cached tokens, generation rate, time to first token, rounds, tool calls, and finish reason) plus the local timestamp next to the model name.
+- **Live activity chip, queued follow-ups, and context ring (`agent/ui/app/composer.js`, `agent/ui/app/model-controls.js`, `agent/ui/v-agent.html`):** The composer stays usable while the model replies (`Enter` queues a follow-up, `Ctrl+Enter` redirects the active turn), a live activity chip tracks the current phase and active tool above the composer, and a context ring in the header mirrors context usage at a glance.
+- **Temporary chats, pinned chats, date groups, and renaming (`agent/ui/app/conversations.js`, `agent/ui/app/shell.js`):** Start ephemeral chats that are never saved to history (with one-click **Save chat** to keep them), pin favorite chats to the top, browse conversations grouped by date (*Today*, *Yesterday*, *Last 7 days*, *Older*), and rename chats directly from the menu. Archiving a non-open conversation now persists to disk reliably.
+- **Persistent instructions (`agent/instructions.py`, `agent/agent.py`, `agent/desktop_runtime.py`):** Global `AGENTS.md` instructions editable in **Settings → General**, automatically combined with any project-level `AGENTS.md` when working inside a project folder.
+- **Native non-modal workspace tools (`agent/ui/app/polish.js`, `agent/ui/styles/panels.css`):** Quick switcher (`Ctrl+K`) with category filters, in-conversation search (`Ctrl+F`), prompt library sheet (with one-click save of the current composer text), corner keyboard shortcuts reference (`Ctrl+/`), turn-to-turn navigation (`Alt+↑/↓`), background completion notifications, inline "No model loaded" composer strip, and a local **Usage** telemetry tab in Settings computed strictly from saved real engine figures.
+- **Unified model folder layout and safe moving (`agent/model_mover.py`, `agent/model_hub.py`, `agent/ui/app/models.js`):** Models downloaded from the integrated Hugging Face tab or moved from LM Studio / Unsloth Studio / external folders are organized cleanly under `models/<creator>/<model>/` together with split shards, vision (`mmproj`), and MTP companions, with a live progress bar and safe atomic/chunked moves. Already-imported models cannot be re-selected in Import/Export, and Import/Export is hidden when using API providers.
+- **Model list, menus, and performance polish (`agent/ui/app/model-controls.js`, `agent/ui/app/shell.js`, `agent/ui/app/chat.js`, `agent/ui/styles/panels.css`):** Starred favorite models, live GPU/RAM fit badges, unified **System & engines** cards (removing the duplicate updates list), stronger visual relief on key buttons and API/engine disclosures, full 5-language translations (`es`, `en`, `pt`, `fr`, `de`), and event-driven UI updates removing idle background polling.
+
 ## 1.1.7
 
 Release fixing API connections and updates, reading every statistic from the engine itself, translating the rest of the interface and correcting the GPU memory reported on Windows.

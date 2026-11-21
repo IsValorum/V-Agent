@@ -63,6 +63,7 @@ function setLoadedModel(id,known=true,capacity=null){
   modelStateKnown=known;
   if(changed&&!engineBusy)$('#modelStatus').textContent='';
   $('#loadedTxt').textContent=known?(loadedModel?(modelNames[loadedModel]||loadedModel):uiText('Ninguno')):uiText('Comprobando…');
+  if(loadedModel)window.hideModelPromptStrip?.();
   updateControls();
   syncContextMeter();
   // The model window then shows the context the engine really runs with.
@@ -75,11 +76,13 @@ function localPreparing(){return !!preparationState?.active&&activeEngine!=='api
 // A click that cannot act now says why (and returns true) instead of doing nothing.
 function refuseWhileBusy(){const why=busy?'Espera a que termine la respuesta en curso o detenla.':engineBusy?'Espera a que termine la operación del motor.':'';if(why)note(why);return !!why;}
 function modelIsReady(){return !localPreparing()&&modelStateKnown&&engineOnline===true&&loadedModel&&loadedModel===$('#model').value;}
-function requireModelForChat(){if(modelIsReady())return true;note(loadedModel?'Descarga el modelo en memoria y carga el seleccionado en Motor.':'Selecciona un modelo y pulsa Cargar modelo en Motor.');if(!document.querySelector('dialog[open]'))setChatControls('model');return false;}
+function requireModelForChat(){if(modelIsReady())return true;if(!loadedModel&&$('#model')?.value&&typeof openModelPromptDialog==='function'){openModelPromptDialog();return false;}note(loadedModel?'Descarga el modelo en memoria y carga el seleccionado en Motor.':'Selecciona un modelo y pulsa Cargar modelo en Motor.');if(!document.querySelector('dialog[open]'))setChatControls('model');return false;}
 function updateControls() {
   const blocked=engineBusy||accessChanging||draftSaving||localPreparing();
   if($('#kvCache'))$('#kvCache').disabled=busy||blocked||!(modelKV[$('#model').value]?.options?.length);
-  for(const id of ['input','attach','file','model','effort','refreshModels','addModel','engineToggle','workProfile','p_rounds','mcpReconnect','pcAccess'])$('#'+id).disabled=busy||blocked||accessChanging;
+  for(const id of ['attach','file','model','effort','refreshModels','addModel','engineToggle','workProfile','p_rounds','mcpReconnect','pcAccess'])$('#'+id).disabled=busy||blocked||accessChanging;
+  // Typing stays possible during a reply: Enter queues the message, Ctrl+Enter redirects the reply to it.
+  $('#input').disabled=blocked||accessChanging;
   $('#draftSource').disabled=$('#draftBrowse').disabled=busy||blocked||!$('#model').value;
   $('#draftTokens').disabled=busy||blocked||!$('#draftSource').value;
   $('#draftReload').disabled=busy||blocked;
@@ -116,7 +119,9 @@ function updatePreparation(state){
 function syncPreparationView(){
   const active=!!preparationState?.active||!!loadingModelId,view=$('#modelPreparation');view.hidden=!active;if(!active)return;
   const state=preparationState,reading=state?.stage==='reading'&&!state.cancel_requested;
-  $('#preparationLabel').textContent=state?.cancel_requested?uiText('Cancelando la carga…'):reading?uiText('Leyendo pesos')+' · '+Math.round(state.percent||0)+' %':state?.active?(state.message?uiText(state.message):uiText('Preparando modelo…')):state?.stage==='cancelled'?uiText('Carga cancelada.'):uiText('Preparando carga…');
+  const loadingName=state?.model?(modelNames[state.model]||String(state.model).split('--').pop()):'';
+  $('#preparationLabel').title=loadingName;
+  $('#preparationLabel').textContent=(loadingName&&!state?.cancel_requested?loadingName+' · ':'')+(state?.cancel_requested?uiText('Cancelando la carga…'):reading?uiText('Leyendo pesos')+' · '+Math.round(state.percent||0)+' %':state?.active?(state.message?uiText(state.message):uiText('Preparando modelo…')):state?.stage==='cancelled'?uiText('Carga cancelada.'):uiText('Preparando carga…'));
   const amount=[];
   if(state?.total_bytes&&reading)amount.push(((state.done_bytes||0)/2**30).toFixed(1)+' / '+(state.total_bytes/2**30).toFixed(1)+' GiB');
   if(state?.started_at)amount.push(Math.max(0,Math.floor(Date.now()/1000-state.started_at))+' s');
@@ -153,12 +158,39 @@ function setBusy(value) {
   if(!value)document.querySelectorAll('#chat [data-generating=true]').forEach(row=>{row.dataset.generating='false';});
   $("#chatwrap").dataset.generating = String(value);
   $("#modeNote").textContent = value ? uiText("Generando respuesta…") : "";
-  $("#send").setAttribute("aria-label", value ? "Detener respuesta" : "Enviar mensaje");
+  $("#send").setAttribute("aria-label", uiText(value ? "Detener respuesta" : "Enviar mensaje"));
   $("#send").innerHTML=value?STOP_ICON:SEND_ICON;
+  syncWelcomeHint();
 }
 const SEND_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>';
 const STOP_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none"/></svg>';
-let activeGeneration=null;
+let activeGeneration=null,activityTimer=0;
+// What the turn is doing right now, above the composer: visible even when the user scrolled up to read.
+function setGenerationPhase(generation,phase){if(generation.phase!==phase){generation.phase=phase;generation.phaseSince=Date.now();}}
+function activityPhase(generation){
+  const call=[...(generation.trace||[])].reverse().find(item=>['running','drafting','validating'].includes(item.status));
+  if(call){
+    const key=call.id||call;if(!generation.callSince.has(key))generation.callSince.set(key,Date.now());
+    const args=call.args&&typeof call.args==='object'?call.args:{};
+    const hint=String(args.path||args.url||args.query||args.command||'').split(/\r?\n/)[0].slice(0,60);
+    return {text:(call.status==='drafting'?uiText('Redactando')+': ':'')+toolTitle(call)+(hint?' · '+hint:''),since:generation.callSince.get(key)};
+  }
+  const live=lastHardwareState?.live||{};
+  if(live.state==='reading'&&!generation.phase){
+    const total=Number(live.prompt_total),read=Number(live.prompt_read);
+    return {text:uiText('Leyendo el prompt')+(total>0&&read>=0?' · '+Math.min(100,Math.floor(100*read/total))+' %':''),since:generation.phaseSince};
+  }
+  return {text:uiText(generation.phase==='writing'?'Escribiendo la respuesta':generation.phase==='thinking'?'Razonando':'Esperando al modelo'),since:generation.phaseSince};
+}
+function renderActivity(){
+  const chip=$('#activityChip');if(!chip)return;
+  const generation=activeGeneration;
+  if(!generation){chip.hidden=true;clearInterval(activityTimer);activityTimer=0;return;}
+  const phase=activityPhase(generation);chip.hidden=false;
+  if($('#activityText').textContent!==phase.text)$('#activityText').textContent=phase.text;
+  $('#activityTime').textContent=Math.max(0,Math.round((Date.now()-(phase.since||generation.startWall))/1000))+' s';
+}
+function startActivity(){if(!activityTimer)activityTimer=setInterval(renderActivity,500);renderActivity();}
 function conversationForModel(history) {
   const result=[];
   history.forEach((message,messageIndex)=>{
@@ -253,8 +285,34 @@ async function compactConversationContext() {
 }
 window.compactConversationContext=compactConversationContext;
 
-function stopGeneration() {
+// One message typed during a reply. Sent when the reply ends; "Send now" stops the reply and sends it at once.
+let queuedFollowUp=null;
+function renderQueuedMessage(){
+  const box=$('#queuedMessage');if(!box)return;
+  box.hidden=!queuedFollowUp;$('#queuedText').textContent=queuedFollowUp?queuedFollowUp.text.replace(/\s+/g,' '):'';
+  $('#queuedText').title=queuedFollowUp?.text||'';
+}
+function queueFollowUp(redirect=false){
+  const text=$('#input').value.trim();if(!text)return false;
+  queuedFollowUp={text:queuedFollowUp?queuedFollowUp.text+'\n\n'+text:text,redirect:redirect||!!queuedFollowUp?.redirect};
+  $('#input').value='';resizeInput();renderQueuedMessage();
+  if(queuedFollowUp.redirect)stopGeneration(true);
+  return true;
+}
+function flushQueuedFollowUp(){
+  if(!queuedFollowUp||busy||engineBusy)return;
+  const queued=queuedFollowUp;queuedFollowUp=null;renderQueuedMessage();
+  const typed=$('#input').value.trim();
+  $('#input').value=queued.text+(typed?'\n\n'+typed:'');resizeInput();
+  // Stopped by the user (not a redirection): give the text back instead of sending it on its own.
+  if(queued.held)return;
+  sendMsg();
+}
+$('#queuedSendNow')?.addEventListener('click',()=>{if(!queuedFollowUp)return;queuedFollowUp.redirect=true;if(busy)stopGeneration(true);else flushQueuedFollowUp();});
+$('#queuedRemove')?.addEventListener('click',()=>{if(!queuedFollowUp)return;const text=queuedFollowUp.text;queuedFollowUp=null;renderQueuedMessage();if(!$('#input').value.trim()){$('#input').value=text;resizeInput();}$('#input').focus();});
+function stopGeneration(redirect=false) {
   if(!activeGeneration||activeGeneration.stopped)return;
+  if(queuedFollowUp&&!redirect&&!queuedFollowUp.redirect)queuedFollowUp.held=true;
   activeGeneration.stopped=true;activeGeneration.controller.abort();$('#send').disabled=true;$('#modeNote').textContent=uiText('Deteniendo…');
 }
 async function waitForGenerationEnd() {
@@ -327,11 +385,12 @@ async function generateResponse(replaceIndex=null) {
   const requestModel=loadedModel;
   const requestSettings=requestModel===$('#model').value?{sampling:{...S.sampling},effort:S.effort,rounds:S.rounds,profile:S.profile}:structuredClone(modelPreferences[requestModel]||{sampling:DEF_SAMPLING,effort:'high',rounds:50,profile:'code'});
   const generation={controller:new AbortController(),stopped:false,modelConfirmed:false,
-    provenance:{model:requestModel,model_name:modelNames[requestModel]||requestModel,generated_at:new Date().toISOString()}};activeGeneration=generation;
+    provenance:{model:requestModel,model_name:modelNames[requestModel]||requestModel,generated_at:new Date().toISOString()},
+    startWall:Date.now(),phaseSince:Date.now(),callSince:new Map()};activeGeneration=generation;
   setBusy(true);renderChat(replaceIndex??-1);
   const box=addAssistantBox(),think=box.querySelector('.think'),thinkBody=box.querySelector('.think-body'),bubble=box.querySelector('.bubble');box.dataset.index=replaceIndex??messages.length;box.dataset.generating='true';generation.box=box;const metricLabels=box.querySelectorAll('.response-metrics small');if(metricLabels[0])metricLabels[0].textContent=uiText('Generación');if(metricLabels[1])metricLabels[1].textContent=uiText('Lectura');bubble.textContent=uiText('Preparando respuesta…');
   showResponseModel(box,generation.provenance);
-  let finalText='',finalReasoning='',ended=false,finishReason='',reader,errorText='',lastUsage=null,traceView=null,paintFrame=0,streamNote=uiText('Preparando respuesta…'),paintedReasoning='',paintedBubble='',streamComplete=false,traceDirty=false,paintTimer=0,lastPaint=0;const toolTrace=[];
+  let finalText='',finalReasoning='',ended=false,finishReason='',reader,errorText='',lastUsage=null,traceView=null,paintFrame=0,streamNote=uiText('Preparando respuesta…'),paintedReasoning='',paintedBubble='',streamComplete=false,traceDirty=false,paintTimer=0,lastPaint=0;const toolTrace=[];generation.trace=toolTrace;startActivity();
   function paintStream(){
     paintFrame=0;
     lastPaint=performance.now();
@@ -364,10 +423,12 @@ async function generateResponse(replaceIndex=null) {
     if(pcAccess.mode!=='full_pc'&&!pcAccess.isolation?.available)functions.shell=false;
     const resumeDraftId=autoResumeDraftId(history,functions);
     const modelMessages=cleanModelMessages(conversationForModel(history),Boolean(resumeDraftId));
-    const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},signal:generation.controller.signal,body:JSON.stringify({model:requestModel,model_name:modelNames[requestModel]||requestModel,context_limit:contextCapacity||modelContexts[requestModel],conversation_id:currentId,messages:modelMessages,resume_draft:resumeDraftId,effort:requestSettings.effort,functions,sampling:requestSettings.sampling,profile:requestSettings.profile||"custom",rounds:requestSettings.rounds,permission_mode:S.permissionMode||"ask",agent_profile:S.agentProfile||"balanced",ask_user:true,native_stream:true})});
+    const sentAt=performance.now();
+    const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},signal:generation.controller.signal,body:JSON.stringify({model:requestModel,model_name:modelNames[requestModel]||requestModel,context_limit:contextCapacity||modelContexts[requestModel],conversation_id:temporaryChat?null:currentId,messages:modelMessages,resume_draft:resumeDraftId,effort:requestSettings.effort,functions,sampling:requestSettings.sampling,profile:requestSettings.profile||"custom",rounds:requestSettings.rounds,permission_mode:S.permissionMode||"ask",agent_profile:S.agentProfile||"balanced",ask_user:true,native_stream:true})});
     if(!response.ok){let data;try{data=await response.json();}catch{}throw new Error(data?.error||'Error HTTP '+response.status);}
     if(!response.body||!response.headers.get('content-type')?.includes('text/event-stream'))throw new Error('El servidor no devolvió una respuesta de chat válida.');
     generation.runId=response.headers.get('X-Strata-Run-Id');
+    generation.startAt=generation.startAt||sentAt;
     pollLiveContext(generation);
     generation.modelConfirmed=true;
     reader=response.body.getReader();const decoder=new TextDecoder();let buffer='';
@@ -376,19 +437,21 @@ async function generateResponse(replaceIndex=null) {
       if(!payload||payload==='[DONE]')return;let event;try{event=JSON.parse(payload);}catch{return;}
       if(event.error)throw new Error(typeof event.error==='string'?uiText(event.error):uiText(event.error.message||'El motor devolvió un error.'));
       if(event.timings)updateResponsePerformance(generation,event.timings);
+      // First visible output (reasoning, text or a tool call being written), as measured here.
+      if(!generation.firstAt&&(event.type==='reasoning'||event.type==='content'||event.type==='tool_draft'||event.type==='tool'||event.choices?.[0]?.delta?.content||event.choices?.[0]?.delta?.reasoning_content))generation.firstAt=performance.now();
       if(Array.isArray(event.choices)){
         const choice=event.choices[0]||{},delta=choice.delta||{};
-        if(delta.reasoning_content){finalReasoning+=delta.reasoning_content;if(!finalText)streamNote=uiText('Razonando…');}
-        if(delta.content)finalText+=delta.content;
+        if(delta.reasoning_content){finalReasoning+=delta.reasoning_content;if(!finalText)streamNote=uiText('Razonando…');setGenerationPhase(generation,'thinking');}
+        if(delta.content){finalText+=delta.content;setGenerationPhase(generation,'writing');}
         if(event.usage){lastUsage=event.usage;raiseGenerationUsage(generation,event.usage);}
         if(choice.finish_reason){ended=true;finishReason=choice.finish_reason;}
         queuePaint();return;
       }
-      if(event.type==='approval'){showToolApproval(event);}
-      else if(event.type==='question'){showAgentQuestion(event);}
-      else if(event.type==='reasoning'){finalReasoning+=event.text||'';if(!finalText)streamNote=uiText('Razonando…');}
+      if(event.type==='approval'){showToolApproval(event);notifyBackground('attention');}
+      else if(event.type==='question'){showAgentQuestion(event);notifyBackground('attention');}
+      else if(event.type==='reasoning'){finalReasoning+=event.text||'';if(!finalText)streamNote=uiText('Razonando…');setGenerationPhase(generation,'thinking');}
       else if(event.type==='reasoning_fixed'){finalReasoning=event.text||'';}   // el agente quito marcas de llamada crudas del razonamiento
-      else if(event.type==='content'){finalText+=event.text||'';}
+      else if(event.type==='content'){finalText+=event.text||'';setGenerationPhase(generation,'writing');}
       else if(event.type==='content_fixed'){finalText=event.text||'';}   // reemplazo: el agente quito marcas de llamada crudas
       else if(['tool_draft','tool','tool_state','tool_result'].includes(event.type)){
         recordToolEvent(toolTrace,event);
@@ -399,7 +462,7 @@ async function generateResponse(replaceIndex=null) {
         lastUsage=event.usage;
         raiseGenerationUsage(generation,event.usage);
       }
-      else if(event.type==='done'){ended=true;if(!finalText&&event.content)finalText=event.content;if(!finalReasoning&&event.reasoning_content)finalReasoning=event.reasoning_content;}
+      else if(event.type==='done'){ended=true;if(event.finish_reason)finishReason=event.finish_reason;if(!finalText&&event.content)finalText=event.content;if(!finalReasoning&&event.reasoning_content)finalReasoning=event.reasoning_content;}
       else if(event.type==='error')throw new Error(event.text?uiText(event.text):uiText('El agente encontró un error.'));queuePaint();
     }
     for(;;){const {value,done}=await reader.read();buffer+=done?decoder.decode():decoder.decode(value,{stream:true});let match;while((match=/\r?\n\r?\n/.exec(buffer))){const chunk=buffer.slice(0,match.index);buffer=buffer.slice(match.index+match[0].length);consume(chunk);}if(done){if(buffer.trim())consume(buffer);break;}}
@@ -425,13 +488,18 @@ async function generateResponse(replaceIndex=null) {
     // A stopped reply gets no final count; keep the last live measure so the meter does not go blank.
     const finalUsage=lastUsage||(generation.usage&&Number.isFinite(generation.usage.prompt_tokens)?generation.usage:null);
     if(finalUsage)response.usage={...finalUsage,limit:contextCapacity||modelContexts[requestModel]||null};
-    if(generation.performance)response.performance={...generation.performance};
+    if(generation.performance||generation.startAt){
+      response.performance={...(generation.performance||{})};
+      if(generation.startAt)response.performance.detail={...(generation.detail||{rounds:0,promptNew:0,cached:0,promptMs:0,generated:0,genMs:0}),
+        firstMs:generation.firstAt?Math.round(generation.firstAt-generation.startAt):null,totalMs:Math.round(performance.now()-generation.startAt),
+        finish:generation.stopped?'stopped':errorText?'error':finishReason||'',tools:toolTrace.length};
+    }
     if(generation.stopped)response.status='stopped';else if(errorText){response.status='error';response.error=errorText;}
     if(previous&&!finalText&&!finalReasoning&&!toolTrace.length){messages[replaceIndex]=previous;note(errorText||'Generación detenida. Se conserva la respuesta anterior.');}
     else if(previous){const variants=previous.variants?.length?previous.variants.map(responseVersion):[responseVersion(previous)];variants.push(responseVersion(response));messages[replaceIndex]={...response,variants,variantIndex:variants.length-1};}
     else messages.push(response);
     showResponseMetrics(box,response.performance);
-    persistConv();activeGeneration=null;setBusy(false);
+    persistConv();activeGeneration=null;renderActivity();setBusy(false);
     if (reviewingLive) {
       const finishView = () => {
         if (box.isConnected && (chatHasSelection(box) || selectingChat)) return;
@@ -446,5 +514,24 @@ async function generateResponse(replaceIndex=null) {
       renderChat();
       if (followStream && !chatHasSelection()) $('#input').focus({preventScroll:true});
     }
+    if(!generation.stopped)notifyBackground(errorText?'error':'done');
+    if(queuedFollowUp)setTimeout(flushQueuedFollowUp,0);
+  }
+}
+// Notify only when the window is in the background; restore the title as soon as the user returns.
+let baseDocumentTitle=document.title||'V-Agent';
+function restoreDocumentTitle(){if(document.title!==baseDocumentTitle)document.title=baseDocumentTitle;}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)restoreDocumentTitle();});
+window.addEventListener('focus',restoreDocumentTitle);
+function notifyBackground(kind){
+  if(!document.hidden)return;
+  let enabled=true;try{enabled=localStorage.getItem('valNotifyOnDone')!=='0';}catch{}
+  if(!enabled)return;
+  const labels={done:'Respuesta lista',attention:'V-Agent necesita tu respuesta',error:'La respuesta terminó con un error'};
+  const prefix=kind==='attention'?'! ':kind==='error'?'× ':'✓ ';
+  const chatName=$('#chatTitle')?.textContent||'V-Agent';
+  document.title=prefix+chatName+' — V-Agent';
+  if(typeof Notification==='function'&&Notification.permission==='granted'){
+    try{const n=new Notification(uiText(labels[kind]||labels.done),{body:chatName,tag:'v-agent-turn'});n.onclick=()=>{window.focus();n.close();};}catch{}
   }
 }

@@ -47,7 +47,7 @@ try{const logo=localStorage.getItem('valBootLogo');if(['gold','silver','jade','b
         <span id="connection" class="connection" title="Estado del agente"><span class="status-dot"></span><span id="connectionText">Conectando</span></span>
       </div>
     </div>
-    <button id="newchat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Nuevo chat</button>
+    <div class="newchat-row"><button id="newchat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Nuevo chat</button><button id="newTempChat" type="button" class="icon-btn" aria-label="Chat temporal" data-ui-aria="Chat temporal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a7 7 0 0 0-7 7v9l2.5-2 2.2 2 2.3-2 2.3 2 2.2-2L19 19v-9a7 7 0 0 0-7-7Z"/><circle cx="9.5" cy="10.5" r="1" fill="currentColor" stroke="none"/><circle cx="14.5" cy="10.5" r="1" fill="currentColor" stroke="none"/></svg></button></div>
     <div class="side-head projects-head"><span>Proyectos</span><button id="addProject" type="button" class="side-add" title="Añadir proyecto" aria-label="Añadir proyecto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
     <nav id="projectsNav" aria-label="Proyectos"></nav>
     <div class="side-head"><span>Recientes</span><span id="convCount">0</span></div>
@@ -78,9 +78,13 @@ try{const logo=localStorage.getItem('valBootLogo');if(['gold','silver','jade','b
     <header class="topbar">
       <button id="sidebarReopen" class="icon-btn" type="button" aria-label="Mostrar barra lateral"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/><rect x="5.4" y="6.4" width="1.7" height="11.2" rx=".4" fill="currentColor" stroke="none"/></svg></button>
       <button id="mobileMenu" class="icon-btn" title="Abrir conversaciones" aria-label="Abrir conversaciones" aria-controls="sidebar" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
-      <div class="breadcrumb"><span id="chatTitle">Nuevo chat</span></div>
+      <div class="breadcrumb"><span id="chatTitle">Nuevo chat</span><span id="tempChatBadge" class="temp-badge" hidden><span>Temporal</span><button id="promoteTempChat" type="button" class="temp-save-btn" hidden>Guardar chat</button></span></div>
       <div class="spacer"></div>
+      <div id="turnNav" class="turn-nav" hidden role="group" aria-label="Navegar entre turnos" data-ui-aria="Navegar entre turnos"><button id="turnPrev" type="button" aria-label="Turno anterior" data-ui-aria="Turno anterior">‹</button><span id="turnPos">1 / 1</span><button id="turnNext" type="button" aria-label="Turno siguiente" data-ui-aria="Turno siguiente">›</button></div>
+      <button id="ctxRing" class="ctx-ring" type="button" hidden aria-label="Contexto" data-level="normal"><svg viewBox="0 0 20 20" aria-hidden="true"><circle class="ctx-ring-track" cx="10" cy="10" r="7.5"/><circle class="ctx-ring-fill" cx="10" cy="10" r="7.5" pathLength="100" stroke-dasharray="0 100"/></svg><span id="ctxRingLabel">—</span></button>
       <div class="chrome-actions top-actions">
+        <button id="openCommandPalette" class="icon-btn" aria-label="Paleta de comandos (Ctrl+K)" data-ui-aria="Paleta de comandos (Ctrl+K)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+        <button id="openPromptLibrary" class="icon-btn" aria-label="Biblioteca de prompts" data-ui-aria="Biblioteca de prompts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1Z"/></svg></button>
         <button id="openConsole" class="icon-btn" title="Abrir consola" aria-label="Abrir consola"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h5"/></svg></button>
         <button id="openBrowser" class="icon-btn" title="Abrir navegador" aria-label="Abrir navegador"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14 0 18M12 3c-3 3.5-3 14 0 18"/></svg></button>
         <button id="themeBtn" class="icon-btn" title="Cambiar a tema claro" aria-label="Cambiar a tema claro"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg></button>
@@ -90,7 +94,8 @@ try{const logo=localStorage.getItem('valBootLogo');if(['gold','silver','jade','b
     <button id="followBtn" type="button" title="Volver al final y seguir la generación">↓ Seguir leyendo</button>
     <div id="composerBox">
       <div class="compose-inner">
-        <div class="project-strip"><button id="projectBtn" class="composer-control" type="button" title="Carpeta de trabajo de esta conversación"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v11H3V7Zm0 0V4h7l2 3"/></svg><span>Sin proyecto</span><span class="control-chevron">⌄</span></button></div>
+        <div class="project-strip"><button id="projectBtn" class="composer-control" type="button" title="Carpeta de trabajo de esta conversación"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v11H3V7Zm0 0V4h7l2 3"/></svg><span>Sin proyecto</span><span class="control-chevron">⌄</span></button><div id="activityChip" class="activity-chip" hidden><span class="activity-dot" aria-hidden="true"></span><span id="activityText" aria-live="polite"></span><span id="activityTime" aria-hidden="true"></span></div></div>
+        <div id="queuedMessage" class="queued-message" hidden><span class="queued-label">En cola</span><span id="queuedText"></span><button id="queuedSendNow" type="button" class="queued-action">Enviar ahora</button><button id="queuedRemove" type="button" class="queued-remove" aria-label="Quitar de la cola" title="Quitar de la cola">×</button></div>
         <div class="compose-surface">
           <div id="attachments" aria-label="Archivos adjuntos"></div>
           <textarea id="input" rows="2" placeholder="Mensaje…" aria-label="Mensaje" autocomplete="off"></textarea>
@@ -283,6 +288,7 @@ try{const logo=localStorage.getItem('valBootLogo');if(['gold','silver','jade','b
 /*@include app/models.js*/
 /*@include app/controls.js*/
 /*@include app/events.js*/
+/*@include app/polish.js*/
 })().catch(error=>{console.error(error);document.body.classList.add("app-ready");(window.__finishBoot?window.__finishBoot(true):document.getElementById("bootCover")?.remove());const t=document.getElementById("toast");t.hidden=false;t.textContent="No se pudo iniciar la interfaz: "+error.message;});
 </script>
 </body>

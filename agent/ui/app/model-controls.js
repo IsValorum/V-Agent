@@ -3,6 +3,42 @@ function modelFileName(model){return model.gguf_name||(model.path&&/\.gguf$/i.te
 
 
 let modelCatalog=[],catalogRevision=0,catalogController=null;
+// Favourite models stay at the top of the list (this device only).
+function modelFavorites(){try{const list=JSON.parse(localStorage.getItem('val-model-favorites')||'[]');return new Set(Array.isArray(list)?list:[]);}catch{return new Set();}}
+function toggleModelFavorite(id){const set=modelFavorites();set.has(id)?set.delete(id):set.add(id);try{localStorage.setItem('val-model-favorites',JSON.stringify([...set]));}catch{}renderModelList($('#model').value);}
+// Whether each local model fits this computer: the same pre-load estimate the model window shows, with the
+// model's saved context and cache, computed one model at a time while the list is open.
+const modelFit=new Map();let fitQueue=[],fitRunning=false;
+function fitVerdict(result){
+  const m=result?.memory,h=m?.hardware||{};if(!m||typeof m.total!=='number')return null;
+  const freeGpu=typeof h.gpu_effective_available==='number'?h.gpu_effective_available:h.gpu_available;
+  const ram=typeof h.ram_available==='number'?h.ram_available:null;
+  const gib=value=>(value/2**30).toLocaleString(window.VALI18n?.locale||undefined,{maximumFractionDigits:1})+' GiB';
+  const detail=uiText('Estimación con su contexto y caché guardados')+': '+gib(m.total)+(typeof freeGpu==='number'?' · '+uiText('VRAM libre')+' '+gib(freeGpu):'')+(ram!==null?' · '+uiText('RAM libre')+' '+gib(ram):'');
+  if(typeof freeGpu==='number'&&typeof m.gpu_full_offload==='number'&&m.gpu_full_offload<=freeGpu)return {level:'gpu',label:'Cabe en la GPU',detail};
+  if(ram!==null&&m.total<=ram+(freeGpu||0))return {level:'mixed',label:'GPU + RAM, más lento',detail};
+  if(ram!==null)return {level:'no',label:'Supera la memoria libre',detail};
+  return null;
+}
+function paintModelFit(id){
+  const verdict=modelFit.get(activeEngine+'|'+id);
+  for(const badge of document.querySelectorAll('#modelResults .model-fit[data-id="'+CSS.escape(id)+'"]')){
+    badge.hidden=!verdict;if(!verdict)continue;
+    badge.dataset.level=verdict.level;badge.textContent=uiText(verdict.label);badge.title=verdict.detail;
+  }
+}
+async function runFitQueue(){
+  if(fitRunning)return;fitRunning=true;
+  try{
+    while(fitQueue.length){
+      const {id,engine}=fitQueue.shift();
+      if(engine!==activeEngine||modelFit.has(engine+'|'+id)||!document.querySelector('#modelResults .model-fit[data-id="'+CSS.escape(id)+'"]'))continue;
+      try{const result=await requestJSON('/api/harness/memory-estimate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:id}),signal:AbortSignal.timeout(15000)});modelFit.set(engine+'|'+id,fitVerdict(result));}
+      catch{modelFit.set(engine+'|'+id,null);}
+      paintModelFit(id);
+    }
+  }finally{fitRunning=false;}
+}
 function renderModelOptions(selected){
   const query=($('#modelFilter')?.value||'').trim().toLocaleLowerCase();
   const matches=modelCatalog.filter(model=>(modelFileName(model)+' '+model.id).toLocaleLowerCase().includes(query));
@@ -16,19 +52,30 @@ function renderModelOptions(selected){
 function renderModelList(selected){
   const box=$('#modelResults');if(!box)return;
   const query=($('#modelFilter')?.value||'').trim().toLocaleLowerCase();
-  const matches=modelCatalog.filter(model=>(modelFileName(model)+' '+model.id+' '+(model.backend||'')).toLocaleLowerCase().includes(query)).sort((a,b)=>{const score=m=>m.id===loadedModel?0:m.status==='loaded'?1:m.status==='unavailable'?3:2;return score(a)-score(b)||modelFileName(a).localeCompare(modelFileName(b));});
+  const favorites=modelFavorites();
+  const matches=modelCatalog.filter(model=>(modelFileName(model)+' '+model.id+' '+(model.backend||'')).toLocaleLowerCase().includes(query)).sort((a,b)=>{const score=m=>m.id===loadedModel?0:m.status==='loaded'?1:m.status==='unavailable'?4:favorites.has(m.id)?2:3;return score(a)-score(b)||modelFileName(a).localeCompare(modelFileName(b));});
+  const estimateFit=['llama','strata','rust'].includes(activeEngine);
   box.replaceChildren();box.classList.toggle('remote-models',activeEngine==='api');
   if(!matches.length){const empty=document.createElement('div');empty.className='model-empty';empty.textContent=query?uiText('Ningún modelo coincide con')+' «'+query+'».':activeEngine==='api'?uiText('Conecta una API para ver sus modelos.'):uiText('No hay modelos instalados.');box.append(empty);}
   for(const model of matches){
     const row=document.createElement('button');row.type='button';row.className='model-option';row.dataset.id=model.id;row.setAttribute('role','option');row.setAttribute('aria-selected',String(model.id===selected));row.disabled=model.status==='unavailable';
     const name=document.createElement('span');name.className='model-option-name';name.textContent=modelFileName(model);
     const meta=document.createElement('span');meta.className='model-option-meta';meta.textContent=[model.backend||'',model.context?model.context.toLocaleString()+' tokens':model.remote?'Contexto no informado':'',model.quantization||''].filter(Boolean).join(' · ');
+    if(estimateFit&&model.status!=='unavailable'){const fit=document.createElement('span');fit.className='model-fit';fit.dataset.id=model.id;fit.hidden=true;meta.append(fit);fitQueue.push({id:model.id,engine:activeEngine});}
     const state=document.createElement('span');state.className='model-option-state';state.textContent=model.status==='unavailable'?'No disponible':(model.id===loadedModel?(model.remote?'En uso':'En memoria'):'');
     row.title=[modelFileName(model),model.problem].filter(Boolean).join(' · ');
     row.append(name,meta,state);
+    const holder=document.createElement('div');holder.className='model-option-wrap';
+    const star=document.createElement('button');star.type='button';star.className='model-fav';const favorite=favorites.has(model.id);
+    star.dataset.on=String(favorite);star.textContent=favorite?'★':'☆';star.setAttribute('aria-pressed',String(favorite));
+    star.setAttribute('aria-label',uiText(favorite?'Quitar de favoritos':'Añadir a favoritos')+': '+modelFileName(model));star.title=uiText(favorite?'Quitar de favoritos':'Añadir a favoritos');
+    star.onclick=event=>{event.stopPropagation();toggleModelFavorite(model.id);};
+    holder.append(row,star);
     row.onclick=()=>{const select=$('#model');select.value=model.id;select.dispatchEvent(new Event('change'));box.querySelectorAll('.model-option').forEach(item=>item.setAttribute('aria-selected',String(item.dataset.id===model.id)));syncModelSelectionSummary();};
-    box.append(row);
+    box.append(holder);
+    paintModelFit(model.id);
   }
+  runFitQueue();
   const selectedRow=box.querySelector('.model-option[aria-selected=true]');
   if(selectedRow)box.scrollTop=Math.max(0,selectedRow.offsetTop-box.clientHeight/2+selectedRow.offsetHeight/2);
   syncModelSelectionSummary();
@@ -347,6 +394,11 @@ function updateContextMeter(usage) {
   const numbers=(used===null?'—':formatTokens(used))+' / '+(limit?formatTokens(limit):'—');
   const ratio=percent===null?'—':percent.toLocaleString(window.VALI18n?.locale||'es-ES',{maximumFractionDigits:1})+' %';
   $('#ctxLabel').textContent=numbers+' · '+ratio;
+  // The same measure, always in sight in the chat's header (the composer's button can be hidden or moved).
+  const ring=$('#ctxRing');
+  if(ring){ring.hidden=!limit||!loadedModel;$('#ctxRingLabel').textContent=(used===null?'—':formatTokens(used))+' / '+formatTokens(limit||0);
+    ring.querySelector('.ctx-ring-fill').setAttribute('stroke-dasharray',(percent===null?0:Math.min(100,percent)).toFixed(1)+' 100');
+    ring.dataset.level=percent>=95?'full':percent>=80?'high':'normal';ring.setAttribute('aria-label',uiText('Contexto')+': '+numbers+' tokens · '+ratio);ring.title=uiText('Contexto')+': '+numbers+' tokens · '+ratio;}
   const contextSummary=uiText('Contexto')+': '+numbers+' tokens · '+ratio;
   $('#ctxBtn').setAttribute('aria-label',contextSummary);
   $('#contextUsageNumbers').textContent=numbers;$('#contextUsagePercent').textContent=ratio;

@@ -124,7 +124,7 @@ class Provider(BaseHTTPRequestHandler):
 
 SEND = """const w=ms=>new Promise(r=>setTimeout(r,ms));const $=id=>document.getElementById(id);
 const input=$('input');input.value=%s;input.dispatchEvent(new Event('input',{bubbles:true}));await w(200);$('send').click();
-for(let k=0;k<20&&!input.disabled;k++)await w(100);return true;"""
+for(let k=0;k<20&&$('chatwrap').dataset.generating!=='true';k++)await w(100);return true;"""
 
 WAIT_DIALOG = """const w=ms=>new Promise(r=>setTimeout(r,ms));
 for(let k=0;k<100;k++){const d=document.querySelector('dialog.agent-question[open]');if(d)return {question:d.querySelector('.agent-question-text')?.textContent,
@@ -132,7 +132,7 @@ for(let k=0;k<100;k++){const d=document.querySelector('dialog.agent-question[ope
 return null;"""
 
 WAIT_DONE = """const w=ms=>new Promise(r=>setTimeout(r,ms));const $=id=>document.getElementById(id);
-for(let k=0;k<300&&$('input').disabled;k++)await w(150);await w(500);
+for(let k=0;k<300&&$('chatwrap').dataset.generating==='true';k++)await w(150);await w(500);
 const msgs=[...document.querySelectorAll('#chat .msg.assistant, #chat .assistant')];const last=msgs[msgs.length-1];
 const cards=[...document.querySelectorAll('#chat .tool, #chat details.tool')].map(c=>c.textContent.replace(/\\s+/g,' ').slice(0,240));
 return {text:last?last.textContent.replace(/\\s+/g,' ').slice(-700):'',cards};"""

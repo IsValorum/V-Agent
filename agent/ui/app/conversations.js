@@ -1,8 +1,30 @@
 /* ---------- conversaciones ---------- */
+let temporaryChat = false;
 function selectedConversation() {
-  return convs.find(chat => chat.id === currentId);
+  return temporaryChat ? null : convs.find(chat => chat.id === currentId);
+}
+function syncTemporaryBadge() {
+  const badge = $('#tempChatBadge'), save = $('#promoteTempChat');
+  if (badge) badge.hidden = !temporaryChat;
+  if (save) save.hidden = !temporaryChat || !messages.length;
+  const btn = $('#newTempChat');
+  if (btn) btn.setAttribute('aria-pressed', String(temporaryChat));
+  if (temporaryChat) $('#chatTitle').textContent = uiText('Chat temporal');
+  syncWorkspacePath();
+}
+async function confirmLeaveTemporary() {
+  if (!temporaryChat || !messages.length) return true;
+  return await valConfirm({title:'¿Descartar este chat temporal?',message:'Los mensajes de este chat temporal no se han guardado. Si quieres conservarlos, usa Guardar chat.',confirm:'Descartar',danger:true});
+}
+async function promoteTemporaryChat() {
+  if (!temporaryChat || !messages.length || busy) return;
+  temporaryChat = false;
+  persistConv();
+  syncTemporaryBadge();
+  note(uiText('Chat guardado en el historial.'));
 }
 async function openConversationSandbox(){
+  if(temporaryChat){note(uiText('El chat temporal no crea una carpeta permanente.'));return;}
   if(!currentId){note(uiText('Envía un mensaje para crear la conversación y su carpeta.'));return;}
   try{await flushSessionSaves();const native=!!window.__TAURI__?.core?.invoke;const id=currentId;await requestJSON('/api/workspace/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conversation_id:id,prepare_only:native})});if(native)await window.__TAURI__.core.invoke('open_sandbox_folder',{conversationId:id});}
   catch(error){note(uiText(typeof error==='string'?error:(error?.message||String(error))));}
@@ -10,7 +32,7 @@ async function openConversationSandbox(){
 $('#openSandbox').onclick=openConversationSandbox;
 function syncWorkspacePath() {
   const root = pcAccess.workspaces || pcAccess.root + "\\conversations";
-  $("#sandboxPath").textContent = currentId ? uiText("Sandbox de este chat")+": "+root+"\\"+currentId+(selectedProjectChat===currentId&&selectedProject?" · "+uiText("Proyecto activo")+": "+selectedProject.path:"") : uiText("La carpeta se crea al enviar el primer mensaje.");
+  $("#sandboxPath").textContent = temporaryChat ? uiText("Chat temporal: no se guarda en el historial.") : currentId ? uiText("Sandbox de este chat")+": "+root+"\\"+currentId+(selectedProjectChat===currentId&&selectedProject?" · "+uiText("Proyecto activo")+": "+selectedProject.path:"") : uiText("La carpeta se crea al enviar el primer mensaje.");
   $("#sandboxPath").hidden = false;
 }
 async function refreshProjectAssignments(){
@@ -34,8 +56,8 @@ function renderConvs() {
   const archived = sorted.filter(chat => chat.archived);
   const row = chat => {
     const el = document.createElement("div");
-    el.className = "conv" + (chat.id === currentId ? " active" : "");
-    el.innerHTML = '<span class="t"></span><button class="conv-more" type="button" aria-haspopup="menu" aria-label="Opciones de la conversación">⋯</button>';
+    el.className = "conv" + (chat.id === currentId ? " active" : "") + (chat.pinned ? " pinned" : "");
+    el.innerHTML = (chat.pinned ? '<span class="conv-pin" aria-hidden="true">★</span>' : '') + '<span class="t"></span><button class="conv-more" type="button" aria-haspopup="menu" aria-label="Opciones de la conversación">⋯</button>';
     el.querySelector(".t").textContent = chat.title==='Nuevo chat'?uiText('Nuevo chat'):(chat.title || uiText("Sin título"));
     el.setAttribute("tabindex", "0");
     el.setAttribute("role", "button");
@@ -83,9 +105,27 @@ function renderConvs() {
     }));
     projectsNav.hidden=!projects.length;
   }
-  box.replaceChildren(...normal.map(row));
+  const listNodes=[];
+  const pinned=normal.filter(c=>c.pinned),rest=normal.filter(c=>!c.pinned);
+  const addGroup=(label,items)=>{if(!items.length)return;const h=document.createElement('div');h.className='conv-group-title';h.textContent=uiText(label);listNodes.push(h,...items.map(row));};
+  if(pinned.length)addGroup('Fijados',pinned);
+  if(rest.length){
+    const now=new Date(),startToday=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime(),dayMs=86400000;
+    const buckets=[['Hoy',[]],['Ayer',[]],['Últimos 7 días',[]],['Anteriores',[]]];
+    for(const chat of rest){
+      const ts=Number(chat.ts)||0;
+      if(ts>=startToday)buckets[0][1].push(chat);
+      else if(ts>=startToday-dayMs)buckets[1][1].push(chat);
+      else if(ts>=startToday-7*dayMs)buckets[2][1].push(chat);
+      else buckets[3][1].push(chat);
+    }
+    const nonEmpty=buckets.filter(([,items])=>items.length);
+    if(pinned.length||nonEmpty.length>1){for(const [label,items] of nonEmpty)addGroup(label,items);}
+    else listNodes.push(...rest.map(row));
+  }
+  box.replaceChildren(...listNodes);
   $("#convCount").textContent = normal.length;
-  $("#chatTitle").textContent = (current?.title==='Nuevo chat'?uiText('Nuevo chat'):current?.title) || uiText("Nuevo chat");
+  $("#chatTitle").textContent = temporaryChat ? uiText("Chat temporal") : ((current?.title==='Nuevo chat'?uiText('Nuevo chat'):current?.title) || uiText("Nuevo chat"));
   if (!normal.length) {
     const empty = document.createElement("div");
     empty.className = "history-empty";
@@ -109,9 +149,29 @@ async function exportConversation(chat){
   try{await downloadToolDraft('strata-'+title+'.json',JSON.stringify(data,null,2),'application/json');}
   catch(error){note(uiText(typeof error==='string'?error:(error?.message||String(error))));}
 }
+// Save one conversation to disk even when it is not the open one (the regular save follows the open chat only).
+function saveConversation(chat){
+  saveConvsLS();
+  if(!sessionsReady||!chat||conflictedSessions.has(chat.id))return;
+  const body=sessionBody(chat);if(savedSessionBodies.get(chat.id)!==JSON.stringify(body))pendingSessionSaves.set(chat.id,body);
+  clearTimeout(sessionTimer);sessionTimer=setTimeout(()=>flushSessionSaves().catch(error=>note(uiText('Guardado pendiente; mantén la pestaña abierta.')+' '+error.message)),250);
+}
+async function renameConversation(chat){
+  if(!chat)return;
+  const current=chat.title==='Nuevo chat'?uiText('Nuevo chat'):(chat.title||'');
+  const name=await valConfirm({title:'Renombrar conversación',confirm:'Guardar',input:{value:current,label:'Nombre de la conversación',maxLength:120}});
+  if(!name||name===current)return;
+  chat.title=name;saveConversation(chat);renderConvs();
+  if(chat.id===currentId)$('#chatTitle').textContent=name;
+}
+function pinConversation(chat){
+  if(!chat||busy)return;
+  chat.pinned=!chat.pinned;saveConversation(chat);renderConvs();
+  note(uiText(chat.pinned?'Chat fijado.':'Chat desfijado.'));
+}
 function archiveConversation(chat){
   if(!chat||busy)return;
-  chat.archived=!chat.archived;saveConvsLS();renderConvs();
+  chat.archived=!chat.archived;saveConversation(chat);renderConvs();
   note(uiText(chat.archived?'Chat archivado.':'Chat restaurado.'));
 }
 async function removeProject(project){
@@ -126,14 +186,16 @@ async function removeProject(project){
 }
 function setupConvMenus(){
   const menu=document.createElement('div');menu.id='convMenu';menu.className='agent-small-menu conv-menu';menu.setAttribute('popover','manual');menu.setAttribute('role','menu');
-  const icons={archive:'M4 7h16M5 7v13h14V7M3 3h18v4H3ZM9 12h6',export:'M12 3v12m-4-4 4 4 4-4M5 16v5h14v-5',delete:'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6m4-6v6'};
-  for(const [action,label] of [['archive','Archivar'],['export','Exportar'],['delete','Borrar']]){const button=document.createElement('button');button.type='button';button.dataset.action=action;button.setAttribute('role','menuitem');button.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+icons[action]+'"/></svg><span></span>';button.querySelector('span').textContent=uiText(label);menu.append(button);}
+  const icons={pin:'M12 17v5M9 4h6l1 6 3 3H5l3-3 1-6Z',rename:'M4 20h4L19 9l-4-4L4 16v4ZM14 6l4 4',archive:'M4 7h16M5 7v13h14V7M3 3h18v4H3ZM9 12h6',export:'M12 3v12m-4-4 4 4 4-4M5 16v5h14v-5',delete:'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6m4-6v6'};
+  for(const [action,label] of [['pin','Fijar'],['rename','Renombrar'],['archive','Archivar'],['export','Exportar'],['delete','Borrar']]){const button=document.createElement('button');button.type='button';button.dataset.action=action;button.setAttribute('role','menuitem');button.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+icons[action]+'"/></svg><span></span>';button.querySelector('span').textContent=uiText(label);menu.append(button);}
   document.body.append(menu);
   const projectMenu=document.createElement('div');projectMenu.id='projectMenu';projectMenu.className='agent-small-menu conv-menu';projectMenu.setAttribute('popover','manual');projectMenu.setAttribute('role','menu');
   const projectRemove=document.createElement('button');projectRemove.type='button';projectRemove.setAttribute('role','menuitem');projectRemove.textContent=uiText('Quitar proyecto');projectMenu.append(projectRemove);document.body.append(projectMenu);
   document.addEventListener('pointerdown',event=>{for(const id of ['convMenu','projectMenu']){const item=document.getElementById(id);if(item?.matches(':popover-open')&&!event.target.closest('#'+id+',.conv-more,.conv-project-more'))window.VALMotion.hidePopover(item);}});
   document.addEventListener('keydown',event=>{if(event.key!=='Escape')return;for(const id of ['convMenu','projectMenu']){const item=document.getElementById(id);if(item?.matches(':popover-open'))window.VALMotion.hidePopover(item);}});
+  menu.querySelector('[data-action=pin]').onclick=()=>{window.VALMotion.hidePopover(menu);if(convMenuChat)pinConversation(convMenuChat);};
   menu.querySelector('[data-action=delete]').onclick=()=>{window.VALMotion.hidePopover(menu);if(convMenuChat)delConv(convMenuChat.id);};
+  menu.querySelector('[data-action=rename]').onclick=()=>{window.VALMotion.hidePopover(menu);if(convMenuChat)renameConversation(convMenuChat);};
   menu.querySelector('[data-action=archive]').onclick=()=>{window.VALMotion.hidePopover(menu);if(convMenuChat)archiveConversation(convMenuChat);};
   menu.querySelector('[data-action=export]').onclick=()=>{window.VALMotion.hidePopover(menu);if(convMenuChat)exportConversation(convMenuChat);};
   projectRemove.onclick=()=>{window.VALMotion.hidePopover(projectMenu);if(projectMenuProject)removeProject(projectMenuProject);};
@@ -154,24 +216,29 @@ async function navigateChat(step){
 }
 function showConvMenu(anchor,chat){
   convMenuChat=chat;const menu=document.getElementById('convMenu');if(!menu)return;if(menu.matches(':popover-open'))window.VALMotion.hidePopover(menu);
+  const pin=menu.querySelector('[data-action=pin]');if(pin)pin.querySelector('span').textContent=uiText(chat.pinned?'Desfijar':'Fijar');
   const archive=menu.querySelector('[data-action=archive]');if(archive)archive.querySelector('span').textContent=uiText(chat.archived?'Restaurar':'Archivar');
   showAgentMenu(menu,anchor);
 }
-function startProjectChat(project){
+async function startProjectChat(project){
   if(busy){note(uiText('Espera a que termine la respuesta para abrir otra conversación.'));return;}
-  newConv();window.__chooseProject?.({project_id:project.id});
+  if(!await confirmLeaveTemporary())return;
+  temporaryChat=false;
+  newConv(true);window.__chooseProject?.({project_id:project.id});
 }
 function showProjectMenu(anchor,project){
   projectMenuProject=project;const menu=document.getElementById('projectMenu');if(!menu)return;if(menu.matches(':popover-open'))window.VALMotion.hidePopover(menu);showAgentMenu(menu,anchor);
 }
 async function openConv(id,remember=true) {
   if (busy) { note(uiText("Espera a que termine la respuesta para cambiar de conversación.")); return; }
+  if (!await confirmLeaveTemporary()) return;
+  temporaryChat = false;
   if(conflictedSessions.has(id)){try{const data=await requestJSON('/api/v1/sessions');const saved=data.sessions.find(c=>c.id===id);if(!saved)throw new Error('El chat ya no está disponible.');const idx=convs.findIndex(c=>c.id===id);if(idx>=0)convs[idx]=saved;else convs.unshift(saved);savedSessionBodies.set(id,JSON.stringify(sessionBody(saved)));conflictedSessions.delete(id);}catch(error){note(error.message);return;}}
   setSidebar(false); attachments = []; renderAttachments();
   const c = convs.find((x) => x.id === id); if (!c) return;
   if(remember&&chatTrail[chatTrailCursor]!==id){chatTrail=chatTrail.slice(0,chatTrailCursor+1);chatTrail.push(id);chatTrailCursor=chatTrail.length-1;syncChatTrail();}
   currentId = id; messages = JSON.parse(JSON.stringify(c.messages || []));
-  renderChat(); renderConvs();syncProjectButton();
+  renderChat(); renderConvs();syncProjectButton();syncTemporaryBadge();
 }
 async function delConv(id) {
   if (busy) { note(uiText("Espera a que termine la respuesta para borrar una conversación.")); return; }
@@ -183,14 +250,27 @@ async function delConv(id) {
   if (currentId === id) { currentId = null; messages = []; $("#chat").innerHTML = ""; }
   saveConvsLS(); renderConvs(); renderChat();
 }
-function newConv() {
+async function newConv(skipConfirm=false) {
   if (busy) { note(uiText("Espera a que termine la respuesta para abrir otra conversación.")); return; }
+  if (!skipConfirm && !await confirmLeaveTemporary()) return;
+  temporaryChat = false;
   currentId = null; messages = []; attachments = []; renderAttachments();selectedProject=null;selectedProjectChat=null;
   chatTrail=[];chatTrailCursor=-1;syncChatTrail();
   const project=$('#projectBtn');if(project){project.querySelector('span').textContent=uiText('Sin proyecto');project.dataset.selected='false';project.title=uiText('Carpeta independiente de esta conversación');}
   if(pcAccess.mode==='sandbox')$('#accessStatus').textContent=uiText('Archivos limitados a la carpeta de este chat. Comandos bloqueados.');
-  renderChat(); renderConvs();syncProjectButton();
+  renderChat(); renderConvs();syncProjectButton();syncTemporaryBadge();
   $("#input").value = ""; resizeInput(); setSidebar(false); $("#input").focus();
+}
+async function newTempConv() {
+  if (busy) { note(uiText("Espera a que termine la respuesta para abrir otra conversación.")); return; }
+  if (!await confirmLeaveTemporary()) return;
+  temporaryChat = true;
+  currentId = null; messages = []; attachments = []; renderAttachments();selectedProject=null;selectedProjectChat=null;
+  chatTrail=[];chatTrailCursor=-1;syncChatTrail();
+  const project=$('#projectBtn');if(project){project.querySelector('span').textContent=uiText('Sin proyecto');project.dataset.selected='false';project.title=uiText('Carpeta independiente de esta conversación');}
+  renderChat(); renderConvs();syncProjectButton();syncTemporaryBadge();
+  $("#input").value = ""; resizeInput(); setSidebar(false); $("#input").focus();
+  note(uiText('Chat temporal: no se guardará en tu historial.'));
 }
 function applySidebarCollapsed(value){
   const collapsed=Boolean(value);document.body.classList.toggle('sidebar-collapsed',collapsed);
@@ -221,6 +301,7 @@ function setupSidebarChrome(){
 function bodyClassCollapsed(){return document.body.classList.contains('sidebar-collapsed');}
 function persistConv() {
   if (!messages.length) return;
+  if (temporaryChat) { syncTemporaryBadge(); return; }
   const firstUser = messages.find((m) => m.role === "user");
   const title = (firstUser ? userMessageRawText(firstUser) : "Conversación").replace(/\[Adjuntos\][\s\S]*/, "").slice(0, 48) || "Conversación";
   if (!currentId) { currentId = crypto.randomUUID(); convs.push({ id: currentId, title, ts: Date.now(), messages: [] }); }

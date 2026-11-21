@@ -411,7 +411,7 @@ def install(a):
     atexit.register(browser.close)
     import extensions
     catalog=extensions.Catalog();catalog.refresh()
-    import model_hub,external_models
+    import model_hub,external_models,model_mover
 
     def add_gguf(path,name=None,settings=None,engine=None):
         return import_external_model(path,name,settings,engine or manager.kind,a.MODEL_PREFERENCES)
@@ -419,6 +419,7 @@ def install(a):
     def hub_register(path,job):
         return add_gguf(path,Path(job['name']).stem,engine='llama' if manager.kind=='api' else manager.kind)['id']
     hub_downloads=model_hub.Downloads(register=hub_register)
+    model_moves=model_mover.ModelMover(hub_downloads.folder,add_gguf)
 
     def registered_paths():
         entries=models().get('data',[])
@@ -528,6 +529,17 @@ def install(a):
                 self.send_response(200);self.send_header('Content-Type','text/css; charset=utf-8' if name.endswith('.css') else 'text/javascript; charset=utf-8')
                 self.send_header('Content-Length',str(len(raw)));self.send_header('Cache-Control','no-store');self.send_header('X-Content-Type-Options','nosniff');self.end_headers();self.wfile.write(raw);return
             if self.path=='/api/harness/preferences':self._json(200,preferences.get());return
+            if self.path=='/api/harness/instructions' or self.path.startswith('/api/harness/instructions?'):
+                import instructions
+                chat_id=urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query).get('conversation_id',[''])[0] or None
+                project_root=None
+                if chat_id:
+                    try:
+                        snap=a.PROJECTS.snapshot(chat_id)
+                        proj=next((p for p in snap['projects'] if p['id']==snap['selected']),None)
+                        if proj:project_root=proj.get('path')
+                    except Exception:project_root=None
+                self._json(200,instructions.snapshot(project_root));return
             if self.path=='/api/harness/mcp-options':self._json(200,OPTIONS.get());return
             if self.path=='/api/harness/updates':self._json(200,update_payload());return
             if self.path.startswith('/api/harness/updates/notes?'):
@@ -551,12 +563,16 @@ def install(a):
                         self._json(200,{**model_hub.details(arg('repo')),'hardware':{'vram_mib':gpu.get('vram_mib') or 0,'ram_gib':(hardware.get('ram') or {}).get('total_gib') or 0}})
                     elif parts.path=='/api/harness/hub/downloads':self._json(200,hub_downloads.snapshot())
                     elif parts.path=='/api/harness/external/scan':
-                        result=external_models.scan();known=registered_paths()
+                        result=external_models.scan();known=registered_paths();models_root=hub_downloads.folder()
+                        result['models_folder']=str(models_root)
                         for item in result['models']:
                             try:resolved=str(Path(item['path']).resolve())
                             except OSError:resolved=str(Path(item['path']))
                             item['registered']=os.path.normcase(resolved) in known
+                            item['inside_vagent']=model_mover.is_inside(item['path'],models_root)
+                            item['companions']=max(0,len(model_mover.collect_model_files(item['path']))-1)
                         self._json(200,result)
+                    elif parts.path=='/api/harness/external/move-status':self._json(200,model_moves.snapshot())
                     else:self._json(404,{'error':'Ruta desconocida.'})
                 except Exception as error:self._json(400,{'error':str(error)[:300]})
                 return
@@ -771,6 +787,13 @@ def install(a):
                     self._json(200,store.save(body))
                 except (ValueError,OSError) as error:self._json(400,{'error':str(error)})
                 return
+            if self.path=='/api/harness/instructions':
+                import instructions
+                try:
+                    body=self._read_json_dict(65536)
+                    self._json(200,instructions.save_global(body.get('content','')))
+                except (ValueError,OSError) as error:self._json(400,{'error':str(error)})
+                return
             if self.path=='/api/harness/components':
                 # Signed minor updates (MCP servers, tool descriptions); see components.py.
                 from components import COMPONENTS
@@ -836,6 +859,11 @@ def install(a):
                             try:done.append({'path':item.get('path'),**add_gguf(item.get('path',''),item.get('name'),item)})
                             except (ValueError,OSError,KeyError,TypeError) as error:done.append({'path':item.get('path'),'error':str(error)[:200]})
                         result={'results':done}
+                    elif self.path=='/api/harness/external/move':
+                        if manager.kind!='api' and manager.loaded:raise ValueError('Descarga el modelo en memoria antes de mover archivos.')
+                        result=model_moves.start(body.get('items'))
+                    elif self.path=='/api/harness/external/move-cancel':
+                        result=model_moves.cancel()
                     elif self.path=='/api/harness/external/export':
                         settings=model_settings(body.get('model'));target=body.get('target')
                         if target=='lmstudio':result={'written':external_models.export_lmstudio(settings['path'],settings)}

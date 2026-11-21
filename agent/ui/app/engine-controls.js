@@ -463,7 +463,7 @@ function syncEngineCapabilities(){
   if(!$('#engineSettings'))return;
   syncLoadSettings();
   const remote=activeEngine==='api',strata=activeEngine==='strata',maya=activeEngine==='maya';
-  $('#controls-context').hidden=remote;if($('#contextBlock'))$('#contextBlock').hidden=remote;if($('#loadAdvanced'))$('#loadAdvanced').hidden=remote||maya;if($('#modelSectionTabs'))$('#modelSectionTabs').hidden=remote;if(remote)setModelSection('generation');$('#effort').closest('.row').hidden=false;$('#kvSettings').hidden=remote||maya;$('#draftSettings').hidden=!strata;$('#visionSettings').hidden=remote||activeEngine==='rust'||maya;
+  $('#controls-context').hidden=remote;if($('#contextBlock'))$('#contextBlock').hidden=remote;if($('#loadAdvanced'))$('#loadAdvanced').hidden=remote||maya;if($('#modelTransfer'))$('#modelTransfer').hidden=remote;if($('#modelSectionTabs'))$('#modelSectionTabs').hidden=remote;if(remote)setModelSection('generation');$('#effort').closest('.row').hidden=false;$('#kvSettings').hidden=remote||maya;$('#draftSettings').hidden=!strata;$('#visionSettings').hidden=remote||activeEngine==='rust'||maya;
   $('#templateRow').hidden=!strata;if($('#templateSettings'))$('#templateSettings').hidden=!strata;
   const power=$('#engineToggle').closest('.power-row');if(power)power.hidden=['llama','rust','maya'].includes(activeEngine)||engineFormDirty();
   for(const id of ['p_topk','p_minp','p_rep','p_presence','p_frequency','p_seed'])if($('#'+id)?.closest('.row'))$('#'+id).closest('.row').hidden=remote;
