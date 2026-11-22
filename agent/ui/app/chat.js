@@ -82,7 +82,7 @@ function attachmentSummary(message) {
 }
 function responseVersion(message) {
   const version={content:message.content||'',reasoning_content:message.reasoning_content||''};
-  for(const key of ['tool_trace','status','error','usage','performance','model','model_name','generated_at'])if(message[key])version[key]=message[key];
+  for(const key of ['tool_trace','model_turn','model_final','status','error','usage','performance','model','model_name','generated_at'])if(message[key])version[key]=message[key];
   return version;
 }
 function selectResponseVersion(index,offset) {

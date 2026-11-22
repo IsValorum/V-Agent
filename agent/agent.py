@@ -1547,6 +1547,25 @@ def attach_turn_note(messages, note):
     return messages
 
 
+def turn_user_suffix(original, sent):
+    """What this turn added to the latest user message (date line, recovery note), or None.
+
+    The interface stores it with that message and sends it back on later turns: the engine already read the
+    message with it, and the same message without it would make a local engine read everything from there
+    again (hybrid models cannot reuse anything after a change; issue #2)."""
+    def last_user(items):
+        return next((m for m in reversed(items) if isinstance(m, dict) and m.get('role') == 'user'), None)
+    before, after = last_user(original), last_user(sent)
+    if before is None or after is None:
+        return None
+    old, new = before.get('content'), after.get('content')
+    if isinstance(old, str) and isinstance(new, str) and len(new) > len(old) and new.startswith(old):
+        return new[len(old):]
+    if isinstance(old, list) and isinstance(new, list) and len(new) > len(old) and new[:len(old)] == old:
+        return new[len(old):]
+    return None
+
+
 def _run_chat_stream(body, control=None):
     """Genera eventos: reasoning, content, tool, round, done, error."""
     finish_reason = None   # the last round's, reported with "done" (the reply's speed detail shows it)
@@ -1634,6 +1653,14 @@ def _run_chat_stream(body, control=None):
     if workspace is not ACCESS and (body.get('functions') or {}).get('files'):
         from context_policy import project_messages
         messages,context_projection=project_messages(messages,workspace,block=8)
+    user_suffix = turn_user_suffix(list(body.get("messages") or []), messages)
+    # Every message this turn adds to the engine's history, exactly as the engine saw it. "done" carries it
+    # so the interface sends the same rounds back next turn instead of a reconstruction.
+    turn_log = []
+
+    def add(message):
+        messages.append(message)
+        turn_log.append(message)
     full = []
 
     # La reserva se ajusta para el contexto que se va a usar, no para el techo: con una
@@ -1685,6 +1712,8 @@ def _run_chat_stream(body, control=None):
     else:
         archivar = None
     reintentos_turno = 0
+    if user_suffix:
+        yield {"type": "prompt_suffix", "text": user_suffix}
     for rnd in range(rounds):
         final_round = bool(tools) and (wrap_up or rnd == rounds - 1)
         if control.cancelled.is_set():
@@ -1885,7 +1914,7 @@ def _run_chat_stream(body, control=None):
             full.append(_cierre_bucle(control, previo, guardado_en_turno))
             final = "".join(full)
             yield {"type": "content_fixed", "text": final}
-            yield {"type": "done", "finish_reason": finish_reason or "", "content": final, "reasoning_content": "".join(reasoning_parts)}
+            yield {"type": "done", "turn": turn_log, "finish_reason": finish_reason or "", "content": final, "reasoning_content": "".join(reasoning_parts)}
             return
         tail_reason, tail_content = f_reason.flush(), f_content.flush()   # lo retenido por si la marca venia partida
         if tail_reason:
@@ -1933,7 +1962,7 @@ def _run_chat_stream(body, control=None):
             final = "".join(full) + content
             if content != raw_content:
                 yield {"type": "content_fixed", "text": final}
-            yield {"type": "done", "finish_reason": finish_reason or "", "content": final, "reasoning_content": reasoning}
+            yield {"type": "done", "turn": turn_log, "finish_reason": finish_reason or "", "content": final, "reasoning_content": reasoning}
             return
 
         full.append(content)
@@ -1990,8 +2019,8 @@ def _run_chat_stream(body, control=None):
                         "Call not executed: your large write was truncated before completion. Retry cleanly with valid "
                         "JSON arguments, or split the file into smaller steps."
                     )
-                    messages.append({"role": "assistant", "content": content, "reasoning_content": reasoning})
-                    messages.append({"role": "tool", "content": "[Recovery: " + hint + "]"})
+                    add({"role": "assistant", "content": content, "reasoning_content": reasoning})
+                    add({"role": "tool", "content": "[Recovery: " + hint + "]"})
                     if content.strip():
                         full.append("\n\n")
                         yield {"type": "content", "text": "\n\n"}
@@ -1999,7 +2028,7 @@ def _run_chat_stream(body, control=None):
                 final = "".join(full).rstrip()
                 final += ("\n\n" if final else "") + "El archivo quedó como borrador. Ábrelo en la llamada Guardar archivo para copiarlo o descargarlo."
                 yield {"type": "content_fixed", "text": final}
-                yield {"type": "done", "finish_reason": finish_reason or "", "content": final, "reasoning_content": reasoning}
+                yield {"type": "done", "turn": turn_log, "finish_reason": finish_reason or "", "content": final, "reasoning_content": reasoning}
                 return
             if tools and (attempted or thought_attempted or cut_call or rejected or finish_reason == "tool_calls"):
                 fallos_forma += 1
@@ -2030,8 +2059,8 @@ def _run_chat_stream(body, control=None):
                         wrap_up = True
                         instruction = ("Call not executed. Answer without further tool calls. "
                                        "Provide requested text or code in chat. State which actions remain undone.")
-                    messages.append({"role": "assistant", "content": content, "reasoning_content": reasoning})
-                    messages.append({"role": "tool", "content": instruction})
+                    add({"role": "assistant", "content": content, "reasoning_content": reasoning})
+                    add({"role": "tool", "content": instruction})
                     if content.strip():
                         full.append("\n\n")
                         yield {"type": "content", "text": "\n\n"}
@@ -2040,7 +2069,7 @@ def _run_chat_stream(body, control=None):
                 final = "".join(full).rstrip()
                 final = (final + "\n\n" if final else "") + suffix
                 yield {"type": "content_fixed", "text": final}
-                yield {"type": "done", "finish_reason": finish_reason or "", "content": final, "reasoning_content": reasoning}
+                yield {"type": "done", "turn": turn_log, "finish_reason": finish_reason or "", "content": final, "reasoning_content": reasoning}
                 return
             # Nothing at all (no text, no reasoning, no call): a provider hiccup more than an answer. Cline
             # (retry-empty-response middleware) and Roo Code repeat the same request; so does this, twice.
@@ -2063,8 +2092,8 @@ def _run_chat_stream(body, control=None):
                 else:
                     aviso_vacio = ("[Recovery: you ended the turn after thinking, with no reply and no tool call. "
                                    "Continue now: call the next tool, or give the user your answer.]")
-                messages.append({"role": "assistant", "content": "", "reasoning_content": reasoning})
-                messages.append({"role": "tool", "content": aviso_vacio})
+                add({"role": "assistant", "content": "", "reasoning_content": reasoning})
+                add({"role": "tool", "content": aviso_vacio})
                 continue
             if not content.strip() and not "".join(full).strip() and (raw_reasoning or "").strip():
                 # The interface translates this exact phrase (an error event, not reply text).
@@ -2079,8 +2108,8 @@ def _run_chat_stream(body, control=None):
             missing = None if archivo_recordado or rnd >= rounds - 1 else archivo_no_creado(messages, tools, content)
             if missing:
                 archivo_recordado = True
-                messages.append({"role": "assistant", "content": content, "reasoning_content": reasoning})
-                messages.append({"role": "tool", "content": (
+                add({"role": "assistant", "content": content, "reasoning_content": reasoning})
+                add({"role": "tool", "content": (
                     "[Recovery: %s was NOT created; the code only appeared in your reply. Call fs_write now with "
                     "path %s and the complete content, then verify it.]" % (missing, missing))})
                 full.append("\n\n")
@@ -2113,17 +2142,18 @@ def _run_chat_stream(body, control=None):
                             "[Recovery: the previous tool step failed and no follow-up tool was called. "
                             "Rectify the arguments or approach and call the next tool now until the task is complete.]"
                         )
-                    messages.append({"role": "assistant", "content": content, "reasoning_content": reasoning})
-                    messages.append({"role": "tool", "content": msg_nudge})
+                    add({"role": "assistant", "content": content, "reasoning_content": reasoning})
+                    add({"role": "tool", "content": msg_nudge})
                     full.append("\n\n")
                     yield {"type": "content", "text": "\n\n"}
                     continue
-            yield {"type": "done", "finish_reason": finish_reason or "", "content": "".join(full), "reasoning_content": reasoning}
+            yield {"type": "done", "finish_reason": finish_reason or "", "content": "".join(full), "reasoning_content": reasoning,
+                   "turn": turn_log, "final": {"content": content, "reasoning_content": reasoning}}
             return
 
         for call in ordered:
             call["parsed_args"] = {key: value for key, value in call["parsed_args"].items() if key not in PC_PRIVATE_ARGS}
-        messages.append({
+        add({
             "role": "assistant",
             "content": content,
             "reasoning_content": reasoning,
@@ -2316,32 +2346,32 @@ def _run_chat_stream(body, control=None):
                 control.bucle = motivo
             if control.cancelled.is_set():
                 return
-            messages.append({"role": "tool", "tool_call_id": c["id"] or f"call_{i}", "content": model_text})
+            add({"role": "tool", "tool_call_id": c["id"] or f"call_{i}", "content": model_text})
         last_round_failed = round_had_failure
         if denegada:
             final = "".join(full).rstrip()
             final += ("\n\n" if final else "") + ("No he ejecutado `%s` porque denegaste el permiso. "
                                                   "Dime cómo quieres continuar." % denegada.split("__")[-1])
             yield {"type": "content_fixed", "text": final}
-            yield {"type": "done", "finish_reason": finish_reason or "", "content": final, "reasoning_content": reasoning}
+            yield {"type": "done", "turn": turn_log, "finish_reason": finish_reason or "", "content": final, "reasoning_content": reasoning}
             return
         if failed_file:
             final = "".join(full).rstrip()
             final += ("\n\n" if final else "") + "No se pudo guardar el archivo. Puedes copiarlo o descargarlo desde la llamada Guardar archivo."
             yield {"type": "content_fixed", "text": final}
-            yield {"type": "done", "finish_reason": finish_reason or "", "content": final, "reasoning_content": reasoning}
+            yield {"type": "done", "turn": turn_log, "finish_reason": finish_reason or "", "content": final, "reasoning_content": reasoning}
             return
         if control.bucle:
             # La vuelta se para con el aviso, no con otra ronda de prefill sobre lo mismo.
             final = "".join(full) + _cierre_bucle(control, "", guardado_en_turno)
             yield {"type": "content_fixed", "text": final}
-            yield {"type": "done", "finish_reason": finish_reason or "", "content": final, "reasoning_content": ""}
+            yield {"type": "done", "turn": turn_log, "finish_reason": finish_reason or "", "content": final, "reasoning_content": ""}
             return
         if content.strip():
             full.append("\n\n")
             yield {"type": "content", "text": "\n\n"}
 
-    yield {"type": "done", "finish_reason": finish_reason or "", "content": "".join(full), "reasoning_content": reasoning}
+    yield {"type": "done", "turn": turn_log, "finish_reason": finish_reason or "", "content": "".join(full), "reasoning_content": reasoning}
 
 
 def con_ejecucion(veredicto, ruta):

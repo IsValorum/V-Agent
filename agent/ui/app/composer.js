@@ -191,13 +191,30 @@ function renderActivity(){
   $('#activityTime').textContent=Math.max(0,Math.round((Date.now()-(phase.since||generation.startWall))/1000))+' s';
 }
 function startActivity(){if(!activityTimer)activityTimer=setInterval(renderActivity,500);renderActivity();}
+// The same rules as model_history in conversation_codec.py; keep both in step.
 function conversationForModel(history) {
-  const result=[];
+  const result=[],lastUser=history.findLastIndex(message=>message.role==='user');
   history.forEach((message,messageIndex)=>{
     if(message.compacted){
       const label=message.compacted.method_label||message.compacted.method||'API';
       result.push({role:'user',content:'Compressed prior context ('+label+'):\n\n'+(message.content||'')});
       result.push({role:'assistant',content:'Understood. I will continue using this compressed context.'});
+      return;
+    }
+    if(message.role==='assistant'&&Array.isArray(message.model_turn)){
+      // The rounds exactly as the engine saw them (text, reasoning and call ids): a local engine reuses
+      // what it already read only up to the first change, and hybrid models nothing after it (issue #2).
+      result.push(...structuredClone(message.model_turn));
+      // A file the user recovered by hand afterwards is not in the engine's rounds: tell the model about it.
+      (message.tool_trace||[]).forEach((call,index)=>{
+        const file=call.recovery?fileFromDraft(call):null;if(!file)return;
+        const id='history_'+messageIndex+'_'+index;
+        result.push({role:'assistant',content:'',tool_calls:[{id,type:'function',function:{name:'pc__fs_write',arguments:JSON.stringify({path:file.filename,content:file.content})}}]});
+        result.push({role:'tool',tool_call_id:id,content:String(call.recovery?.result??'')});
+      });
+      const final=message.model_final&&typeof message.model_final==='object'?message.model_final:null;
+      const content=final?final.content||'':message.content||'',reasoning=final?final.reasoning_content||'':'';
+      if(content||reasoning)result.push({role:'assistant',content,...(reasoning?{reasoning_content:reasoning}:{})});
       return;
     }
     if(message.role==='assistant'){
@@ -221,7 +238,15 @@ function conversationForModel(history) {
       }
     }
     if(message.role!=='assistant'||message.content||message.reasoning_content){
-      result.push({role:message.role,content:message.images?.length?[{type:'text',text:message.content||''},...message.images.map(image=>({type:'image_url',image_url:{url:image.url}}))]:message.content||'',
+      let content=message.images?.length?[{type:'text',text:message.content||''},...message.images.map(image=>({type:'image_url',image_url:{url:image.url}}))]:message.content||'';
+      // What the core added when the engine read this message (date, recovery note). Not on the latest user
+      // message: that one is being answered now and gets this turn's own.
+      const suffix=message.role==='user'&&messageIndex!==lastUser?message.model_suffix:null;
+      if(suffix){
+        if(Array.isArray(content))content=[...content,...(Array.isArray(suffix)?structuredClone(suffix):[{type:'text',text:String(suffix)}])];
+        else if(typeof suffix==='string')content+=suffix;
+      }
+      result.push({role:message.role,content,
         ...(message.reasoning_content?{reasoning_content:message.reasoning_content}:{})});
     }
   });
@@ -390,7 +415,7 @@ async function generateResponse(replaceIndex=null) {
   setBusy(true);renderChat(replaceIndex??-1);
   const box=addAssistantBox(),think=box.querySelector('.think'),thinkBody=box.querySelector('.think-body'),bubble=box.querySelector('.bubble');box.dataset.index=replaceIndex??messages.length;box.dataset.generating='true';generation.box=box;const metricLabels=box.querySelectorAll('.response-metrics small');if(metricLabels[0])metricLabels[0].textContent=uiText('Generación');if(metricLabels[1])metricLabels[1].textContent=uiText('Lectura');bubble.textContent=uiText('Preparando respuesta…');
   showResponseModel(box,generation.provenance);
-  let finalText='',finalReasoning='',ended=false,finishReason='',reader,errorText='',lastUsage=null,traceView=null,paintFrame=0,streamNote=uiText('Preparando respuesta…'),paintedReasoning='',paintedBubble='',streamComplete=false,traceDirty=false,paintTimer=0,lastPaint=0;const toolTrace=[];generation.trace=toolTrace;startActivity();
+  let modelTurn=null,modelFinal=null,finalText='',finalReasoning='',ended=false,finishReason='',reader,errorText='',lastUsage=null,traceView=null,paintFrame=0,streamNote=uiText('Preparando respuesta…'),paintedReasoning='',paintedBubble='',streamComplete=false,traceDirty=false,paintTimer=0,lastPaint=0;const toolTrace=[];generation.trace=toolTrace;startActivity();
   function paintStream(){
     paintFrame=0;
     lastPaint=performance.now();
@@ -462,7 +487,8 @@ async function generateResponse(replaceIndex=null) {
         lastUsage=event.usage;
         raiseGenerationUsage(generation,event.usage);
       }
-      else if(event.type==='done'){ended=true;if(event.finish_reason)finishReason=event.finish_reason;if(!finalText&&event.content)finalText=event.content;if(!finalReasoning&&event.reasoning_content)finalReasoning=event.reasoning_content;}
+      else if(event.type==='prompt_suffix'){const asked=history.findLast(message=>message.role==='user');if(asked&&(typeof event.text==='string'||Array.isArray(event.text)))asked.model_suffix=event.text;}
+      else if(event.type==='done'){ended=true;if(Array.isArray(event.turn))modelTurn=event.turn;if(event.final&&typeof event.final==='object')modelFinal=event.final;if(event.finish_reason)finishReason=event.finish_reason;if(!finalText&&event.content)finalText=event.content;if(!finalReasoning&&event.reasoning_content)finalReasoning=event.reasoning_content;}
       else if(event.type==='error')throw new Error(event.text?uiText(event.text):uiText('El agente encontró un error.'));queuePaint();
     }
     for(;;){const {value,done}=await reader.read();buffer+=done?decoder.decode():decoder.decode(value,{stream:true});let match;while((match=/\r?\n\r?\n/.exec(buffer))){const chunk=buffer.slice(0,match.index);buffer=buffer.slice(match.index+match[0].length);consume(chunk);}if(done){if(buffer.trim())consume(buffer);break;}}
@@ -485,6 +511,7 @@ async function generateResponse(replaceIndex=null) {
     const response={role:'assistant',content:finalText,reasoning_content:finalReasoning,run_id:generation.runId,...(generation.modelConfirmed?generation.provenance:{})};
     for(const call of toolTrace)if(['drafting','validating','running'].includes(call.status))call.status=generation.stopped?'interrupted':'missing';
     if(toolTrace.length)response.tool_trace=toolTrace;
+    if(modelTurn&&!generation.stopped&&!errorText){response.model_turn=modelTurn;if(modelFinal)response.model_final=modelFinal;}
     // A stopped reply gets no final count; keep the last live measure so the meter does not go blank.
     const finalUsage=lastUsage||(generation.usage&&Number.isFinite(generation.usage.prompt_tokens)?generation.usage:null);
     if(finalUsage)response.usage={...finalUsage,limit:contextCapacity||modelContexts[requestModel]||null};

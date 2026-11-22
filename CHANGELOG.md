@@ -4,6 +4,13 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.1.10
+
+Fix release: after a turn with tools, the next message no longer makes a local engine read the previous turn again (issue #2, continued).
+
+- **The history goes back exactly as the engine read it (`agent/agent.py`, `ui/app/composer.js`, `agent/conversation_codec.py`):** The interface rebuilt earlier turns from the tool trace: the text and reasoning of each tool round were dropped (all the reasoning ended up on the final message), call ids were replaced, and the date and recovery notes the core adds to the user message were missing. Any of these changed the history at the start of the previous turn, so a local engine read that whole turn again on the next message. The core now reports what it added to the user message (`prompt_suffix`) and, when the reply ends, the rounds as the engine saw them (`turn`, `final`); the interface stores them with the conversation and sends them back unchanged. Replies saved by older versions or stopped before the end are rebuilt from the trace as before, and a file recovered by hand afterwards is still reported to the model.
+- **Measured:** five turns with tools on a 35B `qwen35moe` model: 1.1.9 read 270–660 tokens again at the start of every later turn; 1.1.10 reads only the new message (about 60 tokens, under 1 s), also when driven through the interface.
+
 ## 1.1.9
 
 Fix release: local hybrid models no longer read the whole conversation again on every turn (issue #2).

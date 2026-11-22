@@ -67,5 +67,48 @@ class TurnNotes(unittest.TestCase):
         self.assertEqual(self.attach([], 'note'), [{'role': 'user', 'content': '[note]'}])
 
 
+class ExactHistory(unittest.TestCase):
+    """The next turn sends back what the engine already read: the rounds as they were and the notes the core
+    added to earlier user messages, so the engine only reads the new message."""
+
+    def setUp(self):
+        import agent
+        from conversation_codec import model_history
+        self.suffix = agent.turn_user_suffix
+        self.history = model_history
+
+    def test_the_suffix_is_what_the_core_added_to_the_latest_user_message(self):
+        original = [{'role': 'user', 'content': 'a'}, {'role': 'assistant', 'content': 'b'}, {'role': 'user', 'content': 'hi'}]
+        sent = original[:2] + [{'role': 'user', 'content': 'hi\n\n[System note: date]'}]
+        self.assertEqual(self.suffix(original, sent), '\n\n[System note: date]')
+        self.assertIsNone(self.suffix(original, original))
+        images = [{'role': 'user', 'content': [{'type': 'text', 'text': 'look'}]}]
+        extra = [{'role': 'user', 'content': [{'type': 'text', 'text': 'look'}, {'type': 'text', 'text': '[note]'}]}]
+        self.assertEqual(self.suffix(images, extra), [{'type': 'text', 'text': '[note]'}])
+
+    def test_rounds_and_notes_come_back_exactly_as_the_engine_saw_them(self):
+        turn = [{'role': 'assistant', 'content': 'Reading.', 'reasoning_content': 'plan',
+                 'tool_calls': [{'id': 'abc', 'type': 'function', 'function': {'name': 'pc__fs_read', 'arguments': '{"path": "a.txt"}'}}]},
+                {'role': 'tool', 'tool_call_id': 'abc', 'content': 'text'}]
+        saved = [{'role': 'user', 'content': 'read a', 'model_suffix': '\n\n[date 1]'},
+                 {'role': 'assistant', 'content': 'Reading.\n\nDone.', 'reasoning_content': 'planthink',
+                  'tool_trace': [{'id': 't1', 'name': 'pc__fs_read', 'args': {'path': 'a.txt'}, 'executed': True, 'result': 'text', 'round': 1}],
+                  'model_turn': turn, 'model_final': {'content': 'Done.', 'reasoning_content': 'think'}},
+                 {'role': 'user', 'content': 'next', 'model_suffix': '\n\n[old date]'}]
+        out = self.history(saved)
+        self.assertEqual(out[0], {'role': 'user', 'content': 'read a\n\n[date 1]'})
+        self.assertEqual(out[1:3], turn)
+        self.assertEqual(out[3], {'role': 'assistant', 'content': 'Done.', 'reasoning_content': 'think'})
+        # The message being answered gets this turn's note from the core, not an old one.
+        self.assertEqual(out[4], {'role': 'user', 'content': 'next'})
+
+    def test_replies_without_the_engine_rounds_are_rebuilt_from_the_trace(self):
+        saved = [{'role': 'user', 'content': 'read a'},
+                 {'role': 'assistant', 'content': 'Done.', 'tool_trace': [{'id': 't1', 'name': 'pc__fs_read', 'args': {'path': 'a.txt'},
+                                                                           'executed': True, 'result': 'text', 'round': 1}]}]
+        out = self.history(saved)
+        self.assertEqual([m['role'] for m in out], ['user', 'assistant', 'tool', 'assistant'])
+
+
 if __name__ == '__main__':
     unittest.main()

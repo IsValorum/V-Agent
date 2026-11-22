@@ -87,6 +87,8 @@ class Sessions:
                         if kind=='tool_draft':trace['draftText']=trace.get('draftText','')+event.get('delta','')
                         trace.update({k:v for k,v in event.items() if k not in ('type','delta')})
                     elif kind=='done':
+                        if isinstance(event.get('turn'),list):reply['model_turn']=event['turn']
+                        if isinstance(event.get('final'),dict):reply['model_final']=event['final']
                         reply['content']=event.get('content',reply['content'])
                         if not reply['reasoning_content']:reply['reasoning_content']=event.get('reasoning_content','')
                         reply.pop('status',None)
