@@ -82,7 +82,7 @@ class LayoutTests(unittest.TestCase):
         css = (UI / 'styles/panels.css').read_text(encoding='utf-8')
         self.assertIn('const CHAT_MIN=520', tools)
         self.assertIn("classList.toggle('browser-overlay'", tools)
-        self.assertIn('body.browser-open.browser-overlay #chatwrap{margin-right:0;}', css)
+        self.assertIn('body.browser-open.browser-overlay #chatwrap{margin-inline-end:0;}', css)
 
     def test_controls_without_a_size_follow_the_panel_scale(self):
         css = (UI / 'styles/base.css').read_text(encoding='utf-8')

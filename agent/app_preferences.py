@@ -53,7 +53,7 @@ class AppPreferences:
             d=body['decoration']
             if not isinstance(d,dict) or set(d)-{'style','intensity','color','palette','logo','motif','background','version','amoled','logoSize','appIcon','showGreeting','paletteThemes','uiStyle','buttonStyle'}:raise ValueError('Invalid decoration.')
             if d.get('style') != 'none' or type(d.get('intensity')) is not int or not 0<=d['intensity']<=100:raise ValueError('Invalid decoration.')
-            palettes=('gold','silver','jade','blue','rose','ruby','violet','ivory')
+            palettes=('gold','silver','jade','blue','rose','ruby','violet','ivory','gold-light','silver-light','jade-light','blue-light','rose-light','ruby-light','violet-light')
             for key,values in [('palette',(*palettes,'custom')),('logo',palettes),('appIcon',('follow',*palettes)),('motif',('corners','rays','steps')),('background',('collection','wallpaper'))]:
                 if key in d and d[key] not in values:raise ValueError('Invalid decoration option: '+key)
             if 'version' in d and (type(d['version']) is not int or d['version']!=2):raise ValueError('Invalid decoration version.')

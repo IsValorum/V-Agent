@@ -7,7 +7,7 @@ from PIL import Image
 root=Path(__file__).resolve().parents[1]
 icons=root/'desktop/src-tauri/icons'
 branding=root/'agent/assets/branding'
-for name in ('gold','silver','jade','blue','rose','ruby','violet','ivory'):
+for name in ('gold','silver','jade','blue','rose','ruby','violet','ivory','gold-light','silver-light','jade-light','blue-light','rose-light','ruby-light','violet-light'):
     original=Image.open(branding/'originals'/f'{name}.png').convert('RGBA')
     small=original.resize((64,64),Image.Resampling.LANCZOS)
     small.save(icons/f'{name}-original.png')

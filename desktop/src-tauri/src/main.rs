@@ -71,6 +71,13 @@ fn brand_icon(logo:&str)->Result<tauri::image::Image<'static>,String>{
   "ruby"=>include_bytes!("../icons/ruby.rgba"),
   "violet"=>include_bytes!("../icons/violet.rgba"),
   "ivory"=>include_bytes!("../icons/ivory.rgba"),
+  "gold-light"=>include_bytes!("../icons/gold-light.rgba"),
+  "silver-light"=>include_bytes!("../icons/silver-light.rgba"),
+  "jade-light"=>include_bytes!("../icons/jade-light.rgba"),
+  "blue-light"=>include_bytes!("../icons/blue-light.rgba"),
+  "rose-light"=>include_bytes!("../icons/rose-light.rgba"),
+  "ruby-light"=>include_bytes!("../icons/ruby-light.rgba"),
+  "violet-light"=>include_bytes!("../icons/violet-light.rgba"),
   _=>return Err("Unknown application icon.".into()),
  };
  Ok(tauri::image::Image::new(rgba,64,64))
@@ -86,6 +93,13 @@ fn brand_ico(logo:&str)->Result<&'static [u8],String>{
   "ruby"=>Ok(include_bytes!("../icons/ruby.ico")),
   "violet"=>Ok(include_bytes!("../icons/violet.ico")),
   "ivory"=>Ok(include_bytes!("../icons/ivory.ico")),
+  "gold-light"=>Ok(include_bytes!("../icons/gold-light.ico")),
+  "silver-light"=>Ok(include_bytes!("../icons/silver-light.ico")),
+  "jade-light"=>Ok(include_bytes!("../icons/jade-light.ico")),
+  "blue-light"=>Ok(include_bytes!("../icons/blue-light.ico")),
+  "rose-light"=>Ok(include_bytes!("../icons/rose-light.ico")),
+  "ruby-light"=>Ok(include_bytes!("../icons/ruby-light.ico")),
+  "violet-light"=>Ok(include_bytes!("../icons/violet-light.ico")),
   _=>Err("Unknown application icon.".into()),
  }
 }
@@ -123,7 +137,7 @@ fn refresh_brand_shortcuts(icon:&std::path::Path)->Result<(),String>{
 fn apply_brand(window:&tauri::Window,logo:&str)->Result<(),String>{
  use windows::Win32::{Foundation::HWND,UI::Shell::PropertiesSystem::{IPropertyStore,SHGetPropertyStoreForWindow}};
  let icon=brand_icon(logo)?;let ico=brand_ico(logo)?;let folder=user_data().join("branding");std::fs::create_dir_all(&folder).map_err(|e|e.to_string())?;
- let path=folder.join(format!("val-agent-{logo}-rounded-v2.ico"));if std::fs::read(&path).ok().as_deref()!=Some(ico){std::fs::write(&path,ico).map_err(|e|e.to_string())?;}
+ let path=folder.join(format!("val-agent-{logo}-minimal-v3.ico"));if std::fs::read(&path).ok().as_deref()!=Some(ico){std::fs::write(&path,ico).map_err(|e|e.to_string())?;}
  window.set_icon(icon).map_err(|e|e.to_string())?;
  unsafe{let native=window.hwnd().map_err(|e|e.to_string())?;let store:IPropertyStore=SHGetPropertyStoreForWindow(HWND(native.0)).map_err(|e|e.to_string())?;
   brand_property(&store,5,BRAND_APP_ID).map_err(|e|e.to_string())?;brand_property(&store,2,&format!("\"{}\"",std::env::current_exe().unwrap().display())).map_err(|e|e.to_string())?;
@@ -134,6 +148,16 @@ fn apply_brand(window:&tauri::Window,logo:&str)->Result<(),String>{
 #[tauri::command]
 fn window_brand_icon(app:AppHandle,logo:String)->Result<(),String>{
  let window=app.get_window("main").ok_or("No se encontró la ventana principal.")?;apply_brand(&window,&logo)
+}
+#[tauri::command]
+fn restart_app(app:AppHandle)->Result<(),String>{
+ let exe=std::env::current_exe().map_err(|e|e.to_string())?;
+ let pid=std::process::id();
+ let escaped=exe.to_string_lossy().replace('\'',"''");
+ let script=format!("try{{Wait-Process -Id {pid} -Timeout 12 -ErrorAction SilentlyContinue}}catch{{}}; Start-Sleep -Milliseconds 250; Start-Process -FilePath '{escaped}'");
+ Command::new("powershell.exe").args(["-NoProfile","-WindowStyle","Hidden","-Command",&script]).creation_flags(0x08000000).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().map_err(|e|e.to_string())?;
+ app.exit(0);
+ Ok(())
 }
 
 fn web_url(value:&str)->Result<Url,String>{
@@ -546,7 +570,7 @@ fn main(){
  let setup_child=owned.clone();
  let app=tauri::Builder::default()
  .plugin(tauri_plugin_single_instance::init(|app,_,_|{if let Some(window)=app.get_window("main"){let _=window.show();let _=window.unminimize();let _=window.set_focus();}}))
- .invoke_handler(tauri::generate_handler![open_sandbox_folder,open_engine_folder,open_guide,open_uninstaller,save_export_file,window_appearance,window_brand_icon,browser_tab_open,browser_tab_bounds,browser_tab_show,browser_tab_hide,browser_tab_close,browser_tab_state,browser_tab_navigate,browser_tab_back,browser_tab_forward,browser_tab_reload,browser_tab_dom])
+ .invoke_handler(tauri::generate_handler![open_sandbox_folder,open_engine_folder,open_guide,open_uninstaller,save_export_file,window_appearance,window_brand_icon,restart_app,browser_tab_open,browser_tab_bounds,browser_tab_show,browser_tab_hide,browser_tab_close,browser_tab_state,browser_tab_navigate,browser_tab_back,browser_tab_forward,browser_tab_reload,browser_tab_dom])
  .setup(move|app|{
   let (width,height)=app.primary_monitor()?.map(|monitor|{
    let area=monitor.work_area();let scale=monitor.scale_factor();

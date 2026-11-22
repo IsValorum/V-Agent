@@ -5,31 +5,45 @@
   * { box-sizing:border-box; } [hidden] { display:none!important; }
   html,body { margin:0; height:100%; } body { font:14px/1.55 "Segoe UI",system-ui,sans-serif; color:var(--text); background:var(--bg); overflow:hidden; }
   #bootCover{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;overflow:hidden;color:var(--text);
-    background:radial-gradient(circle at 50% 43%,color-mix(in srgb,var(--accent) 13%,transparent) 0,transparent 38%),var(--bg);
-    opacity:1;transition:opacity .62s cubic-bezier(.4,0,.2,1),filter .62s ease,transform .62s cubic-bezier(.2,.8,.2,1);}
-  #bootCover::before{content:"";position:absolute;inset:24px;pointer-events:none;opacity:.5;
-    background:linear-gradient(var(--accent),var(--accent)) left top/28px 1px no-repeat,linear-gradient(var(--accent),var(--accent)) left top/1px 28px no-repeat,
-      linear-gradient(var(--accent),var(--accent)) right top/28px 1px no-repeat,linear-gradient(var(--accent),var(--accent)) right top/1px 28px no-repeat,
-      linear-gradient(var(--accent),var(--accent)) left bottom/28px 1px no-repeat,linear-gradient(var(--accent),var(--accent)) left bottom/1px 28px no-repeat,
-      linear-gradient(var(--accent),var(--accent)) right bottom/28px 1px no-repeat,linear-gradient(var(--accent),var(--accent)) right bottom/1px 28px no-repeat;}
-  #bootCover .boot-stage{position:relative;display:grid;justify-items:center;gap:22px;width:min(88vw,520px);padding:30px 24px 26px;}
-  /* The selected palette's real app icon, not a generic glyph: the first thing users see matches the taskbar. */
-  #bootCover .boot-emblem{position:relative;width:128px;height:128px;animation:bootIn .7s cubic-bezier(.2,.8,.2,1) both;}
-  #bootCover .boot-emblem::before{content:"";position:absolute;inset:-34px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 24%,transparent),transparent 66%);animation:bootGlow 2.8s ease-in-out infinite;}
-  #bootCover .boot-emblem img{position:relative;display:block;width:100%;height:100%;filter:drop-shadow(0 14px 30px #0007);}
-  #bootCover .boot-wordmark{display:flex;align-items:baseline;gap:.12em;font:500 21px/1 "Bahnschrift","Segoe UI",sans-serif;letter-spacing:.24em;text-transform:uppercase;animation:bootIn .7s .12s cubic-bezier(.2,.8,.2,1) both;}
+    background:radial-gradient(ellipse 56% 48% at 50% 44%,color-mix(in srgb,var(--accent) 16%,transparent) 0,color-mix(in srgb,var(--accent) 5%,transparent) 42%,transparent 74%),var(--bg);
+    opacity:1;transition:opacity .56s cubic-bezier(.4,0,.2,1),filter .56s ease,transform .56s cubic-bezier(.2,.8,.2,1);}
+  #bootCover .boot-ambient{position:absolute;inset:-18%;pointer-events:none;
+    background:radial-gradient(circle at 50% 44%,color-mix(in srgb,var(--accent) 11%,transparent) 0,transparent 46%);
+    animation:bootAmbient 3.6s ease-in-out infinite;}
+  #bootCover .boot-stage{position:relative;display:grid;justify-items:center;gap:26px;width:min(88vw,460px);padding:32px 24px;}
+  /* The selected palette's real minimalist icon: matches the taskbar and adapts cleanly to dark and light themes. */
+  #bootCover .boot-emblem{position:relative;width:116px;height:116px;display:grid;place-items:center;animation:bootLogoIn .68s cubic-bezier(.16,1,.3,1) both;}
+  #bootCover .boot-halo{position:absolute;inset:-40px;border-radius:50%;pointer-events:none;
+    background:radial-gradient(circle,color-mix(in srgb,var(--accent) 28%,transparent) 0,color-mix(in srgb,var(--accent) 8%,transparent) 45%,transparent 70%);
+    animation:bootGlow 2.8s ease-in-out infinite;}
+  #bootCover .boot-ring{position:absolute;inset:-12px;border-radius:34px;pointer-events:none;
+    border:1px solid color-mix(in srgb,var(--accent) 26%,transparent);
+    box-shadow:0 0 28px color-mix(in srgb,var(--accent) 12%,transparent);
+    animation:bootRing 2.8s ease-in-out infinite;}
+  #bootCover .boot-emblem img{position:relative;display:block;width:100%;height:100%;border-radius:26px;
+    border:1px solid color-mix(in srgb,var(--text) 12%,transparent);
+    box-shadow:0 18px 42px rgba(0,0,0,.42),0 4px 12px rgba(0,0,0,.26);}
+  :root[data-boot-mode=day] #bootCover .boot-emblem img{
+    border-color:color-mix(in srgb,var(--text) 10%,transparent);
+    box-shadow:0 16px 38px rgba(15,23,42,.14),0 3px 10px rgba(15,23,42,.08);}
+  #bootCover .boot-brand{display:grid;justify-items:center;gap:16px;animation:bootIn .64s .12s cubic-bezier(.16,1,.3,1) both;}
+  #bootCover .boot-wordmark{display:flex;align-items:baseline;gap:.08em;font:600 20px/1 "Bahnschrift","Segoe UI",sans-serif;letter-spacing:.26em;text-transform:uppercase;}
+  #bootCover .boot-wordmark .v-mark{color:var(--accent);}
   #bootCover .boot-wordmark .thin{font-weight:300;color:var(--muted);letter-spacing:.34em;}
-  #bootCover .boot-track{display:block;position:relative;width:150px;height:2px;background:color-mix(in srgb,var(--text) 10%,transparent);overflow:hidden;border-radius:2px;animation:bootIn .7s .2s cubic-bezier(.2,.8,.2,1) both;}
-  #bootCover .boot-track i{display:block;width:42%;height:100%;border-radius:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:bootSweep 1.45s ease-in-out infinite;}
-  #bootCover.boot-leaving{opacity:0;filter:blur(7px);transform:scale(1.018);pointer-events:none;}
+  #bootCover .boot-track{display:block;position:relative;width:168px;height:3px;background:color-mix(in srgb,var(--text) 10%,transparent);overflow:hidden;border-radius:999px;}
+  #bootCover .boot-track i{display:block;width:44%;height:100%;border-radius:999px;background:linear-gradient(90deg,transparent,var(--accent) 45%,color-mix(in srgb,var(--accent) 70%,#fff) 60%,transparent);animation:bootSweep 1.35s cubic-bezier(.4,0,.2,1) infinite;}
+  #bootCover.boot-leaving{opacity:0;filter:blur(6px);transform:scale(1.022);pointer-events:none;}
   .app{opacity:0;transform:translateY(7px);}
-  body.app-ready .app{animation:appReveal .72s cubic-bezier(.2,.8,.2,1) forwards;}
-  @keyframes bootIn{from{opacity:0;transform:translateY(6px) scale(.97)}to{opacity:1;transform:none}}
-  @keyframes bootGlow{0%,100%{opacity:.55}50%{opacity:1}}
-  @keyframes bootSweep{from{transform:translateX(-120%)}to{transform:translateX(300%)}}
+  body.app-ready .app{animation:appReveal .68s cubic-bezier(.2,.8,.2,1) forwards;}
+  @keyframes bootLogoIn{from{opacity:0;transform:translateY(10px) scale(.92)}to{opacity:1;transform:none}}
+  @keyframes bootIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes bootGlow{0%,100%{opacity:.5;transform:scale(.96)}50%{opacity:1;transform:scale(1.04)}}
+  @keyframes bootRing{0%,100%{opacity:.45;transform:scale(.98)}50%{opacity:.95;transform:scale(1.02)}}
+  @keyframes bootAmbient{0%,100%{opacity:.65;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}
+  @keyframes bootSweep{from{transform:translateX(-125%)}to{transform:translateX(295%)}}
   @keyframes appReveal{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
   @media(prefers-reduced-motion:reduce){
-    #bootCover .boot-emblem,#bootCover .boot-emblem::before,#bootCover .boot-wordmark,#bootCover .boot-track,#bootCover .boot-track i{animation:none;}
+    #bootCover .boot-ambient,#bootCover .boot-emblem,#bootCover .boot-halo,#bootCover .boot-ring,#bootCover .boot-brand,#bootCover .boot-track i{animation:none;}
     #bootCover.boot-leaving{transition:none}
     .app{opacity:1;transform:none}body.app-ready .app{animation:none}
   }

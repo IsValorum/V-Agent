@@ -6,11 +6,14 @@ Minor updates delivered through the signed components channel are numbered per v
 
 ## 1.1.13
 
-Nine new interface languages (issue #3).
+Nine new interface languages (issue #3), new flat minimalist logos for dark and light modes, redesigned loading screen, and logo restart prompt.
 
 - **New languages (`agent/ui/locales.json`, `agent/ui/standalone/i18n.js`, `agent/ui/app/shell.js`, `agent/app_preferences.py`):** Japanese, Simplified Chinese, Korean, Hindi, Indonesian, Vietnamese, Thai, Turkish and Arabic, selectable in Settings → General. Every interface phrase is translated. Instructions sent to the model, MCP tool descriptions and other model-facing text stay in English.
 - **Arabic right-to-left layout (`agent/ui/styles/base.css`, `agent/ui/styles/panels.css`):** Arabic switches the page to right-to-left. Side-specific spacing, positions, borders and alignment now use logical CSS properties, so the layout mirrors in Arabic and stays exactly the same in the other languages.
 - **Installer and updater (`agent/runtime_paths.py`, `agent/app_updates.py`):** The first launch picks the new languages from the Windows installer language, and the update window is translated as well.
+- **Minimalist flat logos and matching themes (`agent/ui/app/palette.js`, `agent/assets/branding/`, `desktop/src-tauri/icons/`, `desktop/src-tauri/src/main.rs`):** Replaced the brand artwork with 15 flat minimalist logos (7 dark-background and 8 light-background variants), each paired with matching theme colors. Settings → Appearance shows only the logos for the selected Dark/Light mode and hides the AMOLED Black toggle in Light mode, while the Application Icon dropdown offers both groups.
+- **Redesigned startup loading screen (`agent/ui/v-agent.html`, `agent/ui/styles/base.css`):** Displays the selected minimalist logo with a subtle ambient glow, accent ring, crisp V-AGENT wordmark, and smooth progress indicator adapted to both dark and light modes.
+- **Restart prompt for logo changes (`agent/ui/app/palette.js`, `desktop/src-tauri/src/main.rs`):** Changing the logo or application icon prompts to restart now or later, explaining that the overall appearance updates immediately while system logos and the loading screen apply on restart.
 
 ## 1.1.12
 

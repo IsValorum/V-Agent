@@ -14,6 +14,7 @@ try {
   const [uiStyle,buttonStyle]=String(localStorage.getItem('valUiStyle')||'').split(' ');
   document.documentElement.dataset.uiStyle=['glass','soft','deco'].includes(uiStyle)?uiStyle:'glass';document.documentElement.dataset.buttonStyle=buttonStyle==='outline'?'outline':'tint';
   if(colors){for(const key of ['accent','bg','panel','text'])if(/^#[0-9a-f]{6}$/i.test(colors[key]))document.documentElement.style.setProperty('--'+key,colors[key]);document.documentElement.style.colorScheme=mode==='day'?'light':'dark';}
+  document.documentElement.dataset.bootMode=mode;
 } catch {}
 </script>
 <style>
@@ -26,14 +27,29 @@ try {
 </head>
 <body>
 <div id="bootCover" aria-hidden="true">
+  <div class="boot-ambient"></div>
   <div class="boot-stage">
-    <div class="boot-emblem"><img id="bootLogo" src="/assets/branding/gold-icon.png" alt="" width="128" height="128"></div>
-    <div class="boot-wordmark" aria-label="V-Agent"><span>V</span><span class="thin">-AGENT</span></div>
-    <span class="boot-track"><i></i></span>
+    <div class="boot-emblem">
+      <span class="boot-halo"></span>
+      <span class="boot-ring"></span>
+      <img id="bootLogo" src="/assets/branding/gold-icon.png" alt="" width="116" height="116">
+    </div>
+    <div class="boot-brand">
+      <div class="boot-wordmark" aria-label="V-Agent"><span class="v-mark">V</span><span class="thin">-AGENT</span></div>
+      <span class="boot-track"><i></i></span>
+    </div>
   </div>
 </div>
 <script>
-try{const logo=localStorage.getItem('valBootLogo');if(['gold','silver','jade','blue','rose','ruby','violet','ivory'].includes(logo))document.getElementById('bootLogo').src='/assets/branding/'+logo+'-icon.png';}catch{}
+try{
+  const valid=['gold','silver','jade','blue','rose','ruby','violet','ivory','gold-light','silver-light','jade-light','blue-light','rose-light','ruby-light','violet-light'];
+  const saved=window.strataSavedAppearance?.decoration?.logo;
+  const logo=localStorage.getItem('valBootLogo')||saved;
+  if(valid.includes(logo)){
+    document.getElementById('bootLogo').src='/assets/branding/'+logo+'-icon.png';
+    document.documentElement.dataset.bootSurface=(logo.endsWith('-light')||logo==='ivory')?'light':'dark';
+  }
+}catch{}
 </script>
 <div id="ambient" aria-hidden="true"></div>
 

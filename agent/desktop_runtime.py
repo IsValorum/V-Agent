@@ -515,7 +515,8 @@ def install(a):
                 from runtime_paths import SOURCE_ROOT
                 import re
                 name=self.path.removeprefix('/assets/branding/')
-                if re.fullmatch(r'(?:originals/(?:gold|silver|jade|blue|rose|ruby|violet|ivory)\.png|(?:gold|silver|jade|blue|rose|ruby|violet|ivory)-(?:card\.jpg|mark\.png|cutout\.svg|icon\.png))',name):
+                _ids=r'(?:gold|silver|jade|blue|rose|ruby|violet|ivory|gold-light|silver-light|jade-light|blue-light|rose-light|ruby-light|violet-light)'
+                if re.fullmatch(r'(?:originals/'+_ids+r'\.png|'+_ids+r'-(?:card\.jpg|mark\.png|cutout\.svg|icon\.png))',name):
                     try:
                         raw=(SOURCE_ROOT/'agent/assets/branding'/name).read_bytes();self.send_response(200)
                         self.send_header('Content-Type','image/svg+xml' if name.endswith('.svg') else 'image/png' if name.endswith('.png') else 'image/jpeg');self.send_header('Content-Length',str(len(raw)));self.send_header('X-Content-Type-Options','nosniff');self.send_header('Cache-Control','public, max-age=86400');self.end_headers();self.wfile.write(raw)

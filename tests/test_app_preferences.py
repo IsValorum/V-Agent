@@ -66,7 +66,7 @@ class PreferenceTests(unittest.TestCase):
     def test_amoled_and_logo_size_round_trip(self):
         self.store.save({'agent_profile':'light','language':'de'})
         for style in ('none',):
-            for color in ('gold','silver','jade','blue','rose','ruby','violet','ivory'):
+            for color in ('gold','silver','jade','blue','rose','ruby','violet','ivory','gold-light','silver-light','jade-light','blue-light','rose-light','ruby-light','violet-light'):
                 design={'style':style,'intensity':36,'color':'#80b6df','palette':color,'logo':color,'amoled':True,'logoSize':360,'appIcon':color,'showGreeting':False}
                 self.store.save({'decoration':design})
                 self.assertEqual(AppPreferences(self.path).get()['decoration'],design)

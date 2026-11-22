@@ -17,4 +17,6 @@ assert.equal(context.TH.night.accent,'#123456');assert.equal(context.TH.day.bg,'
 p.resetPalette('blue');assert.equal(context.TH.night.accent,'#123456');
 p.choose('blue');assert.equal(context.TH.night.accent,p.tone('blue','night').accent);
 p.choose('gold');p.resetPalette('gold');assert.equal(context.TH.night.accent,p.tone('gold','night').accent);
+p.choose('blue-light');assert.equal(context.TH.mode,'day');assert.equal(context.TH.day.accent,p.tone('blue-light','day').accent);assert.equal(document.documentElement.dataset.bootSurface,'light');
+p.choose('violet');assert.equal(context.TH.mode,'night');assert.equal(context.TH.night.accent,p.tone('violet','night').accent);assert.equal(document.documentElement.dataset.bootSurface,'dark');
 console.log('Palette selection and per-palette reset OK');
