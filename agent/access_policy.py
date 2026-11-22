@@ -107,6 +107,48 @@ class AccessPolicy:
     def for_conversation(self, chat_id):
         return AccessPolicy(self.workspaces / conversation_id(chat_id))
 
+    def remove_conversation(self, chat_id):
+        """Delete a conversation's isolated sandbox folder and all files inside it.
+        Never touches external project folders and never follows symlinks or junctions."""
+        import time
+        cid = conversation_id(chat_id)
+        base = self.workspaces.resolve()
+        target = self.workspaces / cid
+        try:
+            info = target.lstat()
+        except FileNotFoundError:
+            return False
+        if stat.S_ISLNK(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 0x400:
+            return False
+        resolved = target.resolve()
+        base_norm = os.path.normcase(str(base))
+        resolved_norm = os.path.normcase(str(resolved))
+        try:
+            inside = os.path.commonpath([base_norm, resolved_norm]) == base_norm and resolved_norm != base_norm
+        except ValueError:
+            inside = False
+        if not inside:
+            return False
+
+        def _make_writable(func, path, _exc):
+            try:
+                os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
+                func(path)
+            except OSError:
+                pass
+
+        for attempt in range(3):
+            try:
+                shutil.rmtree(target, onerror=_make_writable)
+                return True
+            except FileNotFoundError:
+                return True
+            except PermissionError:
+                if attempt == 2:
+                    raise
+                time.sleep(0.15)
+        return not target.exists()
+
     def snapshot(self):
         with self.lock:
             return {'mode': self.mode, 'root': str(self.root),
@@ -167,8 +209,10 @@ class AccessPolicy:
         if name == 'fs_copy':
             # Dos rutas en la misma llamada: ambas pasan por el mismo confine, si no el modelo
             # podria leer fuera de la carpeta de trabajo "copiando" hacia dentro.
-            self.path(args.get('desde'), full_access, 'desde')
-            self.path(args.get('destino'), full_access, 'destino')
+            src = next((args.get(k) for k in ('desde', 'source', 'src', 'from') if args.get(k) is not None), None)
+            dst = next((args.get(k) for k in ('destino', 'destination', 'dest', 'to') if args.get(k) is not None), None)
+            self.path(src, full_access, 'desde')
+            self.path(dst, full_access, 'destino')
         elif name in ('fs_list', 'fs_read', 'doc_read', 'fs_write', 'fs_edit', 'web_render', 'fs_search'):
             self.path(args.get('path') or '.', full_access)
         elif name == 'fs_manage':

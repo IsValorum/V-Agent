@@ -154,7 +154,7 @@
         item.innerHTML='<span class="hub-item-name">'+esc(name)+'</span><span class="hub-item-author">'+esc(author)+'</span><span class="hub-item-stats"><span>'+icon(ICONS.down)+count(model.downloads)+'</span><span>'+icon(ICONS.heart)+count(model.likes)+'</span><span>'+esc(date(model.updated))+'</span></span>';
         item.onclick=()=>show(model.id);if(current?.id===model.id)item.setAttribute('aria-selected','true');return item;
       }));
-    }catch(error){if(seq===searchSeq)box.innerHTML='<p class="mini hub-note" data-error="1">'+esc(error.message)+'</p>';}
+    }catch(error){if(seq===searchSeq)box.innerHTML='<p class="mini hub-note" data-error="1">'+esc(T(error.message))+'</p>';}
     finally{if(seq===searchSeq)box.removeAttribute('aria-busy');}
   }
   function fit(size){
@@ -186,13 +186,13 @@
       box.querySelectorAll('[data-download]').forEach(button=>button.onclick=()=>download(data.id,button.closest('tr').dataset.file));
       box.querySelectorAll('[data-cancel]').forEach(button=>button.onclick=()=>cancel(button.dataset.cancel));
       box.scrollTop=0;
-    }catch(error){box.innerHTML='<div class="hub-empty"><p data-error="1">'+esc(error.message)+'</p></div>';}
+    }catch(error){box.innerHTML='<div class="hub-empty"><p data-error="1">'+esc(T(error.message))+'</p></div>';}
     finally{box.removeAttribute('aria-busy');}
   }
   function downloadCell(job){
     if(!job||job.state==='cancelled')return '<button type="button" data-download>'+icon(ICONS.down)+'<span>'+esc(T('Descargar GGUF'))+'</span></button>';
     if(job.state==='done')return '<span class="hub-done">'+esc(T(job.model?'Añadido':'Descargado'))+'</span>';
-    if(job.state==='error')return '<button type="button" data-download title="'+esc(job.error)+'">'+esc(T('Reintentar'))+'</button>';
+    if(job.state==='error')return '<button type="button" data-download title="'+esc(T(job.error))+'">'+esc(T('Reintentar'))+'</button>';
     const pct=job.total?Math.floor(job.received*100/job.total):0;
     return '<div class="hub-progress"><progress max="100" value="'+pct+'"></progress><span>'+(job.state==='verifying'?esc(T('Verificando…')):pct+'%')+'</span><button type="button" class="text-btn" data-cancel="'+esc(job.id)+'">'+esc(T('Cancelar'))+'</button></div>';
   }
@@ -244,7 +244,7 @@
       if(state?.phase==='cancelled')status.textContent=T('Movimiento cancelado.');
       else if(ok.length||bad.length){
         const files=ok.reduce((sum,r)=>sum+(r.files_moved||1),0);
-        status.textContent=ok.length+' '+T('movidos a V-Agent')+' ('+files+' '+T('archivos')+')'+(bad.length?' · '+bad.length+' '+T('con error')+': '+bad.map(r=>r.error).join(' · '):'');
+        status.textContent=ok.length+' '+T('movidos a V-Agent')+' ('+files+' '+T('archivos')+')'+(bad.length?' · '+bad.length+' '+T('con error')+': '+bad.map(r=>T(r.error)).join(' · '):'');
       }
       loadModels();scan();
     }
@@ -306,7 +306,7 @@
         }
         box.onchange=syncTransfer;return row;
       }));
-    }catch(error){list.innerHTML='<p class="mini hub-note" data-error="1">'+esc(error.message)+'</p>';}
+    }catch(error){list.innerHTML='<p class="mini hub-note" data-error="1">'+esc(T(error.message))+'</p>';}
     syncTransfer();
   }
   function selected(){return [...transfer.querySelectorAll('#transferList input:checked:not(:disabled)')].map(box=>scanData.models[+box.dataset.index]);}
@@ -321,7 +321,7 @@
       const data=await api('/api/harness/external/import',{items:items.map(item=>({path:item.path,name:item.name,sampling:item.sampling,context:item.context,kv:item.kv,template:item.template}))});
       const ok=data.results.filter(r=>!r.error),bad=data.results.filter(r=>r.error);
       const warnings=ok.flatMap(r=>r.warnings||[]);
-      status.textContent=ok.length+' '+T('importados')+(bad.length?' · '+bad.length+' '+T('con error')+': '+bad.map(r=>r.error).join(' · '):'')+(warnings.length?' · '+warnings.join(' · '):'');
+      status.textContent=ok.length+' '+T('importados')+(bad.length?' · '+bad.length+' '+T('con error')+': '+bad.map(r=>T(r.error)).join(' · '):'')+(warnings.length?' · '+warnings.map(w=>T(w)).join(' · '):'');
       loadModels();
       return data;
     }catch(error){status.textContent=T(error?.message||String(error));}

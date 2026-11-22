@@ -159,7 +159,7 @@ def web_search(query: str | None = None, url: str | None = None,
     # its supported locale when the selected country has another language.
     language=settings['language']
     if not region and language!='auto' and target_region.rsplit('-',1)[-1]!=language:
-        target_region={'en':'us-en','es':'es-es','pt':'br-pt','fr':'fr-fr','de':'de-de','ja':'jp-jp'}[language]
+        target_region={'en':'us-en','es':'es-es','pt':'br-pt','fr':'fr-fr','de':'de-de','ja':'jp-jp'}.get(language, target_region)
     results = search(query, count=settings['count'], region=target_region,
                      timelimit=timelimit if timelimit is not None else settings['timelimit'],
                      strict_errors=True,safesearch=settings['safesearch'],

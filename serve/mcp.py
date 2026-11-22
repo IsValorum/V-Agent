@@ -683,7 +683,12 @@ def hub_from_config(cfg: dict, mcp_config_path: str | None = None) -> McpHub | N
 
 
 if __name__ == "__main__":                               # python -m serve.mcp config.json: list what a config offers
-    hub = hub_from_config(json.load(open(sys.argv[1], encoding="utf-8-sig")) if len(sys.argv) > 1 else {},
+    if len(sys.argv) > 1:
+        with open(sys.argv[1], encoding="utf-8-sig") as cfg_file:
+            cfg = json.load(cfg_file)
+    else:
+        cfg = {}
+    hub = hub_from_config(cfg,
                           sys.argv[2] if len(sys.argv) > 2 else None)
     if hub is None:
         sys.exit("no MCP servers configured")

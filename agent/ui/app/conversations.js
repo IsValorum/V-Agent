@@ -246,8 +246,8 @@ async function delConv(id) {
   if(sessionsReady){try{await flushSessionSaves();const chat=convs.find(c=>c.id===id);if(chat)await requestJSON('/api/v1/sessions/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,revision:chat.revision??0})});}catch(error){note(error.message);return;}}
   pendingSessionSaves.delete(id);savedSessionBodies.delete(id);
   convs = convs.filter((c) => c.id !== id);delete projectAssignments[id];
-  if(currentId===id){chatTrail=[];chatTrailCursor=-1;syncChatTrail();}
-  if (currentId === id) { currentId = null; messages = []; $("#chat").innerHTML = ""; }
+  if(currentId===id){chatTrail=[];chatTrailCursor=-1;syncChatTrail();selectedProject=null;selectedProjectChat=null;}
+  if (currentId === id) { currentId = null; messages = []; $("#chat").innerHTML = ""; syncProjectButton(); }
   saveConvsLS(); renderConvs(); renderChat();
 }
 async function newConv(skipConfirm=false) {

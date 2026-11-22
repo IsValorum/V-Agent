@@ -14290,5 +14290,131 @@
     "pt": "Este modelo é híbrido: com 1 checkpoint ou menos ele relê a conversa inteira a cada turno. Use 4 ou mais.",
     "fr": "Ce modèle est hybride : avec 1 checkpoint ou moins, il relit toute la conversation à chaque tour. Utilisez-en 4 ou plus.",
     "de": "Dieses Modell ist hybrid: Mit 1 Checkpoint oder weniger liest es in jeder Runde die ganze Unterhaltung neu. Verwende 4 oder mehr."
+  },
+  "Gestionar archivos": {
+    "en": "Manage files",
+    "pt": "Gerenciar arquivos",
+    "fr": "Gérer les fichiers",
+    "de": "Dateien verwalten"
+  },
+  "Buscar en archivos": {
+    "en": "Search in files",
+    "pt": "Buscar em arquivos",
+    "fr": "Rechercher dans les fichiers",
+    "de": "In Dateien suchen"
+  },
+  "Petición HTTP": {
+    "en": "HTTP request",
+    "pt": "Requisição HTTP",
+    "fr": "Requête HTTP",
+    "de": "HTTP-Anfrage"
+  },
+  "Esperar trabajo": {
+    "en": "Wait for job",
+    "pt": "Aguardar tarefa",
+    "fr": "Attendre la tâche",
+    "de": "Auf Aufgabe warten"
+  },
+  "Estado del trabajo": {
+    "en": "Job status",
+    "pt": "Estado da tarefa",
+    "fr": "État de la tâche",
+    "de": "Aufgabenstatus"
+  },
+  "Lista de trabajos": {
+    "en": "Job list",
+    "pt": "Lista de tarefas",
+    "fr": "Liste des tâches",
+    "de": "Aufgabenliste"
+  },
+  "Detener trabajo": {
+    "en": "Stop job",
+    "pt": "Parar tarefa",
+    "fr": "Arrêter la tâche",
+    "de": "Aufgabe stoppen"
+  },
+  "Descargar versión": {
+    "en": "Download",
+    "pt": "Baixar",
+    "fr": "Télécharger",
+    "de": "Herunterladen"
+  },
+  "Error:": {
+    "en": "Error:",
+    "pt": "Erro:",
+    "fr": "Erreur :",
+    "de": "Fehler:"
+  },
+  "Plantilla jinja:": {
+    "en": "Jinja template:",
+    "pt": "Modelo Jinja:",
+    "fr": "Modèle Jinja :",
+    "de": "Jinja-Vorlage:"
+  },
+  "Nueva versión disponible:": {
+    "en": "New version available:",
+    "pt": "Nova versão disponível:",
+    "fr": "Nouvelle version disponible :",
+    "de": "Neue Version verfügbar:"
+  },
+  "Respuesta demasiado grande.": {
+    "en": "Response too large.",
+    "pt": "Resposta muito grande.",
+    "fr": "Réponse trop volumineuse.",
+    "de": "Antwort zu groß."
+  },
+  "Elige un GGUF instalado.": {
+    "en": "Choose an installed GGUF.",
+    "pt": "Escolha um GGUF instalado.",
+    "fr": "Choisissez un GGUF installé.",
+    "de": "Wähle eine installierte GGUF-Datei."
+  },
+  "Formato KV no admitido por Project Maya.": {
+    "en": "KV format not supported by Project Maya.",
+    "pt": "Formato KV não suportado pelo Project Maya.",
+    "fr": "Format KV non pris en charge par Project Maya.",
+    "de": "KV-Format wird von Project Maya nicht unterstützt."
+  },
+  "Destino desconocido.": {
+    "en": "Unknown destination.",
+    "pt": "Destino desconhecido.",
+    "fr": "Destination inconnue.",
+    "de": "Unbekanntes Ziel."
+  },
+  "Elige un mmproj GGUF compatible.": {
+    "en": "Choose a compatible mmproj GGUF.",
+    "pt": "Escolha um mmproj GGUF compatível.",
+    "fr": "Choisissez un mmproj GGUF compatible.",
+    "de": "Wähle eine kompatible mmproj-GGUF-Datei."
+  },
+  "El tamaño del archivo copiado no coincide con el original.": {
+    "en": "The copied file size does not match the original.",
+    "pt": "O tamanho do arquivo copiado não corresponde ao original.",
+    "fr": "La taille du fichier copié ne correspond pas à l'original.",
+    "de": "Die Größe der kopierten Datei stimmt nicht mit dem Original überein."
+  },
+  "Ajuste desconocido.": {
+    "en": "Unknown setting.",
+    "pt": "Configuração desconhecida.",
+    "fr": "Paramètre inconnu.",
+    "de": "Unbekannte Einstellung."
+  },
+  "Valor fuera de rango:": {
+    "en": "Value out of range:",
+    "pt": "Valor fora do intervalo:",
+    "fr": "Valeur hors plage :",
+    "de": "Wert außerhalb des Bereichs:"
+  },
+  "Valor entero requerido:": {
+    "en": "Integer value required:",
+    "pt": "Valor inteiro obrigatório:",
+    "fr": "Valeur entière requise :",
+    "de": "Ganzzahl erforderlich:"
+  },
+  "No se encontró un archivo": {
+    "en": "File not found",
+    "pt": "Arquivo não encontrado",
+    "fr": "Fichier introuvable",
+    "de": "Datei nicht gefunden"
   }
 }

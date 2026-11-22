@@ -4,6 +4,19 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.1.12
+
+Fix and polish release: direct file operations on chat attachments, MCP file-tool hardening, on-demand app updates, complete conversation workspace cleanup on delete, and model download/unload translations.
+
+- **Working copies for chat attachments (`agent/agent.py`):** Files attached to a chat message are now staged automatically in the conversation workspace (or under `attachments/` when inside a project or when a file with the same name already exists) and reported to the model via the user turn note, so `pc__fs_copy`, `pc__fs_manage`, and `pc__fs_edit` can operate on attached files directly without rewriting them from scratch.
+- **MCP tool hardening (`agent/pc_mcp.py`, `agent/access_policy.py`, `web_mcp/buscador_mcp.py`, `serve/mcp.py`, `agent/ui/app/chat.js`):**
+  - Fixed a bug in `fs_manage` where copying or moving a file into an existing directory with `overwrite=true` could remove the destination directory instead of placing the file inside it; temporary staging files are cleaned up on failure and `stat` reports missing paths cleanly.
+  - Hardened `fs_copy`: supports English parameter aliases (`source`/`destination`, etc.) across both the access policy and tool handler, resolves directory targets to `destination/<filename>`, closes handles properly, reports binary files clearly, and lists matching or available workspace files when a source path is missing.
+  - Added localized tool labels for `fs_manage`, `fs_search`, `http_request`, `download`, `browser`, `console`, and job tools, plus safe guards in web search and MCP config loading.
+- **On-demand app updates (`agent/desktop_runtime.py`, `agent/ui/app/core-connection.js`, `agent/ui/app/tour.js`):** Checking for a new V-Agent release no longer starts downloading the installer automatically in the background. The update notice now lets you download the update when ready or dismiss it with **Later** / close (remembered per version).
+- **Conversation workspace cleanup on delete (`agent/access_policy.py`, `agent/projects.py`, `agent/agent.py`, `agent/ui/app/conversations.js`):** Deleting a conversation now also removes its isolated sandbox folder (`workspaces/conversations/<id>`) and all files created inside it, while unassigning any linked external project without ever touching the external project folder.
+- **Model download and unload translations (`agent/ui/app/models.js`, `agent/ui/app/model-controls.js`, `agent/ui/app/engine-controls.js`, `agent/ui/standalone/i18n.js`, `agent/ui/locales.json`):** Translated model download, unload, and nested error notifications across all five languages, and fixed the app update download button label so it translates to *Download* instead of *Unload* in non-Spanish locales.
+
 ## 1.1.11
 
 Fix release: Strata models can be chosen again after a Strata engine update, and Strata Rust replies no longer start with the model's reasoning.

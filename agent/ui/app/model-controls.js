@@ -158,9 +158,9 @@ async function powerEngine() {
     });
     setEngineState(d.engine_online ?? starting);
     await loadModels();
-    status.textContent=starting?"Motor encendido. Pulsa Cargar modelo para preparar el modelo seleccionado.":"Motor apagado. Puedes encenderlo cuando lo necesites.";
+    status.textContent=uiText(starting?"Motor encendido. Pulsa Cargar modelo para preparar el modelo seleccionado.":"Motor apagado. Puedes encenderlo cuando lo necesites.");
     note(starting?"Motor encendido.":"Motor apagado y memoria del modelo liberada.");
-  } catch(e) { status.textContent=uiText(starting?"No se pudo encender el motor:":"No se pudo apagar el motor:")+" "+e.message; note(status.textContent); }
+  } catch(e) { status.textContent=uiText(starting?"No se pudo encender el motor:":"No se pudo apagar el motor:")+" "+uiText(e.message); note(status.textContent); }
   finally { modelStateRevision++; setEngineBusy(false); pollStats(); }
 }
 $("#engineToggle").onclick=powerEngine;
@@ -185,7 +185,7 @@ async function unloadModel() {
     const result=await requestJSON('/api/unload',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(130000)});
     setLoadedModel(null);if(typeof result.engine_online==='boolean')setEngineState(result.engine_online);
     await loadModels();$('#modelStatus').textContent=uiText('Modelo descargado. Selecciona otro y pulsa Cargar modelo.');note('Modelo descargado.');
-  }catch(error){$('#modelStatus').textContent=uiText('No se pudo descargar:')+' '+error.message;note($('#modelStatus').textContent);await loadModels();}
+  }catch(error){$('#modelStatus').textContent=uiText('No se pudo descargar:')+' '+uiText(error.message);note($('#modelStatus').textContent);await loadModels();}
   finally{modelStateRevision++;setEngineBusy(false);syncEngineCapabilities();pollStats();}
 }
 async function loadModel() {
@@ -196,7 +196,7 @@ async function loadModel() {
   const selected=$('#model').value,name=modelNames[selected]||selected;
   // Saving the model's settings must never swallow the click: if it fails, say so and load anyway
   // (a refused setting used to stop "Use model" silently on every click).
-  try{await flushModelPreferences();}catch(error){note(uiText('No se pudieron guardar los ajustes del modelo:')+' '+error.message);}
+  try{await flushModelPreferences();}catch(error){note(uiText('No se pudieron guardar los ajustes del modelo:')+' '+uiText(error.message));}
   const context=pendingModelContexts.get(selected)??modelPreferences[selected]?.context;
   S.model=selected;saveSettings();modelStateRevision++;loadingModelId=selected;setEngineBusy(true);schedulePreparationPoll();syncModelSelectionSummary();
   const button=$('#load');button.textContent=uiText('Cargando…');const started=Date.now();
@@ -212,9 +212,9 @@ async function loadModel() {
     pendingModelContexts.delete(selected);
     updatePreparation(result.preparation);setEngineState(true);setLoadedModel(actual,true,result.context??null);await loadModels();$('#modelStatus').textContent=result.preparation?.mode==='on_demand'?uiText(result.preparation.message):uiText('Modelo listo.');note(result.preparation?.mode==='on_demand'?'Modelo cargado con lectura bajo demanda.':'Modelo listo.');
     pintarPlantilla(result.template);
-    if(result.warning)note('Plantilla jinja: '+result.warning);
-    else if(result.template&&result.template.reaplicacion)note('Plantilla jinja: '+result.template.reaplicacion);
-  }catch(error){await loadModels();$('#modelStatus').textContent=uiText('No se pudo cargar:')+' '+error.message;note($('#modelStatus').textContent);}
+    if(result.warning)note(uiText('Plantilla jinja:')+' '+uiText(result.warning));
+    else if(result.template&&result.template.reaplicacion)note(uiText('Plantilla jinja:')+' '+uiText(result.template.reaplicacion));
+  }catch(error){await loadModels();$('#modelStatus').textContent=uiText('No se pudo cargar:')+' '+uiText(error.message);note($('#modelStatus').textContent);}
   finally{clearInterval(timer);loadingModelId=null;syncModelSelectionSummary();clearTimeout(preparationTimer);preparationTimer=null;modelStateRevision++;syncModelPicker();setEngineBusy(false);syncEngineCapabilities();pollStats();}
 }
 

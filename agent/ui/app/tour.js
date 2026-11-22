@@ -183,7 +183,7 @@ const VAL_TOUR=(()=>{
       if(s.error){status.textContent=uiText('No se pudo comprobar')+': '+s.error;}
       else if(s.ready){status.textContent=uiText('Actualización descargada y verificada.')+(s.available?.notes?' · '+s.available.notes.slice(0,140):'');go.textContent=uiText('Instalar y reiniciar');go.hidden=false;go.dataset.action='launch';}
       else if(s.busy&&s.progress){status.textContent=uiText('Descargando')+(s.progress.total?' · '+Math.round(s.progress.received/s.progress.total*100)+' %':'');}
-      else if(s.available){status.textContent=uiText('Nueva versión disponible')+': '+s.available.version+(s.available.notes?' · '+s.available.notes.slice(0,140):'');go.textContent=uiText('Descargar')+' '+s.available.version;go.hidden=false;go.dataset.action='download';}
+      else if(s.available){status.textContent=uiText('Nueva versión disponible')+': '+s.available.version+(s.available.notes?' · '+s.available.notes.slice(0,140):'');go.textContent=uiText('Descargar versión')+' '+s.available.version;go.hidden=false;go.dataset.action='download';}
       else status.textContent=uiText('Versión')+' '+label(s.version)+(s.checked_at?' · '+uiText('Estás al día.'):'');
       syncNotesButton();
     };

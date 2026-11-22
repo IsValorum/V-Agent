@@ -485,7 +485,7 @@ def install(a):
             from app_updates import UPDATES
             state=UPDATES.check()
             if state.get('error'):return False
-            if state.get('available') and not state.get('ready'):UPDATES.download()
+            # Never download the installer automatically: notify the user and let them choose Download or Later.
             return True
         for step,interval in ((components_step,30*60),(app_step,6*60*60)):
             threading.Thread(target=run_loop,args=(step,interval),daemon=True).start()

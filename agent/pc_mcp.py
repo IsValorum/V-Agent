@@ -747,6 +747,38 @@ def _corta_escribe(path, texto, prefijo, workspace=None):
             os.unlink(pending)
 
 
+def _missing_source_hint(origen, policy):
+    """Describe what actually exists nearby so a model does not rewrite a file from scratch on a wrong path."""
+    root = pathlib.Path(policy.root)
+    base_name = os.path.basename(str(origen)).lower()
+    matches = []
+    try:
+        for idx, candidate in enumerate(root.rglob("*")):
+            if idx >= 1500:
+                break
+            if candidate.is_file() and candidate.name.lower() == base_name:
+                try:
+                    matches.append(str(candidate.relative_to(root)).replace("\\", "/"))
+                except ValueError:
+                    matches.append(str(candidate))
+                if len(matches) >= 5:
+                    break
+    except OSError:
+        pass
+    if matches:
+        return " Found matching file(s) in workspace: %s." % ", ".join(matches)
+    probe = pathlib.Path(origen).parent
+    if not probe.is_dir():
+        probe = root
+    try:
+        entries = sorted(p.name + ("/" if p.is_dir() else "") for p in probe.iterdir())[:12]
+    except OSError:
+        entries = []
+    if entries:
+        return " Files in %s: %s. Use fs_list/fs_search to verify paths." % (probe.name or str(probe), ", ".join(entries))
+    return " The working folder is empty; use fs_list to verify paths."
+
+
 def fs_copy(args, full_access, policy=None):
     policy = POLICY if policy is None else policy
     """Copiar/pegar por referencia: mueve texto de un fichero a otro SIN que el modelo lo teclee.
@@ -755,7 +787,8 @@ def fs_copy(args, full_access, policy=None):
     un HTML de 20 KB cuesta minutos y miles de tokens de contexto - y era lo que producia las 56
     versiones. Aqui el modelo dice de donde y a donde (lineas), y el texto viaja por disco.
     """
-    destino_s, origen_s = args.get("destino"), args.get("desde")
+    destino_s = args.get("destino") or args.get("destination") or args.get("dest") or args.get("to")
+    origen_s = args.get("desde") or args.get("source") or args.get("src") or args.get("from")
     if not isinstance(destino_s, str) or not destino_s.strip():
         raise ValueError("destino must contain a file path")
     if not isinstance(origen_s, str) or not origen_s.strip():
@@ -763,25 +796,43 @@ def fs_copy(args, full_access, policy=None):
     destino = policy.path(destino_s, full_access)
     origen = policy.path(origen_s, full_access)
     if not os.path.exists(origen):
-        raise ValueError("source file does not exist: %s" % origen)
+        raise ValueError("source file does not exist: %s.%s" % (origen, _missing_source_hint(origen, policy)))
     if os.path.isdir(origen):
         raise ValueError("%s is a directory, not a text file; use fs_manage to copy or move directories." % origen)
+    raw_modo = str(args.get("modo") or args.get("mode") or "").strip().lower()
+    mode_aliases = {"new": "nuevo", "overwrite": "nuevo", "replace": "reemplazar",
+                    "before": "pegar_antes", "insert_before": "pegar_antes",
+                    "after": "pegar_despues", "insert_after": "pegar_despues"}
+    modo = mode_aliases.get(raw_modo, raw_modo) or None
     if os.path.isdir(destino):
-        raise ValueError("%s is a directory; pass a destination file path to fs_copy or use fs_manage." % destino)
-    modo = str(args.get("modo") or "").strip().lower() or None
-    with open(origen, "r", encoding="utf-8-sig", errors="strict") as f:
-        lineas_origen = f.read().splitlines(keepends=True)
+        if modo in (None, "nuevo"):
+            destino = pathlib.Path(destino) / pathlib.Path(origen).name
+        else:
+            raise ValueError("%s is a directory; pass a destination file path to fs_copy or use fs_manage." % destino)
+    try:
+        with open(origen, "r", encoding="utf-8-sig", errors="strict") as f:
+            lineas_origen = f.read().splitlines(keepends=True)
+    except UnicodeDecodeError:
+        raise ValueError("%s is not valid UTF-8 text; use fs_manage(action='copy') to copy binary or whole files." % origen) from None
     total_o = len(lineas_origen)
-    a, b = _rango(args.get("linea"), (1, total_o)) if args.get("linea") not in (None, "") else (1, total_o)
-    if args.get("hasta") is not None and args.get("hasta") != "":
-        b = int(args["hasta"])
+    linea_arg = args.get("linea") if args.get("linea") not in (None, "") else (args.get("start_line") if args.get("start_line") not in (None, "") else args.get("start"))
+    hasta_arg = args.get("hasta") if args.get("hasta") not in (None, "") else (args.get("end_line") if args.get("end_line") not in (None, "") else args.get("end"))
+    ancla_arg = args.get("ancla") if args.get("ancla") not in (None, "") else args.get("anchor")
+    cortar_arg = bool(args.get("cortar") or args.get("cut"))
+    a, b = _rango(linea_arg, (1, total_o)) if linea_arg not in (None, "") else (1, total_o)
+    if hasta_arg not in (None, ""):
+        b = int(hasta_arg)
     if not (1 <= a <= total_o) or not (a <= b <= total_o):
         raise ValueError("line range %d-%d is out of bounds for %s (%d lines)" % (a, b, os.path.basename(origen), total_o))
     trozo = "".join(lineas_origen[a - 1:b])
     si_mismo = os.path.abspath(str(origen)) == os.path.abspath(str(destino))
     if not os.path.exists(destino) and modo not in (None, "nuevo"):
         raise ValueError("%s does not exist; use modo='nuevo' (or fs_write) to create it." % destino)
-    texto = "" if not os.path.exists(destino) else open(destino, encoding="utf-8-sig", errors="strict").read()
+    if not os.path.exists(destino):
+        texto = ""
+    else:
+        with open(destino, "r", encoding="utf-8-sig", errors="strict") as f:
+            texto = f.read()
     lineas_destino = texto.splitlines(keepends=True) if texto else []
     if modo in (None, "nuevo"):
         if texto.strip() and modo is None and not si_mismo and len(lineas_destino) > 3:
@@ -790,26 +841,26 @@ def fs_copy(args, full_access, policy=None):
                                                                                   len(lineas_destino)))
         candidato = trozo if modo == "nuevo" or not texto else "".join(lineas_destino) + trozo
     elif modo in ("pegar_antes", "pegar_despues"):
-        if args.get("ancla") in (None, ""):
+        if ancla_arg in (None, ""):
             raise ValueError("ancla is required: destination line number to paste at (e.g. 24)")
-        c = int(_rango(args.get("ancla"))[0])
+        c = int(_rango(ancla_arg)[0])
         if not (1 <= c <= max(1, len(lineas_destino))):
             raise ValueError("ancla %d is out of bounds for destination (%d lines)" % (c, len(lineas_destino)))
         i = c - 1 if modo == "pegar_antes" else c
         candidato = "".join(lineas_destino[:i]) + trozo + "".join(lineas_destino[i:])
     elif modo == "reemplazar":
-        if args.get("ancla") in (None, ""):
+        if ancla_arg in (None, ""):
             raise ValueError("ancla is required: destination line or range to replace (e.g. 24 or 24-31)")
-        c, d = _rango(args.get("ancla"))
+        c, d = _rango(ancla_arg)
         if not (1 <= c <= len(lineas_destino)) or not (c <= d <= len(lineas_destino)):
-            raise ValueError("ancla %s is out of bounds for destination (%d lines)" % (args.get("ancla"), len(lineas_destino)))
+            raise ValueError("ancla %s is out of bounds for destination (%d lines)" % (ancla_arg, len(lineas_destino)))
         candidato = "".join(lineas_destino[:c - 1]) + trozo + "".join(lineas_destino[d:])
     else:
         raise ValueError("invalid modo; use nuevo, pegar_antes, pegar_despues, or reemplazar")
-    if args.get("cortar"):
+    if cortar_arg:
         if si_mismo:
             resto = lineas_origen[:a - 1] + lineas_origen[b:]
-            c = int(_rango(args.get("ancla"))[0]) if args.get("ancla") not in (None, "") else len(resto)
+            c = int(_rango(ancla_arg)[0]) if ancla_arg not in (None, "") else len(resto)
             if modo == "reemplazar":
                 raise ValueError("cannot replace and cut within the same file at the same time; "
                                  "do it in two calls or without cortar=true")
@@ -821,18 +872,18 @@ def fs_copy(args, full_access, policy=None):
             _corta_escribe(origen, "".join(lineas_origen[:a - 1] + lineas_origen[b:]), ".strata-cut-",policy.root)
     try:_corta_escribe(destino, candidato, ".strata-copy-",policy.root)
     except Exception:
-        if args.get('cortar') and not si_mismo:_corta_escribe(origen,''.join(lineas_origen),'.strata-rollback-',policy.root)
+        if cortar_arg and not si_mismo:_corta_escribe(origen,''.join(lineas_origen),'.strata-rollback-',policy.root)
         raise
     delta = candidato.count("\n") - texto.count("\n")
     n = b - a + 1
-    accion = ("moved" if args.get("cortar") else "copied")
+    accion = ("moved" if cortar_arg else "copied")
     informe = ("%d %s %s from %s (%s) to %s: %+d line%s, %d chars"
                % (n, "line" if n == 1 else "lines", accion,
                   os.path.basename(str(origen)),
                   "%d-%d" % (a, b), os.path.basename(str(destino)), delta,
                   "" if delta in (-1, 1) else "s", len(candidato)))
     salida = "%s%s" % ("pasted: " if modo != "reemplazar" else "replaced: ", informe)
-    if args.get("cortar"):
+    if cortar_arg:
         salida += " (cut from source%s)" % (", removed %d lines from %s" % (b - a + 1,
                                                                                   os.path.basename(str(origen)))
                                                  if not si_mismo else "")
@@ -1584,6 +1635,8 @@ def call(name, args, *, full_access=False, policy=None):
         if source == policy.root:
             raise ValueError("Cannot modify the workspace root.")
         if action == "stat":
+            if not source.exists() and not source.is_symlink():
+                raise ValueError("Path does not exist: " + str(source))
             info = source.stat()
             return json.dumps({"path": str(source), "is_dir": source.is_dir(), "bytes": info.st_size, "mtime": info.st_mtime, "mode": oct(info.st_mode)}, ensure_ascii=False)
         if action == "delete":
@@ -1603,7 +1656,10 @@ def call(name, args, *, full_access=False, policy=None):
             destination = policy.path(args.get("destination"), full_access)
             # Check the source before touching anything: a mistaken move must never cost the destination.
             if not source.exists():
-                raise ValueError("Source does not exist: %s. Nothing was changed; list the folder with fs_list to see the real names." % args.get("path"))
+                raise ValueError("Source does not exist: %s.%s" % (args.get("path"), _missing_source_hint(source, policy)))
+            # Copying/moving a file into an existing directory places it inside that directory (never wipes the folder).
+            if source.is_file() and destination.is_dir() and not destination.is_symlink():
+                destination = destination / source.name
             if source.resolve() == destination.resolve():
                 raise ValueError("Source and destination are the same; nothing was changed.")
             if source.is_dir() and destination.resolve().is_relative_to(source.resolve()):
@@ -1620,6 +1676,7 @@ def call(name, args, *, full_access=False, policy=None):
                 if backup.exists():
                     shutil.rmtree(backup)
                 destination.rename(backup)
+            staged = None
             try:
                 if action == "move":
                     if source.is_file() and destination.is_file():
@@ -1632,7 +1689,10 @@ def call(name, args, *, full_access=False, policy=None):
                     staged = destination.with_name("." + destination.name + ".val-copy")
                     shutil.copy2(source, staged)
                     os.replace(staged, destination)  # the old file is replaced only once the copy is complete
+                    staged = None
             except Exception:
+                if staged is not None:
+                    staged.unlink(missing_ok=True)
                 if backup is not None and not destination.exists():
                     backup.rename(destination)
                 raise

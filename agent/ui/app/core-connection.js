@@ -32,27 +32,44 @@ function loadUiPatch(force=false){
 // V-Agent applies signed minor updates by itself shortly after starting (see desktop_runtime): when one
 // lands while the window is open, its interface patch is loaded at once; a downloaded installer is announced.
 async function watchAutomaticUpdates({requestJSON,uiText,note,setDrawer,selectSettingsCategory,showReleaseNotes}){
-  let start=null,dismissed='',delay=1500,lastApp=null,lastMinor=null;
+  const DISMISS_KEY='valDismissedAppUpdate';
+  const readDismissed=()=>{try{return typeof localStorage!=='undefined'?(localStorage.getItem(DISMISS_KEY)||''):'';}catch{return '';}};
+  const writeDismissed=v=>{try{if(typeof localStorage!=='undefined')localStorage.setItem(DISMISS_KEY,v);}catch{}};
+  let start=null,dismissed=readDismissed(),delay=1500,lastApp=null,lastMinor=null;
   const compactNotes=(notes,limit=160)=>{
     const clean=String(notes||'').replace(/\[([^\]]+)\]\([^)]+\)/g,'$1').replace(/^\s*(?:#{1,6}\s*|[-*+]\s+|\d+\.\s+)/gm,'').replace(/[`*_>~]+/g,'').replace(/\s+/g,' ').trim();
     return !clean?'':clean.length<=limit?clean:clean.slice(0,limit-1).trimEnd()+'…';
   };
   const notice=document.createElement('aside');notice.id='appUpdateNotice';notice.className='update-card';notice.hidden=true;notice.setAttribute('role','status');
-  const title=document.createElement('strong'),detail=document.createElement('span'),open=document.createElement('button'),close=document.createElement('button'),notesEl=document.createElement('p'),notesBtn=document.createElement('button');
+  const title=document.createElement('strong'),detail=document.createElement('span'),open=document.createElement('button'),close=document.createElement('button'),notesEl=document.createElement('p'),notesBtn=document.createElement('button'),downloadBtn=document.createElement('button'),laterBtn=document.createElement('button');
   notesEl.className='update-card-notes';notesEl.hidden=true;
   notesBtn.type='button';notesBtn.className='update-notes-btn';notesBtn.hidden=true;
+  downloadBtn.type='button';downloadBtn.className='update-install';downloadBtn.hidden=true;
+  laterBtn.type='button';laterBtn.className='update-notes-btn';laterBtn.hidden=true;
   open.type='button';close.type='button';close.className='update-card-close';close.textContent='×';
   const openReleaseDialog=payload=>{
     if(typeof showReleaseNotes==='function')showReleaseNotes(payload);
     else if(typeof CustomEvent==='function')document.dispatchEvent(new CustomEvent('v-agent-show-notes',{detail:payload}));
   };
   const openSettings=()=>{setDrawer(true);selectSettingsCategory('general');document.getElementById('appUpdateBox')?.scrollIntoView({block:'nearest'});};
+  const dismissNotice=()=>{dismissed=notice.dataset.version||'';writeDismissed(dismissed);notice.hidden=true;};
   open.onclick=openSettings;
-  close.onclick=()=>{dismissed=notice.dataset.version||'';notice.hidden=true;};
+  close.onclick=dismissNotice;
+  laterBtn.onclick=dismissNotice;
+  downloadBtn.onclick=async()=>{
+    downloadBtn.disabled=true;
+    try{
+      const updated=await requestJSON('/api/harness/app-update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'download',language:typeof window!=='undefined'?(window.VALI18n?.language||'en'):'en'})});
+      lastApp=updated;delay=2000;
+      document.dispatchEvent(new CustomEvent('v-agent-app-update',{detail:updated}));
+      renderNotice();
+    }catch(error){note(uiText(error?.message||String(error)));downloadBtn.disabled=false;}
+  };
   const renderNotice=()=>{
     close.setAttribute('aria-label',uiText('Descartar aviso'));
     open.textContent=uiText('Ver actualización');
     notesBtn.textContent=uiText('Notas de versión');
+    laterBtn.textContent=uiText('Más tarde');
     const u=lastApp,version=u?.available?.version||'';
     if(version&&dismissed!==version){
       title.textContent=uiText('Nueva versión disponible');
@@ -62,6 +79,10 @@ async function watchAutomaticUpdates({requestJSON,uiText,note,setDrawer,selectSe
       notesEl.textContent=snippet;notesEl.hidden=!snippet;
       notesBtn.hidden=!fullNotes&&!u.available?.release_url;
       notesBtn.onclick=()=>openReleaseDialog({tag:'V-Agent '+version,notes:fullNotes,url:u.available?.release_url||u.available?.url||''});
+      downloadBtn.textContent=uiText('Descargar versión')+' '+version;
+      downloadBtn.hidden=Boolean(u.ready||u.busy);
+      downloadBtn.disabled=Boolean(u.busy);
+      laterBtn.hidden=false;
       notice.hidden=false;notice.dataset.version=version;
       return;
     }
@@ -75,13 +96,14 @@ async function watchAutomaticUpdates({requestJSON,uiText,note,setDrawer,selectSe
       notesEl.textContent=snippet;notesEl.hidden=!snippet;
       notesBtn.hidden=!fullNotes;
       notesBtn.onclick=()=>openReleaseDialog({tag:'V-Agent '+tag,notes:fullNotes,url:''});
+      downloadBtn.hidden=true;laterBtn.hidden=false;
       notice.hidden=false;notice.dataset.version='minor:'+m.revision;
       return;
     }
     notice.hidden=true;
   };
   renderNotice();
-  notice.append(title,detail,open,close,notesEl,notesBtn);document.body.append(notice);
+  notice.append(title,detail,open,close,notesEl,notesBtn,downloadBtn,laterBtn);document.body.append(notice);
   if(typeof window!=='undefined'){window.VALI18n?.onChange?.(renderNotice);window.VALI18n?.observe?.(notice);}
   for(;;){
     await new Promise(resolve=>setTimeout(resolve,delay));

@@ -138,7 +138,7 @@ function readableDraft(call) {
 }
 function toolTitle(call) {
   const name=toolName(call);
-  return uiText(({hf_account:'Cuenta de Hugging Face',hf_cli:'Hugging Face CLI',hf_transfer:'Archivos de Hugging Face',web_search:'Web Search',web_visit:'Web Visit',fs_list:'Listar archivos',fs_read:'Leer archivo',doc_read:'Leer documento',fs_write:'Guardar archivo',fs_edit:'Editar archivo',fs_copy:'Copiar texto',draft_resume:'Continuar borrador',file_history:'Versiones del archivo',code_check:'Comprobar código',project_map:'Mapa del proyecto',web_render:'Renderizar HTML',invalid_call:'Llamada inválida',ask_user:'Pregunta al usuario',retry:'Reintento automático',context:'Contexto acotado',draft:'Herramienta',shell_run:'Comandos',sys_info:'Información del equipo'})[name]||name||'Herramienta');
+  return uiText(({hf_account:'Cuenta de Hugging Face',hf_cli:'Hugging Face CLI',hf_transfer:'Archivos de Hugging Face',web_search:'Web Search',web_visit:'Web Visit',http_request:'Petición HTTP',download:'Descargar archivo',fs_list:'Listar archivos',fs_read:'Leer archivo',doc_read:'Leer documento',fs_write:'Guardar archivo',fs_edit:'Editar archivo',fs_copy:'Copiar texto',fs_manage:'Gestionar archivos',fs_search:'Buscar en archivos',draft_resume:'Continuar borrador',file_history:'Versiones del archivo',code_check:'Comprobar código',project_map:'Mapa del proyecto',web_render:'Renderizar HTML',invalid_call:'Llamada inválida',ask_user:'Pregunta al usuario',retry:'Reintento automático',context:'Contexto acotado',draft:'Herramienta',shell_run:'Comandos',job_wait:'Esperar trabajo',job_status:'Estado del trabajo',job_list:'Lista de trabajos',job_stop:'Detener trabajo',browser:'Navegador',console:'Consola',sys_info:'Información del equipo'})[name]||name||'Herramienta');
 }
 // What the agent did on its own (retry, trimmed context) or asked, in the interface language.
 function toolNotice(call) {
@@ -364,9 +364,9 @@ function updateToolTrace(section,trace) {
     }
     // Keep expanded cards and text selections intact during unrelated streamed tokens.
     const signature=JSON.stringify(call);if(card._traceSignature===signature)return;card._traceSignature=signature;body.replaceChildren();
-    if(['fs_write','fs_edit','fs_copy'].includes(toolName(call))&&(args.path||args.destino)){
+    if(['fs_write','fs_edit','fs_copy'].includes(toolName(call))&&(args.path||args.destino||args.destination)){
       const history=document.createElement('button');history.type='button';history.className='text-btn';history.textContent=uiText('Versiones / deshacer');
-      history.onclick=()=>openFileHistory(args.path||args.destino);body.append(history);
+      history.onclick=()=>openFileHistory(args.path||args.destino||args.destination);body.append(history);
     }
     const meta=document.createElement('div');meta.className='tool-meta';meta.textContent=String(call.name||'')+(call.round?' · '+uiText('Ronda')+' '+call.round:'');body.append(meta);
     const notice=toolNotice(call);

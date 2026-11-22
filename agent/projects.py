@@ -70,6 +70,17 @@ class ProjectStore:
             from model_import import _atomic_json
             _atomic_json(self.path,data)
             return self.snapshot(None)
+    def unassign(self,chat_id):
+        """Remove a deleted conversation from the project mapping without touching any project folder."""
+        chat_id=conversation_id(chat_id)
+        with self.lock:
+            data=self._read()
+            if chat_id not in data['conversations']:return False
+            data['conversations'].pop(chat_id,None)
+            from model_import import _atomic_json
+            self.path.parent.mkdir(parents=True,exist_ok=True);_atomic_json(self.path,data)
+            return True
+
     def workspace(self,policy,chat_id):
         data=self.snapshot(chat_id)
         project=next((p for p in data['projects'] if p['id']==data['selected']),None)

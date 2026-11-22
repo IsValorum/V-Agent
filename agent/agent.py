@@ -1566,6 +1566,107 @@ def turn_user_suffix(original, sent):
     return None
 
 
+_ATTACH_HEADER_RE = re.compile(r"^--- ([^\r\n]+) ---\r?\n", re.MULTILINE)
+
+
+def _safe_attachment_name(raw_name):
+    base = Path(str(raw_name or "").replace("\\", "/")).name
+    clean = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', "_", base).strip(" .")
+    if not clean or clean in (".", ".."):
+        return "attachment.txt"
+    return clean[:120].rstrip(" .") or "attachment.txt"
+
+
+def _parse_inline_attachments(messages):
+    """Extract (filename, content) pairs from the latest user message's [Adjuntos] block."""
+    last_user = next((m for m in reversed(messages) if isinstance(m, dict) and m.get("role") == "user"), None)
+    if not last_user:
+        return []
+    content = last_user.get("content")
+    if isinstance(content, list):
+        text = "\n".join(str(p.get("text") or "") for p in content if isinstance(p, dict) and p.get("type") == "text")
+    elif isinstance(content, str):
+        text = content
+    else:
+        return []
+    marker = "\n\n[Adjuntos]\n"
+    if marker in text:
+        block = text.split(marker, 1)[1]
+    elif text.startswith("[Adjuntos]\n"):
+        block = text[len("[Adjuntos]\n"):]
+    else:
+        return []
+    # Strip trailing turn notes (e.g. [System note...]) if already appended on a retry.
+    block = re.split(r"\n\n\[(?:System note|Attached file|Fecha y hora actual:|Recovery state)", block, maxsplit=1)[0]
+    matches = list(_ATTACH_HEADER_RE.finditer(block))
+    items = []
+    for idx, m in enumerate(matches):
+        name = m.group(1).strip()
+        start = m.end()
+        end = matches[idx + 1].start() if idx + 1 < len(matches) else len(block)
+        body = block[start:end]
+        if idx + 1 < len(matches) and body.endswith("\n\n"):
+            body = body[:-2]
+        items.append((name, body))
+    return items
+
+
+def _stage_user_attachments(messages, workspace, is_project=False):
+    """Save working copies of attached chat files into the workspace so tools can copy/edit them directly."""
+    items = _parse_inline_attachments(messages)
+    if not items or workspace is None:
+        return messages, []
+    saved = []
+    for raw_name, content in items:
+        safe = _safe_attachment_name(raw_name)
+        candidates = [f"attachments/{safe}"] if is_project else [safe, f"attachments/{safe}"]
+        chosen_rel = None
+        for rel in candidates:
+            target = workspace.path(rel, False)
+            if not target.exists():
+                chosen_rel = rel
+                break
+            try:
+                if target.is_file() and target.read_text(encoding="utf-8", errors="replace") == content:
+                    chosen_rel = rel
+                    break
+            except OSError:
+                pass
+        if chosen_rel is None:
+            stem, suf = Path(safe).stem, Path(safe).suffix
+            for n in range(2, 50):
+                rel = f"attachments/{stem}-{n}{suf}"
+                target = workspace.path(rel, False)
+                if not target.exists():
+                    chosen_rel = rel
+                    break
+        if chosen_rel is None:
+            continue
+        target = workspace.path(chosen_rel, False)
+        if not target.exists():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            tmp = None
+            try:
+                with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=target.parent, delete=False, newline="\n") as fh:
+                    tmp = Path(fh.name)
+                    fh.write(content)
+                    fh.flush()
+                os.replace(tmp, target)
+                tmp = None
+            finally:
+                if tmp is not None:
+                    tmp.unlink(missing_ok=True)
+        saved.append(chosen_rel)
+    if saved:
+        note = (
+            "System note: attached file(s) saved as working copies in the workspace: "
+            + ", ".join(saved)
+            + ". Use pc__fs_copy, pc__fs_manage or pc__fs_edit on them directly instead of rewriting them from scratch."
+        )
+        messages = attach_turn_note(messages, note)
+    return messages, saved
+
+
 def _run_chat_stream(body, control=None):
     """Genera eventos: reasoning, content, tool, round, done, error."""
     finish_reason = None   # the last round's, reported with "done" (the reply's speed detail shows it)
@@ -1651,6 +1752,7 @@ def _run_chat_stream(body, control=None):
             # (hybrid models cannot reuse anything after it; issue #2).
             messages = attach_turn_note(messages, recovery_state)
     if workspace is not ACCESS and (body.get('functions') or {}).get('files'):
+        messages, _staged_attachments = _stage_user_attachments(messages, workspace, is_project=bool(project_root))
         from context_policy import project_messages
         messages,context_projection=project_messages(messages,workspace,block=8)
     user_suffix = turn_user_suffix(list(body.get("messages") or []), messages)
@@ -2786,7 +2888,18 @@ class Handler(BaseHTTPRequestHandler):
                 if self.path.endswith('/save'):
                     self._json(200, {'session':SESSIONS.save(body['session'],body.get('revision'))})
                 elif self.path.endswith('/delete'):
-                    SESSIONS.delete(body['id'],body['revision']);self._json(200,{'deleted':True})
+                    chat_id = body['id']
+                    SESSIONS.delete(chat_id, body['revision'])
+                    workspace_removed = False
+                    try:
+                        workspace_removed = ACCESS.remove_conversation(chat_id)
+                    except (ValueError, OSError):
+                        pass
+                    try:
+                        PROJECTS.unassign(chat_id)
+                    except (ValueError, OSError):
+                        pass
+                    self._json(200, {'deleted': True, 'workspace_removed': workspace_removed})
                 else:
                     errors=[]
                     from ui_preferences import atomic_json

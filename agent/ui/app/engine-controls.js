@@ -470,14 +470,14 @@ function syncEngineCapabilities(){
   const claude=remote&&engineSnapshot?.api?.protocol==='anthropic',hideSampling=remote&&(!engineSnapshot?.api?.send_sampling||claude&&engineSnapshot?.api?.api_version>='2026-10-21');for(const id of ['p_temp','p_topp'])if($('#'+id)?.closest('.row'))$('#'+id).closest('.row').hidden=hideSampling;
   for(const id of ['creatorNotice','creatorReset','codeProtection'])if($('#'+id))$('#'+id).hidden=remote;
   if($('#p_temp'))$('#p_temp').closest('details').hidden=hideSampling;
-  if(remote){$('#load').textContent='Usar modelo';$('#unload').textContent='Dejar de usar';$('#engineToggle').textContent=engineOnline?'Desconectar API':'Conectar API';}
-  else if(!engineBusy){$('#load').textContent='Cargar modelo';$('#unload').textContent='Descargar modelo';}
+  if(remote){$('#load').textContent=uiText('Usar modelo');$('#unload').textContent=uiText('Dejar de usar');$('#engineToggle').textContent=uiText(engineOnline?'Desconectar API':'Conectar API');}
+  else if(!engineBusy){$('#load').textContent=uiText('Cargar modelo');$('#unload').textContent=uiText('Descargar modelo');}
   $('#engineSettings').querySelectorAll('input,select,button').forEach(el=>el.disabled=busy||engineBusy);$('#modelSourceTabs').querySelectorAll('button').forEach(el=>el.disabled=busy||engineBusy);
   window.syncMayaActionButtons?.();
   $('#applyEngine').disabled=busy||engineBusy||!engineFormDirty();if(engineFormDirty())$('#load').disabled=true;
-  if(activeEngine==='llama'&&$('#visionEncoder')){$('#visionEncoder').value='Integrado en llama.cpp';$('#browseEncoder').hidden=true;}else if($('#browseEncoder'))$('#browseEncoder').hidden=false;
+  if(activeEngine==='llama'&&$('#visionEncoder')){$('#visionEncoder').value=uiText('Integrado en llama.cpp');$('#browseEncoder').hidden=true;}else if($('#browseEncoder'))$('#browseEncoder').hidden=false;
   const add=$('#addModel');if(add){add.hidden=remote;add.textContent=uiText(maya?'Preparar modelo con Maya':'+ Añadir');if(maya)add.disabled=busy||engineBusy||!!loadedModel;}
-  if($('#modelResults'))$('#modelResults').setAttribute('aria-label',remote?'Modelos de la API':'Modelos instalados');
+  if($('#modelResults'))$('#modelResults').setAttribute('aria-label',uiText(remote?'Modelos de la API':'Modelos instalados'));
   if($('#remoteModelInfo')){$('#remoteModelInfo').hidden=!remote;const usage=$('#contextUsage');if(usage){if(remote){$('#remoteModelInfo .remote-context-stats')?.after(usage);}else{$('#controls-context')?.prepend(usage);}}}
   if($('#contextCompactBox')){if(remote&&$('#remoteModelInfo'))$('#remoteModelInfo').after($('#contextCompactBox'));else if($('#contextBlock'))$('#contextBlock').after($('#contextCompactBox'));$('#contextCompactBox').hidden=false;}
   $('#composerControls').dataset.activeSource=remote?'api':'local';if($('#engineQuickSettings')){const label=$('#engineQuickSettings span')||$('#engineQuickSettings');label.textContent=uiText(remote?'Gestionar conexiones':'Cambiar motor');}
