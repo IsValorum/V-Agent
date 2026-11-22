@@ -8,7 +8,9 @@ function modelFavorites(){try{const list=JSON.parse(localStorage.getItem('val-mo
 function toggleModelFavorite(id){const set=modelFavorites();set.has(id)?set.delete(id):set.add(id);try{localStorage.setItem('val-model-favorites',JSON.stringify([...set]));}catch{}renderModelList($('#model').value);}
 // Whether each local model fits this computer: the same pre-load estimate the model window shows, with the
 // model's saved context and cache, computed one model at a time while the list is open.
-const modelFit=new Map();let fitQueue=[],fitRunning=false;
+// Each verdict is kept 60 s: free memory changes when a model loads, and a model's context can change.
+const modelFit=new Map(),FIT_TTL_MS=60000;let fitQueue=[],fitRunning=false;
+function cachedFit(key){const entry=modelFit.get(key);return entry&&Date.now()-entry.at<FIT_TTL_MS?entry:null;}
 function fitVerdict(result){
   const m=result?.memory,h=m?.hardware||{};if(!m||typeof m.total!=='number')return null;
   const freeGpu=typeof h.gpu_effective_available==='number'?h.gpu_effective_available:h.gpu_available;
@@ -21,24 +23,27 @@ function fitVerdict(result){
   return null;
 }
 function paintModelFit(id){
-  const verdict=modelFit.get(activeEngine+'|'+id);
+  const verdict=cachedFit(activeEngine+'|'+id)?.verdict;
   for(const badge of document.querySelectorAll('#modelResults .model-fit[data-id="'+CSS.escape(id)+'"]')){
     badge.hidden=!verdict;if(!verdict)continue;
     badge.dataset.level=verdict.level;badge.textContent=uiText(verdict.label);badge.title=verdict.detail;
   }
 }
 async function runFitQueue(){
-  if(fitRunning)return;fitRunning=true;
+  // Only while the model window is open: never at start-up or for a list nobody is looking at.
+  if(fitRunning||!window.VALWindows?.isOpen('model'))return;fitRunning=true;
   try{
-    while(fitQueue.length){
+    while(fitQueue.length&&window.VALWindows?.isOpen('model')){
       const {id,engine}=fitQueue.shift();
-      if(engine!==activeEngine||modelFit.has(engine+'|'+id)||!document.querySelector('#modelResults .model-fit[data-id="'+CSS.escape(id)+'"]'))continue;
-      try{const result=await requestJSON('/api/harness/memory-estimate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:id}),signal:AbortSignal.timeout(15000)});modelFit.set(engine+'|'+id,fitVerdict(result));}
-      catch{modelFit.set(engine+'|'+id,null);}
+      if(engine!==activeEngine||cachedFit(engine+'|'+id)||!document.querySelector('#modelResults .model-fit[data-id="'+CSS.escape(id)+'"]'))continue;
+      let verdict=null;
+      try{verdict=fitVerdict(await requestJSON('/api/harness/memory-estimate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:id}),signal:AbortSignal.timeout(15000)}));}catch{}
+      modelFit.set(engine+'|'+id,{verdict,at:Date.now()});
       paintModelFit(id);
     }
   }finally{fitRunning=false;}
 }
+document.getElementById('composerControls')?.addEventListener('fw:open',()=>renderModelList($('#model').value));
 function renderModelOptions(selected){
   const query=($('#modelFilter')?.value||'').trim().toLocaleLowerCase();
   const matches=modelCatalog.filter(model=>(modelFileName(model)+' '+model.id).toLocaleLowerCase().includes(query));
@@ -61,7 +66,7 @@ function renderModelList(selected){
     const row=document.createElement('button');row.type='button';row.className='model-option';row.dataset.id=model.id;row.setAttribute('role','option');row.setAttribute('aria-selected',String(model.id===selected));row.disabled=model.status==='unavailable';
     const name=document.createElement('span');name.className='model-option-name';name.textContent=modelFileName(model);
     const meta=document.createElement('span');meta.className='model-option-meta';meta.textContent=[model.backend||'',model.context?model.context.toLocaleString()+' tokens':model.remote?'Contexto no informado':'',model.quantization||''].filter(Boolean).join(' · ');
-    if(estimateFit&&model.status!=='unavailable'){const fit=document.createElement('span');fit.className='model-fit';fit.dataset.id=model.id;fit.hidden=true;meta.append(fit);fitQueue.push({id:model.id,engine:activeEngine});}
+    if(estimateFit&&model.status!=='unavailable'){const fit=document.createElement('span');fit.className='model-fit';fit.dataset.id=model.id;fit.hidden=true;meta.append(fit);if(!fitQueue.some(item=>item.id===model.id&&item.engine===activeEngine))fitQueue.push({id:model.id,engine:activeEngine});}
     const state=document.createElement('span');state.className='model-option-state';state.textContent=model.status==='unavailable'?'No disponible':(model.id===loadedModel?(model.remote?'En uso':'En memoria'):'');
     row.title=[modelFileName(model),model.problem].filter(Boolean).join(' · ');
     row.append(name,meta,state);

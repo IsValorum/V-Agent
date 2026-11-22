@@ -8,8 +8,17 @@ import gguf_catalog
 class LoadingMemoryTests(unittest.TestCase):
  def test_auto_uses_one_slot_checkpoints_and_engine_batches(self):
   caps={'checkpoints':True,'fit':True,'batch':1024,'ubatch':256}
-  a=arguments({},8192,caps);self.assertEqual(a,['--ctx-size','8192','--parallel','1','--ctx-checkpoints','1','--fit','on'])
+  a=arguments({},8192,caps);self.assertEqual(a,['--ctx-size','8192','--parallel','1','--ctx-checkpoints','8','--fit','on'])
   self.assertEqual(effective({},caps)['ubatch'],256)
+ def test_automatic_mode_keeps_prompt_reuse_for_hybrid_models(self):
+  # Issue #2: automatic mode reset checkpoints to 1, so hybrid (SSM) models reprocessed the whole prompt
+  # every turn. Automatic now keeps several, the user's own count survives, --fit stays on.
+  caps={'checkpoints':True,'fit':True}
+  self.assertEqual(arguments({'auto':True,'checkpoints':1},8192,caps)[-4:],['--ctx-checkpoints','8','--fit','on'])
+  self.assertEqual(arguments({'auto':True,'checkpoints':4},8192,caps)[-4:],['--ctx-checkpoints','4','--fit','on'])
+  self.assertEqual(arguments({'auto':False,'checkpoints':1},8192,caps)[-4:],['--ctx-checkpoints','1','--fit','off'])
+  self.assertEqual(effective({},kind='strata')['checkpoints'],1)  # Strata's prompt cache is unchanged
+  self.assertNotIn('--ctx-checkpoints',arguments({},8192,{'fit':True}))  # older build: automatic needs no flag
  def test_manual_context_is_per_slot(self):
   a=arguments({'auto':False,'parallel':4,'batch':256,'ubatch':64,'checkpoints':2},8192,{'checkpoints':True})
   self.assertEqual(a[:4],['--ctx-size','32768','--parallel','4']);self.assertIn('--batch-size',a);self.assertEqual(a[-2:],['--ctx-checkpoints','2'])
@@ -45,6 +54,8 @@ class LoadingMemoryTests(unittest.TestCase):
  def test_hybrid_checkpoints_add_recurrent_memory(self):
   f=self.facts();f['metadata'].update({'test.full_attention_interval':4,'test.ssm.inner_size':1024,'test.ssm.state_size':128,'test.ssm.conv_kernel':4,'test.ssm.group_count':8})
   a=estimate_facts(f,8192,'fp16',{'auto':False,'checkpoints':1});b=estimate_facts(f,8192,'fp16',{'auto':False,'checkpoints':3});self.assertGreater(a['recurrent'],0);self.assertEqual(b['recurrent'],a['recurrent']*2)
+  # Checkpoints are copies kept in host RAM: they raise the total, not the GPU estimate.
+  self.assertEqual(b['gpu_full_offload'],a['gpu_full_offload']);self.assertEqual(b['total']-a['total'],b['recurrent']-a['recurrent'])
  def test_unknown_kv_is_unavailable_not_zero(self):
   f={'metadata':{},'dense_bytes':1000};m=estimate_facts(f,8192,'fp16',{});self.assertIsNone(m['kv']);self.assertIsNone(m['total'])
  def test_gemma4_swa_keeps_kv_bounded_even_without_explicit_pattern(self):

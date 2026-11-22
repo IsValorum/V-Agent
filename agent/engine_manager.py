@@ -838,8 +838,10 @@ class EngineManager:
                 if line.startswith(b'data: ') and (b'"usage"' in line or b'"timings"' in line or b'"prompt_progress"' in line):
                     try:
                         packet=json.loads(line[6:]);usage=packet.get('usage');timing=packet.get('timings')
-                        if not usage and (timing or packet.get('prompt_progress')) and self.kind=='llama':
-                            # A live figure, not the reply's result: kept for the meters, not passed on.
+                        final=any(isinstance(choice,dict) and choice.get('finish_reason') for choice in packet.get('choices') or [])
+                        if not usage and not final and (timing or packet.get('prompt_progress')) and self.kind=='llama':
+                            # A live figure, not the reply's result: kept for the meters, not passed on. The chunk
+                            # that ends the reply keeps its timings (a build without the usage chunk has no other).
                             self.live_timing=timing or self.live_timing
                             self.live_progress=packet.pop('prompt_progress',None) or self.live_progress
                             if (self.live_timing.get('predicted_n') or 0)>0:self.live_reading=False

@@ -3,8 +3,13 @@ import copy
 import hashlib
 import re
 
-def project_messages(messages, workspace, keep_batches=4):
-    """Offload old, complete tool batches without splitting call/result pairs."""
+def project_messages(messages, workspace, keep_batches=4, block=1):
+    """Offload old, complete tool batches without splitting call/result pairs.
+
+    `block` > 1 archives old batches only in whole blocks of that many. Each archived batch rewrites a
+    message in the middle of the history, and a local engine must then read the prompt again from that
+    point (hybrid models from a checkpoint, issue #2): archiving one batch per new batch did that on every
+    tool round; in blocks it happens once every `block` batches."""
     groups=[];i=0
     while i<len(messages):
         calls=messages[i].get('tool_calls') if messages[i].get('role')=='assistant' else None
@@ -15,7 +20,9 @@ def project_messages(messages, workspace, keep_batches=4):
         if all(isinstance(ident,str) and ident for ident in ids) and len(ids)==len(calls) and {r.get('tool_call_id') for r in results}==ids:groups.append((i,end))
         i=end
     replacements={}
-    for start,end in groups[:-keep_batches] if keep_batches else groups:
+    old=groups[:-keep_batches] if keep_batches else groups
+    if block>1:old=old[:len(old)//block*block]
+    for start,end in old:
         batch=messages[start:end]
         import json
         raw=json.dumps(batch,ensure_ascii=False)

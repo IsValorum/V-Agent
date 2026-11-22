@@ -301,7 +301,7 @@ def install(a):
                 file=Path(model['config']);cfg=json.loads(file.read_text(encoding='utf-8-sig'));args=cfg.get('args',[])
                 while '--prompt-cache' in args:
                     i=args.index('--prompt-cache');del args[i:i+2]
-                args+=['--prompt-cache',str(effective(saved)['checkpoints'])];cfg['args']=args;atomic_json(file,cfg)
+                args+=['--prompt-cache',str(effective(saved,kind='strata')['checkpoints'])];cfg['args']=args;atomic_json(file,cfg)
             # The engine's other options (threads, expert placement, caches…): what V-Agent applied last
             # time is taken out first, so going back to the engine default really removes the flag.
             options=(a.MODEL_PREFERENCES.records.get(name) or {}).get('engine') or {}

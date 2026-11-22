@@ -4,6 +4,18 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.1.9
+
+Fix release: local hybrid models no longer read the whole conversation again on every turn (issue #2).
+
+- **Context checkpoints in automatic mode (`agent/load_settings.py`):** Hybrid SSM/attention models (`qwen35moe`, `bailingmoe3`…) can only reuse a prompt from a context checkpoint. V-Agent started llama.cpp with `--ctx-checkpoints 1` and automatic mode reset the user's own count, so the checkpoint was erased while the next prompt was read and every turn reprocessed the full conversation (15–26 s before the first token). Automatic mode now keeps 8 checkpoints (llama.cpp's own default is 32; pure attention models create none) and respects a count the user chooses, so `--fit` and prompt reuse work together. Builds without `--ctx-checkpoints` no longer fail in automatic mode. Strata keeps its prompt cache of 1.
+- **Stable prompt prefix (`agent/agent.py`, `agent/context_policy.py`):** The draft-recovery note, which comes and goes between turns, was added to the system prompt, so the engine had to read everything again whenever it changed; it now goes on the latest user message. Old tool batches are archived in blocks of eight instead of one per new batch, so the middle of the history is rewritten once every eight tool rounds instead of on every round.
+- **Memory estimate (`agent/memory_estimate.py`):** Context checkpoints are counted in RAM, where llama.cpp keeps them, not in the GPU estimate.
+- **Model window (`agent/ui/app/load-settings.js`):** The checkpoint count stays editable in automatic mode with llama.cpp, shows the value really used, and a hybrid model with one checkpoint or fewer gets a warning. The llama.cpp status text no longer shows Strata's.
+- **Model list:** The fits-your-PC badges are computed only while the model window is open (not at start-up) and refreshed after 60 s.
+- **llama.cpp builds without the usage chunk:** The chunk that ends a reply keeps its timings, so speed and context still show.
+- **Measured:** five turns with tools on a 35B `qwen35moe` model through V-Agent: 1.1.8 read the whole prompt again three times (about 5,400 tokens and 15–17 s each); 1.1.9 reads only what is new on most requests (69–464 tokens, about 1 s).
+
 ## 1.1.8
 
 Release focused on workspace ergonomics, model organization, persistent instructions, and interface polish across all themes and languages.

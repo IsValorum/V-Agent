@@ -1,5 +1,9 @@
 /* Load controls are per-model. Estimates are debounced and only requested in the open model window. */
 const LOAD_DEFAULTS={auto:true,parallel:1,batch:0,ubatch:0,checkpoints:1,gpu_layers:-1,cpu_moe:0,fit_target:0};
+// Automatic llama.cpp keeps 8 context checkpoints (load_settings.AUTO_CHECKPOINTS): hybrid and sliding-window
+// models reuse the conversation from them instead of reading it again every turn (issue #2).
+const LLAMA_AUTO_CHECKPOINTS=8;
+function shownCheckpoints(load){return activeEngine==='llama'&&load.auto&&load.checkpoints===LOAD_DEFAULTS.checkpoints?LLAMA_AUTO_CHECKPOINTS:load.checkpoints;}
 // llama.cpp only: automatic = --fit (fit_target is its VRAM margin); manual = layers by hand.
 const LOAD_LLAMA_FIELDS=new Set(['gpu_layers','cpu_moe','fit_target']);
 const DRAFT_DEFAULTS={enabled:false,path:'',type:'auto',max:3,min:0};
@@ -48,7 +52,7 @@ function syncLoadSettings(estimate=true){
   group.hidden=!['llama','strata'].includes(activeEngine);document.getElementById('modelMemoryEstimate').hidden=activeEngine==='api';
   const draftBox=document.getElementById('modelDraftSettings');
   if(draftBox){draftBox.hidden=activeEngine!=='llama';const enabled=document.getElementById('llamaDraftEnabled'),path=document.getElementById('llamaDraftPath'),type=document.getElementById('llamaDraftType'),max=document.getElementById('llamaDraftMax'),min=document.getElementById('llamaDraftMin');enabled.checked=!!draftCurrent.enabled;path.value=draftCurrent.path||'';type.value=draftCurrent.type||'auto';max.value=draftCurrent.max||3;min.value=draftCurrent.min||0;enabled.disabled=busy||engineBusy;for(const input of [path,type,max,min])input.disabled=busy||engineBusy||!draftCurrent.enabled;const label=type.options[type.selectedIndex]?.textContent||uiText('Automático');const status=document.getElementById('llamaDraftStatus');status.textContent=!draftCurrent.enabled?uiText('Sin draft: el modelo principal responde solo.'):!draftCurrent.path?uiText('Elige un GGUF draft compatible.'):(draftCurrent.path.split(/[\\/]/).pop()+' · '+uiText(label)+' · '+draftCurrent.max+' tokens · '+uiText('suma memoria y debe ser compatible con el modelo principal.'));}
-  for(const key of ['parallel','batch','ubatch','checkpoints']){const input=document.getElementById('load_'+key);input.closest('.setting-row').hidden=activeEngine==='strata'&&key!=='checkpoints';if(document.activeElement!==input)input.value=loadCurrent.auto&&key!=='checkpoints'?uiText('Auto'):loadCurrent[key]===0&&key!=='checkpoints'?uiText('Auto'):loadCurrent[key];input.disabled=loadCurrent.auto||busy||engineBusy||(key==='checkpoints'&&activeEngine==='llama'&&loadCapabilities?.checkpoints===false);}
+  for(const key of ['parallel','batch','ubatch','checkpoints']){const input=document.getElementById('load_'+key);input.closest('.setting-row').hidden=activeEngine==='strata'&&key!=='checkpoints';if(document.activeElement!==input)input.value=loadCurrent.auto&&key!=='checkpoints'?uiText('Auto'):loadCurrent[key]===0&&key!=='checkpoints'?uiText('Auto'):key==='checkpoints'?shownCheckpoints(loadCurrent):loadCurrent[key];input.disabled=(loadCurrent.auto&&!(key==='checkpoints'&&activeEngine==='llama'))||busy||engineBusy||(key==='checkpoints'&&activeEngine==='llama'&&loadCapabilities?.checkpoints===false);}
   // llama.cpp: the VRAM margin belongs to automatic (--fit); layers and MoE experts to manual.
   const layers=memoryLast?.memory?.block_count,moe=memoryLast?.memory?.moe!==false;
   for(const key of LOAD_LLAMA_FIELDS){const input=document.getElementById('load_'+key),row=input.closest('.setting-row');
@@ -59,6 +63,9 @@ function syncLoadSettings(estimate=true){
   const status=document.getElementById('loadSettingsStatus');
   if(activeEngine==='llama')status.textContent=loadCurrent.auto?uiText('Automático: llama.cpp ajusta capas y contexto a tu memoria (--fit).'):uiText('Personalizado: tú eliges las capas (sin --fit). Se aplicará en la próxima carga.')+(layers?' '+uiText('El modelo tiene')+' '+layers+' '+uiText('capas')+'.':'');
   else status.textContent=loadCurrent.auto?uiText('Automático: 1 slot, lotes del motor y 1 checkpoint.'):uiText('Se aplicará en la próxima carga manual.');
+  // A hybrid (SSM + attention) model with 0 or 1 checkpoint reads the whole conversation again every turn.
+  if(activeEngine==='llama'&&(memoryLast?.memory?.recurrent||0)>0&&shownCheckpoints(loadCurrent)<=1)
+    status.textContent+=' '+uiText('Este modelo es híbrido: con 1 checkpoint o menos vuelve a leer toda la conversación en cada turno. Usa 4 o más.');
   syncEngineOptions();
   if(estimate)requestMemoryEstimate();
 }

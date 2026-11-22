@@ -14284,5 +14284,11 @@
     "pt": "Nenhum arquivo GGUF válido encontrado para mover.",
     "fr": "Aucun fichier GGUF valide trouvé à déplacer.",
     "de": "Keine gültigen GGUF-Dateien zum Verschieben gefunden."
+  },
+  "Este modelo es híbrido: con 1 checkpoint o menos vuelve a leer toda la conversación en cada turno. Usa 4 o más.": {
+    "en": "This model is hybrid: with 1 checkpoint or fewer it reads the whole conversation again every turn. Use 4 or more.",
+    "pt": "Este modelo é híbrido: com 1 checkpoint ou menos ele relê a conversa inteira a cada turno. Use 4 ou mais.",
+    "fr": "Ce modèle est hybride : avec 1 checkpoint ou moins, il relit toute la conversation à chaque tour. Utilisez-en 4 ou plus.",
+    "de": "Dieses Modell ist hybrid: Mit 1 Checkpoint oder weniger liest es in jeder Runde die ganze Unterhaltung neu. Verwende 4 oder mehr."
   }
 }

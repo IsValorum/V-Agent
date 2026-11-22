@@ -106,7 +106,7 @@ def _recurrent_floats(meta,arch,embed,heads):
     return 0
 
 def estimate_facts(facts,context,kv,settings,kind='llama',gpu_layers='auto',caps=None):
-    m=facts['metadata'];a=str(m.get('general.architecture',''));v=effective(settings,caps);slots=v['parallel'] if kind=='llama' else 1
+    m=facts['metadata'];a=str(m.get('general.architecture',''));v=effective(settings,caps,'llama' if kind=='llama' else 'strata');slots=v['parallel'] if kind=='llama' else 1
     def num(key,default=0):return _meta_num(m,a,key,default)
     layers=int(num('block_count'));embed=int(num('embedding_length'));heads=num('attention.head_count');kvheads=m.get(a+'.attention.head_count_kv',heads)
     lora=num('attention.kv_lora_rank');rope=num('rope.dimension_count')
@@ -119,7 +119,7 @@ def estimate_facts(facts,context,kv,settings,kind='llama',gpu_layers='auto',caps
     interval=int(num('full_attention_interval'))
     layer_heads=_layer_kv_heads(m,a,layers,kvheads,interval) if (layers and kv_defined) else [0.0]*layers
     has_attn=any(h>0 for h in layer_heads)
-    notes=[];cache=None;state=0
+    notes=[];cache=None;state=0;live_state=0
     if layers and ((has_attn and kd and vd) or (not has_attn and per_layer_rec>0)):
         shared_kv=max(0,int(num('attention.shared_kv_layers')))
         kv_limit=max(0,layers-shared_kv)
@@ -146,7 +146,8 @@ def estimate_facts(facts,context,kv,settings,kind='llama',gpu_layers='auto',caps
         if recurrent>0 and (has_attn or interval>0):
             notes.append('Arquitectura híbrida: KV solo para las capas de atención completa.')
         if recurrent>0 and per_layer_rec>0:
-            state=recurrent*per_layer_rec*4*slots*(1+v['checkpoints'])
+            # The live state sits next to the KV cache; each context checkpoint is a copy kept in host RAM.
+            live_state=recurrent*per_layer_rec*4*slots;state=live_state*(1+v['checkpoints'])
         if used_swa:notes.append('Caché SWA acotada a la ventana deslizante del modelo.')
     else:notes.append('No hay metadatos suficientes para estimar la caché KV.')
     weights=int(facts.get('dense_bytes',0)+facts.get('expert_bytes',0))
@@ -164,7 +165,7 @@ def estimate_facts(facts,context,kv,settings,kind='llama',gpu_layers='auto',caps
             gpu_weights=max(0,gpu_weights-facts['expert_bytes']*min(1,moe/layers))
             notes.append('Parte de los expertos MoE se queda en la RAM (--n-cpu-moe).')
     cpu=str(gpu_layers)=='0';total=None if cache is None else weights+cache+state+buffers
-    gpu=None if total is None else 0 if cpu else gpu_weights+cache+state+buffers
+    gpu=None if total is None else 0 if cpu else gpu_weights+cache+live_state+buffers
     if m.get('split.count',1)>1:notes.append('Archivo GGUF dividido: estimación parcial de pesos.');total=None;gpu=None
     notes.append('Buffers aproximados; visión, draft, controladores y asignaciones temporales pueden añadir memoria.')
     return {'estimated':True,'weights':weights,'kv':cache,'recurrent':state,'buffers':buffers,'total':total,'gpu_full_offload':gpu,'cpu_weights':weights-gpu_weights,'context_per_slot':context,'slots':slots,'kv_type':kv,'effective':v,'notes':notes,'architecture':a,

@@ -1530,6 +1530,23 @@ def run_chat_stream(body, control=None):
         journal.flush()
 
 
+def attach_turn_note(messages, note):
+    """`messages` with `note` appended to the latest user message (a copy; the list is not changed).
+
+    Notes that change from turn to turn never go in the system prompt: a local engine reuses the prompt it
+    already read only up to the first change, and hybrid models cannot reuse anything after it (issue #2)."""
+    messages = list(messages)
+    last_user = next((i for i in range(len(messages) - 1, -1, -1) if messages[i].get('role') == 'user'), None)
+    text = '[' + note + ']'
+    if last_user is None:
+        messages.append({'role': 'user', 'content': text})
+    elif isinstance(messages[last_user].get('content'), list):
+        messages[last_user] = {**messages[last_user], 'content': list(messages[last_user]['content']) + [{'type': 'text', 'text': text}]}
+    else:
+        messages[last_user] = {**messages[last_user], 'content': str(messages[last_user].get('content') or '') + '\n\n' + text}
+    return messages
+
+
 def _run_chat_stream(body, control=None):
     """Genera eventos: reasoning, content, tool, round, done, error."""
     finish_reason = None   # the last round's, reported with "done" (the reply's speed detail shows it)
@@ -1610,13 +1627,13 @@ def _run_chat_stream(body, control=None):
                 'to restore a readable file, inspect its tail with pc__fs_read, and write/complete the target file. '
                 'Ignore it for unrelated requests.')
         if recovery_state:
-            if messages and messages[0].get('role') == 'system':
-                messages[0] = {**messages[0], 'content': messages[0].get('content', '') + '\n' + recovery_state}
-            else:
-                messages.insert(0, {'role': 'system', 'content': recovery_state})
+            # On the latest user message, never in the system prompt: this note comes and goes between
+            # turns, and a changed system prompt makes a local engine read the whole conversation again
+            # (hybrid models cannot reuse anything after it; issue #2).
+            messages = attach_turn_note(messages, recovery_state)
     if workspace is not ACCESS and (body.get('functions') or {}).get('files'):
         from context_policy import project_messages
-        messages,context_projection=project_messages(messages,workspace)
+        messages,context_projection=project_messages(messages,workspace,block=8)
     full = []
 
     # La reserva se ajusta para el contexto que se va a usar, no para el techo: con una
