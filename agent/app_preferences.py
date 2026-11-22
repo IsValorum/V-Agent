@@ -7,7 +7,7 @@ import uuid
 from runtime_paths import SETTINGS_ROOT
 from ui_preferences import atomic_json
 
-LANGUAGES=('es','en','pt','fr','de')
+LANGUAGES=('es','en','pt','fr','de','ja','zh','ko','hi','id','vi','th','tr','ar')
 
 class AppPreferences:
     def __init__(self,path=None):

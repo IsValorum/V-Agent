@@ -4,6 +4,14 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.1.13
+
+Nine new interface languages (issue #3).
+
+- **New languages (`agent/ui/locales.json`, `agent/ui/standalone/i18n.js`, `agent/ui/app/shell.js`, `agent/app_preferences.py`):** Japanese, Simplified Chinese, Korean, Hindi, Indonesian, Vietnamese, Thai, Turkish and Arabic, selectable in Settings → General. Every interface phrase is translated. Instructions sent to the model, MCP tool descriptions and other model-facing text stay in English.
+- **Arabic right-to-left layout (`agent/ui/styles/base.css`, `agent/ui/styles/panels.css`):** Arabic switches the page to right-to-left. Side-specific spacing, positions, borders and alignment now use logical CSS properties, so the layout mirrors in Arabic and stays exactly the same in the other languages.
+- **Installer and updater (`agent/runtime_paths.py`, `agent/app_updates.py`):** The first launch picks the new languages from the Windows installer language, and the update window is translated as well.
+
 ## 1.1.12
 
 Fix and polish release: direct file operations on chat attachments, MCP file-tool hardening, on-demand app updates, complete conversation workspace cleanup on delete, and model download/unload translations.

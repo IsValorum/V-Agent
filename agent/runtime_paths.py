@@ -41,7 +41,7 @@ def command(role,*args):
     return [sys.executable,str(files[role]),*map(str,args)]
 
 # Windows LANGID written by the installer (Spanish, English, Portuguese, French, German).
-INSTALLER_LANGUAGES={1034:'es',3082:'es',2058:'es',1033:'en',2057:'en',1046:'pt',2070:'pt',1036:'fr',1031:'de'}
+INSTALLER_LANGUAGES={1034:'es',3082:'es',2058:'es',1033:'en',2057:'en',1046:'pt',2070:'pt',1036:'fr',1031:'de',1041:'ja',2052:'zh',4100:'zh',1042:'ko',1081:'hi',1057:'id',1066:'vi',1054:'th',1055:'tr',1025:'ar'}
 
 def installer_language():
     """Language picked in the installer (install-language.txt next to V-Agent.exe), if any."""

@@ -21,7 +21,7 @@ INCLUDE = re.compile(r'^\s*/\*@include ([\w./-]+)\*/\s*$')
 # names the page uses.
 ASSETS = {'ui-panels.css': 'styles/panels.css', 'ui-mcp.js': 'standalone/mcp.js',
           'ui-motion.js': 'standalone/motion.js', 'ui-i18n.js': 'standalone/i18n.js', 'locales.json': 'locales.json'}
-LANGUAGES = ('en', 'pt', 'fr', 'de')
+LANGUAGES = ('en', 'pt', 'fr', 'de', 'ja', 'zh', 'ko', 'hi', 'id', 'vi', 'th', 'tr', 'ar')
 
 
 def assemble():
