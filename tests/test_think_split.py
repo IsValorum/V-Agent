@@ -40,6 +40,13 @@ class ThinkSplitTests(unittest.TestCase):
         same = b'data: {"choices":[],"usage":{"prompt_tokens":3}}'
         self.assertEqual(split.line(same), same)
 
+    def test_an_engine_that_already_separates_reasoning_is_left_alone(self):
+        split = ThinkSplit(True)
+        first = b'data: {"choices":[{"delta":{"reasoning_content":"plan"}}]}'
+        self.assertEqual(split.line(first), first)
+        reply = b'data: {"choices":[{"delta":{"content":"Hola"}}]}'
+        self.assertEqual(split.line(reply), reply)
+
     def test_template_check(self):
         qwen = "{%- if add_generation_prompt %}{{- '<|im_start|>assistant\\n' }}{{- '<think>\\n' }}{%- endif %}"
         self.assertTrue(opens_think(qwen))

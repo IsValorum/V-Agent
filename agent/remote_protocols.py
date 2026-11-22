@@ -81,6 +81,9 @@ def claude_content(content):
 
 def claude_payload(payload,version,output_limit=None):
     system=[];messages=[]
+    # Anthropic refuses a tool_use id used twice in a conversation. A history made with a local engine can
+    # repeat one (call_0 on every round): a repeated id gets a suffix, and its results follow it.
+    seen=set();renamed={}
     for message in payload.get('messages',[]):
         role=message.get('role');content=claude_content(message.get('content'))
         if role in ('system','developer'):system.extend(content);continue
@@ -88,15 +91,19 @@ def claude_payload(payload,version,output_limit=None):
             if not message.get('tool_call_id'):
                 role='user'
             else:
-                content=[{'type':'tool_result','tool_use_id':message['tool_call_id'],'content':content}];role='user'
+                content=[{'type':'tool_result','tool_use_id':renamed.get(message['tool_call_id'],message['tool_call_id']),'content':content}];role='user'
         elif role=='assistant':
+            renamed={}
             for call in message.get('tool_calls') or []:
                 function=call.get('function') or {};args=function.get('arguments') or '{}'
                 if isinstance(args,str):
                     try:args=json.loads(args)
                     except ValueError:args={}
                 if not isinstance(args,dict):raise ValueError('Los argumentos de la herramienta deben ser un objeto JSON.')
-                content.append({'type':'tool_use','id':call.get('id',''),'name':function.get('name',''),'input':args})
+                ident=original=str(call.get('id',''));n=1
+                while ident in seen:n+=1;ident=original+'_'+str(n)
+                seen.add(ident);renamed[original]=ident
+                content.append({'type':'tool_use','id':ident,'name':function.get('name',''),'input':args})
         if not content:continue
         role='assistant' if role=='assistant' else 'user'
         if messages and messages[-1]['role']==role:messages[-1]['content'].extend(content)

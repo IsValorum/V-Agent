@@ -31,6 +31,8 @@ class ThinkSplit:
         self.state = 'reasoning' if thinking else 'start'
         self.held = ''
         self.after_end = False
+        self.native = False      # the engine already separates reasoning: pass everything through
+        self.split_any = False   # this stream produced reasoning from the marks
 
     def feed(self, text, final=False):
         """(reasoning, content) ready to pass on; text that may still be part of a mark is held back."""
@@ -79,10 +81,16 @@ class ThinkSplit:
             delta = choice.get('delta') if isinstance(choice, dict) else None
             if not isinstance(delta, dict):
                 continue
+            if delta.get('reasoning_content') and not self.split_any:
+                # The engine sends the reasoning in its own field (a newer build): its text has no marks to split.
+                self.native = True
+            if self.native:
+                continue
             text, final = delta.get('content'), bool(choice.get('finish_reason'))
             if not isinstance(text, str) and not final:
                 continue
             reasoning, content = self.feed(text if isinstance(text, str) else '', final)
+            self.split_any = self.split_any or bool(reasoning)
             if reasoning:
                 delta['reasoning_content'] = (delta.get('reasoning_content') or '') + reasoning
             if content:

@@ -80,7 +80,11 @@ class Sessions:
                     try:event=json.loads(line[5:])
                     except ValueError:continue
                     kind=event.get('type')
-                    if kind in ('content','reasoning'):reply['content' if kind=='content' else 'reasoning_content']+=event.get('text','')
+                    if kind=='prompt_suffix':
+                        # What the core added to the user message the engine read (date, recovery note).
+                        asked=next((m for m in reversed(chat['messages']) if isinstance(m,dict) and m.get('role')=='user'),None)
+                        if asked is not None and isinstance(event.get('text'),(str,list)):asked['model_suffix']=event['text']
+                    elif kind in ('content','reasoning'):reply['content' if kind=='content' else 'reasoning_content']+=event.get('text','')
                     elif kind in ('content_fixed','reasoning_fixed'):reply['content' if kind=='content_fixed' else 'reasoning_content']=event.get('text','')
                     elif kind in ('tool','tool_draft','tool_state','tool_result'):
                         trace=traces.setdefault(event['id'],{})

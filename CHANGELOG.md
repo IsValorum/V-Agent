@@ -12,6 +12,11 @@ Fix release: Strata models can be chosen again after a Strata engine update, and
 - **Strata Rust reasoning (`agent/think_split.py`, `agent/engine_manager.py`):** Strata Rust streams a thinking model's reasoning inside the reply text, ending at `</think>`, so replies began with "The user wants me to…" and the next turn sent that text back as the answer. The core now splits the stream at the think marks into reasoning and reply, as llama.cpp does: it reads from the model's chat template whether its turn starts inside a think block, and also handles models that write `<think>` themselves.
 - **Memory warning always visible:** The model window wrote some memory warnings only inside the folded memory breakdown. They now always appear under the context control.
 - **Favorite star in the model list:** 32 px target (was 22 px), centred on the row.
+- **Review of the 1.1.9–1.1.10 history changes:**
+  - Tool calls recovered from the model's text get a unique id instead of `call_0` on every round. The rounds are now sent back verbatim, and Anthropic refuses a repeated `tool_use` id, so a conversation made with a local model and continued with Claude would fail; conversations saved by 1.1.10 are fixed at send time (repeated ids get a suffix, and their results follow).
+  - Conversations kept by the core for API clients (`/api/v1/turn`) also store the note added to the user message, so they reuse the engine's cache like the interface's.
+  - A turn that reaches the round limit keeps what the engine generated last, like other endings.
+  - The Strata Rust reasoning split steps aside when the engine sends the reasoning in its own field, so a future engine update cannot turn the whole reply into reasoning.
 
 ## 1.1.10
 

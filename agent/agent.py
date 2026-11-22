@@ -1962,7 +1962,8 @@ def _run_chat_stream(body, control=None):
             final = "".join(full) + content
             if content != raw_content:
                 yield {"type": "content_fixed", "text": final}
-            yield {"type": "done", "turn": turn_log, "finish_reason": finish_reason or "", "content": final, "reasoning_content": reasoning}
+            yield {"type": "done", "turn": turn_log, "finish_reason": finish_reason or "", "content": final, "reasoning_content": reasoning,
+                   "final": {"content": content, "reasoning_content": reasoning}}
             return
 
         full.append(content)
@@ -2153,6 +2154,10 @@ def _run_chat_stream(body, control=None):
 
         for call in ordered:
             call["parsed_args"] = {key: value for key, value in call["parsed_args"].items() if key not in PC_PRIVATE_ARGS}
+            # A call recovered from text has no id. The rounds are sent back verbatim on later turns, so the id
+            # must be unique in the conversation (Anthropic refuses repeated tool_use ids), not call_0 each round.
+            if not call["id"]:
+                call["id"] = "call_" + secrets.token_hex(8)
         add({
             "role": "assistant",
             "content": content,
