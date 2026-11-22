@@ -17,6 +17,25 @@ import plugins
 from engine_updates import Updates,executable as updated_executable
 
 
+def sync_managed_configs(config_root, exe, vision_exe):
+    """Point the Strata run configs V-Agent manages at `exe`, the executable in use. Returns the files changed.
+
+    An engine update installs into a new folder and removes the old one. The model list marks a config whose
+    executable is missing as unavailable, so this runs before the list is built: done only when a model
+    loaded, no model could be chosen after an update and so none ever loaded. `vision_exe` is called only
+    when a config changes."""
+    from ui_preferences import atomic_json
+    changed=[]
+    for file in Path(config_root).glob('strata-*.json'):
+        cfg=_read_json(file,{})
+        if not isinstance(cfg,dict) or not cfg.get('_val_managed_engine') or str(exe)==cfg.get('exe'):continue
+        cfg['exe']=str(exe);cfg['lib_dirs']=[str(Path(exe).parent/'lib'),str(Path(exe).parent)]
+        for key in ('vision','agent_vision'):
+            if isinstance(cfg.get(key),dict):cfg[key]={**cfg[key],'exe':str(vision_exe())}
+        atomic_json(file,cfg);changed.append(file)
+    return changed
+
+
 def _read_json(path, default):
     try:
         file=Path(path)
@@ -181,8 +200,14 @@ def install(a):
         'change_context','start_engine','stop_engine','stats','require_loaded_model','engine_context','engine_chat_stream','tokenizer_del_modelo','configure_model_draft')}
     default_profiles=json.loads(a.PROFILE_PATH.read_text(encoding='utf8'))['profiles']
 
+    def sync_strata_configs():
+        from runtime_paths import strata_vision_executable
+        sync_managed_configs(CONFIG_ROOT,manager.executable(),lambda:strata_vision_executable())
+
     def models():
-        if manager.kind=='strata':return original['installed_models']()
+        if manager.kind=='strata':
+            if not updates.installing and manager.executable().is_file():sync_strata_configs()
+            return original['installed_models']()
         if manager.kind=='maya':
             import maya_engine
             maya_root=maya_engine.resolve_root(manager.settings.get('maya',{}).get('root'))
@@ -272,17 +297,7 @@ def install(a):
     def load(name,context=None):
         if updates.installing:raise ValueError('Espera a que termine la comprobación o actualización del motor.')
         if manager.kind=='strata':
-            for file in CONFIG_ROOT.glob('strata-*.json'):
-                cfg=_read_json(file,{})
-                if not cfg.get('_val_managed_engine'):continue
-                exe=manager.executable()
-                if str(exe)!=cfg.get('exe'):
-                    cfg['exe']=str(exe);cfg['lib_dirs']=[str(exe.parent/'lib'),str(exe.parent)]
-                    from runtime_paths import strata_vision_executable
-                    vision_exe=str(strata_vision_executable())
-                    for vkey in ('vision','agent_vision'):
-                        if isinstance(cfg.get(vkey),dict):cfg[vkey]={**cfg[vkey],'exe':vision_exe}
-                    __import__('ui_preferences').atomic_json(file,cfg)
+            sync_strata_configs()
             # A model registered earlier, or an engine update that dropped a family: say so now,
             # instead of three engine restarts and an English stack of log lines.
             try:

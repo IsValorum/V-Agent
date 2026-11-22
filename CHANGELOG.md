@@ -4,6 +4,12 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.1.11
+
+Fix release: Strata models can be chosen again after a Strata engine update.
+
+- **Strata model configs follow the engine update (`agent/desktop_runtime.py`):** An engine update installs Strata into a new folder and removes the old one. The model configs were pointed at the new executable only when a model loaded, but the model list marked every config whose executable was missing as unavailable, so after an update no model could be chosen and none could load. The configs V-Agent manages are now pointed at the executable in use before the list is built (`sync_managed_configs`); configs that use your own executable are left alone.
+
 ## 1.1.10
 
 Fix release: after a turn with tools, the next message no longer makes a local engine read the previous turn again (issue #2, continued).
