@@ -674,6 +674,13 @@ class EngineManager:
             argv+=engine_options.arguments('llama',options,engine_options.help_text('llama',exe))
         if self.kind=='rust':
             argv=[str(exe),'serve','--model',model['path'],'--addr','127.0.0.1:19383','--gpu','--ctx',str(context),'--kv',{'fp16':'f16','q8_0':'q8','q4_0':'q4'}.get(kv,kv)]
+            # Strata Rust streams the reasoning inside the reply text: whether this model's turn starts in a
+            # think block decides how stream() splits it (think_split).
+            from think_split import opens_think
+            try:
+                from model_import import _metadata
+                self.think_opens=opens_think(_metadata(model['path']).get('tokenizer.chat_template'))
+            except (ValueError,OSError):self.think_opens=False
             import engine_options
             argv+=engine_options.arguments('rust',model.get('preferences',{}).get('engine') or {},engine_options.help_text('rust',exe))
         saved=model.get('llama_settings',{})
@@ -815,6 +822,11 @@ class EngineManager:
                 raise ProviderHTTPError(provider_error(response.status,text,key),response.status,
                                         retry_after_ms({k.lower():v for k,v in response.getheaders()}))
             sent=time.monotonic();first=None;ended=False;held=None
+            splitter=None
+            if self.kind=='rust':
+                from think_split import ThinkSplit
+                thinking=getattr(self,'think_opens',False) and (body.get('chat_template_kwargs') or {}).get('enable_thinking') is not False
+                splitter=ThinkSplit(thinking)
             for line in iter_http_lines(response):
                 if control.cancelled.is_set():return
                 if first is None and self.kind!='llama' and line.startswith(b'data: {') and b'"delta"' in line:
@@ -835,6 +847,7 @@ class EngineManager:
                         ended=ended or stream_finished(packet)
                         yield packet
                     continue
+                if splitter and line.startswith(b'data: {') and b'"delta"' in line:line=splitter.line(line)
                 if line.startswith(b'data: ') and (b'"usage"' in line or b'"timings"' in line or b'"prompt_progress"' in line):
                     try:
                         packet=json.loads(line[6:]);usage=packet.get('usage');timing=packet.get('timings')

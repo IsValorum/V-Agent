@@ -6,9 +6,12 @@ Minor updates delivered through the signed components channel are numbered per v
 
 ## 1.1.11
 
-Fix release: Strata models can be chosen again after a Strata engine update.
+Fix release: Strata models can be chosen again after a Strata engine update, and Strata Rust replies no longer start with the model's reasoning.
 
 - **Strata model configs follow the engine update (`agent/desktop_runtime.py`):** An engine update installs Strata into a new folder and removes the old one. The model configs were pointed at the new executable only when a model loaded, but the model list marked every config whose executable was missing as unavailable, so after an update no model could be chosen and none could load. The configs V-Agent manages are now pointed at the executable in use before the list is built (`sync_managed_configs`); configs that use your own executable are left alone.
+- **Strata Rust reasoning (`agent/think_split.py`, `agent/engine_manager.py`):** Strata Rust streams a thinking model's reasoning inside the reply text, ending at `</think>`, so replies began with "The user wants me to…" and the next turn sent that text back as the answer. The core now splits the stream at the think marks into reasoning and reply, as llama.cpp does: it reads from the model's chat template whether its turn starts inside a think block, and also handles models that write `<think>` themselves.
+- **Memory warning always visible:** The model window wrote some memory warnings only inside the folded memory breakdown. They now always appear under the context control.
+- **Favorite star in the model list:** 32 px target (was 22 px), centred on the row.
 
 ## 1.1.10
 

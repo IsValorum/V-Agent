@@ -69,6 +69,15 @@ function syncLoadSettings(estimate=true){
   syncEngineOptions();
   if(estimate)requestMemoryEstimate();
 }
+// A memory warning goes under the context control, where it is seen; the copy inside the folded
+// "Desglose de memoria" is used only when that control is missing.
+function showMemoryWarning(text){
+  const warning=document.getElementById('memoryWarning'),block=document.getElementById('contextBlock');
+  let shown=document.getElementById('contextMemoryWarning');
+  if(!shown&&block){shown=document.createElement('p');shown.id='contextMemoryWarning';shown.className='context-memory-warning';shown.setAttribute('role','status');block.append(shown);}
+  if(shown){shown.textContent=text;shown.hidden=!text;}
+  if(warning){warning.textContent=shown?'':text;warning.hidden=!!shown||!text;}
+}
 function memoryGiB(value){return typeof value==='number'?'≈ '+(value/2**30).toLocaleString(window.VALI18n?.locale||undefined,{maximumFractionDigits:2})+' GiB':uiText('No disponible');}
 function paintMemory(data,resync=true){
   memoryLast=data;loadCapabilities=data.capabilities;
@@ -82,7 +91,7 @@ function paintMemory(data,resync=true){
     for(const id of ['memoryShape','memoryNotes','contextMemory','contextMemoryWarning']){
       const element=document.getElementById(id);if(element)element.textContent='';
     }
-    warning.textContent=uiText(data.reason||'');warning.hidden=!warning.textContent;
+    showMemoryWarning(uiText(data.reason||''));
     return;
   }
   if(resync)syncLoadSettings();const m=data.memory,h=m.hardware||{};document.getElementById('memoryHeadline').textContent=memoryGiB(m.total);{const cm=document.getElementById('contextMemory');if(cm)cm.textContent=uiText('Memoria')+' '+memoryGiB(m.total);}document.getElementById('memoryTotal').textContent=memoryGiB(m.total);
@@ -90,12 +99,7 @@ function paintMemory(data,resync=true){
   const breakdown=document.getElementById('memoryBreakdown');breakdown.replaceChildren();for(const [label,key] of [['Pesos','weights'],['Caché KV','kv'],['Estados y checkpoints','recurrent'],['Buffers','buffers']]){const row=document.createElement('div'),title=document.createElement('span'),value=document.createElement('span');row.className='memory-detail';title.textContent=uiText(label);value.textContent=memoryGiB(m[key]);row.append(title,value);breakdown.append(row);}
   document.getElementById('memoryShape').textContent=m.kv_type+' · '+m.context_per_slot.toLocaleString(window.VALI18n?.locale||undefined)+' tokens/slot · '+m.slots+' slots';
   const warning=document.getElementById('memoryWarning'),gpu=document.getElementById('memoryGpu');const isLlama=activeEngine==='llama';const freeGpu=typeof h.gpu_effective_available==='number'?h.gpu_effective_available:h.gpu_available;const exceeds=isLlama&&typeof freeGpu==='number'&&m.gpu_full_offload>freeGpu;gpu.dataset.exceeds=String(exceeds);
-  warning.textContent=exceeds?uiText('La descarga completa supera la VRAM libre. Automático puede dejar capas en CPU; la generación será más lenta.'):typeof h.ram_available==='number'&&m.total>h.ram_available+(freeGpu||0)?uiText('La estimación supera la memoria libre del equipo. Reduce contexto o cambia la caché KV.'):'';
-  // The warning lived only inside the folded "Estimated memory": shown again under the context control.
-  let shown=document.getElementById('contextMemoryWarning');const block=document.getElementById('contextBlock');
-  if(!shown&&block){shown=document.createElement('p');shown.id='contextMemoryWarning';shown.className='context-memory-warning';shown.setAttribute('role','status');block.append(shown);}
-  if(shown){shown.textContent=warning.textContent;shown.hidden=!warning.textContent;}
-  warning.hidden=!!shown||!warning.textContent;
+  showMemoryWarning(exceeds?uiText('La descarga completa supera la VRAM libre. Automático puede dejar capas en CPU; la generación será más lenta.'):typeof h.ram_available==='number'&&m.total>h.ram_available+(freeGpu||0)?uiText('La estimación supera la memoria libre del equipo. Reduce contexto o cambia la caché KV.'):'');
   document.getElementById('memoryNotes').textContent=uiText('Estimación, no reserva de memoria.')+' '+m.notes.map(note=>uiText(note)).join(' ');
 }
 window.refreshLoadSettingsTranslations=()=>{syncLoadSettings(false);if(memoryLast&&document.getElementById('modelMemoryEstimate'))paintMemory(memoryLast,false);};

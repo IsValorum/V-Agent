@@ -734,8 +734,9 @@ body.sidebar-collapsed #composerControls{max-width:calc(100vw - 24px);}
 .val-confirm-input{display:block;width:100%;margin:4px 0 14px;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface,var(--bg));color:var(--text);font:13px/1.4 var(--ui-font);}
 .val-confirm-input:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
 .model-option-wrap{position:relative;}
-.model-option-wrap .model-option{padding-right:30px;}
-.model-fav{position:absolute;top:6px;right:6px;width:22px;height:22px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--muted);font-size:14px;line-height:1;cursor:pointer;}
+.model-option-wrap .model-option{padding-right:44px;}
+/* 32 px: a target as big as the other icon buttons, centred on the row. */
+.model-fav{position:absolute;top:50%;right:4px;transform:translateY(-50%);width:32px;height:32px;padding:0;border:0;border-radius:7px;background:transparent;color:var(--muted);font-size:17px;line-height:1;cursor:pointer;}
 .model-fav:hover,.model-fav:focus-visible{color:var(--text);}
 .model-fav[data-on="true"]{color:var(--accent);}
 .model-fav:hover{background:color-mix(in srgb,var(--text) 8%,transparent);}
