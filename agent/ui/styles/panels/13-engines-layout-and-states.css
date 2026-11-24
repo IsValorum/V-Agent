@@ -131,3 +131,11 @@ a.release-notes-link,#settings-system a{display:inline-block;padding:4px 2px;}
 
 /* Chat mode: the folder, access and tools controls stay in place, visibly locked. */
 .composer-control.locked-by-mode,.composer-control.locked-by-mode:hover{opacity:.42;cursor:not-allowed;filter:saturate(.4);}
+
+/* Models on this PC: the real folder under each name, the user's folders as removable chips. */
+.transfer-head-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.transfer-folders{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px;}
+.transfer-folders[hidden]{display:none;}
+.transfer-folder{display:inline-flex;align-items:center;gap:6px;padding:3px 4px 3px 8px;border:1px solid var(--border);border-radius:999px;font-size:11px;max-width:100%;}
+.transfer-folder code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+.transfer-path{display:block;color:var(--muted);overflow-wrap:anywhere;}

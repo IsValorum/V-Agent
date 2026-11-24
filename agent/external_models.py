@@ -1,5 +1,8 @@
-"""Bring GGUF models (and how they were tuned) in from LM Studio and Unsloth Studio, and send
-V-Agent's settings back to them.
+"""Find GGUF models already on this PC (LM Studio, Unsloth Studio, the Hugging Face cache and folders the
+user adds), bring them in with how they were tuned, and send V-Agent's settings back to LM Studio and Unsloth.
+
+Every model is shown where its file really is: LM Studio's folder often holds links to other drives, and a
+file reached through such a link is labelled by its real folder, not as LM Studio's.
 
 Read side: LM Studio keeps its models in `downloadsFolder` (settings.json) and one JSON per model in
 .internal/user-concrete-model-default-config (context, KV cache, sampling, prompt template).
@@ -12,6 +15,8 @@ import os
 import sqlite3
 from pathlib import Path
 
+from runtime_paths import DATA_ROOT
+
 HOME = Path(os.path.expanduser('~'))
 LMSTUDIO = HOME / '.lmstudio'
 UNSLOTH = HOME / '.unsloth' / 'studio'
@@ -19,6 +24,7 @@ HF_CACHE = Path(os.environ.get('HF_HUB_CACHE') or os.environ.get('HUGGINGFACE_HU
 KV_FROM = {'f16': 'fp16', 'fp16': 'fp16', 'bf16': 'bf16', 'q8_0': 'q8_0', 'q4_0': 'q4_0'}
 KV_TO = {'fp16': 'f16', 'bf16': 'bf16', 'q8_0': 'q8_0', 'q4_0': 'q4_0'}
 LIMIT = 2000
+FOLDERS_FILE = DATA_ROOT / 'model-folders.json'   # the user's own folders to look in
 
 
 def _json(path):
@@ -189,8 +195,6 @@ def scan_unsloth():
             candidates.append(folder)
         elif folder.is_dir():
             candidates += list(folder.glob('*.gguf'))
-    if HF_CACHE.is_dir():
-        candidates += list(HF_CACHE.glob('models--*/snapshots/*/*.gguf'))
     found, seen = [], set()
     for gguf in candidates:
         key = os.path.normcase(str(gguf))
@@ -230,29 +234,138 @@ def export_unsloth(name, settings):
     return str(target)
 
 
+def _real(path):
+    try:
+        return Path(path).resolve()
+    except OSError:
+        return Path(path)
+
+
+def _inside(path, folder):
+    try:
+        return path.is_relative_to(_real(folder))
+    except (OSError, ValueError):
+        return False
+
+
+# ---------------------------------------------------------------- the user's folders and the HF cache
+def folders():
+    data = _json(FOLDERS_FILE)
+    return [str(Path(p)) for p in data if isinstance(p, str)] if isinstance(data, list) else []
+
+
+def _save_folders(items):
+    FOLDERS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    temporary = FOLDERS_FILE.with_name(FOLDERS_FILE.name + '.tmp')
+    temporary.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding='utf-8')
+    os.replace(temporary, FOLDERS_FILE)
+
+
+def add_folder(path):
+    folder = Path(str(path or '').strip().strip('"'))
+    if not str(folder) or not folder.is_absolute() or not folder.is_dir():
+        raise ValueError('Elige una carpeta que exista.')
+    items = folders()
+    if not any(os.path.normcase(str(_real(p))) == os.path.normcase(str(_real(folder))) for p in items):
+        items.append(str(folder))
+        _save_folders(items)
+    return items
+
+
+def remove_folder(path):
+    items = [p for p in folders() if os.path.normcase(p) != os.path.normcase(str(Path(str(path or ''))))]
+    _save_folders(items)
+    return items
+
+
+def _scan_tree(folder, source):
+    found = []
+    for gguf in sorted(Path(folder).rglob('*.gguf')):
+        if len(found) >= LIMIT:
+            break
+        if _skip(gguf):
+            continue
+        try:
+            size = gguf.stat().st_size
+        except OSError:
+            continue
+        found.append({'source': source, 'path': str(gguf), 'name': gguf.stem, 'size': size, 'group': gguf.parent.name})
+    return found
+
+
+def scan_hf_cache():
+    if not HF_CACHE.is_dir():
+        return []
+    found = []
+    for gguf in sorted(HF_CACHE.glob('models--*/snapshots/*/*.gguf')):
+        if _skip(gguf) or len(found) >= LIMIT:
+            continue
+        try:
+            size = gguf.stat().st_size
+        except OSError:
+            continue
+        repo = gguf.parents[2].name[len('models--'):].replace('--', '/')
+        found.append({'source': 'hf_cache', 'path': str(gguf), 'name': gguf.stem, 'size': size, 'group': repo})
+    return found
+
+
+def scan_folders():
+    found = []
+    for folder in folders():
+        if Path(folder).is_dir():
+            found += _scan_tree(folder, 'folder')
+    return found
+
+
 def sources():
     return {'lmstudio': {'available': LMSTUDIO.is_dir(), 'folder': str(lmstudio_root())},
-            'unsloth': {'available': UNSLOTH.is_dir(), 'folder': str(UNSLOTH)}}
+            'unsloth': {'available': UNSLOTH.is_dir(), 'folder': str(UNSLOTH)},
+            'hf_cache': {'available': HF_CACHE.is_dir(), 'folder': str(HF_CACHE)},
+            'folders': folders()}
+
+
+def _where(real, origin, lm_root):
+    """The source a file is shown under: where it really is, whatever path found it."""
+    if origin == 'hf_cache' or _inside(real, HF_CACHE):
+        return 'hf_cache'
+    if _inside(real, lm_root):
+        return 'lmstudio'
+    if origin == 'unsloth' and not any(_inside(real, folder) for folder in folders()):
+        return 'unsloth'
+    return 'folder'
 
 
 def scan():
-    items, by_path = [], {}
-    errors = {}
-    for key, function in (('lmstudio', scan_lmstudio), ('unsloth', scan_unsloth)):
+    """One row per real file. `seen_in` names the other apps that also list it (a link in LM Studio's
+    folder, a folder Unsloth Studio scans); its settings from those apps are merged into the row."""
+    items, by_path, errors = [], {}, {}
+    lm_root = lmstudio_root()
+    for key, function in (('lmstudio', scan_lmstudio), ('unsloth', scan_unsloth), ('hf_cache', scan_hf_cache),
+                          ('folder', scan_folders)):
         try:
             found = function()
         except OSError as error:
             errors[key] = str(error)
             continue
         for item in found:
-            # Unsloth Studio can point at LM Studio's folder: one row per file, settings merged.
-            same = by_path.get(os.path.normcase(item['path']))
+            real = _real(item['path'])
+            item['path'] = str(real)
+            item['folder'] = str(real.parent)
+            source = _where(real, item['source'], lm_root)
+            origin = item['source']
+            item['source'] = source
+            same = by_path.get(os.path.normcase(str(real)))
             if same:
                 for field in ('sampling', 'system_prompt', 'context', 'kv', 'template'):
                     if field in item and field not in same:
                         same[field] = item[field]
-                same.setdefault('also', []).append(item['source'])
+                if origin != same['source'] and origin not in same.setdefault('seen_in', []):
+                    same['seen_in'].append(origin)
                 continue
-            by_path[os.path.normcase(item['path'])] = item
+            if origin != source:
+                item['seen_in'] = [origin]
+            by_path[os.path.normcase(str(real))] = item
             items.append(item)
+    order = {'folder': 0, 'lmstudio': 1, 'unsloth': 2, 'hf_cache': 3}
+    items.sort(key=lambda item: (order.get(item['source'], 9), item['folder'].lower(), item['name'].lower()))
     return {'sources': sources(), 'models': items, 'errors': errors}

@@ -1220,7 +1220,9 @@ def tokenizer_del_modelo(model):
         ruta = next((c for c in candidatas if (c / "vocab.json").exists()), None)
     except Exception:
         ruta = None
-    _TOKENIZADORES_MEDIDOS[model] = ruta
+    # Only a folder found is remembered: a model imported from a list gets its tokenizer at its first load.
+    if ruta is not None:
+        _TOKENIZADORES_MEDIDOS[model] = ruta
     return ruta
 
 

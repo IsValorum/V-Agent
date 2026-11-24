@@ -105,7 +105,8 @@
         '<article id="hubDetail" class="hub-detail"><div class="hub-empty">'+icon(ICONS.models)+'<p>Elige un modelo para ver sus estadísticas, archivos y ficha.</p></div></article>'+
       '</div>'+
       '<div class="models-pane" data-pane="transfer" hidden>'+
-        '<section class="transfer-block"><div class="transfer-head"><div><h3>Traer desde otras apps</h3><p class="mini" id="transferSources"></p></div><button id="transferScan" type="button">Buscar de nuevo</button></div>'+
+        '<section class="transfer-block"><div class="transfer-head"><div><h3>Modelos en este equipo</h3><p class="mini" id="transferSources"></p></div><div class="transfer-head-actions"><button id="transferAddFolder" type="button">Añadir carpeta…</button><button id="transferScan" type="button">Buscar de nuevo</button></div></div>'+
+        '<div id="transferFolders" class="transfer-folders"></div>'+
         '<div class="transfer-tools"><label class="chk"><input type="checkbox" id="transferAll"> Seleccionar todo</label><span id="transferCount" class="mini"></span><button id="transferImport" type="button" disabled>Importar seleccionados</button></div>'+
         '<label class="chk transfer-move-option"><input type="checkbox" id="transferMoveFiles"> <span>Mover archivos dentro de V-Agent (models / creador / modelo)</span></label>'+
         '<div id="transferMoveBox" class="transfer-move-box" hidden><div class="transfer-move-head"><span id="transferMoveLabel"></span><span id="transferMoveMeta"></span><button id="transferMoveCancel" type="button" class="text-btn">Cancelar</button></div><progress id="transferMoveBar" max="100" value="0"></progress></div>'+
@@ -130,6 +131,7 @@
     win.querySelector('#hubSort').onchange=search;win.querySelector('#hubKind').onchange=search;
     win.querySelector('#hubFolderChange').onclick=changeFolder;
     transfer.querySelector('#transferScan').onclick=scan;
+    transfer.querySelector('#transferAddFolder').onclick=addFolder;
     transfer.querySelector('#transferAll').onchange=event=>{transfer.querySelectorAll('#transferList input[type=checkbox]:not(:disabled)').forEach(box=>box.checked=event.target.checked);syncTransfer();};
     transfer.querySelector('#transferImport').onclick=importSelected;
     transfer.querySelector('#transferMoveCancel').onclick=cancelMove;
@@ -221,12 +223,37 @@
   async function refreshJobs(){try{applyJobs(await api('/api/harness/hub/downloads'));if(jobs.some(job=>['queued','downloading','verifying'].includes(job.state)))startPolling();}catch{}}
   function startPolling(){clearInterval(poll);poll=setInterval(refreshJobs,1000);}
   async function changeFolder(){
-    try{const picked=await requestJSON('/api/models/pick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'project'}),signal:AbortSignal.timeout(310000)});
+    try{const picked=await requestJSON('/api/models/pick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'models'}),signal:AbortSignal.timeout(310000)});
       if(picked.path)applyJobs(await api('/api/harness/hub/folder',{path:picked.path}));}catch(error){note(error.message);}
   }
 
   // ---------------------------------------------------------------- import / export
-  const SOURCE={lmstudio:'LM Studio',unsloth:'Unsloth Studio'};
+  // Where the file really is (a file reached through a link in LM Studio's folder is shown by its own folder).
+  const SOURCE={folder:'Carpeta',lmstudio:'LM Studio',unsloth:'Unsloth Studio',hf_cache:'Caché de Hugging Face'};
+  const sourceName=key=>T(SOURCE[key]||key);
+  async function addFolder(){
+    const status=transfer.querySelector('#transferStatus');
+    try{
+      const picked=await requestJSON('/api/models/pick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'models'}),signal:AbortSignal.timeout(310000)});
+      if(!picked.path)return;
+      await api('/api/harness/external/folders',{action:'add',path:picked.path});await scan();
+    }catch(error){status.textContent=T(error?.message||String(error));}
+  }
+  async function removeFolder(path){
+    try{await api('/api/harness/external/folders',{action:'remove',path});await scan();}
+    catch(error){transfer.querySelector('#transferStatus').textContent=T(error?.message||String(error));}
+  }
+  function paintFolders(list){
+    const box=transfer.querySelector('#transferFolders');if(!box)return;
+    box.replaceChildren(...(list||[]).map(path=>{
+      const chip=document.createElement('span');chip.className='transfer-folder';
+      const label=document.createElement('code');label.textContent=path;
+      const remove=document.createElement('button');remove.type='button';remove.className='text-btn';remove.textContent=T('Quitar');
+      remove.setAttribute('aria-label',T('Quitar')+' '+path);remove.onclick=()=>removeFolder(path);
+      chip.append(label,remove);return chip;
+    }));
+    box.hidden=!(list||[]).length;
+  }
   let moveTimer=0,moveWasActive=false;
   function paintMove(state){
     const box=transfer?.querySelector('#transferMoveBox');if(!box)return;
@@ -290,12 +317,16 @@
     const list=transfer.querySelector('#transferList');list.innerHTML='<p class="mini hub-note">'+esc(T('Buscando modelos en este equipo…'))+'</p>';
     try{
       scanData=await api('/api/harness/external/scan');
-      const sources=Object.entries(scanData.sources).map(([key,src])=>SOURCE[key]+': '+(src.available?src.folder:T('no encontrado'))).join(' · ');
-      transfer.querySelector('#transferSources').textContent=sources;
-      if(!scanData.models.length){list.innerHTML='<p class="mini hub-note">'+esc(T('No se encontraron modelos GGUF de LM Studio ni de Unsloth Studio.'))+'</p>';syncTransfer();return;}
+      const apps=['lmstudio','unsloth','hf_cache'].filter(key=>scanData.sources[key]).map(key=>{const src=scanData.sources[key];return sourceName(key)+': '+(src.available?src.folder:T('no encontrado'));}).join(' · ');
+      transfer.querySelector('#transferSources').textContent=apps;
+      paintFolders(scanData.sources.folders);
+      if(!scanData.models.length){list.innerHTML='<p class="mini hub-note">'+esc(T('No se encontraron modelos GGUF. Añade la carpeta donde los guardas.'))+'</p>';syncTransfer();return;}
       list.replaceChildren(...scanData.models.map((item,index)=>{
         const row=document.createElement('label');row.className='transfer-row'+(item.registered?' is-registered':'');
-        row.innerHTML='<input type="checkbox" data-index="'+index+'"><span class="transfer-main"><strong></strong><small></small></span><span class="transfer-source" data-source="'+item.source+'">'+SOURCE[item.source]+'</span><span class="transfer-size">'+bytes(item.size)+'</span>';
+        row.innerHTML='<input type="checkbox" data-index="'+index+'"><span class="transfer-main"><strong></strong><small></small><small class="transfer-path"></small></span><span class="transfer-source" data-source="'+item.source+'"></span><span class="transfer-size">'+bytes(item.size)+'</span>';
+        row.querySelector('.transfer-source').textContent=sourceName(item.source);
+        // The real folder, always visible; and the apps that also list the same file.
+        row.querySelector('.transfer-path').textContent=item.folder+((item.seen_in||[]).length?' · '+T('También aparece en')+' '+item.seen_in.map(sourceName).join(', '):'');
         const box=row.querySelector('input');
         if(item.registered){box.disabled=true;box.checked=false;}
         row.querySelector('strong').textContent=item.name;

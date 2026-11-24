@@ -25,7 +25,8 @@ def _metadata(path):
     sys.path.insert(0, str(SOURCE_ROOT / 'tools'))
     from gguf_reader import GGUFFile
     try:
-        gguf = GGUFFile(path)
+        # The vocabulary arrays are skipped (the chat template is kept): reading them was most of an import.
+        gguf = GGUFFile(path, skip_tokenizer=True)
     except (OSError, ValueError, KeyError, EOFError, OverflowError) as error:
         raise ValueError('No se pudo leer ese GGUF: ' + str(error)) from None
     if not gguf.tensors:
@@ -196,10 +197,8 @@ def register_local_model(value, name=None, template_path=None):
         info = inspect_local_model(value,template_path)
         if info.get('already_registered'):
             return {'status':'already_registered','model':info['model']}
-        from runtime_paths import active_engine_executable
-        rejected = strata_rejection(active_engine_executable('strata', RUNTIME_ROOT/'strata/strata-poly.exe'), info['path'])
-        if rejected:
-            raise ValueError(unsupported_message(rejected))
+        # Whether the engine runs this architecture is asked when the model is loaded (desktop_runtime.load):
+        # asking here started the engine for up to 2 s per model of a list being imported.
         path = Path(info['path'])
         display = str(name or info['name']).strip()[:120]
         if not display:
@@ -213,28 +212,15 @@ def register_local_model(value, name=None, template_path=None):
             model_id = f'{base}-{suffix}'; suffix += 1
         config_path = ROOT/f'strata-{model_id}.json'
         source, origin = _template_source(path,_metadata(path),template_path)
-        sys.path.insert(0,str(SOURCE_ROOT/'tools'))
-        import strata_tokenizer as ST
-        from serve.frontend import ChatTemplate
         with tempfile.TemporaryDirectory(dir=ASSETS,prefix='.import-') as scratch:
             scratch = Path(scratch).resolve()
             if not scratch.is_relative_to(ASSETS.resolve()):
                 raise RuntimeError('Ruta temporal no válida.')
-            try:
-                ST.extract(str(path),str(scratch))
-            except SystemExit as error:
-                raise ValueError('No se pudo preparar el tokenizador: '+str(error)) from None
+            # Only the chat template now; the tokenizer is extracted and the template tried on it by
+            # prepare_local_model() when the model is first loaded (about 2 s per model of a list).
             token_dir = scratch/'tokenizer'
+            token_dir.mkdir()
             (token_dir/'chat_template.jinja').write_text(source,encoding='utf-8')
-            tokenizer = ST.Tokenizer.from_dir(token_dir)
-            special = tokenizer.special_ids or {}
-            kwargs = {key:tokenizer.decode([special[meta]]) for key,meta in [('bos_token','tokenizer.ggml.bos_token_id'),('eos_token','tokenizer.ggml.eos_token_id')] if meta in special}
-            try:
-                rendered = ChatTemplate(token_dir/'chat_template.jinja').render([{'role':'user','content':'Hola'}],enable_thinking=True,reasoning_effort='xhigh',no_date=True,**kwargs)
-                if not rendered or not tokenizer.encode(rendered,parse_special=True):
-                    raise ValueError('La plantilla no produjo un mensaje válido.')
-            except Exception as error:
-                raise ValueError('La plantilla no pudo preparar una conversación: '+str(error)) from None
             (token_dir/'template-source.json').write_text(json.dumps({'source':origin,'sha256':hashlib.sha256(source.encode()).hexdigest()},ensure_ascii=False,indent=2),encoding='utf-8')
             arch = info['architecture']
             kv = 'q8_0' if arch in ('qwen35moe','clover_moe','kolibri1','flint','inkling2_loop','inkling2') else 'fp16'
@@ -254,6 +240,7 @@ def register_local_model(value, name=None, template_path=None):
                       'log':str(LOG_ROOT/f'strata-{model_id}.log'),'lib_dirs':[str(engine.parent/'lib'),str(engine.parent)],
                       'host':'127.0.0.1','port':19382,'gpu':0,'gpus_asked':True,'fit_max_tokens':True,
                       'switch_on_request':True,'reasoning_effort':'high','preserve_thinking':True,'tool_call_recovery':True,
+                      '_val_prepare_pending':True,
                       'sampling':{key:value for key,value in presets['code']['sampling'].items() if key not in ('max_tokens','seed')}}
             asset.mkdir()
             committed_asset = asset
@@ -274,8 +261,58 @@ def register_local_model(value, name=None, template_path=None):
         IMPORT_LOCK.release()
 
 
+
+def prepare_local_model(config_path):
+    """Finish a model imported quickly: extract its tokenizer next to its chat template and check that the
+    template renders a conversation with it. Runs once, before the first load; returns True when it did work."""
+    config_path = Path(config_path)
+    config = json.loads(config_path.read_text(encoding='utf-8-sig'))
+    if not config.get('_val_prepare_pending'):
+        return False
+    args = config.get('args') or []
+    model = Path(args[args.index('--model') + 1]) if '--model' in args else None
+    token_dir = Path(config.get('tokenizer') or '')
+    if not model or not model.is_file():
+        raise ValueError('No se encontró el archivo del modelo: ' + str(model or ''))
+    template = token_dir / 'chat_template.jinja'
+    if not template.is_file():
+        raise ValueError('Falta la plantilla de chat del modelo; vuelve a añadirlo.')
+    sys.path.insert(0, str(SOURCE_ROOT / 'tools'))
+    import strata_tokenizer as ST
+    from serve.frontend import ChatTemplate
+    with tempfile.TemporaryDirectory(dir=ASSETS, prefix='.prepare-') as scratch:
+        scratch = Path(scratch).resolve()
+        if not scratch.is_relative_to(ASSETS.resolve()):
+            raise RuntimeError('Ruta temporal no válida.')
+        try:
+            ST.extract(str(model), str(scratch))
+        except SystemExit as error:
+            raise ValueError('No se pudo preparar el tokenizador: ' + str(error)) from None
+        fresh = scratch / 'tokenizer'
+        for name in ('chat_template.jinja', 'template-source.json'):     # the imported template wins
+            if (token_dir / name).is_file():
+                shutil.copy2(token_dir / name, fresh / name)
+        tokenizer = ST.Tokenizer.from_dir(fresh)
+        special = tokenizer.special_ids or {}
+        kwargs = {key: tokenizer.decode([special[meta]]) for key, meta in
+                  [('bos_token', 'tokenizer.ggml.bos_token_id'), ('eos_token', 'tokenizer.ggml.eos_token_id')] if meta in special}
+        try:
+            rendered = ChatTemplate(fresh / 'chat_template.jinja').render([{'role': 'user', 'content': 'Hola'}], enable_thinking=True,
+                                                                           reasoning_effort='xhigh', no_date=True, **kwargs)
+            if not rendered or not tokenizer.encode(rendered, parse_special=True):
+                raise ValueError('La plantilla no produjo un mensaje válido.')
+        except Exception as error:
+            raise ValueError('La plantilla no pudo preparar una conversación: ' + str(error)) from None
+        if not token_dir.resolve().is_relative_to(ASSETS.resolve()):
+            raise RuntimeError('Ruta del tokenizador no válida.')
+        shutil.rmtree(token_dir)
+        os.replace(fresh, token_dir)
+    config.pop('_val_prepare_pending', None)
+    _atomic_json(config_path, config)
+    return True
+
 def pick_local_file(kind='model'):
-    if kind not in ('model','template','draft','mmproj','encoder','project','engine','plugin','maya'):
+    if kind not in ('model','template','draft','mmproj','encoder','project','engine','plugin','maya','models'):
         raise ValueError('Tipo de archivo no válido.')
     flags = subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0
     result = subprocess.run(command('pick',kind),capture_output=True,text=True,encoding='utf-8',timeout=300,creationflags=flags)

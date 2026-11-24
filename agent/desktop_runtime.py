@@ -322,6 +322,7 @@ def install(a):
             sync_strata_configs()
             # A model registered earlier, or an engine update that dropped a family: say so now,
             # instead of three engine restarts and an English stack of log lines.
+            cfg={}
             try:
                 cfg=json.loads(Path(selected(name)['config']).read_text(encoding='utf-8-sig'));args=cfg.get('args',[])
                 model_file=args[args.index('--model')+1] if '--model' in args else None
@@ -330,6 +331,10 @@ def install(a):
                 from model_import import strata_rejection,unsupported_message
                 rejected=strata_rejection(cfg.get('exe',''),model_file)
                 if rejected:raise ValueError(unsupported_message(rejected))
+            # A model added from a list was only registered; its tokenizer is prepared now, once.
+            if cfg.get('_val_prepare_pending'):
+                from model_import import prepare_local_model
+                prepare_local_model(selected(name)['config'])
         if manager.kind=='strata':
             model=selected(name);saved=a.MODEL_PREFERENCES.load(name)
             # "warm_start" (serve/server.py): after a load the engine reads, in the background, the system
@@ -923,6 +928,11 @@ def install(a):
                     elif self.path=='/api/harness/external/move':
                         if manager.kind!='api' and manager.loaded:raise ValueError('Descarga el modelo en memoria antes de mover archivos.')
                         result=model_moves.start(body.get('items'))
+                    elif self.path=='/api/harness/external/folders':
+                        action=body.get('action')
+                        if action=='add':result={'folders':external_models.add_folder(body.get('path'))}
+                        elif action=='remove':result={'folders':external_models.remove_folder(body.get('path'))}
+                        else:raise ValueError('Acción desconocida.')
                     elif self.path=='/api/harness/external/move-cancel':
                         result=model_moves.cancel()
                     elif self.path=='/api/harness/external/export':
