@@ -30,7 +30,7 @@ def _init_temp_repo(repo: Path) -> None:
 
 def _make_clean_core(base: Path) -> tuple[Path, Path]:
     core_dir = base / 'core'
-    internal = core_dir / '_internal'
+    internal = core_dir / 'lib'
     (internal / 'agent' / 'ui' / 'dist').mkdir(parents=True)
     (internal / 'agent' / 'model-profiles.json').write_text(
         json.dumps({'version': 1, 'profiles': {}, 'models': {}, 'ignored_models': []}),
@@ -112,10 +112,10 @@ class CleanReleaseBuildTests(unittest.TestCase):
             crb.verify_clean_release_output(core_dir, [exe], home_dir=fake_home)
 
             cases = [
-                (core_dir / '_internal' / 'agent' / 'model-profiles.json',
+                (core_dir / 'lib' / 'agent' / 'model-profiles.json',
                  json.dumps({'version': 1, 'profiles': {}, 'models': {'my-model': {}}, 'ignored_models': []})),
-                (core_dir / '_internal' / 'agent' / 'creator-recommendations.json', '{"x": 1}'),
-                (core_dir / '_internal' / 'agent' / 'template-provenance.json', '[{"a": 1}]'),
+                (core_dir / 'lib' / 'agent' / 'creator-recommendations.json', '{"x": 1}'),
+                (core_dir / 'lib' / 'agent' / 'template-provenance.json', '[{"a": 1}]'),
             ]
             for path, bad_text in cases:
                 good = path.read_text(encoding='utf-8')
@@ -124,16 +124,16 @@ class CleanReleaseBuildTests(unittest.TestCase):
                     crb.verify_clean_release_output(core_dir, [exe], home_dir=fake_home)
                 path.write_text(good, encoding='utf-8')
 
-            leak_pem = core_dir / '_internal' / 'update-signing-key.pem'
+            leak_pem = core_dir / 'lib' / 'update-signing-key.pem'
             leak_pem.write_text('PRIVATE', encoding='utf-8')
             with self.assertRaises(SystemExit):
                 crb.verify_clean_release_output(core_dir, [exe], home_dir=fake_home)
             leak_pem.unlink()
 
-            (core_dir / '_internal' / 'engines').mkdir()
+            (core_dir / 'lib' / 'engines').mkdir()
             with self.assertRaises(SystemExit):
                 crb.verify_clean_release_output(core_dir, [exe], home_dir=fake_home)
-            (core_dir / '_internal' / 'engines').rmdir()
+            (core_dir / 'lib' / 'engines').rmdir()
 
             exe.write_bytes(b'panic at C:\\Users\\AliceTester\\proj\\main.rs')
             with self.assertRaises(SystemExit):

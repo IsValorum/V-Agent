@@ -459,7 +459,7 @@ fn status(port:u16)->Option<serde_json::Value>{
 
 fn core_path()->Option<PathBuf>{
  let exe=std::env::current_exe().ok()?;let folder=exe.parent()?;
- for path in [folder.join("core/strata-core.exe"),folder.join("backend/strata-core.exe")]{if path.is_file(){return Some(path)}}
+ for path in [folder.join("core/v-agent-core.exe"),folder.join("core/strata-core.exe"),folder.join("backend/strata-core.exe")]{if path.is_file(){return Some(path)}}
  None
 }
 
@@ -488,7 +488,7 @@ fn open_sandbox_folder(app:AppHandle,conversation_id:String)->Result<(),String>{
 #[tauri::command]
 fn open_engine_folder(app:AppHandle,folder:String)->Result<(),String>{
  let dir=match folder.as_str(){
-  "bundled"=>std::env::current_exe().map_err(|e|e.to_string())?.parent().ok_or("No se encontró la carpeta del ejecutable.")?.join("core/_internal/runtime"),
+  "bundled"=>std::env::current_exe().map_err(|e|e.to_string())?.parent().ok_or("No se encontró la carpeta del ejecutable.")?.join("core/lib/runtime"),
   "updates"=>user_data().join("engine-updates"),
   _=>return Err("Carpeta desconocida.".into()),
  };
@@ -612,7 +612,7 @@ fn main(){
     }else if cfg!(debug_assertions){
      let root=PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap().to_path_buf();
      Command::new(root.join(".venv/Scripts/python.exe")).arg(root.join("backend.py")).args(["--port",&port.to_string()]).current_dir(&root).creation_flags(0x08000000).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn()
-    }else{Err(std::io::Error::new(std::io::ErrorKind::NotFound,"No se encontró core/strata-core.exe junto a la aplicación."))};
+    }else{Err(std::io::Error::new(std::io::ErrorKind::NotFound,"No se encontró core/v-agent-core.exe junto a la aplicación."))};
     match result{Ok(process)=>{*child.lock().unwrap()=Some(process);},Err(error)=>{let logs=user_data().join("logs");let _=std::fs::create_dir_all(&logs);let _=std::fs::write(logs.join("desktop-error.log"),format!("No se pudo iniciar el servicio local: {error}\n"));}}
    }
   });Ok(())

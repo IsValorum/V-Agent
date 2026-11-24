@@ -73,7 +73,7 @@ Extensible **MCP & Plugin** support lets you register custom external MCP server
 
 - **338 automated Python unit tests** + **8 Node `.cjs` UI test suites** covering engine switching, custom builds across all 4 engines, per-model engine options, remote protocols, updates/signatures, security/DNS rebinding, Windows sandbox isolation (`wxc-exec.exe`), MCP recovery, and 5-language UI i18n.
 - **Manual smoke & visual harnesses (`tests/smoke/`, `scripts/quality/`):** End-to-end checks with real models (`llama.cpp`, `Strata`, `Strata Rust`, `Maya` matrix), isolated core startup, flicker detection, static checks, and full UI screenshot audits.
-- **Clean-worktree release verification (`scripts/clean_release_build.py`):** Builds inside a detached Git worktree and verifies that `strata-core.exe`, `V-Agent.exe`, and `agent/ui/dist` contain zero personal data, user paths, seeds, models, private keys, or browser profile artifacts.
+- **Clean-worktree release verification (`scripts/clean_release_build.py`):** Builds inside a detached Git worktree and verifies that `v-agent-core.exe`, `V-Agent.exe`, and `agent/ui/dist` contain zero personal data, user paths, seeds, models, private keys, or browser profile artifacts.
 
 See [docs/QUALITY.md](docs/QUALITY.md), [CHANGELOG.md](CHANGELOG.md), and [docs/test-reports/1.0.7.md](docs/test-reports/1.0.7.md) for testing methodology and reports.
 
@@ -112,7 +112,7 @@ updated app reopens.
 | [`tests/`](tests/) | Automated Python unit tests, Node `.cjs` UI checks, and smoke harnesses. |
 | [`docs/`](docs/) | Architecture notes, local API reference, user guide, and test reports. |
 
-`backend.py` is the single entry point of the packaged core (`strata-core.exe`): it runs the local server and,
+`backend.py` is the single entry point of the packaged core (`v-agent-core.exe`): it runs the local server and,
 with `--role`, launches each bundled MCP worker.
 
 ## Build and test

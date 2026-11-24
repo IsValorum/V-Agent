@@ -21,9 +21,9 @@ FunctionEnd
   FileClose $0
 !macroend
 
-; Stops every process whose executable lives under a folder: the V-Agent core (core\strata-core.exe) and the
+; Stops every process whose executable lives under a folder: the V-Agent core (core\v-agent-core.exe) and the
 ; tool servers it starts keep running in the background after the window closes, and Windows will not delete
-; a file a running process has loaded (core\_internal\wintrust.dll stayed behind after "uninstall").
+; a file a running process has loaded (core\_internal\wintrust.dll stayed behind after "uninstall" in 1.1.15).
 ; Only processes started from that folder are stopped; the uninstaller itself runs from %TEMP%.
 !macro VAGENT_STOP_PROCESSES_IN FOLDER
   ; The folder travels in the environment, never inside the command text (a quote in a user name would break it).
@@ -31,6 +31,15 @@ FunctionEnd
   nsExec::Exec `powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "$$d=[IO.Path]::GetFullPath($$env:VAGENT_STOP_DIR).TrimEnd('\')+'\'; Get-CimInstance Win32_Process | Where-Object { $$_.ExecutablePath -and $$_.ExecutablePath.StartsWith($$d,[StringComparison]::OrdinalIgnoreCase) } | ForEach-Object { Stop-Process -Id $$_.ProcessId -Force -ErrorAction SilentlyContinue }"`
   Pop $0
   Sleep 800
+!macroend
+
+; Before installing: stop what still runs from the program folder (a core left in the background keeps its files
+; locked), then remove the layout of 1.1.15 and earlier (core\strata-core.exe and core\_internal\, ~0.5 GB),
+; which the new one (core\v-agent-core.exe and core\lib\) would otherwise leave behind on an update.
+!macro NSIS_HOOK_PREINSTALL
+  !insertmacro VAGENT_STOP_PROCESSES_IN "$INSTDIR"
+  Delete "$INSTDIR\core\strata-core.exe"
+  RMDir /r "$INSTDIR\core\_internal"
 !macroend
 
 !macro NSIS_HOOK_PREUNINSTALL

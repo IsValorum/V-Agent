@@ -156,9 +156,9 @@ def verify_clean_release_output(core_dir: Path, exe_paths: list[Path], home_dir:
     """Verify the built core folder, UI bundle, and executables contain no personal or dev data."""
     if not core_dir.is_dir():
         raise SystemExit(f'Missing built core directory: {core_dir}')
-    internal = core_dir / '_internal'
+    internal = core_dir / 'lib'
     if not internal.is_dir():
-        raise SystemExit(f'Missing PyInstaller _internal directory: {internal}')
+        raise SystemExit(f'Missing the core runtime folder (core/lib): {internal}')
 
     errors: list[str] = []
     for base in (core_dir, internal, internal / 'agent'):
@@ -310,7 +310,7 @@ def build_from_clean_worktree(repo_root: Path, python_exe: Path) -> Path:
 
         verify_clean_release_output(
             built_core,
-            [built_tauri_exe, built_core / 'strata-core.exe', built_core / '_internal' / 'runtime' / 'mxc' / 'wxc-exec.exe'],
+            [built_tauri_exe, built_core / 'v-agent-core.exe', built_core / 'lib' / 'runtime' / 'mxc' / 'wxc-exec.exe'],
         )
         print('Clean release verification passed.', flush=True)
 
@@ -338,8 +338,8 @@ def main() -> int:
         dist_core = ROOT / 'dist-release' / 'core'
         exes = [
             ROOT / 'desktop' / 'src-tauri' / 'target' / 'release' / 'V-Agent.exe',
-            dist_core / 'strata-core.exe',
-            dist_core / '_internal' / 'runtime' / 'mxc' / 'wxc-exec.exe',
+            dist_core / 'v-agent-core.exe',
+            dist_core / 'lib' / 'runtime' / 'mxc' / 'wxc-exec.exe',
         ]
         verify_clean_release_output(dist_core, exes)
         print('Verified existing dist-release/core is clean.')

@@ -75,7 +75,7 @@ También incluye soporte de **Extensiones, Plugins y servidores MCP externos**, 
 
 - **338 pruebas unitarias automáticas en Python** + **8 suites JS (`.cjs`)** que cubren cambio de motores, compilaciones propias en los 4 motores locales, opciones de carga por modelo, protocolos de API remota, firmas y actualizaciones, seguridad, aislamiento de procesos (`wxc-exec.exe`), recuperación MCP y las 5 traducciones.
 - **Sondas y pruebas con modelos reales (`tests/smoke/`, `scripts/quality/`):** pruebas de extremo a extremo con `llama.cpp`, `Strata`, `Strata Rust` y matriz de `Project Maya`, arranque aislado, auditoría de diseño sin parpadeos y capturas completas de interfaz.
-- **Compilación limpia verificada (`scripts/clean_release_build.py`):** genera el instalador desde un *worktree* limpio de Git y comprueba que `strata-core.exe`, `V-Agent.exe` y `agent/ui/dist` estén libres de datos personales, rutas de usuario, seeds, modelos, llaves privadas o perfiles de navegador.
+- **Compilación limpia verificada (`scripts/clean_release_build.py`):** genera el instalador desde un *worktree* limpio de Git y comprueba que `v-agent-core.exe`, `V-Agent.exe` y `agent/ui/dist` estén libres de datos personales, rutas de usuario, seeds, modelos, llaves privadas o perfiles de navegador.
 
 Consulta [docs/QUALITY.md](docs/QUALITY.md), [CHANGELOG.md](CHANGELOG.md) y [docs/test-reports/1.0.7.md](docs/test-reports/1.0.7.md).
 

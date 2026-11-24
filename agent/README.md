@@ -1,6 +1,6 @@
 # agent/ — the core
 
-Everything the packaged `strata-core.exe` runs: the agent loop and local API, engines, tools, updates
+Everything the packaged `v-agent-core.exe` runs: the agent loop and local API, engines, tools, updates
 and the interface (in [`ui/`](ui/)). The big picture is in [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md); this page is
 a map of the files.
 

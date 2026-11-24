@@ -2,7 +2,7 @@
 
 A tour of the code for reviewers and contributors. V-Agent is two programs talking over HTTP on
 `127.0.0.1`: a small **desktop shell** (Rust/Tauri) that draws the window, and a **core** (Python,
-packaged as `strata-core.exe`) that does everything else.
+packaged as `v-agent-core.exe`) that does everything else.
 
 ```mermaid
 flowchart LR

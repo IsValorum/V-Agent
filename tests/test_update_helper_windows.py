@@ -79,10 +79,10 @@ class UpdateHelperWindowsTests(unittest.TestCase):
             sleeper = root / 'sleep.cs'
             sleeper.write_text('class S{static void Main(){System.Threading.Thread.Sleep(120000);}}')
             (root / 'core').mkdir()
-            for name, src in (('setup.exe', fake), ('V-Agent.exe', fake), ('core/strata-core.exe', sleeper)):
+            for name, src in (('setup.exe', fake), ('V-Agent.exe', fake), ('core/v-agent-core.exe', sleeper)):
                 subprocess.run([str(CSC), '/nologo', '/target:exe', '/out:' + str(root / name), str(src)],
                                check=True, capture_output=True)
-            orphan = subprocess.Popen([str(root / 'core' / 'strata-core.exe')], creationflags=subprocess.CREATE_NO_WINDOW)
+            orphan = subprocess.Popen([str(root / 'core' / 'v-agent-core.exe')], creationflags=subprocess.CREATE_NO_WINDOW)
             env = os.environ.copy()
             env.update(V_AGENT_UPDATE_DESKTOP_PID='0', V_AGENT_UPDATE_CORE_PID='0',
                        V_AGENT_UPDATE_INSTALLER=str(root / 'setup.exe'),
@@ -106,5 +106,5 @@ class UpdateHelperWindowsTests(unittest.TestCase):
                 time.sleep(.1)
             log = (root / 'update.log').read_text() if (root / 'update.log').exists() else 'No update log.'
             wait_until_unused(root / 'V-Agent.exe')
-            self.assertIn('Stopping strata-core', log)
+            self.assertIn('Stopping v-agent-core', log)
             self.assertTrue((root / 'installed').exists(), log)

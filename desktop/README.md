@@ -1,7 +1,7 @@
 # desktop/ — the Windows app
 
 A small [Tauri 2](https://tauri.app) shell in Rust. It opens the window, starts the core
-(`core/strata-core.exe`) and talks to it on `127.0.0.1:19380`.
+(`core/v-agent-core.exe`) and talks to it on `127.0.0.1:19380`.
 
 | Path | What it is |
 |---|---|
