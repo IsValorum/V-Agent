@@ -1,4 +1,4 @@
-﻿LangString addOrReinstall ${LANG_VIETNAMESE} "Thêm/Cài lại thành phần"
+LangString addOrReinstall ${LANG_VIETNAMESE} "Thêm/Cài lại thành phần"
 LangString alreadyInstalled ${LANG_VIETNAMESE} "Đã được cài đặt"
 LangString alreadyInstalledLong ${LANG_VIETNAMESE} "${PRODUCTNAME} ${VERSION} đã được cài đặt. Hãy chọn thao tác muốn thực hiện rồi nhấn Tiếp để tiếp tục."
 LangString appRunning ${LANG_VIETNAMESE} "{{product_name}} đang chạy! Hãy đóng nó trước rồi thử lại."

@@ -1,4 +1,4 @@
-﻿LangString addOrReinstall ${LANG_INDONESIAN} "Tambah/Pasang ulang komponen"
+LangString addOrReinstall ${LANG_INDONESIAN} "Tambah/Pasang ulang komponen"
 LangString alreadyInstalled ${LANG_INDONESIAN} "Sudah Terpasang"
 LangString alreadyInstalledLong ${LANG_INDONESIAN} "${PRODUCTNAME} ${VERSION} sudah terpasang. Pilih tindakan yang ingin dilakukan lalu klik Berikutnya untuk melanjutkan."
 LangString appRunning ${LANG_INDONESIAN} "{{product_name}} sedang berjalan! Tutup terlebih dahulu lalu coba lagi."

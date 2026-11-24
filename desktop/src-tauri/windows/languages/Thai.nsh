@@ -1,4 +1,4 @@
-﻿LangString addOrReinstall ${LANG_THAI} "เพิ่ม/ติดตั้งส่วนประกอบใหม่"
+LangString addOrReinstall ${LANG_THAI} "เพิ่ม/ติดตั้งส่วนประกอบใหม่"
 LangString alreadyInstalled ${LANG_THAI} "ติดตั้งแล้ว"
 LangString alreadyInstalledLong ${LANG_THAI} "${PRODUCTNAME} ${VERSION} ติดตั้งอยู่แล้ว เลือกการดำเนินการที่ต้องการแล้วคลิก ถัดไป เพื่อดำเนินการต่อ"
 LangString appRunning ${LANG_THAI} "{{product_name}} กำลังทำงาน! โปรดปิดก่อนแล้วลองอีกครั้ง"
