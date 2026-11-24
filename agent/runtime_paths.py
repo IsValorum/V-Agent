@@ -97,9 +97,62 @@ def seed_agent_files():
         dest=CONFIG_ROOT/'agent'/name
         if not dest.exists():shutil.copy2(SOURCE_ROOT/'agent'/name,dest)
 
+MIGRATIONS_FILE=DATA_ROOT/'migrations.json'
+
+
+def migrate_program_layout(program_dir=None):
+    """Once, on the first start after updating from 1.1.15 or earlier: settings that name the old program
+    layout (core\\strata-core.exe, core\\_internal\\…) are pointed at the new one (core\\v-agent-core.exe,
+    core\\lib\\…). Only whole JSON strings that start with the old program path change, only in the settings
+    files listed here (never tokenizer vocabularies, where those words are tokens). Returns the files changed."""
+    import json
+    if program_dir is None:
+        if not getattr(sys,'frozen',False):return []
+        program_dir=Path(sys.executable).resolve().parent.parent
+    done={}
+    try:done=json.loads(MIGRATIONS_FILE.read_text(encoding='utf-8'))
+    except (OSError,ValueError):pass
+    if not isinstance(done,dict):done={}
+    if done.get('program-layout-2'):return []
+    core=Path(program_dir)/'core'
+    renames=[(str(core/'_internal'),str(core/'lib')),(str(core/'strata-core.exe'),str(core/'v-agent-core.exe'))]
+
+    def fix(value):
+        if isinstance(value,str):
+            for old,new in renames:
+                if os.path.normcase(value).startswith(os.path.normcase(old)):
+                    return new+value[len(old):]
+            return value
+        if isinstance(value,list):return [fix(item) for item in value]
+        if isinstance(value,dict):return {key:fix(item) for key,item in value.items()}
+        return value
+
+    files=[*DATA_ROOT.glob('*.json'),*SETTINGS_ROOT.glob('*.json'),*CONFIG_ROOT.glob('*.json'),
+           *(CONFIG_ROOT/'agent').glob('*.json'),*(DATA_ROOT/'extensions').glob('*.json')]
+    changed=[]
+    for file in files:
+        if file==MIGRATIONS_FILE:continue
+        try:
+            data=json.loads(file.read_text(encoding='utf-8-sig'))
+        except (OSError,ValueError):continue
+        fixed=fix(data)
+        if fixed!=data:
+            temporary=file.with_name(file.name+'.migrating')
+            temporary.write_text(json.dumps(fixed,ensure_ascii=False,indent=2),encoding='utf-8')
+            os.replace(temporary,file)
+            changed.append(str(file))
+    done['program-layout-2']=True
+    MIGRATIONS_FILE.parent.mkdir(parents=True,exist_ok=True)
+    MIGRATIONS_FILE.write_text(json.dumps(done,indent=2),encoding='utf-8')
+    return changed
+
+
 def bootstrap():
     import json,shutil
     for folder in (DATA_ROOT,CONFIG_ROOT,SETTINGS_ROOT,LOG_ROOT,CONFIG_ROOT/'agent',DATA_ROOT/'cache/browser'):folder.mkdir(parents=True,exist_ok=True)
+    # Settings written by an earlier version that name the old program layout (see migrate_program_layout).
+    try:migrate_program_layout()
+    except OSError:pass  # Tried again on the next start: nothing was marked done.
     preferences=SETTINGS_ROOT/'app-preferences.json'
     if not preferences.exists():
         # First start after installing: the interface (and its tutorial) use the installer language.

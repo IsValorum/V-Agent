@@ -40,6 +40,11 @@ FunctionEnd
   !insertmacro VAGENT_STOP_PROCESSES_IN "$INSTDIR"
   Delete "$INSTDIR\core\strata-core.exe"
   RMDir /r "$INSTDIR\core\_internal"
+  ; A scanner can hold a file a moment longer: one more try before installing.
+  ${If} ${FileExists} "$INSTDIR\core\_internal\*.*"
+    Sleep 1500
+    RMDir /r "$INSTDIR\core\_internal"
+  ${EndIf}
 !macroend
 
 !macro NSIS_HOOK_PREUNINSTALL
