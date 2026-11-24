@@ -31,7 +31,9 @@ class CatalogTests(unittest.TestCase):
         # "mlock" only appears inside --load-mode's description: not an option of this build.
         self.assertNotIn('mlock', keys)
         self.assertNotIn('tensor_split', keys)
-        self.assertEqual(E.catalog('maya', LLAMA_HELP)['options'], [])
+        # an engine with no executable options (an API) offers none; Project Maya's are its binary's own
+        self.assertEqual(E.catalog('api', LLAMA_HELP)['options'], [])
+        self.assertEqual({o['flag'] for o in E.catalog('maya', LLAMA_HELP)['options']} & E.DISCOVERED_ONLY['maya'], set())
 
     def test_keys_are_unique_per_engine_and_none_duplicates_a_flag_v_agent_sets(self):
         # What V-Agent's own controls already pass to each engine.

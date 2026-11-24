@@ -58,7 +58,7 @@ def hardware(reclaimable_bytes=0,engine_pids=None,force=False):
     result['gpu_reclaimable']=reclaim
     return result
 
-_KV_BPE={'fp16':(2,2),'f16':(2,2),'bf16':(2,2),'q8_0':(34/32,34/32),'int8':(1,1),'q4_0':(18/32,18/32),'int8k':(1,2),'k8v4':(1,18/32)}
+_KV_BPE={'fp16':(2,2),'f16':(2,2),'bf16':(2,2),'f32':(4,4),'fp8':(1,1),'f8_e4m3':(1,1),'fp4':(0.5,0.5),'q8_0':(34/32,34/32),'q5_1':(24/32,24/32),'q5_0':(22/32,22/32),'q4_1':(20/32,20/32),'q4_0':(18/32,18/32),'iq4_nl':(18/32,18/32),'int8':(1,1),'int8k':(1,2),'k8v4':(1,18/32)}
 
 def _meta_num(meta,arch,key,default=0):
     val=meta.get(arch+'.'+key,default)

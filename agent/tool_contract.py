@@ -43,7 +43,8 @@ def _check(path, fingerprint):
                 # the same model turn; the content marker is not its call boundary.
                 body = (prompt.split('<|turn>model\n',1)[1].split('<|turn>user',1)[0]
                         if dialect == 'gemma' else prompt.split(marker,1)[1].split('PROBE_RESULT',1)[0])
-                parser = OutputParser(thinking=False, tools=[tool], stream_tools=True, draft_tools=True, recover=True,call_format=dialect if dialect in ('gemma','glm','dsml','lfm2') else 'function')
+                parser = OutputParser(thinking=False, tools=[tool], stream_tools=True, draft_tools=True, recover=True,
+                                      call_format=dialect if dialect in ('gemma','glm','dsml','lfm2','inkling2','mistral','llama3','kimi','minimax','harmony') else 'function')
                 events = []
                 for offset in range(0, len(body), 17):
                     events.extend(parser.feed(body[offset:offset+17]))

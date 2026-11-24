@@ -1456,6 +1456,17 @@ def _formato_esperado(plantilla=None):
         return "Use your template syntax: <|tool_call_start|>[tool_name(argument='value')]<|tool_call_end|>"
     if plantilla is not None and templates.formato_llamada(plantilla, native=True) == 'gemma':
         return 'Use your template\'s syntax: <|tool_call>call:tool_name{argument:<|"|>value<|"|>}<tool_call|>'
+    formato = templates.formato_llamada(plantilla, native=True) if plantilla is not None else None
+    ejemplos = {
+        'inkling2': 'Use your template syntax: <|message_model|>tool_name<|content_invoke_tool_json|>{"name":"tool_name","args":{"argument":"value"}}<|end_message|>',
+        'mistral': 'Use your template syntax: [TOOL_CALLS][{"name":"tool_name","arguments":{"argument":"value"}}]',
+        'llama3': 'Use your template syntax: <|python_tag|>{"name":"tool_name","parameters":{"argument":"value"}}<|eom_id|>',
+        'kimi': 'Use your template syntax: <|tool_calls_section_begin|><|tool_call_begin|>functions.tool_name:0<|tool_call_argument_begin|>{"argument":"value"}<|tool_call_end|><|tool_calls_section_end|>',
+        'minimax': 'Use your template syntax: <minimax:tool_call><invoke name="tool_name"><parameter name="argument">value</parameter></invoke></minimax:tool_call>',
+        'harmony': 'Use your template syntax: <|channel|>commentary to=functions.tool_name <|constrain|>json<|message|>{"argument":"value"}<|call|>',
+    }
+    if formato in ejemplos:
+        return ejemplos[formato]
     if plantilla is not None and templates.formato_llamada(plantilla, native=True) == "xml":
         return ("Use your template's syntax: " + OPEN + "\n"
                 + LT + "function=tool_name" + GT + "\n"

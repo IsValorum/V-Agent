@@ -2043,3 +2043,20 @@ a.release-notes-link,#settings-system a{display:inline-block;padding:4px 2px;}
 #modelTransfer #transferImport{padding:6px 12px;border:1px solid color-mix(in srgb,var(--accent) 65%,var(--border));border-radius:var(--control-radius,8px);background:color-mix(in srgb,var(--accent) 18%,var(--panel));color:var(--text);font-size:11.5px;font-weight:600;cursor:pointer;}
 #modelTransfer #transferImport:hover:not(:disabled){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 28%,var(--panel));}
 #modelTransfer #transferImport:disabled{opacity:.45;cursor:default;}
+
+/* Update prominence by importance: a V-Agent release (accent frame, larger) > an engine update > a minor update. */
+#appUpdateNotice.update-card-major{border-color:color-mix(in srgb,var(--accent) 55%,var(--border));box-shadow:0 14px 36px #0006,0 0 0 1px color-mix(in srgb,var(--accent) 22%,transparent);background:color-mix(in srgb,var(--accent) 6%,var(--panel));padding:11px 30px 11px 12px;}
+#appUpdateNotice.update-card-major strong{font-size:13px;color:var(--text);}
+#appUpdateNotice.update-card-major span{font-size:11.5px;}
+#appUpdateNotice .update-progress{order:2;}
+#appUpdateNotice .update-card-error{order:3;}
+#appUpdateNotice .update-install{order:6;justify-self:end;font-size:11px;padding:5px 10px;}
+#appUpdateNotice.update-card-major .update-install,#appUpdateNotice.update-card-major>button:not(.update-card-close):not(.update-notes-btn){font-weight:600;}
+#gear .update-pill,.update-tab-pill{display:inline-flex;align-items:center;margin-inline-start:auto;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:600;line-height:1.5;white-space:nowrap;}
+#gear .update-pill[hidden],.update-tab-pill[hidden]{display:none;}
+#gear .update-pill[data-level=app],.update-tab-pill[data-level=app]{background:var(--accent);color:var(--bg);}
+#gear .update-pill[data-level=engine],.update-tab-pill[data-level=engine]{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);}
+#gear.has-update{color:var(--text);}
+.update-tab-pill{margin-inline-start:6px;}
+.app-update.has-update{padding:12px 14px;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border));border-radius:12px;background:color-mix(in srgb,var(--accent) 6%,transparent);}
+.app-update.has-update #appUpdateStatus{color:var(--text);font-size:12px;}

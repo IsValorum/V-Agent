@@ -627,6 +627,8 @@ function setupAgentProfilesAndUpdates(){
     stack.style.setProperty('--update-bottom',Math.max(16,bottom)+'px');
   }
   function renderUpdateStack(state){
+    // Settings → System is marked while an installed engine has a newer release, dismissed card or not.
+    window.markUpdateBadge?.('engine',Object.entries(state.releases||{}).some(([key,release])=>(Boolean(release.current)||Boolean(state.installed?.[key]))&&release.available&&(Boolean(release.asset)||key==='maya')));
     const names={'llama-cpu':'llama.cpp · CPU','llama-cuda':'llama.cpp · CUDA 12.4','llama-vulkan':'llama.cpp · Vulkan',strata:'Strata · PolyStrata',rust:'Strata Rust',maya:'Project Maya'};
     // Only notify about newer releases for engines the user actually installed (never push uninstalled engines).
     let available=Object.entries(state.releases||{}).filter(([key,release])=>(Boolean(release.current)||Boolean(state.installed?.[key]))&&release.available&&(Boolean(release.asset)||key==='maya')&&!dismissed.has(key+':'+release.tag));

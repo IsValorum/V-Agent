@@ -182,7 +182,11 @@ VISION_START = "<|vision_start|>"
 # ends the first turn: the system prompt with the tools, which "warm_start" keeps.
 TURN_OPENERS = {"function": ("<|im_start|>",), "gemma": ("<|turn>",),
                 "glm": ("<|system|>", "<|developer|>", "<|user|>", "<|assistant|>", "<|observation|>"),
-                "dsml": ("<｜User｜>", "<｜Assistant｜>"), "lfm2": ("<|im_start|>",)}
+                "dsml": ("<｜User｜>", "<｜Assistant｜>"), "lfm2": ("<|im_start|>",),
+                "inkling2": ("<|message_system|>", "<|message_user|>", "<|message_model|>", "<|message_tool|>"),
+                "mistral": ("[INST]", "[/INST]"), "llama3": ("<|start_header_id|>",),
+                "kimi": ("<|im_user|>", "<|im_assistant|>", "<|im_middle|>"),
+                "minimax": ("<|im_start|>",), "harmony": ("<|start|>",)}
 WARM_MIN_TOKENS = 2048           # a shorter prompt start is quick to read again: not kept
 # #606: a reply that repeats one token this many times in a row is ended there ("length"): a model in a loop, or a
 # broken state that answers one token forever (an issue saw 36,689 tokens of "!"). The config's "repeat_stop_tokens"
@@ -3374,8 +3378,20 @@ class Service:
             if key in special}
         # how the model writes a tool call (serve/frontend.py's OutputParser)
         pre = getattr(tokenizer, "pre", "")
-        self.call_format = "glm" if pre in ("glm4", "glm5", "flint") else "gemma" if pre == "gemma4" else \
-            "dsml" if pre in ("joyai-llm", "deepseek-v3") else "lfm2" if pre == "lfm2" else "function"
+        tpl_src = getattr(self.template, "source", "")
+        self.call_format = (
+            "glm" if pre in ("glm4", "glm5", "flint") else
+            "gemma" if pre == "gemma4" else
+            "dsml" if pre in ("joyai-llm", "deepseek-v3") else
+            "lfm2" if pre == "lfm2" else
+            "inkling2" if ("<|content_invoke_tool_json|>" in tpl_src or pre == "inkling2") else
+            "kimi" if ("<|tool_call_begin|>" in tpl_src and "<|tool_call_argument_begin|>" in tpl_src) else
+            "minimax" if "<minimax:tool_call>" in tpl_src else
+            "harmony" if "<|channel|>commentary to=" in tpl_src else
+            "mistral" if "[TOOL_CALLS]" in tpl_src else
+            "llama3" if "<|python_tag|>" in tpl_src else
+            "function"
+        )
         self.turn_ids = frozenset(t[0] for t in (tokenizer.encode(s, parse_special=True)
                                                  for s in TURN_OPENERS[self.call_format]) if len(t) == 1)
         self.engine.turn_ids = self.turn_ids            # the GEN line's turn_at (StrataEngine.turn_key)
@@ -3396,6 +3412,11 @@ class Service:
             # names eot and eom.  A GGUF can name neither (REAP50-Q3_K_M: eos only), and the reply then runs on.
             # Flint, which writes GLM's tool calls, also opens a developer turn; llama.cpp ends a reply at all three.
             for end in ("<|user|>", "<|observation|>", "<|developer|>"):
+                ids = tokenizer.encode(end, parse_special=True)
+                self.stop_ids |= set(ids if len(ids) == 1 else [])
+        elif self.call_format == "inkling2":
+            self.think_open_ids = tokenizer.encode("<|content_thinking|>", parse_special=True)
+            for end in ("<|content_model_end_sampling|>", "<|message_user|>", "<|message_tool|>"):
                 ids = tokenizer.encode(end, parse_special=True)
                 self.stop_ids |= set(ids if len(ids) == 1 else [])
         # an image in a prompt (prepare()): the token the template writes for it, which stands for each of its rows;

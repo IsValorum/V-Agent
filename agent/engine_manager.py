@@ -614,6 +614,12 @@ class EngineManager:
                     raise ValueError('Contexto de Maya fuera de rango (2048–1048576).')
                 config['args'] = maya_engine._set_flag(config['args'], '--max-context', context)
                 config['context'] = context
+            # The executable's own options the user set (Ajustes avanzados del motor), as this binary lists them.
+            import engine_options
+            extra=model.get('preferences',{}).get('engine') or {}
+            if extra:
+                config['args']=engine_options.apply('maya',[str(x) for x in config['args']],extra,
+                                                    engine_options.help_text('maya',configured_exe))[0]
             # Maya resolves model and cache paths against its checkout. Keep the user's config intact.
             import tempfile
             cache = DATA_ROOT / 'cache' / 'maya'
@@ -653,10 +659,14 @@ class EngineManager:
         import socket
         with socket.socket() as probe:
             if probe.connect_ex(('127.0.0.1',19383))==0:raise ValueError('El puerto privado 19383 está ocupado; no se ha tocado ese proceso.')
-        cfg=self.settings.get('llama',{});kv=model.get('preferences',{}).get('kv','fp16');kv='f16' if kv=='fp16' else kv
+        cfg=self.settings.get('llama',{})
+        import kv_settings
+        raw_kv=str(model.get('preferences',{}).get('kv','fp16') or 'fp16').strip().lower()
+        llama_kv=kv_settings.map_kv_for_engine('llama',raw_kv,exe if self.kind=='llama' else None)
+        rust_kv=kv_settings.map_kv_for_engine('rust',raw_kv,exe if self.kind=='rust' else None)
         layers='0' if cfg.get('variant')=='cpu' else cfg.get('gpu_layers','auto')
         argv=[str(exe),'--model',model['path'],'--host','127.0.0.1','--port','19383','--ctx-size',str(context),'--parallel','1',
-              '--n-gpu-layers',layers,'--jinja','--no-webui','--alias',model['id'],'--cache-type-k',kv,'--cache-type-v',kv]
+              '--n-gpu-layers',layers,'--jinja','--no-webui','--alias',model['id'],'--cache-type-k',llama_kv,'--cache-type-v',llama_kv]
         if self.kind=='llama':
             from load_settings import arguments,capabilities,gpu_layers
             load=model.get('preferences',{}).get('load',{})
@@ -668,12 +678,16 @@ class EngineManager:
             from draft_models import arguments as draft_arguments
             argv+=draft_arguments(model.get('preferences',{}).get('draft') or {})
             import engine_options
-            options=model.get('preferences',{}).get('engine') or {}
-            problem=engine_options.conflicts('llama',options,kv)
+            options=dict(model.get('preferences',{}).get('engine') or {})
+            problem=engine_options.conflicts('llama',options,llama_kv)
             if problem:raise ValueError(problem)
-            argv+=engine_options.arguments('llama',options,engine_options.help_text('llama',exe))
+            help_txt=engine_options.help_text('llama',exe)
+            # Quantized KV caches in llama.cpp require Flash Attention: enable it automatically when the user left it at default.
+            if llama_kv not in ('f16','bf16','f32') and options.get('flash_attn') is None and '--flash-attn' in help_txt:
+                options['flash_attn']='on'
+            argv+=engine_options.arguments('llama',options,help_txt)
         if self.kind=='rust':
-            argv=[str(exe),'serve','--model',model['path'],'--addr','127.0.0.1:19383','--gpu','--ctx',str(context),'--kv',{'fp16':'f16','q8_0':'q8','q4_0':'q4'}.get(kv,kv)]
+            argv=[str(exe),'serve','--model',model['path'],'--addr','127.0.0.1:19383','--gpu','--ctx',str(context),'--kv',rust_kv]
             # Strata Rust streams the reasoning inside the reply text: whether this model's turn starts in a
             # think block decides how stream() splits it (think_split).
             from think_split import opens_think

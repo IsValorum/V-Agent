@@ -116,7 +116,7 @@ function requestMemoryEstimate(force=false){
 /* Engine options: everything else llama.cpp, Strata and Strata Rust accept (Flash Attention, threads,
    RoPE, LoRA, expert placement…). The core sends the catalog of the installed executable; an empty
    field is the engine's own default and passes nothing. Saved per model with the other preferences. */
-const ENGINE_OPTION_KINDS=['llama','strata','rust'];
+const ENGINE_OPTION_KINDS=['llama','strata','rust','maya'];
 const ENGINE_CHOICE_LABELS={auto:'Automático',on:'Activado',off:'Desactivado',none:'Ninguno',layer:'Por capas',row:'Por filas',
   tensor:'Por tensores',linear:'Lineal',yarn:'YaRN',distribute:'Distribuir',isolate:'Aislar',numactl:'numactl',dio:'DirectIO',
   cuda:'CUDA',vulkan:'Vulkan'};
@@ -150,7 +150,7 @@ function syncEngineOptions(){
   if(!ENGINE_OPTION_KINDS.includes(activeEngine))box.hidden=true;
   syncEngineOptionsButton();
   const model=document.getElementById('model')?.value;engineCurrent={...(modelPreferences[model]?.engine||{})};
-  if(engineOptionsCatalog&&engineOptionsCatalog.engine!==activeEngine)engineOptionsCatalog=null;
+  if(engineOptionsCatalog&&(engineOptionsCatalog.engine!==activeEngine||activeEngine==='maya'&&(engineOptionsCatalog.model||'')!==(model||'')))engineOptionsCatalog=null;
   // Called on every memory estimate: redraw only when something shown changed, so a value being
   // typed, its focus and an "invalid" mark are not wiped out.
   const signature=JSON.stringify([activeEngine,model,engineCurrent,!!engineOptionsCatalog,busy||engineBusy]);
@@ -159,9 +159,13 @@ function syncEngineOptions(){
 }
 async function loadEngineOptions(){
   if(!ENGINE_OPTION_KINDS.includes(activeEngine))return;
-  if(engineOptionsCatalog?.engine===activeEngine){renderEngineOptions();return;}
+  // Each Project Maya model runs its own binary, so its options are read per model.
+  const model=document.getElementById('model')?.value||'';
+  const forModel=activeEngine==='maya'?model:'';
+  if(engineOptionsCatalog?.engine===activeEngine&&(engineOptionsCatalog.model||'')===forModel){renderEngineOptions();return;}
   const status=document.getElementById('engineOptionsStatus');status.textContent=uiText('Leyendo las opciones del motor…');
-  try{engineOptionsCatalog=await requestJSON('/api/harness/engine-options',{cache:'no-store',signal:AbortSignal.timeout(30000)});}
+  try{engineOptionsCatalog=await requestJSON('/api/harness/engine-options'+(forModel?'?model='+encodeURIComponent(forModel):''),{cache:'no-store',signal:AbortSignal.timeout(30000)});
+    engineOptionsCatalog.model=forModel;}
   catch(error){status.textContent=uiText('No se pudieron leer las opciones del motor.')+' '+error.message;return;}
   renderEngineOptions();
 }
@@ -187,8 +191,9 @@ function renderEngineOptions(){
   if(!data.options.length){status.textContent=uiText(data.probed?'Este motor no ofrece más opciones.':'Instala el motor para ver sus opciones.');return;}
   status.textContent=uiText('Vacío = valor por defecto del motor. Se aplica al cargar el modelo.');
   const locked=busy||engineBusy;
+  const arch=(modelKV[model]?.architecture||'').toLowerCase();
   for(const group of data.groups){
-    const options=data.options.filter(option=>option.group===group.id);if(!options.length)continue;
+    const options=data.options.filter(option=>option.group===group.id&&(!option.archs||!arch||option.archs.includes(arch)));if(!options.length)continue;
     const heading=document.createElement('h5');heading.textContent=uiText(group.label);body.append(heading);
     for(const option of options){
       const row=document.createElement('div');row.className='setting-row engine-option';row.dataset.option=option.key;

@@ -190,7 +190,68 @@ def recover_text_calls(content, allowed, *, terminal=False, eof_drafts=None, ali
     chunks.append(content[pos:])
     if terminal and content[pos:].strip():
         calls.clear()
-    return calls, "".join(chunks), attempted
+    clean = "".join(chunks)
+    if not calls and not attempted:
+        # Not the <tool_call> envelope: a call another template writes (Mistral, Llama 3, Kimi, MiniMax, GPT-OSS,
+        # Inkling 2) that the engine left as text.  Read with the same parsers the local server streams with.
+        # In the reasoning (`terminal`) such a call is only cleaned from view, never run.
+        found, rest, tried = _dialect_calls(clean, schemas, aliases)
+        if tried:
+            attempted, clean = True, rest
+            if not terminal:
+                calls.extend(found)
+    return calls, clean, attempted
+
+
+# Where each template's call starts.  Only text outside code blocks, inline code and quotes counts.
+DIALECT_MARKERS = (("inkling2", "<|content_invoke_tool_json|>"), ("kimi", "<|tool_call_begin|>"),
+                   ("minimax", "<minimax:tool_call>"), ("harmony", "<|channel|>commentary to="),
+                   ("mistral", "[TOOL_CALLS]"), ("llama3", "<|python_tag|>"))
+_PROTECTED_ONLY = re.compile(r"(?ms)" + _PROTECTED)
+
+
+def _dialect_calls(text, schemas, aliases):
+    """(calls, text without their markup, whether a call was written) for the first dialect found in `text`."""
+    if not text or ("<|" not in text and "[TOOL_CALLS]" not in text and "<minimax:" not in text):
+        return [], text, False
+    kept = []                                   # code and quotes are examples: hidden from the parser, put back after
+
+    def hide(match):
+        kept.append(match.group(0))
+        return "\x00%d\x00" % (len(kept) - 1)
+
+    masked = _PROTECTED_ONLY.sub(hide, text)
+    fmt = next((name for name, marker in DIALECT_MARKERS if marker in masked), None)
+    if fmt is None:
+        return [], text, False
+    from serve.frontend import OutputParser
+    names = dict(schemas)
+    names.update({alias: schemas.get(target, {}) for alias, target in (aliases or {}).items() if alias not in names})
+    tools = [{"name": name, "description": "", "parameters": schema if isinstance(schema, dict) and schema else
+              {"type": "object", "properties": {}}} for name, schema in names.items()]
+    try:
+        parser = OutputParser(thinking=False, tools=tools, call_format=fmt)
+        events = parser.feed(masked) + parser.finish()
+        if fmt == "harmony" and "<|channel|>analysis" in masked:
+            # GPT-OSS's analysis channel is its reasoning: dropped from the answer like any other reasoning
+            masked = re.sub(r"(?s)<\|channel\|>analysis<\|message\|>.*?(?:<\|end\|>|(?=<\|start\|>|<\|channel\|>)|\Z)", "", masked)
+            parser = OutputParser(thinking=False, tools=tools, call_format=fmt)
+            events = parser.feed(masked) + parser.finish()
+    except Exception:                           # an unexpected form: leave the text as it was
+        return [], text, True
+    calls, shown = [], []
+    for event in events:
+        if event.kind == "content":
+            shown.append(event.text)
+        elif event.kind == "tool_call" and event.call:
+            name = event.call.name if event.call.name in schemas else (aliases or {}).get(event.call.name)
+            args = event.call.arguments if isinstance(event.call.arguments, dict) else None
+            if name in schemas and args is not None:
+                args = {k: v for k, v in args.items() if k != "_pc_access_key"}
+                calls.append({"id": "", "name": name, "arguments": json.dumps(args, ensure_ascii=False),
+                              "args_valid": True, "parsed_args": args})
+    rest = re.sub(r"\x00(\d+)\x00", lambda m: kept[int(m.group(1))], "".join(shown))
+    return calls, rest, True
 
 
 def strip_tool_markup(text):

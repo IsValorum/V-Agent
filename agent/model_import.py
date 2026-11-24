@@ -17,8 +17,8 @@ ROOT = CONFIG_ROOT
 PROFILES = ROOT / 'agent' / 'model-profiles.json'
 ASSETS = ROOT / 'agent' / 'model-assets'
 IMPORT_LOCK = threading.Lock()
-SUPPORTED = {'qwen35moe','clover_moe','glm5-next','glm5next','gemma4','deepseek4','lfm2moe','flint','kolibri1'}
-FAMILY_NAMES = {'qwen35moe':'Qwen MoE','clover_moe':'Clover MoE','glm5-next':'GLM','glm5next':'GLM','gemma4':'Gemma 4','deepseek4':'DeepSeek 4','lfm2moe':'LFM2 MoE','flint':'Flint','kolibri1':'Kolibri'}
+SUPPORTED = {'qwen35moe','clover_moe','glm5-next','glm5next','gemma4','deepseek4','lfm2moe','flint','kolibri1','inkling2_loop','inkling2'}
+FAMILY_NAMES = {'qwen35moe':'Qwen MoE','clover_moe':'Clover MoE','glm5-next':'GLM','glm5next':'GLM','gemma4':'Gemma 4','deepseek4':'DeepSeek 4','lfm2moe':'LFM2 MoE','flint':'Flint','kolibri1':'Kolibri','inkling2_loop':'Inkling 2','inkling2':'Inkling 2'}
 
 
 def _metadata(path):
@@ -237,7 +237,7 @@ def register_local_model(value, name=None, template_path=None):
                 raise ValueError('La plantilla no pudo preparar una conversación: '+str(error)) from None
             (token_dir/'template-source.json').write_text(json.dumps({'source':origin,'sha256':hashlib.sha256(source.encode()).hexdigest()},ensure_ascii=False,indent=2),encoding='utf-8')
             arch = info['architecture']
-            kv = 'q8_0' if arch in ('qwen35moe','clover_moe','kolibri1') else 'fp16'
+            kv = 'q8_0' if arch in ('qwen35moe','clover_moe','kolibri1','flint','inkling2_loop','inkling2') else 'fp16'
             context = max(2048,min(16384,info.get('trained_context') or 16384))
             profiles = json.loads(PROFILES.read_text(encoding='utf-8'))
             presets = copy.deepcopy(profiles['profiles'])

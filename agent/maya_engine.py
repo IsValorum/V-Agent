@@ -42,6 +42,7 @@ FAMILY_LABELS = {
     'deepseek': 'DeepSeek-V4.1-Flash-1017',
     'minimax': 'MiniMax-M3.1-Flash',
     'qwen': 'Qwen-3.8-Flash-Next',
+    'generic': 'Project Maya',
 }
 
 # Stable setup identifiers from Maya's documented quant catalog.
@@ -92,7 +93,16 @@ FAMILY_SCHEMA = {
         'draft_options': ('mtp', 'none'),
         'kv_options': ('fp16', 'int8', 'k8v4', 'q4_0'),
     },
+    # A family a newer Maya brings that V-Agent has no panel for: only the settings every family shares.
+    # Everything else its binary offers shows under the engine's other options (engine_options, kind 'maya').
+    'generic': {
+        'label': FAMILY_LABELS['generic'],
+        'fields': ('context', 'gpus', 'thinking_budget', 'reasoning_effort', 'idle_unload_s', 'env'),
+        'draft_options': ('none',),
+        'text_only': True,
+    },
 }
+KNOWN_FAMILIES = ('glm', 'glm_dsa', 'deepseek', 'minimax', 'qwen')
 
 EFFORT_OPTIONS = ('none', 'low', 'medium', 'high', 'max')
 
@@ -855,6 +865,10 @@ def config_family(cfg: dict, path: Path | None = None) -> str:
     pack = str(_flag_value(args, '--pack', '') or _flag_value(args, '--glm-pack', '') or '').lower()
     installer = cfg.get('installer')
     family = installer.get('family') if isinstance(installer, dict) else None
+    family = str(family).strip().lower().replace('-', '_') if family else None
+    if family and family not in KNOWN_FAMILIES:
+        # the installer names a family this V-Agent does not know: never guess one of the known panels for it
+        return 'generic'
     if family == 'minimax' or 'mm3' in exe_name or 'minimax' in model_name or 'mm3' in pack:
         return 'minimax'
     if family == 'qwen' or '--ple-gguf' in args or 'qwen' in model_name or 'cyber' in model_name:
@@ -921,7 +935,7 @@ def describe_config(path: Path) -> dict:
         'glm': ('none', 'low', 'high', 'max'), 'glm_dsa': ('none', 'low', 'high', 'max'),
         'deepseek': ('none', 'high', 'max'), 'minimax': ('none', 'low', 'medium', 'high', 'xhigh'),
         'qwen': ('low', 'medium', 'xhigh'),
-    }[family]
+    }.get(family, ('none', 'low', 'medium', 'high', 'max'))
     if family == 'glm':
         draft = 'dflash2' if _flag_value(args, '--dflash') else 'mtp'
         if not (_flag_value(args, '--dflash') or cfg.get('_val_dflash')):

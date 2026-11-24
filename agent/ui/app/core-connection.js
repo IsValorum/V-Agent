@@ -42,6 +42,13 @@ async function watchAutomaticUpdates({requestJSON,uiText,note,setDrawer,selectSe
   };
   const notice=document.createElement('aside');notice.id='appUpdateNotice';notice.className='update-card';notice.hidden=true;notice.setAttribute('role','status');
   const title=document.createElement('strong'),detail=document.createElement('span'),open=document.createElement('button'),close=document.createElement('button'),notesEl=document.createElement('p'),notesBtn=document.createElement('button'),downloadBtn=document.createElement('button'),laterBtn=document.createElement('button');
+  // What only the notice could show before had to be found in Settings: the progress, a failed download
+  // and, once the installer is verified, the button that installs it.
+  const progressBox=document.createElement('div'),progressBar=document.createElement('progress'),errorEl=document.createElement('p'),installBtn=document.createElement('button');
+  progressBox.className='update-progress';progressBox.hidden=true;progressBar.max=100;progressBox.append(progressBar);
+  errorEl.className='update-card-error';errorEl.hidden=true;
+  installBtn.type='button';installBtn.className='update-install';installBtn.hidden=true;
+  installBtn.onclick=()=>{installBtn.disabled=true;document.dispatchEvent(new CustomEvent('v-agent-app-install'));setTimeout(()=>{installBtn.disabled=false;},4000);};
   notesEl.className='update-card-notes';notesEl.hidden=true;
   notesBtn.type='button';notesBtn.className='update-notes-btn';notesBtn.hidden=true;
   downloadBtn.type='button';downloadBtn.className='update-install';downloadBtn.hidden=true;
@@ -70,10 +77,19 @@ async function watchAutomaticUpdates({requestJSON,uiText,note,setDrawer,selectSe
     open.textContent=uiText('Ver actualización');
     notesBtn.textContent=uiText('Notas de versión');
     laterBtn.textContent=uiText('Más tarde');
+    installBtn.textContent=uiText('Instalar y reiniciar');
     const u=lastApp,version=u?.available?.version||'';
+    // Settings is reachable from anywhere: the badge stays while an update waits, even after "Later".
+    if(typeof markUpdateBadge==='function')markUpdateBadge('app',Boolean(version));
+    notice.classList?.toggle('update-card-major',Boolean(version));
     if(version&&dismissed!==version){
-      title.textContent=uiText('Nueva versión disponible');
-      detail.textContent=version+(u.ready?' · '+uiText('Actualización descargada y verificada.'):u.busy&&u.progress?.total?' · '+uiText('Descargando')+' '+Math.min(100,Math.round(u.progress.received/u.progress.total*100))+' %':'');
+      title.textContent=uiText('Nueva versión de V-Agent disponible');
+      const downloading=Boolean(u.busy&&u.progress?.total&&!u.ready);
+      const percent=downloading?Math.min(100,Math.round(u.progress.received/u.progress.total*100)):0;
+      detail.textContent=(u.version?u.version+' → ':'')+version+(u.ready?' · '+uiText('Actualización descargada y verificada.'):downloading?' · '+uiText('Descargando')+' '+percent+' %':'');
+      progressBox.hidden=!downloading;progressBar.value=percent;
+      errorEl.textContent=u.error&&!downloading?uiText(u.error):'';errorEl.hidden=!errorEl.textContent;
+      installBtn.hidden=!u.ready;
       const fullNotes=String(u.available?.notes||'').trim();
       const snippet=compactNotes(fullNotes);
       notesEl.textContent=snippet;notesEl.hidden=!snippet;
@@ -82,6 +98,7 @@ async function watchAutomaticUpdates({requestJSON,uiText,note,setDrawer,selectSe
       downloadBtn.textContent=uiText('Descargar versión')+' '+version;
       downloadBtn.hidden=Boolean(u.ready||u.busy);
       downloadBtn.disabled=Boolean(u.busy);
+      if(u.error&&!u.ready&&!u.busy)downloadBtn.textContent=uiText('Reintentar descarga');
       laterBtn.hidden=false;
       notice.hidden=false;notice.dataset.version=version;
       return;
@@ -96,14 +113,14 @@ async function watchAutomaticUpdates({requestJSON,uiText,note,setDrawer,selectSe
       notesEl.textContent=snippet;notesEl.hidden=!snippet;
       notesBtn.hidden=!fullNotes;
       notesBtn.onclick=()=>openReleaseDialog({tag:'V-Agent '+tag,notes:fullNotes,url:''});
-      downloadBtn.hidden=true;laterBtn.hidden=false;
+      downloadBtn.hidden=true;laterBtn.hidden=false;installBtn.hidden=true;progressBox.hidden=true;errorEl.hidden=true;
       notice.hidden=false;notice.dataset.version='minor:'+m.revision;
       return;
     }
     notice.hidden=true;
   };
   renderNotice();
-  notice.append(title,detail,open,close,notesEl,notesBtn,downloadBtn,laterBtn);document.body.append(notice);
+  notice.append(title,detail,open,close,notesEl,notesBtn,downloadBtn,laterBtn,progressBox,errorEl,installBtn);document.body.append(notice);   // placed on screen by CSS order
   if(typeof window!=='undefined'){window.VALI18n?.onChange?.(renderNotice);window.VALI18n?.observe?.(notice);}
   for(;;){
     await new Promise(resolve=>setTimeout(resolve,delay));
@@ -131,3 +148,30 @@ async function watchAutomaticUpdates({requestJSON,uiText,note,setDrawer,selectSe
     }catch{delay=60000;}
   }
 }
+
+// Pending updates marked where Settings opens, with words and not just a dot: a V-Agent release (most
+// important, accent) or an engine update for an installed engine (quieter). Each tab says what waits there.
+const updateBadges={app:false,engine:false};
+// this file's own uiText lives inside watchAutomaticUpdates; the badge uses the global translator
+const badgeText=text=>(typeof window!=='undefined'&&window.VALI18n?.t?.(text))||text;
+function markUpdateBadge(kind,on){
+  if(typeof document==='undefined'||typeof document.querySelector!=='function')return;
+  if(updateBadges[kind]===Boolean(on)&&document.querySelector('#gear .update-pill')?.dataset.lang===(window.VALI18n?.language||'es'))return;
+  updateBadges[kind]=Boolean(on);
+  const gear=document.getElementById('gear');if(!gear)return;
+  const any=updateBadges.app||updateBadges.engine;
+  let pill=gear.querySelector('.update-pill');
+  if(any&&!pill){pill=document.createElement('span');pill.className='update-pill';gear.append(pill);}
+  if(pill){
+    pill.hidden=!any;pill.dataset.level=updateBadges.app?'app':'engine';pill.dataset.lang=window.VALI18n?.language||'es';
+    pill.textContent=badgeText(updateBadges.app?'Nueva versión':'Actualización');
+  }
+  gear.classList.toggle('has-update',any);
+  for(const [category,kindFor] of [['general','app'],['system','engine']]){
+    const tab=document.querySelector('#settingsNav [data-category="'+category+'"]');if(!tab)continue;
+    let dot=tab.querySelector('.update-tab-pill');
+    if(updateBadges[kindFor]&&!dot){dot=document.createElement('span');dot.className='update-tab-pill';tab.append(dot);}
+    if(dot){dot.hidden=!updateBadges[kindFor];dot.dataset.level=kindFor;dot.textContent=badgeText(kindFor==='app'?'Nueva versión':'Actualización');}
+  }
+}
+if(typeof window!=='undefined'){window.markUpdateBadge=markUpdateBadge;window.VALI18n?.onChange?.(()=>{markUpdateBadge('app',updateBadges.app);markUpdateBadge('engine',updateBadges.engine);});}

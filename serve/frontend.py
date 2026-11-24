@@ -1016,7 +1016,7 @@ def json_tool_call(body: str, schemas: dict, *, aliases: bool = True) -> ToolCal
     name = declared_tool_name(name, schemas) if aliases else name if isinstance(name, str) and name in schemas else None
     if name is None:
         return None
-    if "arguments" not in obj and "parameters" not in obj:
+    if "arguments" not in obj and "parameters" not in obj and "args" not in obj:
         flat = {key: value for key, value in obj.items() if key not in ("name", "function_name")}
         schema = schemas[name]
         schema = schema.get("parameters", schema) if isinstance(schema, dict) else {}
@@ -1025,7 +1025,7 @@ def json_tool_call(body: str, schemas: dict, *, aliases: bool = True) -> ToolCal
             return None
         args = flat
     else:
-        args = obj.get("arguments", obj.get("parameters", {}))
+        args = obj.get("arguments", obj.get("parameters", obj.get("args", {})))
     if isinstance(args, str):
         try:
             args = tool_json_loads(args)
@@ -1313,6 +1313,263 @@ def parse_lfm2_tool_calls(body: str, schema: dict | None = None) -> list[ToolCal
     return calls
 
 
+# Inkling 2 writes its messages as <|message_model|><|content_thinking|>...<|end_message|>,
+# <|message_model|><|content_text|>...<|end_message|>, and tool calls as
+# <|message_model|>NAME<|content_invoke_tool_json|>{"name":"NAME","args":{...}}<|end_message|>.
+INKLING2_CALL, INKLING2_CALL_END = "<|content_invoke_tool_json|>", "<|end_message|>"
+INKLING2_THINK, INKLING2_TEXT = "<|content_thinking|>", "<|content_text|>"
+INKLING2_MODEL, INKLING2_END_TURN = "<|message_model|>", "<|content_model_end_sampling|>"
+INKLING2_NOISE = (INKLING2_TEXT, INKLING2_CALL_END, INKLING2_END_TURN)
+_INKLING2_NAME = re.compile(r'\{\s*"name"\s*:\s*"([^"]+)"')
+_INKLING2_HEADER = re.compile(r"<\|message_model\|>([A-Za-z0-9_.\-]{0,128})<\|content_invoke_tool_json\|>")
+
+
+def inkling2_call_name(text: str) -> str | None:
+    """An Inkling 2 call's name, or None while it is still arriving."""
+    m = _INKLING2_NAME.search(text)
+    return m.group(1) if m else None
+
+
+def inkling2_call_end(text: str) -> int:
+    """First `<|end_message|>` outside JSON strings, or -1 while still arriving."""
+    in_str, esc, i = False, False, 0
+    end_len = len(INKLING2_CALL_END)
+    while i < len(text):
+        ch = text[i]
+        if esc:
+            esc = False
+            i += 1
+        elif in_str:
+            if ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            i += 1
+        elif ch == '"':
+            in_str = True
+            i += 1
+        elif text.startswith(INKLING2_CALL_END, i):
+            return i
+        else:
+            i += 1
+    return -1
+
+
+def parse_inkling2_tool_call(body: str, schema: dict | None = None) -> list[ToolCall]:
+    """`{"name":"NAME","args":{...}}` -> [ToolCall], or [] when not a valid call object."""
+    try:
+        data = json.loads(body.strip())
+    except ValueError:
+        return []
+    if not isinstance(data, dict) or not isinstance(data.get("name"), str) or not data["name"]:
+        return []
+    raw_args = data.get("args") if "args" in data else data.get("arguments", {})
+    if isinstance(raw_args, str):
+        try:
+            raw_args = json.loads(raw_args)
+        except ValueError:
+            raw_args = {}
+    if not isinstance(raw_args, dict):
+        raw_args = {}
+    return [ToolCall(name=data["name"], arguments=raw_args)]
+
+
+def _balanced_json_end(text: str, start: int = 0) -> int:
+    """Index right after the balanced JSON object/array starting at the first { or [ >= start, or -1."""
+    i = start
+    while i < len(text) and text[i] not in "{[":
+        i += 1
+    if i >= len(text):
+        return -1
+    depth, in_str, esc = 0, False, False
+    while i < len(text):
+        ch = text[i]
+        if esc:
+            esc = False
+        elif in_str:
+            if ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+        elif ch == '"':
+            in_str = True
+        elif ch in "{[":
+            depth += 1
+        elif ch in "}]":
+            depth -= 1
+            if depth == 0:
+                return i + 1
+        i += 1
+    return -1
+
+
+# Mistral / Devstral / Pixtral: `[TOOL_CALLS] [{"name":"NAME","arguments":{...}}]` or `[TOOL_CALLS]NAME[ARGS]{...}`
+MISTRAL_CALL, MISTRAL_CALL_END = "[TOOL_CALLS]", ""
+_MISTRAL_V11 = re.compile(r'^\s*([A-Za-z0-9_.\-]+)\[ARGS\]\s*')
+
+
+def mistral_call_name(text: str) -> str | None:
+    m = _MISTRAL_V11.match(text)
+    if m:
+        return m.group(1)
+    m = _INKLING2_NAME.search(text)
+    return m.group(1) if m else None
+
+
+def mistral_call_end(text: str) -> int:
+    m = _MISTRAL_V11.match(text)
+    return _balanced_json_end(text, m.end() if m else 0)
+
+
+def parse_mistral_tool_calls(body: str, schema: dict | None = None) -> list[ToolCall]:
+    m = _MISTRAL_V11.match(body)
+    if m:
+        try:
+            args = json.loads(body[m.end():].strip())
+        except ValueError:
+            return []
+        return [ToolCall(name=m.group(1), arguments=args if isinstance(args, dict) else {})]
+    try:
+        data = json.loads(body.strip())
+    except ValueError:
+        return []
+    items = data if isinstance(data, list) else [data] if isinstance(data, dict) else []
+    calls = []
+    for item in items:
+        if not isinstance(item, dict) or not isinstance(item.get("name"), str) or not item["name"]:
+            continue
+        raw_args = item.get("arguments", item.get("args", item.get("parameters", {})))
+        if isinstance(raw_args, str):
+            try:
+                raw_args = json.loads(raw_args)
+            except ValueError:
+                raw_args = {}
+        calls.append(ToolCall(name=item["name"], arguments=raw_args if isinstance(raw_args, dict) else {}))
+    return calls
+
+
+# Llama 3.1 / 3.2 / 3.3 / 4: `<|python_tag|>{"name":"NAME","parameters":{...}}<|eom_id|>`
+LLAMA3_CALL, LLAMA3_CALL_END = "<|python_tag|>", "<|eom_id|>"
+LLAMA3_NOISE = ("<|eom_id|>",)
+
+
+def llama3_call_name(text: str) -> str | None:
+    m = _INKLING2_NAME.search(text)
+    return m.group(1) if m else None
+
+
+def llama3_call_end(text: str) -> int:
+    idx = text.find(LLAMA3_CALL_END)
+    if idx >= 0:
+        return idx
+    return _balanced_json_end(text, 0)
+
+
+def parse_llama3_tool_call(body: str, schema: dict | None = None) -> list[ToolCall]:
+    return parse_mistral_tool_calls(body.replace(LLAMA3_CALL_END, ""), schema)
+
+
+# Kimi K2 / Moonshot: `<|tool_calls_section_begin|><|tool_call_begin|>functions.NAME:0<|tool_call_argument_begin|>{...}<|tool_call_end|><|tool_calls_section_end|>`
+KIMI_CALL, KIMI_CALL_END = "<|tool_call_begin|>", "<|tool_call_end|>"
+KIMI_ARG_SEP = "<|tool_call_argument_begin|>"
+KIMI_NOISE = ("<|tool_calls_section_begin|>", "<|tool_calls_section_end|>")
+
+
+def kimi_call_name(text: str) -> str | None:
+    sep = text.find(KIMI_ARG_SEP)
+    if sep < 0:
+        return None
+    raw = text[:sep].strip()
+    if raw.startswith("functions."):
+        raw = raw[len("functions."):]
+    if ":" in raw:
+        raw = raw.split(":", 1)[0]
+    return raw.strip() or None
+
+
+def kimi_call_end(text: str) -> int:
+    return text.find(KIMI_CALL_END)
+
+
+def parse_kimi_tool_call(body: str, schema: dict | None = None) -> list[ToolCall]:
+    name = kimi_call_name(body)
+    sep = body.find(KIMI_ARG_SEP)
+    if not name or sep < 0:
+        return []
+    raw_json = body[sep + len(KIMI_ARG_SEP):].strip()
+    try:
+        args = json.loads(raw_json) if raw_json else {}
+    except ValueError:
+        return []
+    return [ToolCall(name=name, arguments=args if isinstance(args, dict) else {})]
+
+
+# MiniMax M1 / M2 / M3: `<minimax:tool_call><invoke name="NAME"><parameter name="K">V</parameter></invoke></minimax:tool_call>`
+MINIMAX_CALL, MINIMAX_CALL_END = '<invoke name="', "</invoke>"
+MINIMAX_NOISE = ("<minimax:tool_call>", "</minimax:tool_call>")
+_MINIMAX_PARAM = re.compile(r'<parameter\s+name="([^"]*)">([\s\S]*?)</parameter>')
+
+
+def minimax_call_name(text: str) -> str | None:
+    q = text.find('"')
+    return text[:q].strip() if q >= 0 else None
+
+
+def minimax_call_end(text: str) -> int:
+    return text.find(MINIMAX_CALL_END)
+
+
+def parse_minimax_tool_call(body: str, schema: dict | None = None) -> list[ToolCall]:
+    q = body.find('"')
+    if q < 0:
+        return []
+    name = body[:q].strip()
+    if not name:
+        return []
+    props = (schema or {}).get("parameters", schema or {}).get("properties", {}) if isinstance(schema, dict) else {}
+    args = {}
+    for m in _MINIMAX_PARAM.finditer(body[q + 1:]):
+        key, val = m.group(1), m.group(2)
+        expected = (props.get(key) or {}).get("type") if isinstance(props, dict) else None
+        if expected and expected != "string":
+            try:
+                val = json.loads(val)
+            except ValueError:
+                pass
+        args[key] = val
+    return [ToolCall(name=name, arguments=args)]
+
+
+# GPT-OSS / Harmony: `<|channel|>commentary to=functions.NAME <|constrain|>json<|message|>{...}<|call|>`
+HARMONY_CALL, HARMONY_CALL_END = "<|channel|>commentary to=", "<|call|>"
+HARMONY_MSG = "<|message|>"
+HARMONY_NOISE = ("<|start|>assistant", "<|channel|>final<|message|>", "<|return|>", "<|end|>")
+
+
+def harmony_call_name(text: str) -> str | None:
+    msg = text.find(HARMONY_MSG)
+    head = text[:msg] if msg >= 0 else text
+    m = re.match(r'\s*(?:functions\.)?([A-Za-z0-9_.\-]+)', head)
+    return m.group(1) if m else None
+
+
+def harmony_call_end(text: str) -> int:
+    return text.find(HARMONY_CALL_END)
+
+
+def parse_harmony_tool_call(body: str, schema: dict | None = None) -> list[ToolCall]:
+    name = harmony_call_name(body)
+    msg = body.find(HARMONY_MSG)
+    if not name or msg < 0:
+        return []
+    raw_json = body[msg + len(HARMONY_MSG):].strip()
+    try:
+        args = json.loads(raw_json) if raw_json else {}
+    except ValueError:
+        return []
+    return [ToolCall(name=name, arguments=args if isinstance(args, dict) else {})]
+
+
 def gemma_model_turn(prompt: str, thinking: bool) -> str:
     """Gemma's template opens no turn for the model after an answer that came with text, tool calls and their
     results: the prompt ends on that closed turn and, with thinking on, on a thought opened outside any turn.  This
@@ -1339,22 +1596,38 @@ class OutputParser:
         # announced when its name is complete and its arguments follow whole.  (its name, its end, its parser)
         # What tells a <function=...> call from a quoted one, or recovers one written beside the template's form
         # (a call inside the reasoning, `recover`), reads that form only and is not applied to these.
+        self.call_format = call_format
         self.whole = {"glm": (glm_call_name, glm_call_end, parse_glm_tool_call),
                       "gemma": (gemma_call_name, gemma_call_end, parse_gemma_tool_call),
                       "dsml": (dsml_call_name, dsml_call_end, parse_dsml_tool_call),
-                      "lfm2": (lfm2_call_name, lfm2_call_end, parse_lfm2_tool_calls)}.get(call_format)
+                      "lfm2": (lfm2_call_name, lfm2_call_end, parse_lfm2_tool_calls),
+                      "inkling2": (inkling2_call_name, inkling2_call_end, parse_inkling2_tool_call),
+                      "mistral": (mistral_call_name, mistral_call_end, parse_mistral_tool_calls),
+                      "llama3": (llama3_call_name, llama3_call_end, parse_llama3_tool_call),
+                      "kimi": (kimi_call_name, kimi_call_end, parse_kimi_tool_call),
+                      "minimax": (minimax_call_name, minimax_call_end, parse_minimax_tool_call),
+                      "harmony": (harmony_call_name, harmony_call_end, parse_harmony_tool_call)}.get(call_format)
         self.call_start, self.call_stop = {"gemma": (GEMMA_CALL, GEMMA_CALL_END),
                                            "dsml": (DSML_INVOKE, DSML_INVOKE_END),
-                                           "lfm2": (LFM2_CALL, LFM2_CALL_END)}.get(call_format,
+                                           "lfm2": (LFM2_CALL, LFM2_CALL_END),
+                                           "inkling2": (INKLING2_CALL, INKLING2_CALL_END),
+                                           "mistral": (MISTRAL_CALL, MISTRAL_CALL_END),
+                                           "llama3": (LLAMA3_CALL, LLAMA3_CALL_END),
+                                           "kimi": (KIMI_CALL, KIMI_CALL_END),
+                                           "minimax": (MINIMAX_CALL, MINIMAX_CALL_END),
+                                           "harmony": (HARMONY_CALL, HARMONY_CALL_END)}.get(call_format,
                                                                                    (CALL_START, CALL_END))
-        # tags around the calls that are neither a call nor content (DeepSeek V4's block of calls)
-        self.noise = DSML_BLOCK if call_format == "dsml" else ()
+        # tags around the calls that are neither a call nor content
+        self.noise = {"dsml": DSML_BLOCK, "inkling2": INKLING2_NOISE, "kimi": KIMI_NOISE,
+                      "minimax": MINIMAX_NOISE, "harmony": HARMONY_NOISE, "llama3": LLAMA3_NOISE}.get(call_format, ())
         # Gemma opens its reasoning itself, as a channel, and ends it with a token of its own; the others' reasoning
         # is opened by the prompt and ends with </think>.  `opened`: this prompt ended on Gemma's opening (its
         # template writes it after a tool's answer), so the reply starts inside the reasoning.  GLM's calls come
         # with <think> either way: GLM's template opens it in the prompt (`opened`), Flint writes it itself.
         self.think_open, self.think_end = ("<|channel>thought\n", "<channel|>") if call_format == "gemma" \
-            else ("<think>", THINK_END) if call_format == "glm" else ("", THINK_END)
+            else ("<think>", THINK_END) if call_format in ("glm", "minimax", "kimi") \
+            else (INKLING2_THINK, INKLING2_CALL_END) if call_format == "inkling2" \
+            else ("<|channel|>analysis<|message|>", "<|end|>") if call_format == "harmony" else ("", THINK_END)
         # #537 tells a quoted </think> by the line break the end has after it.  GLM's and Gemma's answers follow
         # their end tag at once ('say "Paris."</think>Paris'), so there every end tag ends the reasoning
         self.quotes_end = call_format == "function"
@@ -1847,6 +2120,40 @@ class OutputParser:
                 self.state, self.lead = "content", True
                 self.fence, self.line, self.ticks = "", "", 0     # the answer's own text starts here
             elif self.state == "content":
+                if self.call_format == "inkling2":
+                    m_idx = self.buf.find(INKLING2_MODEL)
+                    if m_idx >= 0:
+                        pre = self.buf[:m_idx]
+                        for tag in self.noise:
+                            pre = pre.replace(tag, "")
+                        if pre:
+                            if self.lead:
+                                pre = pre.lstrip("\n")
+                            if pre:
+                                out.append(Event("content", self._track(pre)))
+                                self.lead = False
+                        rest = self.buf[m_idx + len(INKLING2_MODEL):]
+                        if rest.startswith(INKLING2_THINK):
+                            self.buf = rest[len(INKLING2_THINK):]
+                            self.state, self.opening = "reasoning", False
+                            continue
+                        if rest.startswith(INKLING2_TEXT):
+                            self.buf = rest[len(INKLING2_TEXT):]
+                            self.opening = False
+                            continue
+                        hm = _INKLING2_HEADER.match(self.buf, m_idx)
+                        if hm:
+                            self.buf = self.buf[hm.end():]
+                            self.state, self.opening = "call", False
+                            continue
+                        # Still arriving: hold until <|content_thinking|>, <|content_text|>, or <|content_invoke_tool_json|> arrives
+                        if (not rest or INKLING2_THINK.startswith(rest) or INKLING2_TEXT.startswith(rest)
+                                or (len(rest) < 160 and "\n" not in rest)):
+                            self.buf = self.buf[m_idx:]
+                            return out
+                        # Fallback: drop lone <|message_model|>
+                        self.buf = rest
+                        continue
                 if self.opening:                                # the model's own opening of its reasoning
                     if self.buf.startswith(self.think_open):
                         self.buf, self.state, self.opening = self.buf[len(self.think_open):], "reasoning", False
@@ -1881,7 +2188,8 @@ class OutputParser:
                 if i < 0:
                     # Hold a partial tag AND the newlines before it: if a tool call follows, they are dropped,
                     # so emitting them early would make streamed and whole outputs differ.
-                    j = len(self.buf) - self._hold(self.buf, (self.call_start,) + self.noise)
+                    hold_tags = (self.call_start,) + self.noise + ((INKLING2_MODEL,) if self.call_format == "inkling2" else ())
+                    j = len(self.buf) - self._hold(self.buf, hold_tags)
                     if self.recover and self.schemas:            # a line that may be becoming a bare <function=
                         k = self.buf.rfind("\n") + 1
                         tail = self.buf[k:]
@@ -1979,7 +2287,8 @@ class OutputParser:
                 if i < 0:
                     return out
                 body = self.buf[:i]
-                self.buf = self.buf[i + len(self.call_stop):]
+                skip = len(self.call_stop) if (self.call_stop and self.buf.startswith(self.call_stop, i)) else 0
+                self.buf = self.buf[i + skip:]
                 calls = parse(body, self.schemas.get(name_of(body + self.call_stop)))
                 calls = calls if isinstance(calls, list) else [calls]     # LFM2's block holds a list of calls
                 if not calls:                                             # nothing a call can be made of

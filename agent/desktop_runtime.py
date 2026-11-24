@@ -217,14 +217,17 @@ def install(a):
             for item in maya_items:
                 identifier=item['id']
                 if identifier in ignored:continue
-                kv_val=(item.get('kv_cache') if item['family']=='minimax' else item.get('kv')) or 'fp16'
+                kv_opts_list=list(item['schema'].get('kv_options',()))
+                kv_val=(item.get('kv_cache') if item['family']=='minimax' else item.get('kv')) or (kv_opts_list[0] if kv_opts_list else 'fp16')
                 baseline={'sampling':default_profiles['code']['sampling'],'effort':item.get('reasoning_effort') or 'high','rounds':50,'context':item.get('context') or 32768,'kv':kv_val}
                 pref=a.MODEL_PREFERENCES.get(identifier,baseline)
-                kv_opts=[{'value':opt,'label':opt.upper(),'description':'Formato de caché KV configurado en Project Maya.'} for opt in item['schema'].get('kv_options',())]
+                kv_opts=[{'value':opt,'label':opt.upper(),'description':'Formato de caché KV configurado en Project Maya.'} for opt in kv_opts_list]
+                kv_cur=pref.get('kv',kv_val)
+                if kv_opts_list and kv_cur not in kv_opts_list:kv_cur=kv_val
                 entries.append({**item,'id':identifier,'config':item['config_path'],'gguf_name':item['model_name'],'display_name':item['model_name'],
                     'backend':'Project Maya · '+item['family_label'],'context':pref['context'],'status':'loaded' if manager.loaded==identifier else 'available',
                     'current':manager.loaded==identifier,'agent_profiles':default_profiles,'preferences':pref,
-                    'kv':{'current':pref.get('kv',kv_val),'options':kv_opts},
+                    'kv':{'current':kv_cur,'options':kv_opts},
                     'draft':{'integrated':False,'available':False,'files':[],'tokens':0,'source':item.get('draft') or 'auto'},
                     'vision_settings':{'enabled':bool(item.get('images')),'mmproj':'','supported':not item['schema'].get('text_only',False),'encoder_available':True,'encoder':'Integrado en Project Maya'},
                     'maya_config':item})
@@ -253,14 +256,33 @@ def install(a):
             config_data={**saved,'engine_kind':manager.kind,'model_name':identifier,'args':['--model',source.get('path') or ''],'context':pref['context']}
             if not config.exists():config.write_text(json.dumps(config_data),encoding='utf8')
             path=source.get('path');name=source.get('display_name') if original_id.startswith('local-') else (Path(path).name if path else source['display_name'])
+            kv_opts=a.kv_settings.kv_options_for_engine(manager.kind,manager.executable()) if manager.kind in ('llama','rust') else []
+            kv_vals=[o['value'] for o in kv_opts]
+            kv_raw=pref.get('kv','fp16')
+            kv_cur=kv_raw if kv_raw in kv_vals else (a.kv_settings._LLAMA_TO_CANON.get(a.kv_settings.map_kv_for_engine('llama',kv_raw,manager.executable()),'fp16') if manager.kind=='llama'
+                    else a.kv_settings._RUST_TO_CANON.get(a.kv_settings.map_kv_for_engine('rust',kv_raw,manager.executable()),'fp16') if manager.kind=='rust' else kv_raw)
             entries.append({**source,'id':identifier,'config':str(config),'gguf_name':name,'display_name':name,'context':pref['context'] if manager.kind in ('llama','rust') else source.get('context'),
                 'status':'loaded' if manager.loaded==identifier else 'available','current':manager.loaded==identifier,'agent_profiles':default_profiles,'preferences':pref,
-                'kv':{'current':pref.get('kv','fp16'),'options':([{'value':k,'label':label,'description':'Formato de caché de llama.cpp.'} for k,label in [('fp16','FP16'),('bf16','BF16'),('q8_0','Q8_0'),('q4_0','Q4_0')]] if manager.kind in ('llama','rust') else [])},
+                'kv':{'current':kv_cur,'options':kv_opts},
                 'draft':{'integrated':False,'available':False,'files':[],'tokens':0,'source':'off'},'vision_settings':{'enabled':bool(saved.get('mmproj')),'mmproj':saved.get('mmproj',''),'supported':manager.kind=='llama','encoder_available':True,'encoder':'Integrado en llama.cpp'},'llama_settings':saved})
-        if manager.kind=='rust':
-            for item in entries:item['kv']['options']=[o for o in item['kv']['options'] if o['value'] in ('fp16','q8_0')]
         return {'models':entries,'data':entries,'loaded':bool(manager.loaded),'loaded_model':manager.loaded,'engine_online':manager.online or manager.kind in ('llama','rust'),
                 'manual_loading':True,'current':manager.loaded,'profiles':default_profiles,'profile_version':1,'preparation':a.PREPARATION.snapshot()}
+
+    def maya_model_executable(model):
+        """The Maya binary a model's config runs, or None (not prepared yet)."""
+        import maya_engine
+        if not model or not model.get('config'):return None
+        cfg=maya_engine._read_json(Path(model['config']),{})
+        root=maya_engine.resolve_root(manager.settings.get('maya',{}).get('root'))
+        exe=Path(str(cfg.get('exe') or '')) if isinstance(cfg,dict) else Path('')
+        if str(exe) and not exe.is_absolute() and root:exe=root/exe
+        if str(exe) and exe.is_file():return exe
+        if root:
+            family=maya_engine.config_family(cfg,Path(model['config'])) if isinstance(cfg,dict) else ''
+            name={'deepseek':'maya-ds4','minimax':'maya-mm3'}.get(family,'maya')
+            found=maya_engine.find_binaries(root).get(name)
+            if found and Path(found).is_file():return Path(found)
+        return None
 
     def selected(name):
         if manager.kind=='strata':return original['selected_model'](name)
@@ -327,7 +349,8 @@ def install(a):
                 previous=cfg.get('_val_engine_options') or []
                 if options or previous:
                     text=engine_options.help_text('strata',manager.executable())
-                    args,applied=engine_options.apply('strata',cfg.get('args',[]),options,text,previous)
+                    arch=kv_settings.describe(file).get('architecture')
+                    args,applied=engine_options.apply('strata',cfg.get('args',[]),options,text,previous,arch=arch)
                     cfg['args']=args;cfg['_val_engine_options']=applied;atomic_json(file,cfg)
             try:return original['load_agent_model'](name,context)
             finally:_clear_hw_cache()
@@ -410,10 +433,16 @@ def install(a):
     def validate(config,value):
         cfg=_read_json(config,{})
         if cfg.get('engine_kind') in ('llama','rust'):
-            if value not in (('fp16','q8_0') if cfg.get('engine_kind')=='rust' else ('fp16','bf16','q8_0','q4_0')):raise ValueError('Formato KV no habilitado para esta compilación.')
+            allowed_kv=a.kv_settings.discover_engine_kv(cfg.get('engine_kind'),manager.executable() if manager.kind==cfg.get('engine_kind') else None)
+            if value not in allowed_kv:raise ValueError('Formato KV no habilitado para esta compilación.')
             return value
         if cfg.get('engine_kind')=='maya' or Path(config).name.startswith('maya-'):
-            if value not in ('fp16','bf16','int8','q8_0'):raise ValueError('Formato KV no admitido por Project Maya.')
+            try:
+                import maya_engine
+                allowed=tuple(maya_engine.describe_config(Path(config)).get('schema',{}).get('kv_options',()))
+            except (ValueError,TypeError,OSError):allowed=()
+            # each Maya family declares its own formats; an unreadable config falls back to the union of them all
+            if value not in (allowed or ('fp16','bf16','int8','fp8','fp4','k8v4','q4_0','q8_0')):raise ValueError('Formato KV no admitido por Project Maya.')
             return value
         return old_validate(config,value)
     a.kv_settings.validate=validate
@@ -593,11 +622,18 @@ def install(a):
                 except Exception as error:self._json(400,{'error':str(error)[:300]})
                 return
             if self.path=='/api/harness/state':self._json(200,manager.snapshot());return
-            if self.path=='/api/harness/engine-options':
+            if self.path.split('?',1)[0]=='/api/harness/engine-options':
                 # The active engine's own options, as its installed executable lists them.
                 import engine_options
-                kind=manager.kind if manager.kind in engine_options.CATALOG else ''
-                exe=manager.executable() if kind else None
+                kind=manager.kind if manager.kind in engine_options.ENGINES else ''
+                exe=None
+                if kind=='maya':
+                    # each Maya model runs its own binary: read the options of the one this model uses
+                    from urllib.parse import parse_qs,urlsplit
+                    wanted=(parse_qs(urlsplit(self.path).query).get('model') or [''])[0]
+                    try:exe=maya_model_executable(selected(wanted) if wanted else None)
+                    except (ValueError,KeyError,OSError):exe=None
+                elif kind:exe=manager.executable()
                 self._json(200,engine_options.catalog(kind,engine_options.help_text(kind,exe) if exe else ''));return
             if self.path=='/api/harness/maya/setup-status':
                 import maya_engine

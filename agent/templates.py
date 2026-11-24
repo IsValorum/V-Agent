@@ -341,6 +341,18 @@ def formato_llamada(tpath, *, native=False):
         return 'dsml'
     if '<|tool_call_start|>' in fuente and '<|tool_call_end|>' in fuente:
         return 'lfm2'
+    if '<|content_invoke_tool_json|>' in fuente:
+        return 'inkling2'
+    if '<|tool_call_begin|>' in fuente and '<|tool_call_argument_begin|>' in fuente:
+        return 'kimi'
+    if '<minimax:tool_call>' in fuente:
+        return 'minimax'
+    if '<|channel|>commentary to=' in fuente:
+        return 'harmony'
+    if '[TOOL_CALLS]' in fuente:
+        return 'mistral'
+    if '<|python_tag|>' in fuente:
+        return 'llama3'
     declaracion = re.search(r"(?s)(For each function call.{0,420}|If you choose to call a function.{0,620})",
                            fuente)
     texto = declaracion.group(0) if declaracion else fuente[:6000]

@@ -179,8 +179,12 @@ const VAL_TOUR=(()=>{
     };
     const paint=s=>{
       if(!s)return;lastApp=s;
-      if(!s.configured){status.textContent=uiText('Versión')+' '+label(s.version)+' · '+uiText('Las actualizaciones automáticas se activarán cuando se publique el repositorio oficial.');go.hidden=true;syncNotesButton();return;}
-      if(s.error){status.textContent=uiText('No se pudo comprobar')+': '+s.error;}
+      // Every state sets the button from scratch: a stale "Download" or a disabled "Install" never stays.
+      go.hidden=true;go.disabled=false;delete go.dataset.action;
+      box.classList.toggle('has-update',Boolean(s.available));
+      if(!s.configured){status.textContent=uiText('Versión')+' '+label(s.version)+' · '+uiText('Las actualizaciones automáticas se activarán cuando se publique el repositorio oficial.');syncNotesButton();return;}
+      if(s.error&&!s.available){status.textContent=uiText('No se pudo comprobar')+': '+uiText(s.error);}
+      else if(s.error&&!s.busy&&!s.ready){status.textContent=uiText('Nueva versión disponible')+': '+s.available.version+' · '+uiText('La descarga falló')+': '+uiText(s.error);go.textContent=uiText('Reintentar descarga');go.hidden=false;go.dataset.action='download';}
       else if(s.ready){status.textContent=uiText('Actualización descargada y verificada.')+(s.available?.notes?' · '+s.available.notes.slice(0,140):'');go.textContent=uiText('Instalar y reiniciar');go.hidden=false;go.dataset.action='launch';}
       else if(s.busy&&s.progress){status.textContent=uiText('Descargando')+(s.progress.total?' · '+Math.round(s.progress.received/s.progress.total*100)+' %':'');}
       else if(s.available){status.textContent=uiText('Nueva versión disponible')+': '+s.available.version+(s.available.notes?' · '+s.available.notes.slice(0,140):'');go.textContent=uiText('Descargar versión')+' '+s.available.version;go.hidden=false;go.dataset.action='download';}
@@ -237,6 +241,7 @@ const VAL_TOUR=(()=>{
     go.onclick=async()=>{
       try{
         if(go.dataset.action==='launch'){go.disabled=true;const r=await post('launch');if(r.launched){const ver=r.available?.version||'';status.textContent=uiText('Cerrando V-Agent para instalar la actualización…');showUpdateOverlay(ver);setTimeout(()=>window.__TAURI__?.window?.getCurrentWindow?.().close(),700);}else go.disabled=false;return;}
+        go.disabled=true;
         paint(await post('download'));
         // One poll at a time; a failed request ends it instead of leaving the bar frozen forever.
         clearTimeout(go._poll);
@@ -244,6 +249,8 @@ const VAL_TOUR=(()=>{
         go._poll=setTimeout(poll,800);
       }catch(e){go.disabled=false;status.textContent=e.message;}
     };
+    // "Install and restart" from the update notice runs the same path as this button.
+    document.addEventListener('v-agent-app-install',()=>{if(go.dataset.action==='launch'&&!go.disabled)go.click();else{window.setDrawer?.(true);selectSettingsCategory?.('general');box.scrollIntoView({block:'nearest'});}});
     box.querySelector('#tourAgain').onclick=()=>{window.setDrawer?.(false);document.querySelector('#gear')?.getAttribute('aria-expanded')==='true'&&document.querySelector('#gear').click();setTimeout(start,350);};
     requestJSON('/api/harness/app-update').then(paint).catch(()=>{});
     document.addEventListener('v-agent-app-update',event=>paint(event.detail));

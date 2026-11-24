@@ -145,7 +145,11 @@ class Updates:
                         current=installed.get(key,{}).get('tag') or builds.get({'llama-cpu':'cpu','llama-cuda':'cuda','llama-vulkan':'vulkan','rust':'rust'}.get(key,key),{}).get('build') or builds.get(key,{}).get('version') or ''
                         deps=[a for a in release.get('assets',[]) if key=='llama-cuda' and a['name']=='cudart-llama-bin-win-cuda-12.4-x64.zip']
                         releases[key]={'tag':tag,'development':bool(release.get('prerelease')),'current':current,'available':tag.lstrip('v')!=str(current).lstrip('v'),'notes':str(release.get('body') or '')[:100000],'url':release['html_url'],'repository':repo,'asset':asset,'dependencies':deps}
-                    except Exception as error:releases[key]={'available':False,'error':str(error),'repository':repo}
+                    except Exception as error:
+                        import app_updates
+                        known=dict((self.state.get('releases') or {}).get(key) or {})
+                        known.update(available=bool(known.get('available')),error=app_updates.friendly_network_error(error) or str(error),repository=repo)
+                        releases[key]=known
                 try:
                     import maya_engine
                     maya_info=builds.get('maya',{}) if isinstance(builds,dict) else {}
@@ -307,9 +311,10 @@ class Updates:
                     self.state.pop('error',None);self.state['operation']='Actualizado: '+key;self.save()
                 work_folder[0]=None
             except Exception as error:
+                import app_updates
                 with self.lock:
                     if self.progress:self.progress['phase']='error'
-                    self.state['error']=str(error);self.state['operation']='';self.save()
+                    self.state['error']=app_updates.friendly_network_error(error) or str(error);self.state['operation']='';self.save()
             finally:
                 if work_folder[0]:shutil.rmtree(work_folder[0],ignore_errors=True)  # A failed download is gigabytes of nothing.
                 with self.lock:self.busy=False;self.installing=False

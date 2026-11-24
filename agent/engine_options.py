@@ -104,8 +104,12 @@ STRATA = [
      'label': 'Adivinar repeticiones (tokens)', 'help': 'Si se repiten los últimos N tokens, propone lo que siguió la otra vez (acelera código repetitivo).'},
     {'key': 'batch', 'flag': '--batch', 'kind': 'int', 'min': 1, 'max': 64, 'group': 'performance',
      'label': 'Respuestas simultáneas', 'help': 'Respuestas que se escriben a la vez, cada una con su propia secuencia.'},
-    {'key': 'batch_mtp', 'flag': '--batch-mtp', 'kind': 'bool', 'group': 'performance',
+    {'key': 'batch_mtp', 'flag': '--batch-mtp', 'kind': 'bool', 'group': 'performance', 'archs': ['qwen35moe', 'clover_moe'],
      'label': 'Borrador en respuestas simultáneas', 'help': 'Con varias respuestas a la vez, cada una usa también el bloque que adivina.'},
+    {'key': 'loop_bf16', 'flag': '--loop-bf16', 'off': '--no-loop-bf16', 'kind': 'switch', 'group': 'performance', 'archs': ['inkling2_loop', 'inkling2'],
+     'label': 'Controladores de bucle en BF16', 'help': 'Inkling 2: usa BF16 en los controladores de bucle en lugar de F32.'},
+    {'key': 'prompt_int8', 'flag': '--prompt-int8', 'off': '--no-prompt-int8', 'kind': 'switch', 'group': 'performance', 'archs': ['inkling2_loop', 'inkling2'],
+     'label': 'Lectura de prompt en INT8 (RTX 20)', 'help': 'Inkling 2 en GPU Turing (RTX 20): usa núcleos tensoriales INT8 para acelerar la lectura del prompt.'},
     {'key': 'draft_vocab', 'flag': '--draft-vocab', 'kind': 'int', 'min': 1, 'max': 1048576, 'group': 'performance',
      'label': 'Vocabulario del borrador', 'help': 'El bloque que adivina elige entre los primeros N tokens del vocabulario.'},
     {'key': 'no_graphs', 'flag': '--no-graphs', 'kind': 'bool', 'group': 'performance',
@@ -114,6 +118,10 @@ STRATA = [
      'label': 'Reservar la VRAM al cargar', 'help': 'Toma de una vez la VRAM libre (menos la reserva) para la caché de expertos.'},
     {'key': 'kv_whole', 'flag': '--kv-whole', 'kind': 'bool', 'group': 'memory',
      'label': 'Caché KV completa al cargar', 'help': 'Reserva la VRAM de todo el contexto al cargar en vez de según se use.'},
+    {'key': 'kv_resident', 'flag': '--kv-resident', 'kind': 'int', 'min': 0, 'max': 4194304, 'group': 'memory',
+     'label': 'Celdas KV residentes en VRAM', 'help': 'Celdas de atención que permanecen en VRAM mientras el resto pasa desde RAM (0 = todas en VRAM).'},
+    {'key': 'attn_requant', 'flag': '--attn-requant', 'kind': 'choice', 'choices': ['off', 'q5_0', 'q4_0', 'iq4_nl'], 'group': 'memory', 'archs': ['inkling2_loop', 'inkling2'],
+     'label': 'Recuantizar atención (Inkling 2)', 'help': 'Inkling 2: recuantiza las matrices de atención al cargar (q5_0, q4_0 o iq4_nl) para reducir VRAM.'},
     {'key': 'ram_experts_mib', 'flag': '--ram-experts-mib', 'kind': 'int', 'min': 0, 'max': 4194304, 'group': 'memory',
      'label': 'RAM para expertos (MiB)', 'help': 'RAM reservada para los expertos que no están en VRAM, también al responder.'},
     {'key': 'lock_experts', 'flag': '--lock-experts', 'kind': 'bool', 'group': 'memory',
@@ -140,16 +148,22 @@ STRATA = [
      'group': 'memory', 'label': 'RAM libre mínima para aparcar (MiB)', 'help': 'Solo guarda conversaciones mientras quede esta RAM física libre.'},
     {'key': 'layer_split', 'flag': '--layer-split', 'kind': 'text', 'pattern': r'[0-9.,: ]{1,120}', 'group': 'gpu',
      'label': 'Reparto de capas entre GPU', 'help': 'Capas del modelo repartidas entre las GPU CUDA que ve el proceso.'},
+    {'key': 'expert_gpu', 'flag': '--expert-gpu', 'kind': 'int', 'min': 0, 'max': 63, 'group': 'gpu', 'archs': ['inkling2_loop', 'inkling2'],
+     'label': 'GPU secundaria para expertos', 'help': 'Inkling 2: índice de la GPU CUDA adicional donde colocar los expertos que no caben en la primera.'},
+    {'key': 'expert_gpu_reserve_mib', 'flag': '--expert-gpu-reserve-mib', 'kind': 'int', 'min': 0, 'max': 1048576, 'group': 'gpu', 'archs': ['inkling2_loop', 'inkling2'],
+     'label': 'Reserva VRAM en GPU de expertos (MiB)', 'help': 'VRAM libre reservada en la GPU secundaria de expertos (por defecto 512 MiB).'},
     {'key': 'no_gpu_experts', 'flag': '--no-gpu-experts', 'kind': 'bool', 'group': 'gpu',
      'label': 'Todos los expertos en la CPU', 'help': 'No guarda expertos en VRAM (menos VRAM, más lento).'},
     {'key': 'any_node', 'flag': '--any-node', 'kind': 'bool', 'group': 'gpu',
      'label': 'Hilos en cualquier nodo NUMA', 'help': 'Solo para equipos con varios nodos de memoria.'},
     {'key': 'tail_skip', 'flag': '--tail-skip', 'kind': 'int', 'min': 0, 'max': 1024, 'group': 'experimental',
      'label': 'Omitir expertos poco usados (posición)', 'help': 'Experimental: salta un experto de fuera de VRAM poco relevante. Puede bajar la calidad.'},
+    {'key': 'route_top', 'flag': '--route-top', 'kind': 'int', 'min': 0, 'max': 1024, 'group': 'experimental',
+     'label': 'Límite de expertos enrutados', 'help': 'Experimental: descarta expertos a partir de la posición N+1 en VRAM o CPU (0 = sin límite).'},
     {'key': 'skip_weight', 'flag': '--skip-weight', 'kind': 'float', 'min': 0, 'max': 1, 'group': 'experimental',
      'label': 'Omitir expertos por peso', 'help': 'Experimental: alternativa a la anterior por peso del enrutador. Puede bajar la calidad.'},
-    {'key': 'cache_bias', 'flag': '--cache-bias', 'kind': 'float', 'min': 0, 'max': 10, 'group': 'experimental',
-     'label': 'Preferir expertos en VRAM', 'help': 'Experimental (qwen35moe): favorece a los expertos ya en VRAM. Puede bajar la calidad.'},
+    {'key': 'cache_bias', 'flag': '--cache-bias', 'kind': 'float', 'min': 0, 'max': 10, 'group': 'experimental', 'archs': ['qwen35moe', 'clover_moe', 'inkling2_loop', 'inkling2'],
+     'label': 'Preferir expertos en VRAM', 'help': 'Experimental (qwen35moe / Inkling 2): favorece a los expertos ya en VRAM. Puede bajar la calidad.'},
 ]
 
 RUST = [
@@ -177,10 +191,134 @@ RUST = [
      'label': 'Expertos fijos', 'help': 'Coloca los expertos en orden y no los mueve, para repetir pruebas exactas.'},
 ]
 
+# Project Maya's settings panel (maya_engine) owns these; anything else its executable lists is offered as an extra.
+MAYA_MANAGED = ('--backend', '--cache-gb', '--chunk', '--config', '--context', '--cpu-threads', '--dflash', '--drafting',
+                '--dspark', '--dspark-conf', '--engine', '--expert-cache', '--glm-pack', '--gpus', '--kv', '--kv-cache',
+                '--kv-resident', '--kv-streaming', '--max-context', '--mmap-experts', '--model', '--model-dir',
+                '--models-dir', '--mtp', '--mtp-max-t', '--no-vision', '--pack', '--parallel', '--ple-gguf', '--prefill',
+                '--prefill-chunk', '--reserve-gb', '--reserve-mib', '--suffix-draft', '--tp', '--turbo', '--vision',
+                '--vram-reserve-mib', '--gguf-dir', '--download-model', '--setup', '--no-start')
 CATALOG = {'llama': LLAMA, 'strata': STRATA, 'rust': RUST}
+# Engines whose options are only the ones their executable lists (no fixed catalog), with the flags
+# V-Agent already sets for them elsewhere.
+DISCOVERED_ONLY = {'maya': frozenset(MAYA_MANAGED)}
+ENGINES = tuple(CATALOG) + tuple(DISCOVERED_ONLY)
 GROUPS = [('performance', 'Rendimiento'), ('memory', 'Memoria y caché'), ('gpu', 'GPU y CPU'),
-          ('context', 'Contexto extendido (RoPE)'), ('adapters', 'Adaptadores y razonamiento'), ('experimental', 'Experimental')]
+          ('context', 'Contexto extendido (RoPE)'), ('adapters', 'Adaptadores y razonamiento'),
+          ('experimental', 'Experimental'), ('extra', 'Otras opciones del motor')]
 KEYS = {option['key'] for options in CATALOG.values() for option in options}
+
+# Flags managed directly by V-Agent or meant only for CLI/debug/auth/sampling — never exposed as generic extras.
+_RESERVED_FLAGS = frozenset({
+    '--help', '--version', '--serve', '--model', '--models-dir', '--host', '--port', '--addr', '--open',
+    '--api-key', '--api-keys', '--allowed-hosts', '--usage-log', '--max-waiting', '--max-per-key',
+    '--max-tokens', '--ctx', '--ctx-size', '--max-context', '--kv', '--cache-type-k', '--cache-type-v',
+    '--n-gpu-layers', '--gpu-layers', '--fit', '--fit-target', '--fit-ctx', '--ctx-checkpoints',
+    '--batch-size', '--ubatch-size', '--n-cpu-moe', '--parallel', '--slots', '--mmproj', '--no-mmproj',
+    '--chat-template', '--chat-template-file', '--chat-template-kwargs', '--jinja', '--no-jinja',
+    '--webui', '--no-webui', '--alias', '--vram-reserve-mib', '--prompt-cache', '--draft-model', '--no-draft',
+    '--gpu', '--tokens', '--max-new', '--follow', '--top-probs', '--dump-layers', '--check-batch',
+    '--check-stagger', '--eos-ids', '--temperature', '--temp', '--top-k', '--top-p', '--min-p', '--seed',
+    '--images', '--image-pad', '--metrics', '--verbose', '--log-disable', '--log-file', '--log-colors',
+    '--log-timestamps', '--log-prefix', '--log-verbosity', '--ssl-key-file', '--ssl-cert-file',
+    '--timeout', '--threads-http', '--path', '--api-prefix', '--public', '--offline', '--hf-repo',
+    '--hf-file', '--hf-token', '--model-url', '--model-draft', '--lora-scaled', '--control-vector',
+    '--control-vector-scaled', '--control-vector-layer-range', '--expert-profile', '--pinned-session',
+})
+_EXTRA_KEY_RE = re.compile(r'^flag__[a-z0-9_]{2,64}$')
+# Flag lines in clap (Strata, Strata Rust: indented) and llama.cpp (column 0, short aliases like "-ctk, ") help.
+# Description continuation lines are indented far deeper, so they never match.
+_EXTRA_LINE_RE = re.compile(r'^\s{0,8}(?:-[a-zA-Z0-9][a-zA-Z0-9-]{0,7},\s*)*(--[a-z][a-z0-9-]{2,48})(?:,\s*--[a-z][a-z0-9-]{2,48})*(?:(?:\s+|=)(<[^>]+>|[A-Z][A-Z0-9_/.:|-]{0,20}|\[[^\]]+\]|\{[^}]+\}))?(?:\s{2,}(.+))?$')
+# Matched by the filters below but known to be harmless and useful (Strata Rust keeps earlier reasoning cached).
+_EXTRA_ALLOWED = frozenset({'--preserve-thinking'})
+# An argument that names a file, folder, address or secret: never offered as a free-text extra.
+_UNSAFE_ARG_RE = re.compile(r'(?i)(file|path|dir|fname|url|host|addr|port|key|token|secret|regex|json|cmd|prog|exe)')
+# Flags that read or write files, open network services or change logging, whatever their argument says.
+_UNSAFE_FLAG_RE = re.compile(r'(file|path|dir|url|host|addr|port|key|token|secret|log|save|load|dump|lora|control-vector|'
+                             r'grammar|json-schema|override|chat-template|template|mmproj|model|hf-|draft|spec|slot|api|ssl|webui|'
+                             r'embd|embedding|rerank|pooling|cls|image|audio|tts|vocoder|props|metrics|cache-type|rpc|'
+                             # commands that print and exit, and sampling the request itself sets
+                             r'list|completion|bash|usage|version|help|check|escape|interactive|conversation|prompt|'
+                             r'predict|sampler|top-|min-p|typical|xtc|repeat|penalty|mirostat|dry-|temp|seed|ignore-eos|'
+                             r'logit|n-probs|verbos|sampling|adaptive|infill|video|'
+                             # server exposure and remote access: never switched on from a generic list
+                             r'cors|mcp|tool|auth|connect|proxy|remote|public|listen|bind|tags|sse|ui-|'
+                             # what V-Agent reads back (reasoning split, chat parsing) and presets that download models
+                             r'reasoning|think|chat|parsing|prefill-assistant|default|fim|preset|sleep|idle)')
+
+
+def discover_extra_options(kind, text):
+    """Automatically surface newly added engine CLI flags from --help without requiring a V-Agent update."""
+    if not text or kind not in ENGINES:
+        return []
+    known = set(_RESERVED_FLAGS) | DISCOVERED_ONLY.get(kind, frozenset())
+    for opt in CATALOG.get(kind, []):
+        known.add(opt['flag'])
+        if opt.get('off'):
+            known.add(opt['off'])
+    found, seen = [], set()
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        m = _EXTRA_LINE_RE.match(line)
+        if not m:
+            continue
+        flag, arg_tok, desc = m.group(1), m.group(2), (m.group(3) or '').strip()
+        if flag in known or flag in seen or flag.startswith('--no-'):
+            continue
+        if flag not in _EXTRA_ALLOWED and (_UNSAFE_FLAG_RE.search(flag[2:]) or (arg_tok and _UNSAFE_ARG_RE.search(arg_tok))):
+            continue
+        seen.add(flag)
+        key = 'flag__' + flag[2:].replace('-', '_')
+        if not _EXTRA_KEY_RE.fullmatch(key):
+            continue
+        # clap writes the description on the lines below the flag, deeper indented; llama.cpp continues its
+        # description the same way.  Read them for the text and a "possible values" list.
+        indent = len(line) - len(line.lstrip())
+        more = []
+        for follow in lines[index + 1:index + 8]:
+            if not follow.strip() or len(follow) - len(follow.lstrip()) <= indent or _EXTRA_LINE_RE.match(follow) and \
+                    len(follow) - len(follow.lstrip()) <= indent + 8:
+                break
+            more.append(follow.strip())
+        full = ' '.join([desc] + more).strip()
+        base = {'key': key, 'flag': flag, 'group': 'extra', 'label': flag, 'help': full[:180] or flag, 'supported': True}
+        opt = _extra_kind(arg_tok, full)
+        if opt is None:
+            continue
+        found.append({**base, **opt})
+        if len(found) >= 32:
+            break
+    return found
+
+
+_INT_TOKENS = frozenset({'N', 'INT', 'NUM', 'NUMBER', 'COUNT', 'SIZE', 'MIB', 'MB', 'SECONDS', 'MS'})
+
+
+def _extra_kind(arg_tok, desc):
+    """How the interface edits a discovered flag: switch, list of values, number or text (None: not offered)."""
+    possible = re.search(r'possible values:\s*([A-Za-z0-9_.,\s-]+?)\s*(?:\]|$)', desc)
+    values = [v.strip() for v in possible.group(1).split(',') if v.strip()] if possible else []
+    if not arg_tok or (arg_tok.startswith('[') and arg_tok.endswith(']') and arg_tok[1:2] == '<'):
+        # no value, or an optional one ("--flag [<X>]"): the flag alone turns it on
+        return {'kind': 'bool'}
+    listed = re.fullmatch(r'[\[{<]\s*([A-Za-z0-9_.-]+(?:\s*[|,/]\s*[A-Za-z0-9_.-]+)+)\s*[\]}>]', arg_tok)
+    if listed:
+        values = [v.strip() for v in re.split(r'[|,/]', listed.group(1)) if v.strip()]
+    if values:
+        if all(v in ('true', 'false') for v in values):
+            return {'kind': 'choice', 'choices': ['true', 'false']}
+        return {'kind': 'choice', 'choices': values[:24]}
+    span = re.fullmatch(r'<\s*(-?\d+)\s*\.{2,3}\s*(-?\d+)\s*>', arg_tok)
+    if span and int(span.group(1)) <= int(span.group(2)):
+        return {'kind': 'int', 'min': int(span.group(1)), 'max': int(span.group(2))}
+    if arg_tok.strip('<>').upper() in _INT_TOKENS:
+        # "N" with a decimal default, or described as a factor or a share, takes decimals
+        if re.search(r'default:\s*-?\d+\.\d|\b(factor|scale|scaling|ratio|share|probability|fraction)\b', desc, re.I):
+            return {'kind': 'float', 'min': -1e9, 'max': 1e9}
+        return {'kind': 'int', 'min': -1, 'max': 2 ** 31 - 1}
+    if arg_tok.strip('<>').upper() in ('F', 'FLOAT', 'RATIO', 'FACTOR', 'SCALE'):
+        return {'kind': 'float', 'min': -1e9, 'max': 1e9}
+    return {'kind': 'text', 'pattern': r'[^"\r\n;|`&<>]{1,160}'}
 
 
 @lru_cache(maxsize=16)
@@ -211,8 +349,9 @@ def supported(option, text):
 def catalog(kind, text):
     """The options this executable has, with their groups, for the interface."""
     options = [{**option, 'supported': supported(option, text)} for option in CATALOG.get(kind, [])]
+    supported_opts = [o for o in options if o['supported']] + discover_extra_options(kind, text)
     return {'engine': kind, 'groups': [{'id': g, 'label': label} for g, label in GROUPS],
-            'options': [o for o in options if o['supported']], 'probed': bool(text)}
+            'options': supported_opts, 'probed': bool(text)}
 
 
 def _check(option, value):
@@ -247,11 +386,32 @@ def validate(values, previous=None):
     """Merge and check saved options. Keys may belong to any engine (one model can move between them)."""
     if not isinstance(values, dict):
         raise ValueError('Opciones del motor no válidas.')
-    unknown = set(values) - KEYS
+    unknown = {k for k in values if k not in KEYS and not _EXTRA_KEY_RE.fullmatch(str(k))}
     if unknown:
         raise ValueError('Opción del motor desconocida: ' + ', '.join(sorted(unknown)))
     result = dict(previous or {})
     for key, value in values.items():
+        if key not in KEYS and _EXTRA_KEY_RE.fullmatch(str(key)):
+            if value is None or value == '':
+                result.pop(key, None)
+            elif type(value) is bool:
+                if value:
+                    result[key] = True
+                else:
+                    result.pop(key, None)
+            elif isinstance(value, (int, float)):
+                if value != value or value in (float('inf'), float('-inf')):
+                    raise ValueError(f'Valor no válido para «{key}».')
+                result[key] = value
+            else:
+                text_val = str(value).strip()
+                if not text_val:
+                    result.pop(key, None)
+                elif not re.fullmatch(r'[^"\r\n;|`&<>]{1,160}', text_val):
+                    raise ValueError(f'Valor no válido para «{key}».')
+                else:
+                    result[key] = text_val
+            continue
         errors, checked, matched = [], None, False
         for options in CATALOG.values():
             option = next((o for o in options if o['key'] == key), None)
@@ -272,13 +432,25 @@ def validate(values, previous=None):
     return result
 
 
-def arguments(kind, values, text):
+def _arch_ok(option, arch):
+    archs = option.get('archs')
+    return not archs or not arch or str(arch).lower() in archs
+
+
+def arguments(kind, values, text, arch=None):
     """Command-line arguments for the saved options this executable supports (others are skipped)."""
     args = []
-    for option in CATALOG.get(kind, []):
+    for option in CATALOG.get(kind, []) + discover_extra_options(kind, text):
         value = (values or {}).get(option['key'])
-        if value is None or not supported(option, text):
+        if value is None or not supported(option, text) or not _arch_ok(option, arch):
             continue
+        if option['key'].startswith('flag__') and option['kind'] in ('int', 'float') and isinstance(value, str):
+            try:
+                value = float(value) if option['kind'] == 'float' else int(value)
+            except ValueError:
+                continue
+        if option['key'].startswith('flag__') and option['kind'] == 'choice' and type(value) is bool:
+            value = 'true' if value else 'false'
         try:
             value = _check(option, value)
         except ValueError:
@@ -297,9 +469,13 @@ def arguments(kind, values, text):
 
 def without(kind, args, keys):
     """`args` without the flags (and their values) of these catalog keys."""
-    options = [o for o in CATALOG.get(kind, []) if o['key'] in set(keys)]
+    key_set = set(keys)
+    options = [o for o in CATALOG.get(kind, []) if o['key'] in key_set]
     flags = {o['flag'] for o in options} | {o['off'] for o in options if o.get('off')}
     valueless = {o['flag'] for o in options if o['kind'] in ('bool', 'switch')} | {o['off'] for o in options if o.get('off')}
+    for k in key_set:
+        if _EXTRA_KEY_RE.fullmatch(str(k)):
+            flags.add('--' + k[6:].replace('_', '-'))
     kept, skip = [], False
     for item in args:
         if skip:
@@ -312,13 +488,14 @@ def without(kind, args, keys):
     return kept
 
 
-def apply(kind, args, values, text, previous=()):
+def apply(kind, args, values, text, previous=(), arch=None):
     """For a saved argument list (Strata configs): drop what V-Agent applied last time (`previous` keys)
     and what is set now, then add the current values. Returns (args, keys applied now) so the caller can
     remember them; flags the config had on its own and the user never touched are kept."""
     values = values or {}
-    applied = [o['key'] for o in CATALOG.get(kind, []) if values.get(o['key']) is not None and supported(o, text)]
-    return without(kind, args, set(previous) | set(applied)) + arguments(kind, values, text), applied
+    all_opts = CATALOG.get(kind, []) + discover_extra_options(kind, text)
+    applied = [o['key'] for o in all_opts if values.get(o['key']) is not None and supported(o, text) and _arch_ok(o, arch)]
+    return without(kind, args, set(previous) | set(applied)) + arguments(kind, values, text, arch=arch), applied
 
 
 def conflicts(kind, values, kv):
