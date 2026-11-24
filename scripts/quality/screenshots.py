@@ -6,7 +6,7 @@ Starts an isolated core (nothing from a real installation is used except the ins
 loads the model, switches the interface to English and, in the bundled headless browser at
 1440×900 and device scale 1, sends a real request in "Confirm changes" mode, photographs the approval dialog,
 approves, and photographs the finished reply, the model window, the tools window, the Hugging Face
-browser, the engines page and the light theme. Images go to docs/test-reports/<version>/.
+browser, the engines page and the light theme. Images go to build/quality/reports/<version>/.
 The data folder is kept under build/ so no path in the images shows the local user name.
 """
 import argparse
@@ -87,7 +87,7 @@ def main():
     parser.add_argument('--engine', default='llama', choices=('llama', 'strata', 'rust'))
     parser.add_argument('--context', type=int, default=16384)
     parser.add_argument('--request', default=REQUEST)
-    parser.add_argument('--out', default=str(ROOT / 'docs' / 'test-reports' / app_updates.VERSION))
+    parser.add_argument('--out', default=str(ROOT / 'build' / 'quality' / 'reports' / app_updates.VERSION))
     args = parser.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)

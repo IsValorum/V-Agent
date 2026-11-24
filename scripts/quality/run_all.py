@@ -15,7 +15,7 @@ Runs, in order, and records each check as passed, failed or skipped:
  6. real models on llama.cpp, Strata and Strata Rust (tests/smoke/real_models.py);
  7. the published release on GitHub (scripts/quality/verify_release.py).
 
-The report goes to docs/test-reports/<version>.md, with raw results in build/quality/. Model file
+The report goes to build/quality/reports/<version>.md, with raw results in build/quality/. Model file
 names are left out of the report: it states what was checked, on which engine, and the outcome.
 `--skip` leaves out levels by number (for example `--skip 6 7` offline or without a GPU).
 """
@@ -126,7 +126,7 @@ def interface(run, small_model):
 def write_report(run, args, started):
     import app_updates
     version = app_updates.VERSION
-    target = ROOT / 'docs' / 'test-reports' / f'{version}.md'
+    target = ROOT / 'build' / 'quality' / 'reports' / f'{version}.md'
     target.parent.mkdir(parents=True, exist_ok=True)
     counts = {s: sum(r['status'] == s for r in run.rows) for s in ('pass', 'fail', 'skip')}
     gpu = ''

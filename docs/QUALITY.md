@@ -15,13 +15,12 @@ which areas are reviewed for security, and what is still not covered.
 | Code checker | A language whose errors would slip through | `tests/smoke/language_checks.py` |
 | Release checks | A broken build or update reaching users | `scripts/quality/verify_release.py` |
 
-`scripts/quality/run_all.py` runs every level and writes a report per version in
-[docs/test-reports/](test-reports/), with screenshots of that version's real interface. Latest:
-[1.0.7](test-reports/1.0.7.md).
+`scripts/quality/run_all.py` runs every level and writes a report per version, with screenshots of that
+version's real interface, to `build/quality/reports/` (a local folder, not part of the repository).
 
 ## Automatic tests
 
-259 Python tests and 7 Node suites, none of which need a model, a GPU or the internet (see
+Python and Node suites, none of which need a model, a GPU or the internet (see
 [tests/README.md](../tests/README.md)). Besides the core features, dedicated suites cover the areas of the
 security and interface reviews:
 

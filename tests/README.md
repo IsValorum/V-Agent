@@ -49,7 +49,7 @@ only the engines V-Agent has installed.
 
 | Script | Does |
 |---|---|
-| `run_all.py` | Runs every level below plus the suites above and writes `docs/test-reports/<version>.md`. |
+| `run_all.py` | Runs every level below plus the suites above and writes `build/quality/reports/<version>.md`. |
 | `static_analysis.py` | ruff, bandit (against `bandit-reviewed.json`), ESLint on the assembled interface (rules proven on `eslint-seeded.js` first), control-character scan. |
 | `verify_release.py` | The published release on GitHub, validated as the previous version would; minor updates applied through the real channel; tampering refused. |
 | `screenshots.py` | Screenshots of the real interface with a model loaded and a real agent run, for the version's report. |
