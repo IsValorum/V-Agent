@@ -152,8 +152,14 @@ function syncSettingsSummary(){
   if(!$('#engineQuickName')||!engineSnapshot)return;
   $('#mayaQuickAdvanced').hidden=!['maya','llama','strata','rust'].includes(activeEngine);
   $('#mayaQuickAdvanced').setAttribute('aria-controls',activeEngine==='maya'?'mayaEngineAdvanced':'engineOptions');
-  const kind=activeEngine,builds=engineSnapshot.builds||{},info=kind==='strata'?builds.strata:kind==='rust'?builds.rust:kind==='maya'?builds.maya:builds[engineSnapshot.llama?.variant||'cuda'];
-  $('#engineQuickName').textContent=kind==='api'?(engineSnapshot.api?.name||'API'):[kind==='strata'?'Strata':kind==='rust'?'Strata Rust':kind==='maya'?'Project Maya':'llama.cpp',info?.build||info?.version||uiText('sin instalar')].join(' · ');
+  // The card follows the tab and the engine chosen in the form; until it is applied it says so, instead of
+  // showing the engine still in use under the other tab.
+  const chosen=$('#engineKind')?.value||activeEngine,kind=chosen,builds=engineSnapshot.builds||{},info=kind==='strata'?builds.strata:kind==='rust'?builds.rust:kind==='maya'?builds.maya:builds[$('#llamaVariant')?.value||engineSnapshot.llama?.variant||'cuda'];
+  const apiName=activeEngine==='api'?(engineSnapshot.api?.name||'API'):($('#apiConnection')?.selectedOptions?.[0]?.value?$('#apiConnection').selectedOptions[0].textContent:uiText('API externa'));
+  const name=kind==='api'?apiName:[kind==='strata'?'Strata':kind==='rust'?'Strata Rust':kind==='maya'?'Project Maya':'llama.cpp',info?.build||info?.version||uiText('sin instalar')].join(' · ');
+  const pending=chosen!==activeEngine;
+  $('#engineQuickName').textContent=name+(pending?' · '+uiText('Pendiente de aplicar.'):'');
+  $('#engineQuickName').dataset.pending=String(pending);
   $('#appBuild').textContent='V-Agent '+(engineSnapshot.version||'');
   $('#settingsDataPath').textContent=engineSnapshot.data_dir||'';
 }

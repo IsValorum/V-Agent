@@ -139,3 +139,6 @@ a.release-notes-link,#settings-system a{display:inline-block;padding:4px 2px;}
 .transfer-folder{display:inline-flex;align-items:center;gap:6px;padding:3px 4px 3px 8px;border:1px solid var(--border);border-radius:999px;font-size:11px;max-width:100%;}
 .transfer-folder code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
 .transfer-path{display:block;color:var(--muted);overflow-wrap:anywhere;}
+
+/* The engine card while another engine is chosen but not applied yet. */
+#engineQuickName[data-pending=true]{color:var(--accent);}

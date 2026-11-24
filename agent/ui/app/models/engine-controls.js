@@ -283,7 +283,8 @@ function setupEngineControls(){
   $('#engineKind').onchange=form;$('#llamaVariant').onchange=()=>{if($('#llamaVariant').value==='custom')$('#engineAdvanced').open=true;form();};if($('#strataVariant'))$('#strataVariant').onchange=form;if($('#rustVariant'))$('#rustVariant').onchange=form;
   $('#mayaBackend').onchange=()=>{form();if($('#engineKind').value==='maya')refreshMayaPrereqs(false);};
   $('#mayaRoot').addEventListener('input',()=>form());
-  $('#modelSourceTabs').querySelectorAll('button').forEach(button=>button.onclick=()=>{$('#engineKind').value=button.dataset.source==='api'?'api':(activeEngine==='api'?'strata':activeEngine);$('#modelEngineOptions').open=true;form();});
+  $('#modelSourceTabs').querySelectorAll('button').forEach(button=>button.onclick=()=>{$('#engineKind').value=button.dataset.source==='api'?'api':(activeEngine==='api'?'strata':activeEngine);$('#modelEngineOptions').open=true;form();syncSettingsSummary();});
+  $('#engineKind').addEventListener('change',()=>syncSettingsSummary());
   for(const id of ['strataExecutable','rustExecutable','mayaExecutable','llamaLayers','llamaExecutable','apiBase','apiName','apiKey','apiOrganization','apiProject','apiVersion','apiAnthropicBeta','apiAzureVersion','apiUserAgent','apiHttpReferer','apiXTitle','apiExtraHeaders','apiTimeout','apiVision','apiUsage','apiSampling','apiAuthMode','apiSessionMode'])$('#'+id)?.addEventListener('input',()=>{syncApiProtocol();form();});
   const defaultBases={'openai':'https://api.openai.com/v1','anthropic':'https://api.anthropic.com/v1','openrouter':'https://openrouter.ai/api/v1','opencode':'https://opencode.ai/zen/go/v1','opencode-zen':'https://opencode.ai/zen/v1'};
   $('#apiPreset').onchange=()=>{
