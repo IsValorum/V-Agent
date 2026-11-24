@@ -40,6 +40,8 @@ from access_policy import AccessPolicy, workspace_signature
 from mcp_prompt import compact_tools, validate_tool_arguments
 from serve import frontend, logit_bias, mcp as serve_mcp, prometheus, replicas, runconfig, server, structured, telemetry
 from serve.mcp import hub_from_config
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from ui_sources import ui_source, ui_stylesheet  # noqa: E402
 
 
 def _tiny_png_bytes() -> bytes:
@@ -699,10 +701,10 @@ class ServeAndAgentAuditTests(unittest.TestCase):
         locales = json.loads((UI / "locales.json").read_text(encoding="utf-8"))
         for key, row in locales.items():
             self.assertTrue(isinstance(row, dict) and all(row.get(lang) for lang in ("en", "pt", "fr", "de")), f"Incomplete locale entry: {key!r}")
-        css = (UI / "styles" / "panels.css").read_text(encoding="utf-8")
+        css = ui_stylesheet("panels.css")
         self.assertIn("#contextCompactBox", css)
-        mp = (UI / "app" / "model-panel.js").read_text(encoding="utf-8")
-        ls = (UI / "app" / "load-settings.js").read_text(encoding="utf-8")
+        mp = ui_source("model-panel.js")
+        ls = ui_source("load-settings.js")
         self.assertIn("function attachLoadSettingsToPanel()", mp)
         self.assertIn("attachLoadSettingsToPanel()", ls)
 

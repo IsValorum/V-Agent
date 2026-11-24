@@ -29,6 +29,8 @@ import render_check
 import tool_budget
 from access_policy import AccessPolicy
 from draft_store import DraftStore
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from ui_sources import ui_source  # noqa: E402
 
 
 class DraftRecoveryAndAgentTests(unittest.TestCase):
@@ -402,7 +404,7 @@ class ComponentsAndUpdateNotificationTests(unittest.TestCase):
                 self.assertTrue(locales[key][lang], f'{key}:{lang}')
 
     def test_composer_draft_regex_preserves_full_extension(self):
-        src = (ROOT / 'agent' / 'ui' / 'app' / 'composer.js').read_text(encoding='utf-8')
+        src = ui_source('composer.js')
         match = re.search(r'const re=(/drafts[^;]+;/gi|[^\n]+/gi);', src)
         self.assertIsNotNone(match)
         sample = 'Borrador conservado en `drafts/5b8c0e71bbc7fbeabb63b3b0991a31e1-landing-page.html`.'

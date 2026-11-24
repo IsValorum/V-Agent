@@ -1,0 +1,160 @@
+
+/* ===================== Unified 1.0.8 UI Redesign =====================
+   Consolidates layout balance, typography scale, panel breathing room,
+   and palette coherence without touching legacy structure contracts. */
+
+/* 1. Harmonize outside tokens & surface hierarchy with every theme */
+:root{
+  --redesign-card-bg:color-mix(in srgb,var(--text) 2.5%,var(--panel));
+  --redesign-subtle-bg:color-mix(in srgb,var(--text) 4.5%,transparent);
+}
+body,body[data-theme-mode=day]{
+  --outside-surface:color-mix(in srgb,var(--panel) calc(var(--outside-opacity,.90) * 100%),var(--bg));
+  --outside-text:var(--text);
+  --outside-border:var(--soft-line,var(--border));
+}
+body[data-theme-mode=day]:not([data-ui-style=deco]){
+  --soft-line:color-mix(in srgb,var(--text) 10%,transparent);
+  --soft-shadow:0 14px 36px rgb(0 0 0 / .09),0 2px 8px rgb(0 0 0 / .05);
+}
+:root[data-amoled=true]:not([data-ui-style=deco]){
+  --soft-line:color-mix(in srgb,#ffffff 13%,transparent);
+  --soft-fill:color-mix(in srgb,#ffffff 7%,transparent);
+  --soft-fill-hover:color-mix(in srgb,#ffffff 12%,transparent);
+}
+
+/* Eliminate leftover Art Deco double borders outside explicit deco mode */
+:root:not([data-ui-style=deco]) .sidebar-extras{border-top:0!important;border-bottom:1px solid var(--soft-line)!important;}
+:root:not([data-ui-style=deco]) .file-chip{border:1px solid var(--soft-line)!important;border-radius:var(--control-radius,10px)!important;}
+:root:not([data-ui-style=deco]) .draft-speculative{border-top:1px solid var(--soft-line)!important;}
+
+/* 2. Rebalanced top chrome: sidebar status badge + chat topbar (title & quick actions) */
+#sidebar .sidebar-chrome{padding:4px 4px 10px;gap:3px;min-height:36px;}
+#sidebar .sidebar-chrome .icon-btn{width:30px;height:30px;padding:6px;border-radius:var(--control-radius,8px)!important;}
+#sidebar .chrome-status{margin-inline-start:auto;display:flex;align-items:center;min-width:0;max-width:100%;}
+#sidebar .chrome-status .connection{margin:0!important;display:inline-flex!important;align-items:center;gap:6px;padding:4px 9px;font-size:11px;line-height:1.2;max-width:132px;}
+:root:not([data-ui-style=deco]) #sidebar .chrome-status .connection{border-radius:999px;background:color-mix(in srgb,var(--text) 4.5%,transparent);border:1px solid var(--soft-line,var(--border));}
+#sidebar .chrome-status .connection #connectionText{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+#chatwrap .topbar{
+  position:absolute!important;z-index:6;top:0;inset-inline-start:0;inset-inline-end:0;
+  height:var(--frame-height,48px)!important;min-height:0!important;
+  display:flex!important;align-items:center;gap:8px;padding:0 16px!important;
+  pointer-events:auto;transition:background .2s ease,border-color .2s ease;
+}
+#chatwrap .topbar .breadcrumb{
+  display:flex!important;align-items:center;min-width:0;max-width:60%;
+  font-size:13px;font-weight:550;color:var(--text);transition:opacity .18s ease;
+}
+#chatwrap .topbar #chatTitle{max-width:100%;font-weight:550;letter-spacing:-.01em;}
+#chatwrap .topbar .spacer{display:block!important;flex:1;min-width:12px;}
+#chatwrap[data-empty="true"] .topbar{
+  background:transparent!important;border-bottom:1px solid transparent!important;
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+}
+#chatwrap[data-empty="true"] .topbar .breadcrumb{opacity:0;visibility:hidden;pointer-events:none;}
+#chatwrap[data-empty="false"] .topbar{
+  background:color-mix(in srgb,var(--bg) 86%,transparent)!important;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+}
+:root:not([data-ui-style=deco]) #chatwrap[data-empty="false"] .topbar{border-bottom:1px solid var(--soft-line)!important;}
+:root[data-ui-style=deco] #chatwrap[data-empty="false"] .topbar{border-bottom:3px double var(--double-line)!important;}
+
+#chatwrap .topbar .top-actions{margin-inline-start:0;display:flex;align-items:center;gap:4px;flex:0 0 auto;}
+#chatwrap .topbar .icon-btn{
+  width:32px;height:32px;padding:6px;border:0!important;
+  border-radius:var(--control-radius,9px)!important;background:transparent!important;
+  color:var(--muted);transition:background .15s ease,color .15s ease;
+}
+#chatwrap .topbar .icon-btn:hover:not(:disabled){
+  color:var(--text);background:color-mix(in srgb,var(--text) 8%,transparent)!important;
+}
+body.desktop-frame:not(.browser-open) #chatwrap .topbar{padding-inline-end:152px!important;}
+body.desktop-frame.browser-open #chatwrap .topbar{padding-inline-end:16px!important;}
+#chatwrap[data-empty="false"] #chat{padding-top:calc(var(--frame-height,48px) + 18px)!important;}
+@media(max-width:760px){
+  #chatwrap .topbar{padding:0 12px!important;}
+  body.desktop-frame:not(.browser-open) #chatwrap .topbar{padding-inline-end:146px!important;}
+}
+
+/* 3. Sidebar craft */
+#sidebar{padding:10px 10px 12px;}
+#sidebar #newchat{
+  min-height:36px;padding:7px 12px;margin:2px 0 6px;
+  border-radius:var(--control-radius,10px)!important;
+  border:1px solid color-mix(in srgb,var(--accent) 20%,transparent)!important;
+  background:color-mix(in srgb,var(--accent) 11%,transparent)!important;
+  color:var(--text);font-size:13px;font-weight:550;gap:8px;
+  transition:background .16s ease,border-color .16s ease;
+}
+#sidebar #newchat:hover{
+  background:color-mix(in srgb,var(--accent) 18%,transparent)!important;
+  border-color:color-mix(in srgb,var(--accent) 34%,transparent)!important;
+}
+#sidebar .sidebar-extra{
+  min-height:33px;padding:6px 10px!important;border-radius:var(--control-radius,9px)!important;gap:9px;
+}
+#sidebar .sidebar-extra strong{font-size:12.5px;}
+#sidebar .side-head{font-size:10.5px;font-weight:600;letter-spacing:.06em;padding:4px 8px;margin-top:8px;}
+#sidebar .conv{padding:7px 10px;min-height:32px;font-size:12.5px;border-radius:var(--control-radius,9px);}
+#sidebar .conv-group-label{font-size:10.5px;margin:10px 8px 4px;}
+#sidebar .engine-card{border-radius:var(--control-radius,10px);border:1px solid var(--soft-line,var(--border));background:var(--redesign-subtle-bg);padding:8px 10px;}
+#sidebar .sidebar-foot{padding-top:8px;gap:6px;}
+#sidebar #gear{min-height:32px;padding:6px 10px;border-radius:var(--control-radius,9px);font-size:12.5px;}
+
+/* 4. Welcome screen, user bubbles (restore --userBg!), & composer bar */
+.welcome{gap:14px;padding:8px 20px;}
+.welcome h2{
+  background:transparent!important;border:0!important;box-shadow:none!important;
+  color:var(--text)!important;padding:0!important;border-radius:0!important;
+  font-size:clamp(21px,2.35vw,29px);font-weight:600;letter-spacing:-.022em;line-height:1.25;
+}
+:root:not([data-ui-style=deco]) #chat .msg.user .bubble{
+  background:var(--userBg,color-mix(in srgb,var(--accent) 13%,var(--panel)))!important;
+  border:1px solid color-mix(in srgb,var(--text) 9%,transparent)!important;
+  border-radius:16px 16px 4px 16px!important;
+  padding:10px 15px!important;line-height:1.62;
+  box-shadow:0 2px 10px rgb(0 0 0 / .06)!important;
+}
+:root[data-ui-style=deco] #chat .msg.user .bubble{
+  background:var(--userBg,var(--panel))!important;
+}
+#chat .msg .message-actions button{font-size:11.5px;min-height:26px;padding:3px 8px;border-radius:7px;}
+#chat .tool-name{font-size:12px;}
+#chat .tool-hint{font-size:11px;}
+#chat .tool-status{font-size:11px;}
+
+.compose-inner .project-strip{gap:8px;margin-bottom:8px;}
+#projectBtn{
+  min-height:30px;padding:4px 12px;font-size:12px;gap:6px;
+}
+:root:not([data-ui-style=deco]) #projectBtn{
+  border-radius:999px;
+  border:1px solid var(--outside-border,var(--border));background:var(--outside-surface);
+}
+#projectBtn .control-chevron{overflow:visible!important;text-overflow:clip!important;flex:0 0 auto;font-size:12px;line-height:1;}
+#agentModeSegments{
+  min-height:30px;
+}
+:root:not([data-ui-style=deco]) #agentModeSegments{
+  padding:3px;border-radius:999px;
+  border:1px solid var(--outside-border,var(--border));background:var(--outside-surface);
+}
+#agentModeSegments button{font-size:12px;padding:4px 11px;min-height:24px;}
+.compose-surface{
+  padding:12px 14px 10px;
+  transition:border-color .18s ease,box-shadow .18s ease;
+}
+:root:not([data-ui-style=deco]) .compose-surface{
+  border-radius:max(16px,var(--panel-radius,16px))!important;
+}
+.compose-surface:focus-within{
+  border-color:color-mix(in srgb,var(--accent) 46%,var(--soft-line,var(--border)))!important;
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent),0 12px 32px rgb(0 0 0 / .16)!important;
+}
+#input{font-size:14px;line-height:1.55;}
+.composer-tools{margin-top:8px;padding-top:6px;gap:6px;}
+.composer-control{min-height:30px;padding:4px 10px;font-size:12px;gap:5px;}
+:root:not([data-ui-style=deco]) .composer-control{border-radius:999px;}
+#send{width:34px;height:34px;}
+:root:not([data-ui-style=deco]) #send{border-radius:50%!important;}

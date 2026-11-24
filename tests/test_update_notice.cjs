@@ -1,5 +1,5 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
-const source=fs.readFileSync('agent/ui/app/core-connection.js','utf8');
+const source=fs.readFileSync('agent/ui/app/core/core-connection.js','utf8');
 const watch=source.slice(source.indexOf('async function watchAutomaticUpdates'));
 const elements=[],events=[];
 function element(tag){return {tag,hidden:false,dataset:{},children:[],setAttribute(){},append(...items){this.children.push(...items)}};}

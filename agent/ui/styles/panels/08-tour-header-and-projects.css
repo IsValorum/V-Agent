@@ -1,0 +1,77 @@
+
+/* ===================== Interactive tour ===================== */
+.tour-layer{position:fixed;inset:0;z-index:9000;}
+.tour-ring{position:fixed;border-radius:calc(var(--control-radius,10px) + 4px);pointer-events:none;
+  box-shadow:0 0 0 2px var(--accent),0 0 0 6px color-mix(in srgb,var(--accent) 25%,transparent),0 0 0 100vmax rgb(0 0 0 / .55);
+  transition:left .35s cubic-bezier(.3,.8,.25,1),top .35s cubic-bezier(.3,.8,.25,1),width .35s cubic-bezier(.3,.8,.25,1),height .35s cubic-bezier(.3,.8,.25,1);}
+.tour-ring[hidden]{display:block!important;inset-inline-start:50%!important;top:50%!important;width:0!important;height:0!important;box-shadow:0 0 0 100vmax rgb(0 0 0 / .55);}
+.tour-card{position:fixed;width:min(380px,calc(100vw - 32px));padding:18px 18px 14px;color:var(--text);border-radius:var(--panel-radius,16px);
+  background:color-mix(in srgb,var(--panel) 90%,transparent);-webkit-backdrop-filter:saturate(180%) blur(22px);backdrop-filter:saturate(180%) blur(22px);
+  border:1px solid color-mix(in srgb,var(--text) 14%,transparent);box-shadow:0 24px 60px rgb(0 0 0 / .4);
+  transition:left .35s cubic-bezier(.3,.8,.25,1),top .35s cubic-bezier(.3,.8,.25,1);}
+.tour-card h3{margin:0 0 6px;font-size:15px;font-weight:600;}
+.tour-card p{margin:0 0 10px;font-size:13px;line-height:1.5;color:color-mix(in srgb,var(--text) 82%,transparent);}
+.tour-card .tour-status{color:var(--accent);min-height:1.2em;}
+.tour-engine-select{width:100%;margin:4px 0 8px;padding:7px 9px;border-radius:8px;border:1px solid var(--border);background:color-mix(in srgb,var(--panel) 80%,transparent);color:var(--text);font-size:12px;}
+.tour-engine-actions{display:flex;flex-direction:column;gap:8px;margin:4px 0 6px;}
+.tour-foot{display:flex;align-items:center;gap:6px;margin-top:6px;}
+.tour-foot .tour-count{margin-inline-end:auto;font-size:11px;color:var(--muted);}
+.tour-foot .soft-btn{padding:6px 12px;font-size:12px;}
+.app-update{margin-top:18px;padding-top:12px;border-top:1px solid var(--soft-line,var(--border));}
+.app-update h4{margin:0 0 4px;font-size:12px;}
+.app-update-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.app-update-overlay{position:fixed;inset:0;z-index:9500;display:grid;place-items:center;padding:20px;background:rgb(10 12 18 / .76);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);}
+.app-update-modal{width:min(390px,100%);padding:20px 22px;border-radius:var(--panel-radius,16px);background:var(--panel);border:1px solid color-mix(in srgb,var(--accent) 28%,var(--border));box-shadow:0 24px 64px rgb(0 0 0 / .5);display:flex;flex-direction:column;gap:8px;}
+.app-update-title{font-size:14px;color:var(--text);}
+.app-update-step{margin:0;font-size:12.5px;color:var(--accent);}
+.app-update-note{font-size:11px;line-height:1.45;color:var(--muted);}
+.app-update-bar{position:relative;height:6px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--text) 10%,transparent);margin:4px 0;}
+.app-update-bar>span{position:absolute;inset:0 auto 0 0;width:38%;border-radius:999px;background:var(--accent);animation:appUpdateSlide 1.25s ease-in-out infinite;}
+@keyframes appUpdateSlide{0%{transform:translateX(-110%);}100%{transform:translateX(280%);}}
+@media(prefers-reduced-motion:reduce){.app-update-bar>span{animation:none;width:100%;opacity:.75;}}
+@media(prefers-reduced-motion:reduce){.tour-ring,.tour-card{transition:none;}}
+/* The tour owns the screen: engine notices wait until it ends. */
+body:has(.tour-layer) #updateStack{visibility:hidden;}
+
+/* ===================== One bar: the header lives in the sidebar =====================
+   The strip above the chat is gone; its status and buttons sit in the sidebar's top row. What is
+   left over the chat is an invisible band: the window drag area in the desktop app and the
+   "show sidebar" button when the sidebar is hidden. Messages fade out under it. */
+#chatwrap .topbar{position:absolute!important;z-index:6;top:0;inset-inline-start:0;inset-inline-end:0;height:var(--frame-height,48px)!important;min-height:0!important;
+  padding:0 12px!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;pointer-events:none;}
+#chatwrap .topbar>*{pointer-events:auto;}
+body.desktop-frame #chatwrap .topbar{pointer-events:auto;}
+#chatwrap .topbar .breadcrumb,#chatwrap .topbar .spacer{display:none!important;}
+#chat{padding-top:calc(var(--frame-height,48px) - 6px)!important;}
+.chrome-actions{margin-inline-start:auto;display:flex;align-items:center;gap:1px;}
+.chrome-actions .connection{margin:0 5px 0 2px!important;display:flex!important;}
+.sidebar-chrome{padding-inline-end:2px;}
+@media(max-width:760px){#chatwrap .topbar{pointer-events:auto;}}
+
+/* Projects: a single "Projects +" line until there is one; then compact rows with their chats. */
+#sidebar>.projects-head{margin-top:14px;margin-bottom:2px;}
+#sidebar>.projects-head+#projectsNav[hidden]+.side-head{margin-top:12px;}
+/* Each tab is at least as wide as its own label, so longer translations never spill out. */
+[data-segmented]>button,.models-tabs>button{min-width:max-content;}
+.side-add{width:22px;height:22px;min-height:0!important;display:grid;place-items:center;padding:0!important;border:0!important;border-radius:6px!important;
+  background:transparent!important;box-shadow:none!important;color:var(--muted);cursor:pointer;}
+.side-add:hover,.side-add:focus-visible{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)!important;}
+.side-add svg,.project-new svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;}
+#projectsNav{flex:0 0 auto;max-height:38vh;overflow-y:auto;margin:0 0 2px;}
+#projectsNav[hidden]{display:none!important;}
+.project-entry>summary{list-style:none;display:flex;align-items:center;gap:7px;min-height:30px;padding:4px 6px 4px 8px;border-radius:var(--control-radius,8px);
+  cursor:pointer;color:var(--text);font-size:12.5px;}
+.project-entry>summary::-webkit-details-marker{display:none;}
+.project-entry>summary:hover{background:color-mix(in srgb,var(--text) 5%,transparent);}
+.project-folder{width:15px;height:15px;flex:0 0 15px;fill:none;stroke:var(--accent);stroke-width:1.5;stroke-linejoin:round;}
+.project-entry[open] .project-folder{fill:color-mix(in srgb,var(--accent) 22%,transparent);}
+.project-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.project-count{font-size:10px;color:var(--muted);}
+.project-new,.project-entry .conv-project-more{width:22px;height:22px;min-height:0!important;display:grid;place-items:center;padding:0!important;border:0!important;
+  background:transparent!important;box-shadow:none!important;color:var(--muted);opacity:0;border-radius:6px!important;}
+.project-entry>summary:hover :is(.project-new,.conv-project-more),.project-entry>summary:focus-within :is(.project-new,.conv-project-more){opacity:1;}
+.project-new:hover,.project-entry .conv-project-more:hover{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)!important;}
+.project-chats{padding-inline-start:14px;margin-inline-start:15px;border-inline-start:1px solid var(--soft-line,var(--border));}
+.project-chats .history-empty{padding:4px 8px;}
+@media(hover:none){.project-new,.project-entry .conv-project-more{opacity:1;}}

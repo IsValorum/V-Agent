@@ -1,0 +1,88 @@
+
+/* ===================== Glass (iOS-like, default) =====================
+   Translucent surfaces that blur and saturate what is behind them, with a thin light edge and a soft
+   shadow. Only floating layers get it (menus, windows, dialogs, composer), never the chat text. */
+:root[data-ui-style=glass]{
+  --glass-fill:color-mix(in srgb,var(--panel) 64%,transparent);
+  --glass-fill-strong:color-mix(in srgb,var(--panel) 80%,transparent);
+  --glass-filter:saturate(180%) blur(26px);
+  --glass-edge:color-mix(in srgb,var(--text) 14%,transparent);
+  --glass-shine:inset 0 1px 0 color-mix(in srgb,#fff 9%,transparent);
+}
+/* The live blur is for small layers only. Windows used to be in this same :is() list, and
+   "#updateStack .update-card" raised the whole list's specificity above the no-blur rule for
+   windows below, so windows kept a 26 px live blur and flickered again. They are kept apart now. */
+:root[data-ui-style=glass] :is(.agent-small-menu,#composerAddMenu,#helpCard,#updateStack .update-card,.update-more-row,.val-confirm,.tool-approval,#toast){
+  background:var(--glass-fill)!important;-webkit-backdrop-filter:var(--glass-filter)!important;backdrop-filter:var(--glass-filter)!important;
+  border:1px solid var(--glass-edge)!important;box-shadow:var(--glass-shine),0 22px 56px rgb(0 0 0 / .28),0 2px 8px rgb(0 0 0 / .10);}
+:root[data-ui-style=glass] :is(.fw,#drawer,#composerControls){
+  border:1px solid var(--glass-edge)!important;box-shadow:var(--glass-shine),0 22px 56px rgb(0 0 0 / .28),0 2px 8px rgb(0 0 0 / .10);}
+:root[data-ui-style=glass] :is(.fw,#drawer,#composerControls) :is(.drawer-head,.controls-head,.fw-head,.dlg-head,.settings-navigation,.drawer-body,.controls-body){background:transparent!important;}
+/* Windows (settings, models, tools, console, model controls) are large and their content keeps
+   changing (scrolling, images, progress). A live blur over that much area is recomputed on every
+   change and flickers on hybrid-GPU laptops, so windows get a frosted, nearly opaque fill with the
+   same edge and shine instead. It never switches while moving either, so there is nothing to flash.
+   Small, short-lived layers (menus, notices, dialogs, the composer) keep the real blur. */
+:root[data-ui-style=glass] :is(.fw,#drawer,#composerControls),
+:root[data-ui-style=glass] :is(.fw,#drawer,#composerControls)[data-motion]{
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  background:linear-gradient(180deg,color-mix(in srgb,#fff 3%,transparent),transparent 120px),color-mix(in srgb,var(--panel) 95%,var(--bg))!important;
+  transition:none!important;}
+/* Same reason in the soft and Art Deco styles, where the blur slider would apply to windows too. */
+:root:not([data-ui-style=glass]) :is(.fw,#drawer,#composerControls){-webkit-backdrop-filter:none!important;backdrop-filter:none!important;}
+/* The composer keeps the older rule of pausing blur while a reply streams (GPU cost). */
+:root[data-ui-style=glass] #chatwrap:not([data-generating=true]) .compose-surface{-webkit-backdrop-filter:var(--glass-filter)!important;backdrop-filter:var(--glass-filter)!important;}
+:root[data-ui-style=glass] .compose-surface{background:var(--glass-fill-strong)!important;border:1px solid var(--glass-edge)!important;box-shadow:var(--glass-shine),0 12px 36px rgb(0 0 0 / .18);}
+:root[data-ui-style=glass] :is(#projectBtn,#agentModeSegments){background:var(--glass-fill)!important;-webkit-backdrop-filter:var(--glass-filter)!important;backdrop-filter:var(--glass-filter)!important;border:1px solid var(--glass-edge)!important;}
+:root[data-ui-style=glass] :is(.val-confirm,.tool-approval)::backdrop{background:rgb(0 0 0 / .22);backdrop-filter:blur(6px)!important;}
+
+/* ===================== Switches =====================
+   Checkboxes become sliding switches (Art Deco keeps the boxed checks). Indeterminate = halfway. */
+:root:not([data-ui-style=deco]) body input[type=checkbox]:not(#browserAgentUse){
+  width:34px;height:20px;min-width:34px;border:0;border-radius:999px;padding:0;position:relative;display:inline-block;flex:0 0 34px;
+  background:color-mix(in srgb,var(--text) 20%,transparent);transition:background .22s ease;cursor:pointer;}
+:root:not([data-ui-style=deco]) body input[type=checkbox]:not(#browserAgentUse)::after{
+  content:"";position:absolute;top:2px;inset-inline-start:2px;width:16px;height:16px;border:0;border-radius:50%;background:#fff;
+  box-shadow:0 1px 3px rgb(0 0 0 / .35);transform:none;transition:transform .24s cubic-bezier(.3,.7,.2,1.15);}
+:root:not([data-ui-style=deco]) body input[type=checkbox]:not(#browserAgentUse):checked{background:var(--accent);}
+:root:not([data-ui-style=deco]) body input[type=checkbox]:not(#browserAgentUse):checked::after{transform:translateX(14px);width:16px;height:16px;border:0;}
+:root:not([data-ui-style=deco]) body input[type=checkbox]:not(#browserAgentUse):indeterminate{background:color-mix(in srgb,var(--accent) 55%,transparent);}
+:root:not([data-ui-style=deco]) body input[type=checkbox]:not(#browserAgentUse):indeterminate::after{transform:translateX(7px);width:16px;height:16px;border:0;}
+:root:not([data-ui-style=deco]) body input[type=checkbox]:not(#browserAgentUse):focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+@media(prefers-reduced-motion:reduce){body input[type=checkbox]::after,body input[type=checkbox]{transition:none!important;}}
+
+/* ===================== One disclosure style =====================
+   Every collapsible group uses the same chevron that turns when it opens (was a mix of +/− and ⌄). */
+.settings-group>summary::after,#modelLibrary>summary::after{
+  content:""!important;width:14px;height:14px;flex:0 0 14px;margin-inline-start:auto;background:var(--muted);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center/contain no-repeat;
+  transition:transform var(--motion-duration,300ms) cubic-bezier(.4,0,.2,1);font-size:0;}
+.settings-group[open]>summary::after,#modelLibrary[open]>summary::after{transform:rotate(180deg);}
+
+/* ===================== Segmented controls with a sliding pill ===================== */
+:root:not([data-ui-style=deco]) :is(#agentModeSegments,.model-source-tabs,.section-tabs,.load-mode,.mode-toggle)[data-segmented]{
+  position:relative;display:flex;gap:2px;padding:3px;isolation:isolate;border-radius:var(--control-radius);background:var(--soft-fill,color-mix(in srgb,var(--text) 6%,transparent));}
+:root:not([data-ui-style=deco]) [data-segmented]>button{position:relative;z-index:1;flex:1 1 0;border:0!important;box-shadow:none!important;
+  background:transparent!important;color:var(--muted);border-radius:calc(var(--control-radius) - 3px)!important;transition:color .25s ease;}
+:root:not([data-ui-style=deco]) [data-segmented]>button:is([aria-pressed=true],[aria-selected=true]){color:var(--text);}
+:root:not([data-ui-style=deco]) [data-segmented]>button:hover:not(:disabled):not([aria-pressed=true]):not([aria-selected=true]){color:var(--text);}
+.seg-pill{position:absolute;top:0;inset-inline-start:0;z-index:0;pointer-events:none;border-radius:calc(var(--control-radius) - 3px);
+  background:color-mix(in srgb,var(--accent) 24%,var(--panel));box-shadow:0 1px 4px rgb(0 0 0 / .22),inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent);
+  transition:transform calc(var(--motion-duration,620ms) * .55) cubic-bezier(.3,.8,.25,1),width calc(var(--motion-duration,620ms) * .55) cubic-bezier(.3,.8,.25,1),opacity .2s;}
+.seg-pill.seg-instant{transition:none;}
+:root[data-ui-style=deco] .seg-pill{display:none;}
+@media(prefers-reduced-motion:reduce){.seg-pill{transition:none;}}
+
+/* ===================== Fields ===================== */
+:root:not([data-ui-style=deco]) :is(#drawer,#composerControls,#toolsWindow,.fw) :is(input:not([type]),input[type=number],input[type=text],input[type=search],input[type=url],select){
+  background:var(--soft-fill,color-mix(in srgb,var(--text) 6%,transparent));border:1px solid var(--soft-line,var(--border));border-radius:calc(var(--control-radius) - 2px);color:var(--text);}
+:root:not([data-ui-style=deco]) :is(#drawer,#composerControls,#toolsWindow,.fw) :is(input:not([type]),input[type=number],input[type=text],input[type=search],input[type=url],select):focus-visible{outline:2px solid color-mix(in srgb,var(--accent) 70%,transparent);outline-offset:0;}
+
+/* Files dragged over the composer: a calm accent outline shows where they will land. */
+#composerBox.drop-ready .compose-surface{outline:2px dashed color-mix(in srgb,var(--accent) 70%,transparent);outline-offset:3px;}
+
+/* Glass in motion: no live blur, near-opaque fill; blur and translucency fade back once settled. */
+:root[data-ui-style=glass] :is(.agent-small-menu,#composerAddMenu)[data-motion]{
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:color-mix(in srgb,var(--panel) 94%,transparent)!important;}
+:root[data-ui-style=glass] :is(.agent-small-menu,#composerAddMenu){transition:background-color .28s ease;}

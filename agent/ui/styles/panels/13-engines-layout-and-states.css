@@ -1,0 +1,133 @@
+
+/* Project Maya shares the model panel's controls and theme. */
+.maya-options,.maya-model-settings{display:grid;gap:8px;margin-top:8px;}
+.maya-options p,.maya-model-settings p{margin:0;}
+.maya-options p:empty,.maya-setup-size:empty{display:none;}
+.maya-disclosure-body{display:grid;gap:8px;padding:7px 0;}
+.maya-setup-grid,.maya-model-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:8px;}
+.maya-setup-grid{grid-template-columns:1fr;}
+.maya-setup-grid label,.maya-field{display:grid;gap:4px;font-size:11px;color:var(--muted);min-width:0;}
+.maya-field :is(input,select),.maya-setup-grid :is(input,select){width:100%;min-width:0;}
+.maya-repo-bar,.maya-prereq-head,.maya-model-head,.maya-model-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.maya-repo-actions{display:flex;flex-wrap:wrap;gap:6px;}
+.maya-model-head strong,.maya-prereq-head strong{font-size:12px;}
+.maya-prereqs-list{list-style:none;margin:0;padding:0;display:grid;gap:4px;}
+.maya-prereq-item{display:grid;grid-template-columns:12px minmax(0,1fr);align-items:baseline;gap:1px 6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:11px;}
+.maya-prereq-item small{grid-column:2;color:var(--muted);font-size:10px;overflow-wrap:anywhere;}
+.maya-prereq-item[data-ok=true] .maya-prereq-mark{color:var(--accent);}
+.maya-prereq-item[data-ok=false] .maya-prereq-mark{color:var(--muted);}
+.maya-env-box textarea{width:100%;min-width:0;margin-top:6px;resize:vertical;}
+.maya-progress{display:flex;align-items:center;gap:8px;}
+.maya-progress progress{flex:1;min-width:0;accent-color:var(--accent);}
+#mayaSetupLogText{max-height:10rem;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;}
+#mayaPrepareDialog .maya-field{margin:12px 0;}
+#mayaPrepareDialog{border-radius:var(--panel-radius);max-height:calc(100dvh - 40px);overflow:auto;}
+#mayaPrepareDialog .maya-disclosure{margin:8px 0 14px;}
+#mayaPrepareDialog .maya-field[hidden]{display:none;}
+
+.maya-options[hidden],.maya-model-settings[hidden],.maya-progress[hidden],#mayaEngineAdvanced[hidden]{display:none;}
+
+#composerControls #mayaQuickAdvanced{grid-column:1 / -1;justify-self:start;margin-top:6px;}
+#composerControls #mayaQuickAdvanced[hidden]{display:none;}
+#composerControls #mayaModelSettings .maya-disclosure>summary,#mayaPrepareDialog .maya-disclosure>summary{
+  min-height:32px;padding:6px 9px;border-radius:var(--control-radius);
+  background:var(--soft-fill,color-mix(in srgb,var(--text) 6%,transparent));color:var(--text);
+}
+
+/* Engine options (Advanced): rows from the engine's catalog, styled with the theme's tokens. */
+#engineOptions>summary{display:flex;justify-content:space-between;gap:8px;cursor:pointer;}
+#engineOptions .engine-options-body h5{margin:12px 0 2px;font-size:11px;color:var(--accent);text-transform:none;}
+#engineOptions .engine-option{flex-wrap:wrap;row-gap:2px;}
+#engineOptions .engine-option>label{flex:1 1 55%;min-width:0;}
+#engineOptions .engine-option input[type=text]{width:120px;min-width:0;font-size:11px;padding:5px 7px;}
+#engineOptions .engine-option select{max-width:150px;}
+#engineOptions .engine-option input[aria-invalid=true]{border-color:#e19b8d;}
+#engineOptions .engine-option-help{flex-basis:100%;margin:0 0 2px;color:var(--muted);line-height:1.35;}
+
+/* Layout review: nothing hidden in folds inside folds, targets easy to hit, names readable. */
+.block-title{margin:14px 0 6px;font-size:12px;font-weight:600;color:var(--text);}
+h5.block-title{font-size:11px;color:var(--muted);margin:10px 0 4px;}
+#engineAdvanced{margin-top:8px;}
+#loadAdvanced{margin-top:6px;}
+#loadAdvanced>.block-title{margin-top:10px;}
+.memory-notes{margin:8px 0 0;}
+/* Help "?" buttons: 24px to click, same look. */
+.help-trigger{min-width:24px!important;min-height:24px!important;display:inline-flex!important;align-items:center;justify-content:center;}
+.palette-reset{min-width:28px!important;}
+#addProject{min-width:26px!important;min-height:26px!important;}
+a.release-notes-link,#settings-system a{display:inline-block;padding:4px 2px;}
+/* Folds anywhere in the windows: a comfortable title row, not a thin line of text. */
+#composerControls details>summary,#drawer details>summary,#toolsWindow details>summary,.mcp-option-server>summary{min-height:30px;display:flex;align-items:center;gap:6px;cursor:pointer;}
+.mcp-option-server{border:1px solid var(--border);border-radius:var(--control-radius,8px);padding:0 10px;margin:8px 0;}
+.mcp-option-server>summary{font-size:12px;font-weight:600;color:var(--text);}
+/* Long names wrap to a second line instead of being cut. */
+.model-option-name,.hub-item-name,.hardware-chip strong,.transfer-main strong{white-space:normal!important;overflow-wrap:anywhere;text-overflow:clip!important;overflow:visible!important;}
+/* Controls that were faint until the pointer was on them: readable at rest. */
+.conv-more,.conv-project-more{opacity:.7;min-width:24px;min-height:24px;display:inline-flex;align-items:center;justify-content:center;}
+#chat .message-actions{opacity:.75;}
+.update-card-close{min-width:26px!important;min-height:26px!important;}
+/* Each tool's settings fold shows that it opens and closes. */
+.mcp-option-server>summary{list-style:none;}
+.mcp-option-server>summary::-webkit-details-marker{display:none;}
+.mcp-option-server>summary::after{content:"⌄";margin-inline-start:auto;color:var(--muted);font-size:14px;transition:transform var(--motion-duration,.15s) ease;}
+.mcp-option-server[open]>summary::after{transform:rotate(180deg);}
+
+/* The agent's question to the user (ask_user): readable question, options as large targets. */
+.agent-question .agent-question-text{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.5;margin:4px 0 12px;}
+.agent-question .agent-question-options{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-start!important;margin:0 0 10px;}
+.agent-question .agent-question-option{min-height:32px;text-align:start;white-space:normal;}
+.agent-question .agent-question-answer{width:100%;box-sizing:border-box;resize:vertical;min-height:64px;margin:0 0 6px;font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px;}
+.agent-question .agent-question-status{min-height:1em;margin:0 0 8px;color:var(--muted);}
+
+/* Composer: double edge with a clear gap. The surface keeps its own border; an outline 5px outside it
+   draws the second line, following the chosen radius and leaving the background visible in between.
+   (The deco style has its own framed edge.) */
+:root:not([data-ui-style=deco]) .compose-surface{outline:1px solid var(--soft-line,var(--border));outline-offset:5px;}
+:root:not([data-ui-style=deco]) .compose-surface:focus-within{outline-color:color-mix(in srgb,var(--accent) 40%,var(--soft-line,var(--border)));}
+:root:not([data-ui-style=deco]) #composerBox{padding-top:12px;padding-bottom:6px;}
+
+/* Nothing important appears only on hover, and every control is at least 24 px to hit. */
+.project-new,.project-entry .conv-project-more{opacity:.75!important;}
+.project-entry>summary:hover :is(.project-new,.conv-project-more),.project-entry>summary:focus-within :is(.project-new,.conv-project-more),.project-new:hover,.project-entry .conv-project-more:hover{opacity:1!important;}
+.project-new,.project-entry .conv-project-more{width:26px;height:26px;}
+.conv-more,.conv-project-more{opacity:.75;}
+.conv:hover .conv-more,.conv.active .conv-more,.conv-more:hover{opacity:1;}
+#chat .message-actions{opacity:.8;}
+#chat summary.tool-overview{min-height:28px;}
+#chat .think summary{padding:5px 0;line-height:18px;}
+#chat .text-btn{min-height:24px;padding:2px 7px;font-size:11px;border-radius:6px;}
+#chat .text-btn:hover,#chat .text-btn:focus-visible{background:color-mix(in srgb,var(--text) 7%,transparent);}
+.response-metrics .metrics-more{min-height:24px;padding:2px 10px;font-size:11px;}
+.help-trigger{font-size:12px!important;}
+
+/* Strong, unambiguous visual relief for Import/Export and API/Engine collapsible headers inside #composerControls */
+#composerControls :is(#modelTransfer,#modelEngineOptions,#apiConnectionEditor,.api-extra,#remoteModelInfo>details)>summary{padding:10px 12px;font-size:12px;font-weight:600;color:var(--text);background:color-mix(in srgb,var(--text) 7%,var(--panel));border-radius:var(--control-radius,9px);}
+#composerControls #modelTransfer{border:1px solid color-mix(in srgb,var(--accent) 42%,var(--border));box-shadow:0 1px 3px color-mix(in srgb,#000 18%,transparent);}
+#composerControls #modelTransfer>summary{background:color-mix(in srgb,var(--accent) 12%,var(--panel));color:var(--text);}
+#composerControls #modelTransfer>summary:hover,#composerControls #modelTransfer[open]>summary{background:color-mix(in srgb,var(--accent) 20%,var(--panel));color:var(--accent);}
+#composerControls #modelTransfer[open]>summary,#composerControls :is(#modelEngineOptions,#apiConnectionEditor,.api-extra,#remoteModelInfo>details)[open]>summary{border-radius:var(--control-radius,9px) var(--control-radius,9px) 0 0;}
+#modelTransfer :is(#transferScan,#exportLm,#exportUnsloth,#exportFile,#importFileBtn){padding:6px 10px;border:1px solid var(--border);border-radius:var(--control-radius,8px);background:color-mix(in srgb,var(--text) 6%,var(--panel));color:var(--text);font-size:11.5px;box-shadow:0 1px 2px color-mix(in srgb,#000 14%,transparent);cursor:pointer;}
+#modelTransfer :is(#transferScan,#exportLm,#exportUnsloth,#exportFile,#importFileBtn):hover:not(:disabled){border-color:color-mix(in srgb,var(--accent) 55%,var(--border));background:color-mix(in srgb,var(--accent) 12%,var(--panel));color:var(--accent);}
+#modelTransfer #transferImport{padding:6px 12px;border:1px solid color-mix(in srgb,var(--accent) 65%,var(--border));border-radius:var(--control-radius,8px);background:color-mix(in srgb,var(--accent) 18%,var(--panel));color:var(--text);font-size:11.5px;font-weight:600;cursor:pointer;}
+#modelTransfer #transferImport:hover:not(:disabled){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 28%,var(--panel));}
+#modelTransfer #transferImport:disabled{opacity:.45;cursor:default;}
+
+/* Update prominence by importance: a V-Agent release (accent frame, larger) > an engine update > a minor update. */
+#appUpdateNotice.update-card-major{border-color:color-mix(in srgb,var(--accent) 55%,var(--border));box-shadow:0 14px 36px #0006,0 0 0 1px color-mix(in srgb,var(--accent) 22%,transparent);background:color-mix(in srgb,var(--accent) 6%,var(--panel));padding:11px 30px 11px 12px;}
+#appUpdateNotice.update-card-major strong{font-size:13px;color:var(--text);}
+#appUpdateNotice.update-card-major span{font-size:11.5px;}
+#appUpdateNotice .update-progress{order:2;}
+#appUpdateNotice .update-card-error{order:3;}
+#appUpdateNotice .update-install{order:6;justify-self:end;font-size:11px;padding:5px 10px;}
+#appUpdateNotice.update-card-major .update-install,#appUpdateNotice.update-card-major>button:not(.update-card-close):not(.update-notes-btn){font-weight:600;}
+#gear .update-pill,.update-tab-pill{display:inline-flex;align-items:center;margin-inline-start:auto;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:600;line-height:1.5;white-space:nowrap;}
+#gear .update-pill[hidden],.update-tab-pill[hidden]{display:none;}
+#gear .update-pill[data-level=app],.update-tab-pill[data-level=app]{background:var(--accent);color:var(--bg);}
+#gear .update-pill[data-level=engine],.update-tab-pill[data-level=engine]{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);}
+#gear.has-update{color:var(--text);}
+.update-tab-pill{margin-inline-start:6px;}
+.app-update.has-update{padding:12px 14px;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border));border-radius:12px;background:color-mix(in srgb,var(--accent) 6%,transparent);}
+.app-update.has-update #appUpdateStatus{color:var(--text);font-size:12px;}
+
+/* Chat mode: the folder, access and tools controls stay in place, visibly locked. */
+.composer-control.locked-by-mode,.composer-control.locked-by-mode:hover{opacity:.42;cursor:not-allowed;filter:saturate(.4);}

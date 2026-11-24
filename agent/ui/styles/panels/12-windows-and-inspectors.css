@@ -1,0 +1,130 @@
+
+/* 5. Floating windows, Settings Drawer, & Comfort Typography (12.5px system) */
+:root:not([data-ui-style=glass]):not([data-ui-style=deco]) :is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw,.val-confirm,.tool-approval){
+  background:color-mix(in srgb,var(--panel) 97%,transparent)!important;
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+}
+:is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw,dialog){
+  --panel-control-fs:12.5px;
+}
+:is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw,dialog) :is(button:not(.icon-btn):not(.help-trigger):not(.window-control):not(.tool-remove):not(.conv-more),select,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),textarea){
+  font-size:12.5px;min-height:32px;
+}
+:is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw,dialog) :is(.row,.setting-row,.field-label,.chk,.settings-group>summary){
+  font-size:12.5px;line-height:1.45;
+}
+:is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw,dialog) :is(p.mini,.setting-note,.muted-note,.context-memory,.model-load-state,.context-compact-meta small){
+  font-size:11.5px;line-height:1.5;
+}
+:is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw) :is(.drawer-head,.controls-head,.fw-head,.dlg-head){
+  padding:13px 16px;border-bottom:1px solid var(--soft-line,var(--border));
+}
+:is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw) :is(.drawer-head h2,.controls-head h2,.fw-head h2,.dlg-head h2){
+  font-size:15px;font-weight:600;letter-spacing:-.01em;
+}
+
+/* Settings Drawer (#drawer) */
+#drawer{grid-template-columns:174px minmax(0,1fr)!important;grid-template-rows:auto minmax(0,1fr)!important;}
+#drawer .settings-navigation{
+  padding:12px 10px;border-inline-end:1px solid var(--soft-line,var(--border));
+  background:color-mix(in srgb,var(--text) 1.5%,transparent);
+  max-height:none!important;min-height:0;overflow-y:auto;
+}
+#drawer #settingsSearch{box-sizing:border-box;width:100%;margin-bottom:8px;padding:7px 10px;border-radius:var(--control-radius,8px);}
+#drawer #settingsNav{gap:3px;}
+#drawer #settingsNav button{
+  font-size:12.5px;font-weight:500;padding:8px 11px;min-height:34px;
+  border-radius:var(--control-radius,9px)!important;text-align:start;
+  position:relative;color:var(--muted);border:0!important;background:transparent;
+}
+#drawer #settingsNav button:hover{
+  color:var(--text);background:color-mix(in srgb,var(--text) 6%,transparent);
+}
+#drawer #settingsNav button[aria-selected=true]{
+  color:var(--text);font-weight:600;
+  background:color-mix(in srgb,var(--accent) 14%,transparent)!important;
+}
+#drawer .drawer-body{padding:14px 18px 18px;}
+#drawer .settings-page h3{font-size:14.5px;font-weight:600;margin:0 0 8px;}
+#drawer .settings-data{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+#drawer #userGuide{display:inline-flex;align-items:center;min-height:32px;padding:6px 12px;font-size:12.5px;border-radius:var(--control-radius,9px);}
+#drawer .setting-row{min-height:36px;padding:7px 0;gap:12px;}
+#drawer .settings-group{margin:10px 0;border-radius:var(--control-radius,10px);border:1px solid var(--soft-line,var(--border));padding:0 12px;background:var(--redesign-card-bg);}
+#drawer .settings-group>summary{padding:11px 0;font-weight:600;}
+#drawer .group-body{padding:2px 0 12px;}
+
+/* Composer Inspector (#composerControls: Model, Response, Context) */
+#composerControls,#composerControls[data-pane="tools"]{
+  max-height:calc(100dvh - 84px);
+}
+#composerControls .controls-body{padding:12px 16px 16px;gap:10px;}
+#composerControls .model-card{
+  padding:6px;border-radius:var(--panel-radius,14px);
+  border:1px solid var(--soft-line,var(--border));background:var(--redesign-card-bg);
+}
+#composerControls .model-chooser{padding:9px 11px;border-radius:var(--control-radius,10px);}
+#composerControls .model-chooser strong{font-size:13.5px;}
+#composerControls .model-chooser small{font-size:11.5px;}
+#composerControls #modelSummaryAction{font-size:12.5px;font-weight:600;min-height:32px;padding:6px 15px;border-radius:var(--control-radius,9px);}
+#composerControls .context-block{
+  margin:10px 0 4px;padding:12px 14px;border-radius:var(--panel-radius,14px);
+  border:1px solid var(--soft-line,var(--border));background:var(--redesign-card-bg);
+}
+#composerControls .context-block-title{font-size:13px;font-weight:600;}
+#composerControls .context-block .context-setting #ctxValue{font-size:16px;font-weight:600;}
+#composerControls .context-ticks{font-size:10.5px;margin-top:4px;}
+#composerControls .context-block #kvSettings{margin-top:10px;padding-top:10px;border-top:1px solid var(--soft-line,var(--border));}
+#composerControls .context-block #modelMemoryEstimate{margin:10px 0 0;padding-top:2px;border-top:1px solid var(--soft-line,var(--border));}
+#composerControls .context-block #modelMemoryEstimate>summary{padding:8px 0 4px;font-size:12px;font-weight:500;color:var(--muted);}
+#composerControls .context-block #modelMemoryEstimate>summary:hover,
+#composerControls .context-block #modelMemoryEstimate[open]>summary{color:var(--text);}
+#composerControls .context-block #modelMemoryEstimate #memoryHeadline{margin-inline-start:auto;color:var(--muted);}
+#composerControls .context-block #modelMemoryEstimate>summary::after{margin-inline-start:4px;}
+#composerControls .context-block #modelMemoryEstimate .memory-estimate-body{padding:6px 0 4px;font-size:11.5px;}
+#composerControls .context-block #modelMemoryEstimate .memory-total{margin-bottom:8px;}
+#composerControls .context-block #modelMemoryEstimate .memory-detail{font-size:11.5px;margin:4px 0;color:var(--text);opacity:.86;}
+#composerControls .context-block #modelMemoryEstimate .memory-estimate-body details summary{font-size:11px;color:var(--muted);cursor:pointer;}
+#composerControls .model-grid .row,#composerControls .context-block #kvSettings .row{min-height:32px;margin:7px 0;gap:10px;}
+#composerControls .model-grid .row select,#composerControls .context-block #kvSettings select{max-width:60%;min-width:110px;}
+#composerControls .model-grid .row input[type=number]{width:92px;}
+#composerControls .context-compact-box{
+  margin:10px 0 4px;padding:11px 14px;border-radius:var(--panel-radius,14px);
+  border:1px solid var(--soft-line,var(--border));background:color-mix(in srgb,var(--accent) 5%,var(--panel));
+}
+#composerControls .context-compact-meta strong{font-size:12.5px;}
+#composerControls #ctxCompact{font-size:12px;font-weight:600;min-height:32px;padding:6px 13px;border-radius:var(--control-radius,9px);}
+#composerControls .engine-quick{
+  padding:11px 14px;border-radius:var(--panel-radius,14px);
+  border:1px solid color-mix(in srgb,var(--accent) 22%,transparent);
+}
+#composerControls #modelSectionTabs{margin-top:10px;}
+#composerControls #modelSectionTabs button{font-size:12px;padding:6px 11px;min-height:30px;}
+
+/* Tools & MCP Window (#toolsWindow) & Models Hub (#modelsWindow) & Console */
+#toolsWindow .fw-body{padding:12px 16px 16px;gap:10px;}
+#toolsWindow .tool-group{
+  padding:12px 14px;margin:8px 0;border-radius:var(--panel-radius,14px);
+  border:1px solid var(--soft-line,var(--border));background:var(--redesign-card-bg);
+  gap:8px 12px;
+}
+#toolsWindow .tool-group .group-title,#toolsWindow .tool-group>h3{font-size:13px;font-weight:600;margin-bottom:2px;}
+#toolsWindow .tool-group>p{font-size:11.5px;line-height:1.5;}
+#toolsWindow .chk{min-height:28px;font-size:12.5px;gap:8px;}
+
+/* Modals (#addModelDialog, #projectDialog, #editMessageDialog) */
+:is(#addModelDialog,#projectDialog,#editMessageDialog){padding:20px 22px;border-radius:var(--panel-radius,16px);}
+:is(#addModelDialog,#projectDialog,#editMessageDialog) h3{font-size:15px;font-weight:600;margin-bottom:10px;}
+
+/* Compact density override retains clean proportions */
+:root[data-density=compact] #drawer .setting-row{min-height:30px;padding:4px 0;}
+:root[data-density=compact] :is(#drawer,#composerControls,#toolsWindow,#modelsWindow,#consoleWindow,section.fw,dialog) :is(button:not(.icon-btn):not(.help-trigger):not(.window-control):not(.tool-remove):not(.conv-more),select,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),textarea){
+  min-height:28px;font-size:12px;
+}
+:root[data-ui-style=deco] :is(#composerControls .model-card,#composerControls .context-block,#composerControls .context-compact-box,#composerControls .engine-quick,#toolsWindow .tool-group){
+  border-color:color-mix(in srgb,var(--accent) 26%,var(--double-line));
+}
+
+@media(max-width:700px){
+  #drawer{grid-template-columns:146px minmax(0,1fr)!important;}
+  #drawer .drawer-body{padding:10px 12px;}
+}

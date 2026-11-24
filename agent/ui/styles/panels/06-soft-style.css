@@ -1,0 +1,103 @@
+
+/* ===================== Soft interface (default) =====================
+   Hairline borders, diffuse shadows and tinted buttons instead of double Art Deco lines and boxed
+   buttons. Everything derives from the palette tokens, so every theme, light or dark, stays coherent.
+   "Art Déco" (data-ui-style=deco) and "Con borde" (data-button-style=outline) keep the previous look. */
+:root:not([data-ui-style=deco]){
+  --soft-line:color-mix(in srgb,var(--text) 9%,transparent);
+  --soft-fill:color-mix(in srgb,var(--text) 6%,transparent);
+  --soft-fill-hover:color-mix(in srgb,var(--text) 11%,transparent);
+  --soft-shadow:0 18px 48px rgb(0 0 0 / .20),0 3px 10px rgb(0 0 0 / .08);
+  --control-radius:clamp(8px,calc(var(--radius) * .8),20px);
+  --panel-radius:max(14px,var(--radius));
+}
+:root:not([data-ui-style=deco]) #sidebar{border-inline-end:1px solid var(--soft-line)!important;}
+:root:not([data-ui-style=deco]) .topbar{border-bottom:1px solid var(--soft-line)!important;}
+:root:not([data-ui-style=deco]) .compose-surface{border:1px solid var(--soft-line)!important;box-shadow:0 8px 28px rgb(0 0 0 / .10);}
+:root:not([data-ui-style=deco]) :is(#drawer,#composerControls,.fw,.agent-small-menu,#helpCard,#updateStack .update-card){border:1px solid var(--soft-line)!important;box-shadow:var(--soft-shadow);}
+:root:not([data-ui-style=deco]) :is(.update-more-row,.plugin-card){border:1px solid var(--soft-line)!important;}
+:root:not([data-ui-style=deco]) .plugin-card{border-radius:var(--control-radius)!important;}
+:root:not([data-ui-style=deco]) #browserDock{border-inline-start:1px solid var(--soft-line)!important;}
+:root:not([data-ui-style=deco]) .sidebar-extras{border-top:1px solid var(--soft-line);}
+:root:not([data-ui-style=deco]) .model-summary-action{border:1px solid var(--soft-line)!important;}
+:root:not([data-ui-style=deco]) :is(#projectBtn,#agentModeSegments){border-color:var(--soft-line);box-shadow:none;}
+
+/* Buttons: a light tint, no box. :where() keeps this as weak as the base rule, so every specific
+   button style (icons, segments, chips) still wins. */
+:where(:root:not([data-button-style=outline])) button{background:var(--soft-fill,color-mix(in srgb,var(--text) 6%,transparent));border-color:transparent;}
+:where(:root:not([data-button-style=outline])) button:hover:not(:disabled){background:var(--soft-fill-hover,color-mix(in srgb,var(--text) 11%,transparent));border-color:transparent;}
+:where(:root:not([data-button-style=outline])) button:active:not(:disabled){transform:translateY(.5px);}
+#agentModeSegments button[aria-pressed=true]{box-shadow:none;background:color-mix(in srgb,var(--accent) 24%,transparent);}
+
+/* Menus: rounded rows with a gentle hover; destructive items in a muted red. */
+:root:not([data-ui-style=deco]) .agent-small-menu{padding:6px;}
+:root:not([data-ui-style=deco]) .agent-small-menu button{border-radius:calc(var(--control-radius) - 2px)!important;background:transparent;border:0;}
+:root:not([data-ui-style=deco]) .agent-small-menu button:hover:not(:disabled){background:var(--soft-fill-hover);}
+.conv-menu button[data-action=delete]:hover:not(:disabled){background:color-mix(in srgb,#d9534f 14%,transparent);}
+
+/* Progress bars follow the accent colour across every light/dark theme, including indeterminate states. */
+progress{accent-color:var(--accent);color-scheme:inherit;}
+progress::-webkit-progress-bar{background:color-mix(in srgb,var(--text) 14%,var(--panel));border-radius:999px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--text) 14%,transparent);}
+progress::-webkit-progress-value{background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 82%,var(--text)),var(--accent));border-radius:999px;}
+progress::-moz-progress-bar{background:var(--accent);border-radius:999px;}
+#preparationProgress{height:6px!important;border-radius:999px!important;background:color-mix(in srgb,var(--text) 14%,var(--panel))!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--text) 14%,transparent);}
+#preparationProgress:indeterminate::-webkit-progress-bar{background-color:color-mix(in srgb,var(--text) 14%,var(--panel));background-image:linear-gradient(90deg,transparent 0%,color-mix(in srgb,var(--accent) 55%,transparent) 22%,var(--accent) 50%,color-mix(in srgb,var(--accent) 55%,transparent) 78%,transparent 100%);background-size:48% 100%;background-repeat:no-repeat;animation:prepIndeterminate 1.3s ease-in-out infinite;}
+#preparationProgress:indeterminate::-moz-progress-bar{background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 60%,transparent),var(--accent));border-radius:999px;}
+@keyframes prepIndeterminate{0%{background-position:-60% 0}100%{background-position:160% 0}}
+@media(prefers-reduced-motion:reduce){#preparationProgress:indeterminate::-webkit-progress-bar{background-image:repeating-linear-gradient(45deg,var(--accent) 0 10px,color-mix(in srgb,var(--accent) 38%,transparent) 10px 18px);background-size:100% 100%;animation:none;}}
+
+/* Shared soft buttons for in-app dialogs. */
+.soft-btn{padding:8px 16px;border:0!important;font-weight:500;}
+.soft-btn.primary{background:var(--accent)!important;color:var(--accent-ink,#111)!important;}
+.soft-btn.primary:hover:not(:disabled){background:color-mix(in srgb,var(--accent) 86%,var(--text))!important;}
+.soft-btn.danger{background:color-mix(in srgb,#d9534f 16%,transparent)!important;color:#e07b72!important;}
+.soft-btn.danger:hover:not(:disabled){background:color-mix(in srgb,#d9534f 26%,transparent)!important;}
+body[data-theme-mode=day] .soft-btn.danger{color:#b4413a!important;}
+
+/* In-app confirmation dialog (replaces the browser's "tauri.localhost says" box). */
+.val-confirm{width:min(400px,calc(100vw - 32px));padding:22px 22px 18px;color:var(--text);background:var(--panel);border:1px solid var(--soft-line,var(--border))!important;box-shadow:var(--soft-shadow,0 18px 48px rgb(0 0 0 / .25));}
+.val-confirm::backdrop{background:rgb(0 0 0 / .32);backdrop-filter:blur(3px);}
+.val-confirm h3{margin:0 0 8px;font-size:15px;font-weight:600;}
+.val-confirm p{margin:0 0 18px;color:var(--muted);font-size:13px;line-height:1.5;}
+.val-confirm-actions{display:flex;justify-content:flex-end;gap:8px;}
+.tool-approval::backdrop{background:rgb(0 0 0 / .32);backdrop-filter:blur(3px);}
+:root:not([data-ui-style=deco]) .tool-approval{border:1px solid var(--soft-line)!important;box-shadow:var(--soft-shadow);padding:22px;}
+@media(prefers-reduced-motion:no-preference){.val-confirm[open],.tool-approval[open]{animation:valDialogIn .18s cubic-bezier(.2,.8,.2,1);}}
+@keyframes valDialogIn{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+
+/* The update notice slides to its new place instead of jumping over the composer. */
+#updateStack{transition:bottom var(--motion-duration,620ms) cubic-bezier(.4,0,.2,1);}
+@media(prefers-reduced-motion:reduce){#updateStack{transition:none;}}
+
+/* Engine and power are primary decisions: give them a card and real buttons, not 10 px links. */
+#composerControls .engine-quick{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;align-items:center;column-gap:10px;row-gap:1px;margin:8px 0 10px;padding:10px 12px;border-radius:var(--control-radius);background:color-mix(in srgb,var(--accent) 7%,var(--soft-fill,transparent));border:1px solid color-mix(in srgb,var(--accent) 18%,transparent);color:var(--text);font-size:12px;}
+#composerControls .engine-quick-label{grid-column:1;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);}
+#composerControls #engineQuickName{grid-column:1;font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#composerControls #engineQuickSettings{grid-column:2;grid-row:1 / span 2;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:7px 12px;min-height:32px;border:0!important;border-radius:var(--control-radius)!important;background:color-mix(in srgb,var(--accent) 20%,transparent)!important;color:var(--text);}
+#composerControls #engineQuickSettings:hover:not(:disabled){background:color-mix(in srgb,var(--accent) 30%,transparent)!important;}
+#composerControls #engineQuickSettings svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+#modelPowerHome .power-row{align-items:center;padding:4px 0 10px;}
+#modelPowerHome .power-row span{font-size:12px;color:var(--muted);}
+#modelPowerHome .power-row button{font-size:12px;font-weight:500;min-height:30px;padding:5px 12px;border:0!important;border-radius:var(--control-radius)!important;color:var(--text);background:var(--soft-fill,color-mix(in srgb,var(--text) 6%,transparent));}
+#modelPowerHome .power-row button[data-online=false]{background:var(--accent)!important;color:var(--accent-ink,#111);}
+#refreshModels,#mcpReconnect{font-size:12px!important;padding:5px 10px!important;border-radius:var(--control-radius);background:var(--soft-fill,color-mix(in srgb,var(--text) 6%,transparent))!important;color:var(--text)!important;}
+#refreshModels:hover:not(:disabled),#mcpReconnect:hover:not(:disabled){background:var(--soft-fill-hover,color-mix(in srgb,var(--text) 11%,transparent))!important;}
+
+/* Desktop frame (no native title bar): window buttons share the header row. */
+#windowControls{position:fixed;top:0;inset-inline-end:0;z-index:60;display:flex;align-items:stretch;height:var(--frame-height,48px);}
+#windowControls .window-control{width:46px;height:100%;display:grid;place-items:center;padding:0;border:0!important;border-radius:0!important;background:transparent!important;color:var(--muted);}
+#windowControls .window-control svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;}
+#windowControls .window-control:hover{background:color-mix(in srgb,var(--text) 9%,transparent)!important;color:var(--text);}
+#windowControls .window-control[data-control=close]:hover{background:#c42b1c!important;color:#fff;}
+#windowControls .window-control:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+body.desktop-frame .topbar{padding-inline-end:calc(150px + 12px);min-height:var(--frame-height,48px);}
+body.desktop-frame #sidebar .sidebar-chrome{min-height:30px;}
+/* With the side browser open, the controls sit on a strip above it instead of covering its toolbar. */
+body.desktop-frame.browser-open #browserDock{top:var(--frame-height,48px);}
+body.desktop-frame.browser-open #windowControls{width:var(--browser-width,520px);justify-content:flex-end;background:color-mix(in srgb,var(--panel) 97%,transparent);border-inline-start:1px solid var(--soft-line,var(--border));}
+body.desktop-frame.browser-open .topbar{padding-inline-end:32px;}
+body.browser-open.browser-fullscreen #chatwrap{margin-inline-end:0;}
+:root body.browser-open.browser-fullscreen #browserDock{inset-inline-start:0;inset-inline-end:0;width:100%!important;border-inline-start:0!important;box-shadow:none;background:var(--bg)!important;}
+body.browser-open.browser-fullscreen #browserDock .browser-dock-head{background:var(--panel)!important;}
+body.browser-open.browser-fullscreen .browser-dock-resize{display:none;}
+body.desktop-frame.browser-open.browser-fullscreen #windowControls{width:100vw;border-inline-start:0;}

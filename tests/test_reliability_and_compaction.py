@@ -323,9 +323,9 @@ class ContextCompactionTests(unittest.TestCase):
             srv.server_close()
 
     def test_ui_wires_compact_button_and_fixes_interrupted_params_label(self):
-        chat_js = (ROOT / "agent/ui/app/chat.js").read_text(encoding="utf-8")
-        panel_js = (ROOT / "agent/ui/app/model-panel.js").read_text(encoding="utf-8")
-        composer_js = (ROOT / "agent/ui/app/composer.js").read_text(encoding="utf-8")
+        chat_js = (ROOT / "agent/ui/app/chat/chat.js").read_text(encoding="utf-8")
+        panel_js = (ROOT / "agent/ui/app/models/model-panel.js").read_text(encoding="utf-8")
+        composer_js = (ROOT / "agent/ui/app/chat/composer.js").read_text(encoding="utf-8")
         self.assertIn("hasParsedArgs", chat_js)
         self.assertIn("id=\"ctxCompact\"", panel_js)
         self.assertIn("/api/harness/context/compact", composer_js)

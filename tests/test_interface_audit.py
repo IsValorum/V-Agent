@@ -8,6 +8,8 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from ui_sources import ui_source  # noqa: E402
 
 if 'STRATA_AGENT_DATA' not in os.environ:
     import atexit
@@ -15,6 +17,11 @@ if 'STRATA_AGENT_DATA' not in os.environ:
     atexit.register(shutil.rmtree, os.environ['STRATA_AGENT_DATA'], True)
 sys.path[:0] = ['agent', '.', 'tools']
 UI = Path('agent/ui')
+
+def _joined_css(folder):
+    """A stylesheet kept as numbered parts, joined in the order the build publishes them."""
+    return '\n'.join(part.read_text(encoding='utf-8').rstrip('\n') for part in sorted(folder.glob('*.css'))) + '\n'
+
 
 
 def node(script):
@@ -34,7 +41,7 @@ class DateNoteTests(unittest.TestCase):
 
 class DefaultToolsTests(unittest.TestCase):
     def test_a_fresh_install_can_work_with_files_and_search(self):
-        source = (UI / 'app/startup.js').read_text(encoding='utf-8')
+        source = ui_source('startup.js')
         defaults = re.search(r'const DEF_FUNCS = (\{[^}]+\})', source)[1]
         values = dict(re.findall(r'(\w+):\s*(true|false)', defaults))
         for key in ('files', 'sys', 'search', 'visit'):
@@ -52,13 +59,13 @@ class WindowsNameTests(unittest.TestCase):
 @unittest.skipUnless(shutil.which('node'), 'Node.js required')
 class FormattingTests(unittest.TestCase):
     def test_parameter_counts_use_billions(self):
-        source = (UI / 'app/models.js').read_text(encoding='utf-8')
+        source = ui_source('models.js')
         count = re.search(r'const count=(n=>\{.*?\};)', source)[1]
         out = node('const count=' + count + 'console.log([9197e6,35.6e9,5.7e6,664].map(count).join("|"))')
         self.assertEqual(out, '9.2 B|36 B|5.7 M|664')
 
     def test_core_texts_are_translated_part_by_part(self):
-        source = (UI / 'app/shell.js').read_text(encoding='utf-8')
+        source = ui_source('shell.js')
         parts = re.search(r'(function uiParts\(text\)\{.*?\n\})', source, re.S)[1]
         catalog = json.loads((UI / 'locales.json').read_text(encoding='utf-8'))
         script = ('const C=' + json.dumps(catalog, ensure_ascii=False) + ';const uiText=t=>(C[t]||{}).en||t;' + parts +
@@ -78,68 +85,68 @@ class FormattingTests(unittest.TestCase):
 
 class LayoutTests(unittest.TestCase):
     def test_browser_never_squeezes_the_chat_below_a_usable_width(self):
-        tools = (UI / 'app/tools.js').read_text(encoding='utf-8')
-        css = (UI / 'styles/panels.css').read_text(encoding='utf-8')
+        tools = ui_source('tools.js')
+        css = _joined_css(UI / 'styles/panels')
         self.assertIn('const CHAT_MIN=520', tools)
         self.assertIn("classList.toggle('browser-overlay'", tools)
         self.assertIn('body.browser-open.browser-overlay #chatwrap{margin-inline-end:0;}', css)
 
     def test_controls_without_a_size_follow_the_panel_scale(self):
-        css = (UI / 'styles/base.css').read_text(encoding='utf-8')
+        css = _joined_css(UI / 'styles/base')
         self.assertIn(':where(.settings-page,section.fw,dialog,#updateStack) :is(button:not(.icon-btn),select,input,textarea) { font-size:11px; }', css)
 
 
 class ModelPanelTests(unittest.TestCase):
     def test_the_panel_has_one_card_and_the_old_footer_is_hidden(self):
-        panel = (UI / 'app/model-panel.js').read_text(encoding='utf-8')
+        panel = ui_source('model-panel.js')
         marked = panel.index("base.classList.add('model-footer-static')")
         self.assertGreater(panel.index('simplifyModelPanel();', marked), marked)  # after the footer exists
-        self.assertIn("setModelSection('generation')", (UI / 'app/controls.js').read_text(encoding='utf-8'))
+        self.assertIn("setModelSection('generation')", ui_source('controls.js'))
 
     def test_switching_engine_keeps_the_same_model_file(self):
-        controls = (UI / 'app/model-controls.js').read_text(encoding='utf-8')
+        controls = ui_source('model-controls.js')
         self.assertIn("models.find(m=>path&&String(m.path||'').toLowerCase()===path)", controls)
 
     def test_apply_appears_only_for_a_changed_loaded_model(self):
-        composer = (UI / 'app/composer.js').read_text(encoding='utf-8')
+        composer = ui_source('composer.js')
         self.assertIn("$('#ctxApply').hidden=!(loadedModel&&loadedModel===$('#model').value&&pendingModelContexts.has(loadedModel));", composer)
 
     def test_reading_from_cache_is_said_not_hidden(self):
-        chat = (UI / 'app/chat.js').read_text(encoding='utf-8')
+        chat = ui_source('chat.js')
         self.assertIn('prefillCached', chat)
         self.assertIn("uiText('desde caché')", chat)
 
 
 class StateConsistencyTests(unittest.TestCase):
     def test_settings_changes_keep_the_composer_switches_in_step(self):
-        startup = (UI / 'app/startup.js').read_text(encoding='utf-8')
+        startup = ui_source('startup.js')
         self.assertIn("document.getElementById('searchToggle')?.setAttribute('aria-pressed', String(!!S.functions.search));", startup)
 
     def test_a_stopped_reply_keeps_its_last_measure(self):
-        self.assertIn('const finalUsage=lastUsage||', (UI / 'app/composer.js').read_text(encoding='utf-8'))
+        self.assertIn('const finalUsage=lastUsage||', ui_source('composer.js'))
 
     def test_api_mode_hides_the_local_context_block(self):
-        self.assertIn("$('#contextBlock').hidden=remote", (UI / 'app/engine-controls.js').read_text(encoding='utf-8'))
-        self.assertIn('#contextBlock){display:none!important;}', (UI / 'styles/panels.css').read_text(encoding='utf-8'))
+        self.assertIn("$('#contextBlock').hidden=remote", ui_source('engine-controls.js'))
+        self.assertIn('#contextBlock){display:none!important;}', _joined_css(UI / 'styles/panels'))
 
     def test_a_refused_engine_change_resets_the_selector(self):
-        engine = (UI / 'app/engine-controls.js').read_text(encoding='utf-8')
+        engine = ui_source('engine-controls.js')
         self.assertIn("$('#engineKind').value=activeEngine", engine)
         self.assertIn('Descarga el modelo actual antes de cambiar de motor.', engine)
 
     def test_the_memory_warning_is_shown_under_the_context(self):
-        self.assertIn('contextMemoryWarning', (UI / 'app/load-settings.js').read_text(encoding='utf-8'))
+        self.assertIn('contextMemoryWarning', ui_source('load-settings.js'))
 
     def test_kv_selector_stays_visible_with_context_controls(self):
-        model_panel = (UI / 'app/model-panel.js').read_text(encoding='utf-8')
-        shell = (UI / 'app/shell.js').read_text(encoding='utf-8')
+        model_panel = ui_source('model-panel.js')
+        shell = ui_source('shell.js')
         self.assertIn("load.append(context,$('#draftSettings'));", model_panel)
         self.assertIn("['draftSettings','visionSettings','templateSettings']", shell)
 
     def test_context_compaction_works_in_local_and_api_modes(self):
-        model_panel = (UI / 'app/model-panel.js').read_text(encoding='utf-8')
-        engine = (UI / 'app/engine-controls.js').read_text(encoding='utf-8')
-        composer = (UI / 'app/composer.js').read_text(encoding='utf-8')
+        model_panel = ui_source('model-panel.js')
+        engine = ui_source('engine-controls.js')
+        composer = ui_source('composer.js')
         runtime = Path('agent/desktop_runtime.py').read_text(encoding='utf-8')
         self.assertIn("contextCompactBox", model_panel)
         self.assertNotIn("compactBox.hidden=true;", model_panel)
@@ -151,15 +158,15 @@ class StateConsistencyTests(unittest.TestCase):
         self.assertIn("'No se pudo conectar con '", Path('agent/desktop_runtime.py').read_text(encoding='utf-8'))
 
     def test_context_usage_meter_is_not_hidden(self):
-        panels = (UI / 'styles/panels.css').read_text(encoding='utf-8')
-        engine = (UI / 'app/engine-controls.js').read_text(encoding='utf-8')
+        panels = _joined_css(UI / 'styles/panels')
+        engine = ui_source('engine-controls.js')
         self.assertNotIn('.context-block #contextUsage', panels)
         self.assertIn("$('#remoteModelInfo .remote-context-stats')?.after(usage);", engine)
 
     def test_model_facing_prompts_and_tool_errors_stay_in_english(self):
         agent_src = Path('agent/agent.py').read_text(encoding='utf-8')
-        chat_src = (UI / 'app/chat.js').read_text(encoding='utf-8')
-        composer_src = (UI / 'app/composer.js').read_text(encoding='utf-8')
+        chat_src = ui_source('chat.js')
+        composer_src = ui_source('composer.js')
         codec_src = Path('agent/conversation_codec.py').read_text(encoding='utf-8')
         pc_mcp = Path('agent/pc_mcp.py').read_text(encoding='utf-8')
         web_mcp = Path('web_mcp/buscador_mcp.py').read_text(encoding='utf-8')
@@ -171,8 +178,8 @@ class StateConsistencyTests(unittest.TestCase):
         self.assertIn('Only public internet pages are allowed.', web_mcp)
 
     def test_memory_breakdown_lives_collapsed_inside_context_block(self):
-        load_js = (UI / 'app/load-settings.js').read_text(encoding='utf-8')
-        panel_js = (UI / 'app/model-panel.js').read_text(encoding='utf-8')
+        load_js = ui_source('load-settings.js')
+        panel_js = ui_source('model-panel.js')
         locales = (UI / 'locales.json').read_text(encoding='utf-8')
         self.assertIn("const freeGpu=typeof h.gpu_effective_available==='number'?h.gpu_effective_available:h.gpu_available;", load_js)
         self.assertIn("document.getElementById('contextBlock')", load_js)
@@ -183,10 +190,10 @@ class StateConsistencyTests(unittest.TestCase):
 
     def test_browser_fullscreen_deco_label_and_search_tooltip(self):
         html = (UI / 'v-agent.html').read_text(encoding='utf-8')
-        tools_js = (UI / 'app/tools.js').read_text(encoding='utf-8')
-        panels = (UI / 'styles/panels.css').read_text(encoding='utf-8')
-        palette = (UI / 'app/palette.js').read_text(encoding='utf-8')
-        shell = (UI / 'app/shell.js').read_text(encoding='utf-8')
+        tools_js = ui_source('tools.js')
+        panels = _joined_css(UI / 'styles/panels')
+        palette = ui_source('palette.js')
+        shell = ui_source('shell.js')
         locales = (UI / 'locales.json').read_text(encoding='utf-8')
         self.assertIn('id="browserDockFullscreen"', html)
         self.assertIn("document.body.classList.toggle('browser-fullscreen',fullscreen);", tools_js)
@@ -199,7 +206,7 @@ class StateConsistencyTests(unittest.TestCase):
         self.assertIn('#agentModeTooltip[data-compact=true]', panels)
 
     def test_every_help_card_entry_has_all_translations(self):
-        events = (UI / 'app/events.js').read_text(encoding='utf-8')
+        events = ui_source('events.js')
         locales = json.loads((UI / 'locales.json').read_text(encoding='utf-8'))
         import re
         block = re.search(r'const HELP=\{([\s\S]*?)\};', events).group(1)

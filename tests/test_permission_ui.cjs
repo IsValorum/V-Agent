@@ -1,5 +1,5 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
-const source=fs.readFileSync('agent/ui/app/shell.js','utf8');
+const source=fs.readFileSync('agent/ui/app/agent/agent-modes.js','utf8');
 const begin=source.indexOf('async function setAgentMode('),end=source.indexOf('function setupAgentModeSeat()',begin);
 assert(begin>=0&&end>begin);
 const calls=[];
@@ -18,7 +18,7 @@ vm.createContext(context);vm.runInContext(source.slice(begin,end),context);
  await context.setAgentMode('light',{silent:true});
  assert.equal(context.pcAccess.mode,'full_pc');assert.equal(context.S.permissionMode,'auto');
  assert.equal(JSON.stringify(context.S.functions),original);
- const settingsSource=fs.readFileSync('agent/ui/app/settings.js','utf8');
+ const settingsSource=fs.readFileSync('agent/ui/app/settings/settings.js','utf8');
  const uBegin=settingsSource.indexOf('function updateToolCount()'),uEnd=settingsSource.indexOf('function pintarPresupuesto(',uBegin);
  assert(uBegin>=0&&uEnd>uBegin);
  let displayedCount='';

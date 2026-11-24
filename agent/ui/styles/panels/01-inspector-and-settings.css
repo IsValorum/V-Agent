@@ -1,0 +1,234 @@
+/* Docked inspector + compact application settings. No hover geometry or blur. */
+:root {--inspector-width:320px;--motion-duration:620ms;--double-line:color-mix(in srgb,var(--border) 55%,var(--muted) 45%);}
+#composerControls,#composerControls[data-pane="tools"] {width:min(var(--inspector-width),calc(100vw - 24px));height:auto;margin:0;transform:none;inset:auto;max-height:calc(100dvh - 76px);border-radius:clamp(6px,var(--radius),20px);background:color-mix(in srgb,var(--panel) calc(var(--drawer-alpha)*100%),transparent);box-shadow:var(--panel-shadow);}
+#composerControls::backdrop {background:transparent;backdrop-filter:none;pointer-events:none;}
+#composerControls .controls-head {padding:8px 10px;}
+#composerControls .controls-head h2 {font-size:12px;}
+#composerControls .controls-body {padding:0 9px 8px;}
+#composerControls .model-top {margin:5px 0;gap:4px;}
+#composerControls .model-library-actions {gap:4px;}
+#composerControls #modelFilter {width:80px;min-width:40px;padding:4px 6px;}
+#composerControls button,#composerControls select {min-height:27px;padding:4px 6px;}
+#composerControls .row {gap:6px;font-size:11px;}
+#composerControls .model-grid .row {min-height:25px;margin:5px 0;}
+#composerControls .model-grid .row select {max-width:58%;min-width:80px;}
+#composerControls .model-grid .row input[type=number] {width:76px;}
+#composerControls .model-grid .row>.field-label {flex:1;}
+#composerControls .model-grid .row>input[type=range] {flex:1.25;}
+#composerControls .settings-group>summary {font-size:11px;padding:7px 0;}
+#composerControls #ctxTarget {display:none;}
+#composerControls #controls-context>p.mini {font-size:10px;line-height:1.45;}
+#composerControls .context-setting {gap:2px;}
+#composerControls #ctxApply {margin-top:5px;padding:4px 7px;}
+#composerControls .model-footer {padding:6px 0 2px;}
+#composerControls .model-actions {gap:4px;}
+#composerControls .model-actions button {font-size:10px;min-height:28px;padding:4px 6px;}
+#composerControls .model-actions .help-trigger {min-height:15px;width:15px;height:15px;}
+#composerControls .engine-quick {display:flex;align-items:center;gap:6px;padding:6px 0 2px;color:var(--muted);font-size:10px;}
+#engineQuickName {flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#composerControls #engineQuickSettings {font-size:10px;border-color:transparent;background:transparent;padding:2px 3px;min-height:22px;color:var(--accent);}
+#modelPowerHome .power-row {border:0;border-bottom:1px solid var(--border);padding:2px 0 5px;margin:0 0 4px;min-height:24px;}
+#modelPowerHome .power-row span {font-size:10px;}
+#modelPowerHome .power-row button {font-size:10px;min-height:23px;padding:2px 6px;}
+#composerControls #creatorReset,#composerControls #codeProtection {font-size:10px;padding:4px 6px;}
+#composerControls .stack-field .field-label {margin-bottom:4px;}
+#loadAdvanced .sec {padding-top:6px;}
+#composerControls .tool-group {padding:6px 0;gap:3px 6px;}
+#composerControls .chk {font-size:11px;min-height:22px;}
+#composerControls .tool-group>p {line-height:1.45;font-size:10px;}
+
+/* Settings use their own navigation; model controls are never duplicated. */
+#drawer {transition:none;display:grid;grid-template-columns:126px minmax(0,1fr);grid-template-rows:auto minmax(0,auto);align-content:start;top:54px;inset-inline-end:18px;inset-inline-start:auto;bottom:auto;width:min(620px,calc(100vw - 28px));height:auto;max-height:calc(100dvh - 72px);border-radius:clamp(6px,var(--radius),20px);border:1px solid var(--border);background:color-mix(in srgb,var(--panel) calc(var(--drawer-alpha)*100%),transparent);backdrop-filter:none;box-shadow:var(--panel-shadow);}
+#drawer.closed {transform:translateX(calc(100% + 24px));}
+#drawer .drawer-head {grid-column:1/-1;padding:10px 12px 8px;border-bottom:1px solid var(--border);}
+#drawer .drawer-head h2 {font-size:14px;}
+.settings-navigation {padding:9px 7px;border-inline-end:1px solid var(--border);max-height:calc(100dvh - 124px);overflow:auto;}
+#settingsSearch {width:100%;min-width:0;padding:6px 8px;font-size:11px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;margin-bottom:7px;}
+#settingsNav {display:flex;flex-direction:column;gap:3px;}
+#settingsNav button {text-align:start;font-size:11px;line-height:1.35;padding:7px 8px;background:transparent;border:0;border-radius:6px;color:var(--muted);}
+#settingsNav button[aria-selected=true] {background:color-mix(in srgb,var(--accent) 10%,var(--panel));color:var(--text);}
+#drawer .drawer-body {grid-column:2;grid-row:2;min-height:252px;max-height:calc(100dvh - 124px);padding:10px 13px 12px;overflow-y:scroll;}
+.settings-page>h3 {font-size:13px;font-weight:600;margin:0 0 12px;}
+.settings-page h4 {font-size:11px;margin:12px 0 6px;}
+.setting-row {display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:32px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.setting-row>label,.setting-row>span:first-child {color:var(--muted);}
+.setting-row select {font-size:11px;min-width:105px;padding:5px 7px;}
+.setting-row>span:last-child {font-size:11px;}
+.settings-data {margin-top:13px;}
+#settingsDataPath {display:block;font:11px/1.7 Consolas,monospace;word-break:break-all;margin-bottom:7px;}
+.settings-data button {font-size:11px;padding:5px 8px;}
+/* One button size per settings page: the update box's soft buttons were taller than their neighbours. */
+.settings-page .soft-btn{padding:5px 10px;}
+#importSessions{margin-inline-start:6px;} /* the two history buttons touched */
+#installedMCPs:not(:has(*)){font-size:11px;color:var(--muted);} /* "No custom MCP." matched the page text, not a heading */
+#drawer .mini {font-size:10px;line-height:1.5;}
+#drawer #engineSettings {margin:8px 0 0;padding:8px 0;border:0;border-top:1px solid var(--border);}
+#drawer .engine-bar {align-items:end;gap:6px;flex-wrap:wrap;}
+#drawer .engine-field {min-width:120px;}
+#drawer #engineSettings button,#drawer #engineSettings select,#drawer #engineSettings input {font-size:11px;min-height:27px;padding:4px 7px;}
+#drawer .engine-field label {font-size:10px;}
+#drawer #engineSettings details {font-size:11px;margin-top:6px;}
+#drawer #engineSettings summary {cursor:pointer;color:var(--muted);}
+#drawer #engineSettings .power-row {margin:7px 0 0;padding:5px 0 0;border:0;}
+#drawer #engineSettings .power-row span {font-size:11px;}
+#drawer #apiOptions {display:grid;grid-template-columns:112px 1fr;gap:7px;margin-top:8px;align-items:center;}
+#drawer #apiOptions input {min-width:0;width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;}
+#drawer #apiOptions #connectApi {grid-column:2;justify-self:end;}
+.system-metrics {display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.system-metrics>div {background:color-mix(in srgb,var(--bg) 40%,var(--panel));padding:9px 10px;border:1px solid var(--border);border-radius:8px;display:grid;gap:4px;}
+.system-metrics span {font-size:10px;color:var(--muted);}
+.system-metrics strong {font-size:12px;font-weight:500;font-variant-numeric:tabular-nums;}
+.system-metrics meter {width:100%;height:5px;accent-color:var(--accent);}
+.system-metrics meter::-webkit-meter-bar {border:0;background:color-mix(in srgb,var(--text) 9%,var(--panel));}
+.system-metrics meter::-webkit-meter-optimum-value {background:var(--accent);}
+#drawer #controls-tools .sec {padding-top:0;}
+#drawer #controls-tools .tool-group {padding:7px 0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:3px 8px;}
+#drawer #controls-tools .tool-group>.group-title,#drawer #controls-tools .tool-group>.row,#drawer #controls-tools .tool-group>p,#drawer #controls-tools .tool-group>h3,#drawer #controls-tools .check-line:has(.group-title),#drawer #controls-tools .tool-group:has(#f_hf)>.check-line {grid-column:1/-1;}
+#drawer #controls-tools h3 {font-size:11px;margin:0;}
+#drawer #controls-tools .chk {font-size:12px;padding:3px 0;min-height:23px;}
+#drawer #controls-tools .chk.sub {padding-inline-start:0;}
+#drawer #controls-tools #mcpConnections>summary {font-size:11px;padding:7px 0;}
+#drawer #mcpTokens {margin:4px 0!important;}
+#drawer .mode-toggle {margin-top:0;}
+#drawer #settings-layout>.settings-group:first-child {border-top:0;}
+#drawer .theme-actions {gap:5px;}
+#drawer .theme-actions button {font-size:10px;padding:5px 7px;}
+#composerAddMenu {position:fixed;inset:auto;margin:0;width:222px;padding:5px;max-height:calc(100dvh - 24px);overflow-y:auto;border:1px solid var(--border);background:var(--panel);color:var(--text);border-radius:11px;box-shadow:0 8px 30px #0004;}
+#composerAddMenu:not(:popover-open) {display:none;}
+#composerAddMenu button {display:flex;align-items:center;gap:10px;text-align:start;width:100%;font-size:12px;line-height:1.4;padding:8px 9px;border:0;background:transparent;border-radius:6px;}
+#composerAddMenu button>span:first-child {width:15px;text-align:center;color:var(--muted);font-size:16px;}
+#composerAddMenu [aria-checked=true] {color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent);}
+#composerAddMenu [role=menuitemcheckbox] i {margin-inline-start:auto;width:7px;height:7px;border-radius:50%;background:var(--border);}
+#composerAddMenu [aria-checked=true] i {background:var(--accent);}
+#projectDialog,#addModelDialog {margin:0;inset:auto;top:64px;inset-inline-start:calc(var(--sidebar-width) + 12px);width:min(360px,calc(100vw - var(--sidebar-width) - 24px));max-height:calc(100dvh - 80px);}
+#projectDialog::backdrop,#addModelDialog::backdrop {background:#0002;backdrop-filter:none;}
+@media(max-width:900px){#drawer{inset-inline-start:auto;inset-inline-end:12px;width:min(620px,calc(100vw - 24px));top:44px;max-height:calc(100dvh - 56px);grid-template-columns:126px minmax(0,1fr);}#drawer .drawer-body,.settings-navigation{max-height:calc(100dvh - 108px);}}
+@media(max-width:760px){#projectDialog,#addModelDialog{inset-inline-start:12px;width:calc(100vw - 24px);}#drawer{grid-template-columns:116px minmax(0,1fr);}#settingsNav button{font-size:11px;padding:7px 6px;}#drawer .drawer-body{padding:9px;}#drawer #apiOptions{grid-template-columns:1fr;}#drawer #apiOptions #connectApi{grid-column:1;}#drawer .system-metrics{grid-template-columns:1fr 1fr;gap:5px;}#drawer .setting-row{align-items:start;flex-direction:column;gap:5px;}#drawer .setting-row select{width:100%;}}
+
+/* Motion stays on user interactions, with stable hit boxes and no blur animation. */
+#mcpOptions{margin-top:10px;border-top:1px solid var(--border);padding-top:4px;}
+#mcpOptions>summary{padding:8px 0;font-size:12px;cursor:pointer;}
+.mcp-option-server{border:1px solid var(--border);border-radius:8px;margin:7px 0;}
+.mcp-option-server>summary{padding:9px 10px;cursor:pointer;font-size:12px;}
+.mcp-option-fields{padding:0 10px 7px;}
+.mcp-option-fields .setting-row{min-height:31px;margin:3px 0;font-size:11px;gap:8px;}
+.mcp-option-fields input[type=number]{width:85px;min-width:0;padding:5px 7px;}
+.mcp-option-fields select{max-width:160px;}
+.mcp-options-actions{display:flex;align-items:center;gap:10px;margin-top:9px;}
+#drawer{opacity:1;transition:opacity var(--motion-duration) cubic-bezier(.4,0,.2,1),visibility var(--motion-duration) allow-discrete;}
+#drawer.closed{opacity:0;transform:none;}
+#composerControls,#composerAddMenu{transition:none;opacity:1;}
+
+@starting-style{#drawer:not(.closed){opacity:0;}}
+@media(prefers-reduced-motion:reduce){#drawer,#composerControls,#composerAddMenu{animation:none!important;transition:none!important;}}
+
+@keyframes val-dialog-in{from{opacity:0;translate:0 5px;}to{opacity:1;translate:0 0;}}
+dialog[open]{animation:val-dialog-in var(--motion-duration) cubic-bezier(.4,0,.2,1);}
+@media(prefers-reduced-motion:reduce){dialog[open]{animation:none!important;}}
+
+#drawer #controls-tools .chk{margin:0;}
+#drawer #controls-tools .tool-group>p{margin:3px 0;}
+#mcpOptions{margin:0 0 8px;padding-top:0;border-top:0;}
+
+.configure-mcp-link{display:block;width:100%;text-align:start;margin:3px 0 8px;padding:8px 9px!important;border:1px solid var(--border);border-radius:7px;color:var(--accent);font-size:11px;}
+#drawer #configureMCPs{display:none;}
+#drawer .drawer-body,#drawer .settings-page,#drawer #controls-tools{min-width:0;}
+#drawer .engine-field{min-width:0;}
+#drawer .engine-field select{max-width:100%;}
+#drawer .setting-row>span:first-child{min-width:0;overflow-wrap:anywhere;}
+#drawer .mcp-option-fields .setting-row{flex-direction:row;align-items:center;}
+#drawer .mcp-option-fields select{width:auto;min-width:100px;max-width:145px;}
+
+#composerControls[data-motion-closing=true],#composerAddMenu[data-motion-closing=true]{pointer-events:none;}
+#chatwrap{transition:margin-left var(--motion-duration) cubic-bezier(.4,0,.2,1),margin-right var(--motion-duration) cubic-bezier(.4,0,.2,1);}
+@media(prefers-reduced-motion:reduce){#chatwrap{transition:none!important;}}
+
+@media(max-width:760px){#sidebar{transition:transform var(--motion-duration) cubic-bezier(.4,0,.2,1),visibility var(--motion-duration) allow-discrete;}
+/* Floating over the chat, the glass transparency let the composer show through the menu. */
+body.sidebar-open #sidebar{background-color:var(--bg)!important;box-shadow:0 0 32px #0004;}}
+
+#composerControls:popover-open{display:flex;flex-direction:column;overflow:hidden;clip-path:inset(0 round clamp(6px,var(--radius),20px));}
+#composerControls .controls-head{flex:none;position:relative;border-top-left-radius:inherit;border-top-right-radius:inherit;}
+#composerControls .controls-body{flex:0 1 auto;min-height:0;overflow-y:auto;scrollbar-gutter:stable;overscroll-behavior:contain;}
+.animation-setting{padding-bottom:8px;margin-bottom:10px;border-bottom:1px solid var(--border);}
+.animation-setting .setting-row{border:0;min-height:25px;}
+#animationSpeed{width:100%;margin:7px 0 0;accent-color:var(--accent);}
+.animation-endpoints{display:flex;justify-content:space-between;margin:2px 0!important;}
+#animationSaveState:empty{display:none;}
+.context-usage-bar>span{transition-duration:var(--motion-duration);}
+
+button{transition-duration:var(--motion-duration);}
+
+#modelBtn.model-control{width:154px;min-width:0;max-width:154px;flex:0 1 154px;}
+#modelBtnLabel{min-width:0;}
+#searchToggle{flex:none;margin-inline:2px;color:var(--muted);}
+#searchToggle:hover:not(:disabled){color:var(--text);}
+#searchToggle[aria-pressed=true]{color:var(--accent-ink,#101216)!important;background:var(--accent)!important;border-color:color-mix(in srgb,var(--accent) 85%,var(--text))!important;box-shadow:0 2px 8px color-mix(in srgb,var(--accent) 32%,transparent);}
+.agent-small-menu{position:fixed;inset:auto;margin:0;padding:6px;width:230px;max-height:calc(100dvh - 24px);overflow:auto;border:1px solid var(--border);border-radius:12px;background:var(--panel);color:var(--text);box-shadow:var(--panel-shadow);}
+.agent-small-menu:not(:popover-open){display:none;}
+.agent-small-menu button{display:block;width:100%;text-align:start;padding:9px 10px;border:0;background:transparent;border-radius:7px;font-size:12px;}
+.agent-small-menu button[aria-checked=true]{color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent);}
+.agent-small-menu small{display:block;color:var(--muted);line-height:1.5;font-size:10px;margin-top:4px;}
+#permissionMenu .mini{padding:7px 10px;color:var(--muted);}
+#permissionMenu .permission-heading{border-top:1px solid var(--border);margin-top:4px;padding-top:10px;}
+#agentModeBtn{font-size:11px;padding:5px 8px;border-radius:7px;gap:5px;}
+#agentModeBtn #agentModeLabel{max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#agentModeBtn[data-mode=advanced]{color:#ecc0b7;border-color:color-mix(in srgb,#d88e84 34%,transparent);background:color-mix(in srgb,#d88e84 8%,transparent);}
+#agentModeBtn:disabled{opacity:.55;}
+#agentModeMenu{width:min(340px,calc(100vw - 24px));padding:6px;}
+
+
+
+
+#agentModeMenu .mode-check{color:var(--accent);font-size:13px;line-height:1;opacity:0;}
+
+
+
+.agent-mode-warning h3{margin:0 0 8px;font-size:16px;}
+.agent-mode-warning p{color:var(--muted);font-size:12px;line-height:1.55;}
+.agent-mode-warning ul{margin:10px 0 12px;padding-inline-start:20px;color:var(--text);font-size:12px;line-height:1.55;display:grid;gap:4px;}
+.agent-mode-warning .mini{font-size:10px;}
+.agent-mode-warning .danger{background:#b5665a;border-color:#b5665a;color:#fff;font-weight:600;}
+#permissionMenu{width:282px;}
+.tool-approval{max-width:min(640px,calc(100vw - 32px));background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:18px;}
+.tool-approval pre{max-height:45dvh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;}
+.tool-approval>div{display:flex;gap:8px;justify-content:flex-end;}
+.tool-approval>strong{display:block;overflow-wrap:anywhere;}
+.tool-approval>div{flex-wrap:wrap;}
+.tool-approval>div .primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
+.tool-approval-raw{margin:0 0 12px;font-size:11px;color:var(--muted);}
+.tool-approval-raw summary{cursor:pointer;}
+.tool-approval-raw pre{max-height:22dvh;}
+
+.project-strip{position:relative;margin-top:15px;padding:0 4px 3px;min-height:30px;isolation:isolate;}
+#projectBtn{position:static;margin:0;transform:none;max-width:min(300px,100%);}
+.agent-profile-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0 10px;}
+.agent-profile-row select{max-width:160px;}
+/* Same scale as the rest of the panel (labels 12 px, controls 11 px): these two kept the 14 px default. */
+.agent-profile-row label{font-size:12px;color:var(--muted);}
+.agent-profile-row select{font-size:11px;padding:6px 8px;}
+#openSandbox{font-size:11px;padding:8px 9px;}
+#engineUpdates{margin-top:10px;border-top:1px solid var(--border);padding-top:10px;}
+.engine-update-row{padding:9px 0;border-bottom:1px solid var(--border);font-size:11px;}
+.engine-update-row small{display:block;color:var(--muted);margin:3px 0;}
+.engine-update-actions{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;}
+
+
+
+
+
+
+/* Chat stacking context. */
+#chatwrap{isolation:isolate;}
+#releaseNotesDialog{width:min(640px,90vw);max-height:80vh;overflow:auto;border:1px solid #7898;border-radius:16px;background:var(--panel,#202a2d);color:var(--text,#edf3f1);padding:20px;}
+#releaseNotesDialog::backdrop{background:#0008;}#releaseNotesDialog header{display:flex;justify-content:space-between;align-items:center;}#releaseNotesDialog pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.6;}#releaseNotesDialog p{overflow-wrap:anywhere;font-size:12px;opacity:.65;}
+#engineDownloadProgress{padding:12px 0;}#engineDownloadProgress progress{display:block;width:100%;height:8px;accent-color:var(--accent,#96e4ce);margin-top:8px;}
+
+/* Compact inspectors retain scrollbars and responsive controls. */
+#drawer{width:min(520px,calc(100vw - 24px));grid-template-columns:112px minmax(0,1fr);}
+#drawer .drawer-body{padding:10px 12px;overflow-x:hidden;}#drawer .settings-navigation{padding:10px 6px;}#settingsNav button{padding:7px 5px;font-size:11px;}
+#composerControls{width:min(360px,calc(100vw - var(--sidebar-width) - 24px));}#composerControls .controls-body{padding:10px 12px;}#projectDialog,#addModelDialog{width:min(320px,calc(100vw - 24px));}
+#drawer input,#drawer select,#drawer textarea{min-width:0;max-width:100%;box-sizing:border-box;}#drawer .system-metrics{grid-template-columns:repeat(2,minmax(0,1fr));}#drawer .setting-row{gap:8px;}
+#releaseNotesDialog{width:min(530px,calc(100vw - 32px));padding:18px;} .release-notes-content{overflow-wrap:anywhere;font-size:13px;line-height:1.6;}.release-notes-content ul{padding-inline-start:20px;}.release-notes-content a{color:var(--accent);}.release-notes-content div{margin:5px 0;}
+.market-toolbar{display:flex;flex-wrap:wrap;gap:5px;}.market-toolbar input{flex:1 1 150px;}.market-toolbar select{flex:1 1 110px;}#customMCPJson{width:100%;font:11px/1.5 Consolas,monospace;resize:vertical;}.market-item{border:1px solid var(--border);border-radius:9px;padding:10px;margin:8px 0;overflow-wrap:anywhere;}.market-item strong,.market-item small{display:block;}.market-item small{color:var(--muted);font-size:10px;margin-top:4px;}.market-installed{display:flex;gap:7px;margin:10px 0;overflow-wrap:anywhere;}
+@media(max-width:600px){#drawer{grid-template-columns:100px minmax(0,1fr);}#composerControls{width:calc(100vw - 24px);}}

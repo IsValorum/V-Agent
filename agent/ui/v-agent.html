@@ -18,7 +18,11 @@ try {
 } catch {}
 </script>
 <style>
-/*@include styles/base.css*/
+/*@include styles/base/01-foundation.css*/
+/*@include styles/base/02-workspace.css*/
+/*@include styles/base/03-chrome.css*/
+/*@include styles/base/04-surfaces-and-menus.css*/
+/*@include styles/base/05-panels.css*/
 </style>
 <link rel="stylesheet" href="/assets/ui-panels.css">
 <script src="/assets/ui-mcp.js"></script>
@@ -282,29 +286,35 @@ try{
 
 
 <script>
-/*@include app/core-connection.js*/
+/*@include app/core/core-connection.js*/
 (async function initializeAgent() {
-/*@include app/startup.js*/
-/*@include app/markdown.js*/
-/*@include app/conversations.js*/
-/*@include app/chat.js*/
-/*@include app/composer.js*/
-/*@include app/model-controls.js*/
-/*@include app/settings.js*/
-/*@include app/engine-controls.js*/
-/*@include app/model-panel.js*/
-/*@include app/sessions.js*/
-/*@include app/shell.js*/
-/*@include app/windows.js*/
-/*@include app/tools.js*/
-/*@include app/palette.js*/
-/*@include app/load-settings.js*/
-/*@include app/plugins.js*/
-/*@include app/tour.js*/
-/*@include app/models.js*/
-/*@include app/controls.js*/
-/*@include app/events.js*/
-/*@include app/polish.js*/
+/*@include app/core/startup.js*/
+/*@include app/chat/markdown.js*/
+/*@include app/chat/conversations.js*/
+/*@include app/chat/chat.js*/
+/*@include app/chat/composer.js*/
+/*@include app/models/model-controls.js*/
+/*@include app/settings/settings.js*/
+/*@include app/models/engine-controls.js*/
+/*@include app/models/model-panel.js*/
+/*@include app/chat/sessions.js*/
+/*@include app/settings/settings-hub.js*/
+/*@include app/chat/composer-menu.js*/
+/*@include app/settings/client-preferences.js*/
+/*@include app/agent/agent-controls.js*/
+/*@include app/agent/agent-modes.js*/
+/*@include app/models/engines-and-updates.js*/
+/*@include app/core/window-chrome.js*/
+/*@include app/core/windows.js*/
+/*@include app/agent/tools.js*/
+/*@include app/settings/palette.js*/
+/*@include app/models/load-settings.js*/
+/*@include app/agent/plugins.js*/
+/*@include app/core/tour.js*/
+/*@include app/models/models.js*/
+/*@include app/core/controls.js*/
+/*@include app/core/events.js*/
+/*@include app/core/polish.js*/
 })().catch(error=>{console.error(error);document.body.classList.add("app-ready");(window.__finishBoot?window.__finishBoot(true):document.getElementById("bootCover")?.remove());const t=document.getElementById("toast");t.hidden=false;t.textContent="No se pudo iniciar la interfaz: "+error.message;});
 </script>
 </body>

@@ -3,7 +3,7 @@ import copy
 import json
 
 def model_history(history):
-    """The same rules as conversationForModel in the interface (ui/app/composer.js); keep both in step."""
+    """The same rules as conversationForModel in the interface (ui/app/chat/composer.js); keep both in step."""
     result=[]
     last_user=max((i for i,m in enumerate(history) if m.get('role')=='user'),default=-1)
     for index,message in enumerate(history):

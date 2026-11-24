@@ -56,7 +56,7 @@ class SyntaxCheckTests(unittest.TestCase):
 class PreviewSandboxTests(unittest.TestCase):
     def test_probe_matches_the_preview_iframe(self):
         # The preview iframe: sandbox="allow-scripts allow-modals", opaque origin.
-        frame = Path('agent/ui/app/markdown.js').read_text(encoding='utf-8')
+        frame = Path('agent/ui/app/chat/markdown.js').read_text(encoding='utf-8')
         self.assertIn("setAttribute('sandbox','allow-scripts allow-modals')", frame)
         for denied in ("'localStorage'", "'sessionStorage'", "'cookie'", 'IDBFactory', 'CacheStorage', 'window.open'):
             self.assertIn(denied, render_check.SANDBOX_VISTA_PREVIA)

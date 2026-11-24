@@ -21,6 +21,8 @@ sys.path[:0] = ['agent', '.']
 import engine_recommendations  # noqa: E402
 import engine_updates  # noqa: E402
 import maya_engine  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from ui_sources import ui_source  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -456,7 +458,7 @@ class NonForcedAndTranslationsTests(unittest.TestCase):
         self.assertEqual(maya_row['status'], 'optional')
         self.assertEqual(maya_row['asset'], '')
 
-        tour_js = (ROOT / 'agent' / 'ui' / 'app' / 'tour.js').read_text(encoding='utf8')
+        tour_js = ui_source('tour.js')
         self.assertIn("if(chosenKey==='maya')", tour_js)
         self.assertNotIn("recommendedKey='maya'", tour_js)
         self.assertIn("'/api/harness/maya/status'", tour_js)
@@ -614,10 +616,10 @@ class EngineManagerMayaTests(unittest.TestCase):
         self.assertEqual(mgr.settings['maya']['backend'], 'cuda')
 
     def test_ui_exposes_intermediate_update_overlay_and_four_engine_custom_pickers(self):
-        tour_js = (ROOT / 'agent' / 'ui' / 'app' / 'tour.js').read_text(encoding='utf8')
+        tour_js = ui_source('tour.js')
         self.assertIn('appUpdateOverlay', tour_js)
         self.assertIn('Instalando nueva actualización de V-Agent…', tour_js)
-        ec_js = (ROOT / 'agent' / 'ui' / 'app' / 'engine-controls.js').read_text(encoding='utf8')
+        ec_js = ui_source('engine-controls.js')
         for elem_id in (
             'strataVariant', 'strataCustom', 'strataExecutable', 'browseStrata',
             'rustVariant', 'rustCustom', 'rustExecutable', 'browseRust',
@@ -639,9 +641,9 @@ class MayaAgentIntegrationTests(unittest.TestCase):
             store = ModelPreferences(Path(folder) / 'prefs.json')
             store.save('maya--abc', {'effort': 'max'})
             self.assertEqual(store.records['maya--abc']['effort'], 'max')
-        startup = (ROOT / 'agent' / 'ui' / 'app' / 'startup.js').read_text(encoding='utf-8')
+        startup = ui_source('startup.js')
         self.assertIn('"xhigh","max"].includes(S.effort)', startup)
-        self.assertIn("max:'Máximo'", (ROOT / 'agent' / 'ui' / 'app' / 'shell.js').read_text(encoding='utf-8'))
+        self.assertIn("max:'Máximo'", ui_source('agent-controls.js'))
 
     def test_tool_budget_finds_a_tokenizer_relative_to_the_maya_checkout(self):
         sys.path.insert(0, str(ROOT / 'tools'))

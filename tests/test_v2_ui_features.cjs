@@ -103,7 +103,7 @@ class FakeElement {
 // 1. Collapsible Tool Trace (chat.js)
 // ---------------------------------------------------------------------------
 {
-  const chatSrc = fs.readFileSync(path.join(ROOT, 'agent/ui/app/chat.js'), 'utf8');
+  const chatSrc = fs.readFileSync(path.join(ROOT, 'agent/ui/app/chat/chat.js'), 'utf8');
   const start = chatSrc.indexOf('function toolName(call)');
   const end = chatSrc.indexOf('function refreshChatTranslations()');
   assert(start >= 0 && end > start, 'chat.js slice anchors missing');
@@ -210,7 +210,7 @@ class FakeElement {
 // 2. Minor updates (core-connection.js live hot-patch + events)
 // ---------------------------------------------------------------------------
 {
-  const ccSrc = fs.readFileSync(path.join(ROOT, 'agent/ui/app/core-connection.js'), 'utf8');
+  const ccSrc = fs.readFileSync(path.join(ROOT, 'agent/ui/app/core/core-connection.js'), 'utf8');
   const scripts = [];
   const head = new FakeElement('head');
   const docBody = new FakeElement('body');
@@ -263,7 +263,7 @@ class FakeElement {
 // 3 & 4. Optional local engines + No forced install popups (shell.js, tour.js, engine-controls.js)
 // ---------------------------------------------------------------------------
 {
-  const shellSrc = fs.readFileSync(path.join(ROOT, 'agent/ui/app/shell.js'), 'utf8');
+  const shellSrc = fs.readFileSync(path.join(ROOT, 'agent/ui/app/models/engines-and-updates.js'), 'utf8');
   const sBegin = shellSrc.indexOf('  function renderUpdateStack(state){');
   const sEnd = shellSrc.indexOf('  async function pollUpdates(', sBegin);
   assert(sBegin >= 0 && sEnd > sBegin);
@@ -327,11 +327,11 @@ class FakeElement {
   assert.equal(stack.children.length, 1, 'installed engine update should appear cleanly');
 
   // Verify tour.js & engine-controls.js expose optional engine choice and API header controls
-  const tourSrc = fs.readFileSync(path.join(ROOT, 'agent/ui/app/tour.js'), 'utf8');
+  const tourSrc = fs.readFileSync(path.join(ROOT, 'agent/ui/app/core/tour.js'), 'utf8');
   assert(tourSrc.includes('Motor o API (opcional)'), 'tour must mark local engine/API step optional');
   assert(tourSrc.includes('tour-engine-select'), 'tour must allow choosing any local engine');
 
-  const ecSrc = fs.readFileSync(path.join(ROOT, 'agent/ui/app/engine-controls.js'), 'utf8');
+  const ecSrc = fs.readFileSync(path.join(ROOT, 'agent/ui/app/models/engine-controls.js'), 'utf8');
   for (const id of ['apiPreset', 'apiAuthMode', 'apiUserAgentPreset', 'apiUserAgent', 'apiSessionMode', 'apiAnthropicBeta', 'apiAzureVersion', 'apiHttpReferer', 'apiXTitle', 'apiExtraHeaders']) {
     assert(ecSrc.includes(`id="${id}"`) && ecSrc.includes(`#${id}`), `missing control ${id} in engine-controls.js`);
   }

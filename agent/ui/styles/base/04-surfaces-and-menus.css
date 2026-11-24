@@ -1,0 +1,93 @@
+
+/* Stable top-layer surfaces: no hover-triggered glass recompositing or resize feedback. */
+#composerControls {transform:translate(-50%,-50%);background:var(--panel);backdrop-filter:none;-webkit-backdrop-filter:none;isolation:isolate;}
+#composerControls .controls-head {background:linear-gradient(100deg,color-mix(in srgb,var(--accent) 5%,var(--panel)),var(--panel));}
+#composerControls .model-grid>section {border:1px solid var(--border);border-radius:12px;padding:16px;}
+#composerControls .model-grid {gap:14px;}#composerControls .model-footer {background:var(--panel);}
+.project-strip {display:flex;align-items:center;gap:8px;padding:0 12px 8px;min-width:0;}
+#projectBtn {font-size:11px;max-width:100%;padding:5px 8px;border-radius:7px;}
+#projectBtn span {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}#projectBtn[data-selected=true] {color:var(--accent);}
+#projectDialog {width:min(520px,calc(100vw - 24px));max-height:80dvh;overflow:auto;background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+#projectDialog::backdrop {background:#080e12b8;} .project-list {display:grid;gap:6px;margin:14px 0;}
+.project-item {text-align:start;display:grid;gap:4px;padding:10px 12px;}.project-item small {overflow-wrap:anywhere;color:var(--muted);font-size:10px;}
+.project-item[aria-pressed=true] {border-color:var(--accent);color:var(--accent);}.project-path {display:flex;gap:8px;}.project-path input {flex:1;min-width:0;}
+#visionSettings {border-top:1px solid var(--border);margin-top:14px;padding-top:12px;}#visionSettings summary {cursor:pointer;font-size:12px;}
+#visionSettings .vision-path {display:flex;gap:6px;margin:8px 0;}#visionSettings input[type=text] {min-width:0;flex:1;width:100%;font-size:11px;}
+#visionStatus {font-size:11px;color:var(--muted);line-height:1.6;}#visionSettings button {font-size:11px;}
+
+
+/* Shared menu rendering: no live backdrop filters or full-screen filtered/blended layers.
+   Blur, gradient and grain are retained in theme bitmaps painted only when needed. */
+#ambient {contain:strict;background-image:var(--ambient-image);background-size:100% 100%;background-repeat:no-repeat;}
+.glass,.topbar,.compose-surface,#drawer,#scrim,dialog::backdrop,[popover],[popover]::backdrop {
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+}
+.glass,.topbar,.compose-surface,#drawer {
+  --glass-tint:color-mix(in srgb,var(--panel) calc(var(--alpha)*100%),transparent);
+  background-color:var(--bg);
+  background-image:linear-gradient(var(--glass-tint),var(--glass-tint)),var(--glass-image);
+  background-size:auto,100vw 100vh;background-position:0 0,center;background-repeat:no-repeat;background-attachment:scroll,fixed;
+}
+.compose-surface {--glass-tint:color-mix(in srgb,var(--panel) calc(var(--composer-alpha)*100%),transparent);}
+#drawer {--glass-tint:color-mix(in srgb,var(--panel) calc(var(--drawer-alpha)*100%),transparent);}
+#composerControls {transform:none;height:fit-content;margin:auto;}
+:where(dialog,[popover],#drawer) button,:where(dialog,[popover],#drawer) select {transition:none;}
+
+
+#engineSettings{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:16px;background:color-mix(in srgb,var(--accent) 3%,var(--panel));} .engine-select-line{display:flex;align-items:center;gap:10px;margin:5px 0;} .engine-select-line label{color:var(--muted);font-size:12px;} .engine-select-line select,.engine-select-line input{flex:1;min-width:0;} #engineSettings button{font-size:11px;} #engineSettings input,#engineSettings select{font-size:12px;} #apiOptions{display:grid;gap:7px;margin-top:12px;}#apiOptions label{font-size:11px;color:var(--muted);} #engineSettings details{margin:10px 0;font-size:11px;color:var(--muted);}
+
+/* Compact, draggable native scrollbars; no hover-triggered sizing or blur. */
+#sidebar {height:100%;min-height:0;overflow:hidden;}
+#sidebar > .brand,#sidebar > #newchat,#sidebar > .side-head {flex-shrink:0;}
+#convs {min-height:0;}
+.sidebar-bottom {display:flex;flex-direction:column;flex:0 0 auto;max-height:48%;min-height:74px;}
+.sidebar-foot {display:flex;align-items:center;flex:none;}
+#engineCard {min-height:0;overflow-y:auto;}
+#gear {font-size:11px;color:var(--text);}
+#drawer {width:min(380px,calc(100vw - 24px));top:12px;inset-inline-end:12px;bottom:auto;height:min(650px,calc(100dvh - 24px));border:1px solid var(--border);border-radius:12px;}
+#drawer.closed {transform:translateX(calc(100% + 16px));}
+.drawer-head {padding:12px 14px 10px;flex:none;}
+.drawer-head h2 {font-size:14px;}
+.drawer-body .mode-toggle {margin:4px 0 9px;padding:3px;}
+.drawer-body .mode-toggle button {padding:5px;font-size:11px;}
+.drawer-body .settings-group>summary {padding:10px 0;}
+.drawer-body {min-height:0;flex:1;padding:0 12px 12px;}
+#composerControls {width:min(760px,calc(100vw - 24px));}
+#composerControls[data-pane="tools"] {width:min(460px,calc(100vw - 24px));}
+#composerControls .controls-head {padding:8px 12px;}
+#composerControls .controls-body {padding:0 12px 10px;}
+#composerControls .model-grid {gap:10px;}
+#composerControls .model-grid>section {padding:10px;border-radius:9px;}
+#composerControls .model-grid h3 {margin-bottom:8px;}
+#composerControls .model-top {gap:8px;margin-bottom:10px;}
+#composerControls .sec {padding-top:10px;}
+#composerControls .sec + .sec {margin-top:10px;}
+#composerControls .row,#drawer .row {margin:7px 0;gap:8px;}
+#composerControls .stack-field {margin-bottom:8px;}
+#composerControls button,#composerControls select,#composerControls input[type=text],#composerControls input[type=number],#drawer select {padding:6px 8px;font-size:11px;min-height:30px;}
+#composerControls .icon-btn {padding:4px;min-height:26px;}
+#composerControls .help-trigger {min-height:16px;padding:0;}
+#composerControls #model {padding:7px 8px;margin-top:4px;}
+#composerControls .power-row {padding-bottom:8px;margin-bottom:8px;}
+#composerControls .model-footer {padding:8px 0 0;}
+#composerControls .model-actions {margin-top:8px;gap:6px;}
+#composerControls .model-library-actions {margin-bottom:0;}
+#composerControls .mini {margin-top:6px;font-size:10px;}
+#composerControls #draftSettings {margin-block:6px;padding:7px;}
+#engineSettings {padding:8px 10px;margin:10px 0;border:1px solid var(--border);border-radius:9px;}
+.engine-select-line {display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.engine-select-line label {flex:none;font-size:11px;color:var(--muted);}
+.engine-select-line select,.engine-select-line input {min-width:0;flex:1;}
+.engine-select-line button {flex:none;}
+#apiOptions {display:grid;grid-template-columns:1fr 2fr;gap:7px;align-items:center;}
+#apiOptions input {min-width:0;width:100%;font-size:11px;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:7px;}
+#apiOptions #connectApi {grid-column:2;justify-self:end;}
+#engineBuild {color:var(--muted);font-variant-numeric:tabular-nums;}
+#engineHint:empty {display:none;}
+#composerControls,.drawer-body {overflow-y:scroll;overflow-x:hidden;scrollbar-gutter:stable;overscroll-behavior:contain;}
+:where(#composerControls,.drawer-body,#convs,.tool-body pre,.think-body,dialog) {scrollbar-width:auto;scrollbar-color:auto;}
+:where(#composerControls,.drawer-body,#convs,.tool-body pre,.think-body,dialog)::-webkit-scrollbar {width:12px;height:12px;}
+:where(#composerControls,.drawer-body,#convs,.tool-body pre,.think-body,dialog)::-webkit-scrollbar-track {background:color-mix(in srgb,var(--text) 5%,var(--panel));border-radius:8px;}
+:where(#composerControls,.drawer-body,#convs,.tool-body pre,.think-body,dialog)::-webkit-scrollbar-thumb {background:color-mix(in srgb,var(--text) 32%,var(--panel));border:3px solid var(--panel);border-radius:8px;min-height:32px;}
+:where(#composerControls,.drawer-body,#convs,.tool-body pre,.think-body,dialog)::-webkit-scrollbar-thumb:hover {background:color-mix(in srgb,var(--text) 52%,var(--panel));}
+@media(max-width:640px){#composerControls .model-grid{grid-template-columns:1fr;}#composerControls .model-top{grid-template-columns:1fr;}#composerControls .engine-select-line{flex-wrap:wrap;}#composerControls .engine-select-line select{flex-basis:60%;}}

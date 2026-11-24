@@ -4,7 +4,7 @@ const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');
 
-const source = fs.readFileSync('agent/ui/app/composer.js', 'utf8');
+const source = fs.readFileSync('agent/ui/app/chat/composer.js', 'utf8');
 const start = source.indexOf('function conversationForModel(');
 const end = source.indexOf('\nasync function compactConversationContext');
 assert(start >= 0 && end > start, 'conversationForModel not found');

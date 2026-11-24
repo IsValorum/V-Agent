@@ -1,0 +1,95 @@
+
+
+/* Task-oriented panels: shared compact rows, no empty full-width engine cards. */
+#composerControls {width:min(620px,calc(100vw - 24px));}
+#composerControls[data-pane="tools"] {width:min(440px,calc(100vw - 24px));}
+#composerControls .model-grid {display:block;}
+#composerControls .model-grid>section {border:0;padding:8px 0 2px;border-radius:0;}
+#composerControls .model-top {grid-template-columns:1fr;margin:7px 0;gap:5px;}
+#composerControls .model-library-actions {display:flex;gap:6px;align-items:center;}
+#composerControls #modelFilter {flex:1;min-width:50px;width:130px;font-size:11px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);}
+#modelCount {margin-inline-start:8px;color:var(--muted);font-size:10px;font-weight:400;}
+#composerControls .section-tabs,#drawer .section-tabs {display:flex;gap:4px;border-bottom:1px solid var(--border);padding:4px 0 6px;}
+.section-tabs button {flex:1;min-width:0;border:0;background:transparent;color:var(--muted);padding:6px 9px;font-size:12px;border-radius:6px;}
+.section-tabs button[aria-selected=true] {background:color-mix(in srgb,var(--accent) 10%,var(--panel));color:var(--text);}
+#engineSettings {border:0;border-bottom:1px solid var(--border);border-radius:0;padding:5px 0;margin:0 0 7px;background:transparent;}
+.engine-bar {display:flex;align-items:end;gap:7px;}
+.engine-field {flex:1;min-width:0;display:grid;gap:3px;}
+.engine-field label {font-size:10px;color:var(--muted);}
+.engine-field select {width:100%;min-width:0;}
+#composerControls #engineSettings details {margin:4px 0 0;font-size:11px;}
+#engineSettings details>summary {cursor:pointer;color:var(--muted);padding:3px 0;}
+.engine-advanced-body {padding:5px 0;display:grid;gap:5px;}
+.engine-inline-field {display:flex;align-items:center;gap:8px;}
+#engineSettings #llamaLayers {width:7ch;flex:none;padding:4px 6px;}
+#engineSettings #engineBuild {margin:0 0 0 auto;font-size:10px;}
+#composerControls #engineSettings .power-row {border:0;padding:3px 0 0;margin:0;min-height:26px;}
+#composerControls #engineSettings .power-row button {padding:3px 6px;min-height:25px;}
+#composerControls .model-grid .row {margin:6px 0;min-height:26px;}
+#composerControls .model-grid .row input[type=range] {flex:1;max-width:none;width:auto;min-width:70px;}
+#composerControls .model-grid .row output {flex:none;min-width:42px;text-align:end;}
+#composerControls .model-grid .row select {width:auto;max-width:60%;min-width:100px;}
+#composerControls #contextUsage {margin:5px 0 9px;}
+#composerControls #contextUsageNumbers {font-size:12px;}
+#composerControls #ctxApply {margin-top:7px;padding:5px 9px;}
+#composerControls .model-footer {padding:7px 0 3px;}
+#composerControls .loaded-row {margin:0 0 5px;font-size:10px;}
+#composerControls .model-actions {margin:4px 0 0;}
+#composerControls .model-actions button {padding:5px 8px;min-height:29px;}
+#composerControls #modelHint:empty,#composerControls #modelStatus:empty {display:none;}
+#templateSettings summary {padding:7px 0;}
+#templateRow {border:0;margin:0;}
+#creatorNotice {margin:5px 0 8px;}
+#composerControls #controls-tools>.sec {padding-top:6px;}
+#composerControls .tool-group {display:grid;grid-template-columns:1fr 1fr;gap:5px 8px;padding:8px 0;margin:0;}
+#composerControls .tool-group>.group-title,#composerControls .tool-group>h3,#composerControls .tool-group>.row,#composerControls .tool-group>p {grid-column:1/-1;margin:0;}
+#composerControls .tool-group h3 {font-size:11px;}
+#composerControls .chk {padding:3px 0;margin:0;font-size:12px;min-height:24px;}
+#composerControls .chk.sub {padding-inline-start:0;}
+#composerControls #mcpConnections {margin:0;}
+#composerControls #mcpConnections>summary {padding:7px 0;font-size:11px;}
+#connectionsCount {margin-inline-start:auto;font-size:10px;}
+#composerControls #mcpHealth {margin:4px 0;}
+#composerControls #mcpTokens {margin:3px 0 5px!important;}
+#drawer {height:auto;max-height:min(620px,calc(100dvh - 24px));}
+#drawer .drawer-body {flex:0 1 auto;max-height:min(520px,calc(100dvh - 90px));}
+#drawer .section-tabs {position:sticky;top:0;z-index:2;background:var(--panel);margin-bottom:7px;}
+#drawer .row {margin:5px 0;min-height:26px;}
+#drawer .settings-group>summary {padding:8px 0;}
+#drawer .theme-actions {margin-top:8px;gap:5px;}
+#drawer .theme-save-line {margin-top:6px;}
+#drawer #settings-history button {font-size:11px;padding:6px 8px;}
+#projectDialog {width:min(460px,calc(100vw - 24px));padding:12px;max-height:calc(100dvh - 32px);}
+#projectDialog .controls-head {padding:0 0 8px;}
+#projectList {max-height:min(240px,35dvh);overflow-y:auto;scrollbar-gutter:stable;}
+#projectDialog .project-item {padding:7px 9px;gap:2px;font-size:12px;}
+#projectDialog .project-path {margin-top:8px;}
+#projectDialog input,#projectDialog button {font-size:11px;padding:6px 8px;}
+#addModelDialog {width:min(450px,calc(100vw - 24px));padding:12px;}
+#addModelDialog .dlg-body {padding:10px 0 0;gap:9px;}
+#addModelDialog label {font-size:11px;}
+#addModelDialog button,#addModelDialog input {font-size:12px;padding:6px 8px;}
+#addModelDialog .settings-group>summary {padding:8px 0;}
+dialog .dlg-head {padding:8px 12px;}
+@media(max-width:480px){.engine-bar{flex-wrap:wrap;}.engine-field{min-width:120px;}#composerControls .model-grid .row select{max-width:55%;}}
+
+
+#composerControls .tool-group>.check-line:has(.group-title),#composerControls .tool-group:has(#f_hf)>.check-line {grid-column:1/-1;}
+#composerControls .context-setting {gap:3px;}
+#composerControls #ctxInput {min-height:20px;height:20px;}
+#composerControls .context-ticks {font-size:9px;}
+#composerControls .context-setting #ctxValue {font-size:12px;}
+#composerControls #ctxTarget {font-size:10px;margin:2px 0;}
+#composerControls #controls-context>p.mini {font-size:10px;margin:5px 0;}
+#composerControls .context-setting .row {margin:1px 0;min-height:22px;}
+#composerControls #draftSettings {display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:5px 8px;padding:7px 0;border-radius:0;}
+#composerControls #draftSettings .stack-field {margin:0;}
+#composerControls #draftSettings .field-label {margin-bottom:4px;}
+#composerControls #draftSettings .row {display:block;margin:0;}
+#composerControls #draftSettings>.row {grid-column:2;grid-row:1;}
+#composerControls #draftSettings .row label {display:block;margin-bottom:4px;font-size:11px;}
+#composerControls #draftSettings .row select {width:100%;max-width:none;}
+#composerControls #draftBrowse {grid-column:1;justify-self:start;}
+#composerControls #draftStatus,#composerControls #draftReload {grid-column:1/-1;}
+#composerControls #draftStatus:empty,#composerControls #ctxStatus:empty {display:none;}
+#drawer .group-body>p.mini {margin:5px 0 8px;}
