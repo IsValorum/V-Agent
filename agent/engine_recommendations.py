@@ -139,7 +139,7 @@ def recommend(profile, releases):
         _entry('strata', strata,
                (gpu_facts if nvidia else 'Strata Poly necesita una GPU NVIDIA y un controlador CUDA 13')
                + ('' if strata else ' · no recomendado para esta GPU o controlador'), releases, CUDA_STRATA_MIN_DRIVER),
-        _entry('rust', True, 'Strata Rust es el motor para Qwen3.5/3.6; instálalo si usas esas familias de modelos', releases, None),
+        _entry('rust', True, 'Motor nativo en Rust para modelos MoE (Qwen, Gemma 4, DeepSeek, GLM, Inkling…); cada versión amplía las familias que admite', releases, None),
         _entry('maya', False, maya_reason, releases, None),
     ]
     order = {'llama-cuda': 0, 'llama-vulkan': 1, 'llama-cpu': 2, 'strata': 3, 'rust': 4, 'maya': 5}

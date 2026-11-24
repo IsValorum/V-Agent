@@ -2565,9 +2565,60 @@ def guardar_y_verificar(path, content, workspace, *, create_only=False):
             "chars": len(content), "verificacion": veredicto}
 
 
+class _CountedBody:
+    """The request's input stream, counting what a handler read of its body (see Handler.handle_one_request)."""
+
+    def __init__(self, raw):
+        self.raw, self.taken = raw, 0
+
+    def read(self, size=-1):
+        data = self.raw.read(size)
+        self.taken += len(data)
+        return data
+
+    def readline(self, *args):
+        data = self.raw.readline(*args)
+        self.taken += len(data)
+        return data
+
+    def __getattr__(self, name):
+        return getattr(self.raw, name)
+
+
+# The most of an unread body discarded to keep the connection; a larger one closes it instead.
+_DRAIN_LIMIT = 8 * 2**20
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     disable_nagle_algorithm = True
+
+    def handle_one_request(self):
+        """A handler that answers without reading the request body (e.g. POST /api/harness/admin/stop with "{}")
+        left those bytes on the kept-alive connection: the next request on it was parsed from them and failed
+        with 501 "Unsupported method". Whatever a handler leaves unread is discarded here, for every route."""
+        try:
+            super().handle_one_request()
+        finally:
+            counted = self.__dict__.get('rfile')
+            if isinstance(counted, _CountedBody):
+                self.rfile = counted.raw
+                try:
+                    left = int((self.headers or {}).get('Content-Length') or 0) - counted.taken
+                except (TypeError, ValueError):
+                    left, self.close_connection = 0, True
+                if left > 0 and not self.close_connection:
+                    if left > _DRAIN_LIMIT:
+                        self.close_connection = True
+                    else:
+                        try:
+                            while left > 0:
+                                chunk = self.rfile.read(min(left, 2**16))
+                                if not chunk:
+                                    break
+                                left -= len(chunk)
+                        except OSError:
+                            self.close_connection = True
 
     def handle(self):
         try:
@@ -2585,6 +2636,8 @@ class Handler(BaseHTTPRequestHandler):
         Host, so only the loopback names this server really answers to are accepted."""
         if not super().parse_request():
             return False
+        if not isinstance(self.rfile, _CountedBody):
+            self.rfile = _CountedBody(self.rfile)      # what the handler reads of the body is counted
         host = (self.headers.get('Host') or '').strip().lower()
         name = host.rsplit(':', 1)[0] if host.count(':') == 1 or host.startswith('[') and ']:' in host else host
         if name in ('127.0.0.1', 'localhost', '[::1]'):

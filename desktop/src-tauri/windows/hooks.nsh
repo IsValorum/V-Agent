@@ -1,5 +1,18 @@
 ; V-Agent installer hooks (Tauri NSIS).
 
+; Default folder for a new per-user install: %LOCALAPPDATA%\Programs\V-Agent (where Windows puts per-user programs),
+; not Tauri's %LOCALAPPDATA%\V-Agent right next to %LOCALAPPDATA%\V-Agent-Data, which read like two copies of the app.
+; An earlier install keeps its folder: Tauri has already set it from the registry, and updates run silently (/S),
+; where this page callback does not run at all.
+!define MUI_CUSTOMFUNCTION_GUIINIT VAgentDefaultFolder
+Function VAgentDefaultFolder
+  ReadRegStr $R0 HKCU "Software\V-Agent\V-Agent" ""
+  ${If} $R0 == ""
+  ${AndIf} $INSTDIR == "$LOCALAPPDATA\V-Agent"
+    StrCpy $INSTDIR "$LOCALAPPDATA\Programs\V-Agent"
+  ${EndIf}
+FunctionEnd
+
 ; The language chosen in the installer's selector ($LANGUAGE, a Windows LANGID) is saved next to
 ; V-Agent.exe. On first start V-Agent uses it for the interface and the interactive tutorial.
 !macro NSIS_HOOK_POSTINSTALL

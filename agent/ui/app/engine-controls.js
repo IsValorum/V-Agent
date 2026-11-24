@@ -276,7 +276,7 @@ function setupEngineControls(){
     if(kind==='maya'&&!lastMayaStatus)refreshMayaPrereqs(true);
     syncEngineVersions();$('#applyEngine').disabled=busy||engineBusy||!engineFormDirty();
     $('#load').disabled=busy||engineBusy||!modelStateKnown||!$('#model').value||!!loadedModel||engineFormDirty();
-    $('#engineHint').textContent=engineFormDirty()?(loadedModel?uiText(activeEngine==='api'?'Deja de usar el modelo actual antes de cambiar la conexión.':'Descarga el modelo actual antes de cambiar de motor.'):uiText('Pendiente de aplicar.')):(kind==='rust'?uiText('Strata Rust: modelos Qwen3.5/3.6. Para otras familias, elige llama.cpp.'):kind==='maya'?uiText('Project Maya: GLM-5.3, DeepSeek-V4.1, MiniMax-M3.1 y Qwen-3.8 locales.'):'');
+    $('#engineHint').textContent=engineFormDirty()?(loadedModel?uiText(activeEngine==='api'?'Deja de usar el modelo actual antes de cambiar la conexión.':'Descarga el modelo actual antes de cambiar de motor.'):uiText('Pendiente de aplicar.')):(kind==='rust'?uiText('Strata Rust: cada versión amplía las familias de modelos que admite; si un modelo no es compatible, se indica al cargarlo.'):kind==='maya'?uiText('Project Maya: GLM-5.3, DeepSeek-V4.1, MiniMax-M3.1 y Qwen-3.8 locales.'):'');
     const power=$('#engineToggle').closest('.power-row');if(power)power.hidden=['llama','rust','maya'].includes(activeEngine)||engineFormDirty();
     $('#composerControls').dataset.source=kind==='api'?'api':'local';
   };

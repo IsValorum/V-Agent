@@ -120,7 +120,9 @@
     const transferSection=document.createElement('details');transferSection.id='modelTransfer';transferSection.className='settings-group model-transfer';
     const transferTitle=document.createElement('summary');transferTitle.textContent=T('Importar y exportar');
     transfer=win.querySelector('[data-pane="transfer"]');transfer.hidden=false;transferSection.append(transferTitle,transfer);
-    document.getElementById('controls-model').append(transferSection);
+    // Right under the model selector and "+ Add model", where bringing models in belongs, not at the panel's end.
+    const libraryActions=document.querySelector('#controls-model .model-library-actions');
+    if(libraryActions)libraryActions.after(transferSection);else document.getElementById('controls-model').append(transferSection);
     transferSection.addEventListener('toggle',()=>{if(transferSection.open){scan();fillExportModels();pollMove();}});
     window.VALWindows?.register('models',win,{onOpen:()=>{refreshJobs();if(!document.querySelector('#hubResults .hub-item'))search();},onClose:()=>clearInterval(poll)});
     const query=win.querySelector('#hubQuery');query.oninput=()=>{clearTimeout(searchTimer);searchTimer=setTimeout(search,380);};

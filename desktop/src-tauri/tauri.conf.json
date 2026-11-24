@@ -43,8 +43,23 @@
           "English",
           "PortugueseBR",
           "French",
-          "German"
+          "German",
+          "Japanese",
+          "SimpChinese",
+          "Korean",
+          "Hindi",
+          "Indonesian",
+          "Vietnamese",
+          "Thai",
+          "Turkish",
+          "Arabic"
         ],
+        "customLanguageFiles": {
+          "Hindi": "windows/languages/Hindi.nsh",
+          "Indonesian": "windows/languages/Indonesian.nsh",
+          "Vietnamese": "windows/languages/Vietnamese.nsh",
+          "Thai": "windows/languages/Thai.nsh"
+        },
         "displayLanguageSelector": true,
         "installerIcon": "icons/icon.ico",
         "installerHooks": "windows/hooks.nsh",

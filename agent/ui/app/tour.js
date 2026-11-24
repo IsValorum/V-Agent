@@ -6,22 +6,25 @@ const VAL_TOUR=(()=>{
     {title:'Bienvenido a V-Agent',text:'Un agente de IA que funciona en tu equipo. Este recorrido te muestra dónde está cada cosa y para qué sirve. Puedes salir con Esc y repetirlo desde Configuración.'},
     {engine:true},
     {sel:'#newchat',title:'Nuevo chat',text:'Empieza una conversación. Cada chat tiene su propia carpeta de trabajo aislada, donde el agente guarda los archivos que crea.'},
+    {sel:'#newTempChat',title:'Chat temporal',text:'Una conversación que no se guarda en el historial. Si quieres conservarla, pulsa Guardar chat.'},
     {sel:'#convs',title:'Tus conversaciones',text:'Se guardan solo en este equipo. Con ⋯ puedes archivarlas, exportarlas o borrarlas; con muchas, aparece un buscador.'},
     {sel:'#sidebarMarket',title:'Extensiones',text:'Instala plugins y servidores MCP para darle nuevas habilidades al agente.'},
     {sel:'#engineCard',title:'Rendimiento',text:'Velocidad de generación y de lectura, memoria de la GPU y del sistema mientras el modelo trabaja.'},
     {sel:'#projectBtn',title:'Proyectos',text:'Trabaja sobre una carpeta tuya en lugar de la carpeta aislada del chat.'},
-    {sel:'#agentModeSegments',title:'Modo del agente',text:'Chat, Ligero, Estándar o Completo: cuánta autonomía y cuántas herramientas puede usar el agente.'},
+    {sel:'#agentModeSegments',title:'Modo del agente',text:'Chat solo conversa y puede buscar en la web; Ligero, Estándar y Completo dan al agente más herramientas y autonomía. El acceso y los permisos se eligen aparte.'},
     {sel:'#input',title:'Escribe aquí',text:'Pide lo que necesites. Enter envía y Mayús+Enter añade una línea. Puedes pegar o arrastrar archivos e imágenes.'},
     {sel:'#attach',title:'Añadir',text:'Adjunta archivos de texto, código o imágenes (si el modelo admite visión).'},
-    {sel:'#modelBtn',title:'Modelo',text:'Elige o importa un modelo GGUF, cárgalo, cambia el motor (llama.cpp, Strata, Strata Rust) o conecta una API compatible con OpenAI o Claude.'},
+    {sel:'#searchToggle',title:'Búsqueda web',text:'Activa o desactiva WebSearch/WebVisit: el agente busca en internet y lee las páginas antes de responder. Es lo único que se puede usar en modo Chat.'},
+    {sel:'#modelBtn',title:'Modelo',text:'Elige o importa un modelo GGUF, cárgalo, cambia el motor (llama.cpp, Strata, Strata Rust o Project Maya) y sus opciones avanzadas, o conecta una API compatible con OpenAI o Claude.'},
     {sel:'#responseBtn',title:'Pensamiento',text:'Cuánto razona el modelo antes de responder. Más pensamiento es más preciso pero más lento.'},
     {sel:'#scopeBtn',title:'Acceso y permisos',text:'Decide si el agente trabaja en su carpeta aislada o en todo tu equipo, y cuándo debe pedirte permiso.'},
     {sel:'#mcpBtn',title:'Tools',text:'Activa lo que el agente puede usar: internet, archivos, comandos, navegador, información del equipo y más.'},
     {sel:'#ctxBtn',title:'Contexto',text:'Cuánta memoria de la conversación usa el modelo. Al llenarse, conviene empezar un chat nuevo.'},
     {sel:'#send',title:'Enviar',text:'Envía el mensaje. Mientras el modelo responde, este botón lo detiene.'},
+    {title:'Atajos',text:'Ctrl+K abre la paleta de comandos para buscar acciones, chats y modelos; Ctrl+F busca en la conversación y Ctrl+/ muestra todos los atajos.'},
     {sel:'#openConsole',title:'Consola',text:'Una terminal compartida con el agente cuando le das acceso a todo el equipo.'},
     {sel:'#openBrowser',title:'Navegador',text:'Un navegador integrado que tú y el agente pueden usar.'},
-    {sel:'#gear',title:'Configuración',text:'Idioma, apariencia, herramientas, motores y actualizaciones. Desde General puedes repetir este recorrido.'},
+    {sel:'#gear',title:'Configuración',text:'Idioma (14 disponibles), apariencia, instrucciones permanentes (AGENTS.md), herramientas, motores y actualizaciones. Cuando hay una versión nueva, aquí aparece una etiqueta. Desde General puedes repetir este recorrido.'},
     {title:'¡Listo!',text:'Ya conoces V-Agent. Carga un modelo y escribe tu primera petición.'}
   ];
   let index=0,layer=null,ring=null,card=null,steps=STEPS,resizeHandler=null;
@@ -79,7 +82,7 @@ const VAL_TOUR=(()=>{
     if(hasEngine(snapshot)){p.textContent=uiText('Ya tienes un motor instalado. Puedes cambiarlo cuando quieras desde Modelo → Cambiar motor.');return;}
     let hardware={};try{hardware=await requestJSON('/api/harness/hardware');}catch{}
     const variant=snapshot?.recommended_variant||'cpu',recommendedKey='llama-'+variant;
-    const labels={'llama-cuda':'llama.cpp · CUDA (NVIDIA)','llama-vulkan':'llama.cpp · Vulkan (AMD, Intel Arc, NVIDIA)','llama-cpu':'llama.cpp · CPU',strata:'Strata · PolyStrata',rust:'Strata Rust (Qwen3.5/3.6)',maya:'Project Maya (Compilación local opcional)'};
+    const labels={'llama-cuda':'llama.cpp · CUDA (NVIDIA)','llama-vulkan':'llama.cpp · Vulkan (AMD, Intel Arc, NVIDIA)','llama-cpu':'llama.cpp · CPU',strata:'Strata · PolyStrata',rust:'Strata Rust',maya:'Project Maya (Compilación local opcional)'};
     const choices=[recommendedKey,...['llama-cuda','llama-vulkan','llama-cpu','strata','rust','maya'].filter(k=>k!==recommendedKey)];
     for(const item of choices)select.add(new Option(uiText(labels[item]||item),item));
     select.value=recommendedKey;select.hidden=false;
