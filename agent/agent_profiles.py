@@ -1,5 +1,6 @@
 """Execution budgets and permission presets, not personas or extra system messages."""
 PROFILES={
+ 'text':{'label':'Chat','result_chars':4000,'history':'unchanged','rounds':50},
  'light':{'label':'Ligero','result_chars':4000,'history':'unchanged','rounds':50},
  'balanced':{'label':'Equilibrado','result_chars':8000,'history':'unchanged','rounds':50},
  'advanced':{'label':'Completo','result_chars':12000,'history':'unchanged','rounds':50},
@@ -8,6 +9,8 @@ LIGHT_TOOLS={
  'web_search','web_visit','fs_list','fs_read','doc_read','fs_write','fs_edit','fs_copy','fs_search','fs_manage',
  'web_render','draft_resume','file_history','code_check','project_map','sys_info','console','shell_run',
 }
+# Text only: a conversation that may look things up on the web, and nothing else (no files, shell or other MCPs).
+TEXT_TOOLS={'web_search','web_visit'}
 ALL_TOOLS={
  'web_search','web_visit','fs_list','fs_read','doc_read','fs_write','fs_edit','fs_copy','fs_search','fs_manage',
  'web_render','draft_resume','file_history','code_check','project_map','browser',
@@ -17,6 +20,7 @@ ALL_TOOLS={
 def normalize(value):return value if value in PROFILES else 'balanced'
 def filter_enabled(enabled,profile,full_access):
     mode=normalize(profile)
+    if mode=='text':return {name for name in enabled if name in TEXT_TOOLS}
     if mode=='light':return {name for name in enabled if name in LIGHT_TOOLS and (name!='console' or full_access)}
     if mode=='advanced':
         result=set(enabled)
@@ -26,7 +30,7 @@ def filter_enabled(enabled,profile,full_access):
         return result
     return set(enabled)
 def external_allowed(profile,full_access):
-    return bool(full_access) and normalize(profile)!='light'
+    return bool(full_access) and normalize(profile) not in ('light','text')
 def tools_for_profile(tools,profile):
     # Profiles never override user-selected MCPs, remove callable parameters, or truncate instructions.
     return tools

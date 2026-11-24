@@ -10,7 +10,7 @@ const VAL_TOUR=(()=>{
     {sel:'#sidebarMarket',title:'Extensiones',text:'Instala plugins y servidores MCP para darle nuevas habilidades al agente.'},
     {sel:'#engineCard',title:'Rendimiento',text:'Velocidad de generación y de lectura, memoria de la GPU y del sistema mientras el modelo trabaja.'},
     {sel:'#projectBtn',title:'Proyectos',text:'Trabaja sobre una carpeta tuya en lugar de la carpeta aislada del chat.'},
-    {sel:'#agentModeSegments',title:'Modo del agente',text:'Ligero, Estándar o Completo: cuánta autonomía y cuántas herramientas puede usar el agente.'},
+    {sel:'#agentModeSegments',title:'Modo del agente',text:'Chat, Ligero, Estándar o Completo: cuánta autonomía y cuántas herramientas puede usar el agente.'},
     {sel:'#input',title:'Escribe aquí',text:'Pide lo que necesites. Enter envía y Mayús+Enter añade una línea. Puedes pegar o arrastrar archivos e imágenes.'},
     {sel:'#attach',title:'Añadir',text:'Adjunta archivos de texto, código o imágenes (si el modelo admite visión).'},
     {sel:'#modelBtn',title:'Modelo',text:'Elige o importa un modelo GGUF, cárgalo, cambia el motor (llama.cpp, Strata, Strata Rust) o conecta una API compatible con OpenAI o Claude.'},

@@ -171,8 +171,8 @@ function setupComposerMenu(){
   $('#attach').onclick=()=>{if(menu.matches(':popover-open')&&menu.dataset.motionClosing!=='true'){closeComposerMenu();return;}syncComposerMenu();if(window.VALMotion)window.VALMotion.showPopover(menu);else menu.showPopover();const rect=$('#attach').getBoundingClientRect(),height=menu.offsetHeight;menu.style.left=Math.min(innerWidth-menu.offsetWidth-12,Math.max(12,rect.left))+'px';menu.style.top=(innerHeight-rect.bottom-12>=height?rect.bottom+8:Math.max(12,rect.top-height-8))+'px';$('#attach').setAttribute('aria-expanded','true');$('#addFilesMenu').focus();};
   $('#addFilesMenu').onclick=()=>{closeComposerMenu();if($('#file').disabled){refuseWhileBusy()||note('Espera a que termine la operación en curso.');return;}$('#file').click();};
   $('#webSearchMenu').onclick=()=>{const active=!!S.functions.search&&!!S.functions.visit;$('#s_ddg').checked=!active;$('#s_ddg').onchange();syncComposerMenu();};
-  $('#openToolsMenu').onclick=()=>{closeComposerMenu();setChatControls('tools');};
-  $('#openProjectMenu').onclick=()=>{closeComposerMenu();$('#projectBtn').click();};
+  $('#openToolsMenu').onclick=()=>{closeComposerMenu();if(!$('#mcpBtn')?.disabled)setChatControls('tools');};
+  $('#openProjectMenu').onclick=()=>{closeComposerMenu();if(!$('#projectBtn')?.disabled)$('#projectBtn').click();};
   document.addEventListener('pointerdown',event=>{if(menu.matches(':popover-open')&&!event.target.closest('#composerAddMenu,#attach'))closeComposerMenu(false);});
   menu.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closeComposerMenu();return;}if(!['ArrowUp','ArrowDown','Home','End'].includes(event.key))return;event.preventDefault();const buttons=[...menu.querySelectorAll('button')],index=buttons.indexOf(document.activeElement),next=event.key==='Home'?0:event.key==='End'?buttons.length-1:(index+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length;buttons[next].focus();});
 }
@@ -220,7 +220,9 @@ function syncAgentControls(){
   $('#searchToggle').setAttribute('aria-pressed',String(!!S.functions.search));$('#searchToggle').disabled=busy||engineBusy;
   const menu=$('#thinkingMenu');if(menu.matches(':popover-open')){for(const button of menu.children)button.setAttribute('aria-checked',String(button.textContent===THINK_LABELS[S.effort]));return;}menu.replaceChildren(...info.choices.map(value=>{const button=document.createElement('button');button.type='button';button.textContent=THINK_LABELS[value];button.setAttribute('role','menuitemradio');button.setAttribute('aria-checked',String(value===S.effort));button.onclick=()=>{S.effort=value;$('#effort').value=value;markCustomProfile();saveSettings();syncComposerLabels();window.VALMotion.hidePopover(menu);};return button;}));
   $('#searchToggle').setAttribute('aria-pressed',String(!!S.functions.search));$('#searchToggle').disabled=busy||engineBusy;
-  for(const id of ['f_web','f_autobrowser']){const box=document.getElementById(id);if(box)box.disabled=busy||engineBusy||S.agentProfile==='light';}
+  for(const id of ['f_web','f_autobrowser']){const box=document.getElementById(id);if(box)box.disabled=busy||engineBusy||S.agentProfile==='light'||S.agentProfile==='text';}
+  for(const id of ['f_files','f_sys','f_browser','f_hf']){const box=document.getElementById(id);if(box)box.disabled=busy||engineBusy||S.agentProfile==='text';}
+  for(const id of ['f_shell','f_console']){const box=document.getElementById(id);if(box&&S.agentProfile==='text')box.disabled=true;}
   for(const id of ['f_admin','f_computer']){const box=document.getElementById(id);if(box)box.disabled=busy||engineBusy||S.agentProfile!=='advanced'||pcAccess.mode!=='full_pc';}
   syncAgentModeSeat();
 }
@@ -324,11 +326,12 @@ function showAgentQuestion(event){
 
 
 const AGENT_MODES={
+  text:{name:'Chat',short:'Chat',desc:'Conversación con búsqueda web opcional (botón del mundo). Sin carpeta de trabajo, permisos ni otras herramientas.'},
   light:{name:'Agente ligero',short:'Ligero',desc:'Herramientas esenciales y comandos con aprobación. El acceso y las aprobaciones se eligen por separado.'},
   balanced:{name:'Agente estándar',short:'Estándar',desc:'Herramientas de archivos, web, consola y Hugging Face seleccionadas. El acceso y las aprobaciones se eligen por separado.'},
   advanced:{name:'Agente completo',short:'Completo',desc:'Herramientas adicionales de escritorio y administrador cuando se activan. El acceso y las aprobaciones se eligen por separado.'}
 };
-const AGENT_MODE_ORDER=['light','balanced','advanced'];
+const AGENT_MODE_ORDER=['text','light','balanced','advanced'];
 function agentModeKey(){return AGENT_MODES[S.agentProfile]?S.agentProfile:'balanced';}
 function syncFunctionControls(){
   for(const key of Object.keys(DEF_FUNCS)){const box=document.getElementById('f_'+key);if(box)box.checked=!!S.functions[key];}
@@ -343,6 +346,20 @@ function syncAgentModeSeat(){
   if(menu)for(const item of menu.querySelectorAll('[data-mode]'))item.setAttribute('aria-checked',String(item.dataset.mode===key));
   const select=document.getElementById('agentProfile');if(select&&select.value!==key){select.value=key;select.dispatchEvent(new Event('val-profile-restored'));}
   for(const option of document.querySelectorAll('#agentModeSegments button')){option.setAttribute('aria-pressed',String(option.dataset.agentMode===key));option.disabled=!!(busy||engineBusy);}
+  // Chat mode works with no folder, no access level and no tools but web search: those controls are locked
+  // (and their menus closed) so the globe button is the only switch left, with the reason in their title.
+  const chat=key==='text';
+  for(const id of ['openToolsMenu','openProjectMenu']){const item=document.getElementById(id);if(item){item.disabled=chat;item.classList.toggle('locked-by-mode',chat);}}
+  for(const id of ['projectBtn','scopeBtn','mcpBtn']){
+    const control=document.getElementById(id);if(!control)continue;
+    control.disabled=chat;control.classList.toggle('locked-by-mode',chat);
+    if(chat){if(!control.dataset.modeTitle)control.dataset.savedTitle=control.title||'';control.dataset.modeTitle='1';control.title=uiText('Modo Chat: sin carpeta de trabajo, permisos ni otras herramientas.');control.setAttribute('aria-disabled','true');}
+    else if(control.dataset.modeTitle){control.title=control.dataset.savedTitle||'';delete control.dataset.modeTitle;delete control.dataset.savedTitle;control.removeAttribute('aria-disabled');}
+  }
+  if(chat){
+    for(const id of ['permissionMenu']){const menu=document.getElementById(id);if(menu?.matches?.(':popover-open'))window.VALMotion?.hidePopover(menu);}
+    if(document.getElementById('scopeBtn')?.getAttribute('aria-expanded')==='true'||document.getElementById('mcpBtn')?.getAttribute('aria-expanded')==='true')window.closeChatControls?.(false,true);
+  }
 }
 function showAgentModeWarning(){
   return new Promise(resolve=>{
@@ -361,6 +378,7 @@ async function setAgentMode(key,options={}){
   S.agentProfile=key;
   saveSettings();syncFunctionControls();syncServerSwitches();syncAgentControls();syncAgentModeSeat();
   if(typeof syncAccessControls==='function')syncAccessControls();
+  if(typeof updateControls==='function')updateControls();   // shell/console switches follow the new mode at once
   presupuestoFirmado='';if(typeof consultarPresupuesto==='function')consultarPresupuesto();
   try{await requestJSON('/api/harness/preferences',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_profile:key})});}
   catch(error){note(error.message);}
@@ -379,6 +397,7 @@ function setupAgentModeSeat(){
   const segments=document.createElement('div');segments.id='agentModeSegments';segments.setAttribute('role','group');segments.setAttribute('aria-label','Modo del agente');
   for(const key of AGENT_MODE_ORDER){const option=document.createElement('button');option.type='button';option.dataset.agentMode=key;option.textContent=uiText(AGENT_MODES[key].short);option.dataset.modeDescription=uiText(AGENT_MODES[key].desc);option.setAttribute('aria-label',uiText(AGENT_MODES[key].name));option.onclick=()=>setAgentMode(key);segments.append(option);}
   strip.append(segments);button.hidden=true;window.VALI18n?.observe(segments);
+  syncAgentModeSeat();window.VALSegmented?.scan();   // drawn with its chosen mode and pill from the first frame
   const tip=document.createElement('div');tip.id='agentModeTooltip';tip.setAttribute('role','tooltip');tip.setAttribute('popover','manual');document.body.append(tip);
   let tipAnchor=null;
   const dismissTip=()=>{if(tipAnchor){tipAnchor.removeAttribute('aria-describedby');tipAnchor=null;}if(tip.matches(':popover-open')){if(window.VALMotion)window.VALMotion.hidePopover(tip,()=>{},true);else tip.hidePopover();}};
@@ -423,7 +442,7 @@ function setupAgentModeSeat(){
   syncAgentModeSeat();
 }
 function setupAgentProfilesAndUpdates(){
-  const profile=document.createElement('div');profile.innerHTML='<div class="agent-profile-row"><label for="agentProfile">Modo del agente</label><select id="agentProfile"><option value="light">Agente ligero</option><option value="balanced">Agente estándar</option><option value="advanced">Agente completo</option></select></div><p id="agentProfileHint" class="mini"></p>';
+  const profile=document.createElement('div');profile.innerHTML='<div class="agent-profile-row"><label for="agentProfile">Modo del agente</label><select id="agentProfile"><option value="text">Chat</option><option value="light">Agente ligero</option><option value="balanced">Agente estándar</option><option value="advanced">Agente completo</option></select></div><p id="agentProfileHint" class="mini"></p>';
   $('#controls-tools').prepend(profile);
   function hint(){if($('#agentProfileHint'))$('#agentProfileHint').textContent=uiText(AGENT_MODES[agentModeKey()].desc);}
   $('#agentProfile').value=agentModeKey();$('#agentProfile').addEventListener('val-profile-restored',hint);hint();
@@ -844,6 +863,11 @@ function setupSegmentedSliders(){
   const syncAll=()=>{for(const group of document.querySelectorAll('[data-segmented]'))if(group.offsetWidth)place(group);};
   const scan=()=>{document.querySelectorAll(groups).forEach(attach);syncAll();};
   scan();
+  // Groups made after this first scan (the agent mode selector is built once the core answers) attach
+  // themselves through this; without it their pill only appeared after some window opened.
+  window.VALSegmented={scan};
+  // The web font changes every button's width once it loads: place the pills again then.
+  document.fonts?.ready?.then(()=>requestAnimationFrame(syncAll));
   // Event-driven refresh when windows/sections open or the viewport changes (no global MutationObserver or polling timer).
   document.addEventListener('fw:open',()=>requestAnimationFrame(scan),true);
   document.addEventListener('toggle',()=>requestAnimationFrame(syncAll),true);

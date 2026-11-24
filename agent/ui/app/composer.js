@@ -91,8 +91,8 @@ function updateControls() {
   // Moving the slider already saves it; the button is only needed to reload a loaded model with a new value.
   $('#ctxApply').hidden=!(loadedModel&&loadedModel===$('#model').value&&pendingModelContexts.has(loadedModel));
   $('#ctxApply').textContent=loadedModel===$('#model').value?uiText('Aplicar y recargar'):uiText('Guardar contexto');$('#ctxApply').title=loadedModel===$('#model').value?uiText('Recarga el modelo actual con el contexto elegido.'):uiText('Se aplicará en la próxima carga manual del modelo.');
-  $('#f_shell').disabled=(pcAccess.mode!=='full_pc'&&!pcAccess.isolation?.available)||busy||blocked||accessChanging;
-  $('#f_console').disabled=pcAccess.mode!=='full_pc'||busy||blocked||accessChanging;
+  $('#f_shell').disabled=(pcAccess.mode!=='full_pc'&&!pcAccess.isolation?.available)||busy||blocked||accessChanging||S.agentProfile==='text';
+  $('#f_console').disabled=pcAccess.mode!=='full_pc'||busy||blocked||accessChanging||S.agentProfile==='text';
   $('#resetComposerLayout').disabled=busy||blocked;renderComposerEditor();
   $('#send').disabled=blocked||!!activeGeneration?.stopped||(!busy&&!modelIsReady());
   $('#workProfile').disabled=busy||blocked||!profilesReady;

@@ -2060,3 +2060,6 @@ a.release-notes-link,#settings-system a{display:inline-block;padding:4px 2px;}
 .update-tab-pill{margin-inline-start:6px;}
 .app-update.has-update{padding:12px 14px;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border));border-radius:12px;background:color-mix(in srgb,var(--accent) 6%,transparent);}
 .app-update.has-update #appUpdateStatus{color:var(--text);font-size:12px;}
+
+/* Chat mode: the folder, access and tools controls stay in place, visibly locked. */
+.composer-control.locked-by-mode,.composer-control.locked-by-mode:hover{opacity:.42;cursor:not-allowed;filter:saturate(.4);}

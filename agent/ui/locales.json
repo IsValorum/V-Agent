@@ -37738,5 +37738,50 @@
     "th": "มีพาธที่ไม่ปลอดภัยในไฟล์บีบอัด",
     "tr": "Arşivde güvenli olmayan yol.",
     "ar": "مسار غير آمن داخل الأرشيف."
+  },
+  "Conversación con búsqueda web opcional (botón del mundo). Sin carpeta de trabajo, permisos ni otras herramientas.": {
+    "en": "Conversation with optional web search (globe button). No working folder, permissions or other tools.",
+    "pt": "Conversa com pesquisa na web opcional (botão do globo). Sem pasta de trabalho, permissões nem outras ferramentas.",
+    "fr": "Conversation avec recherche web facultative (bouton du globe). Sans dossier de travail, autorisations ni autres outils.",
+    "de": "Unterhaltung mit optionaler Websuche (Globus-Schaltfläche). Ohne Arbeitsordner, Berechtigungen oder andere Werkzeuge.",
+    "ja": "任意のウェブ検索付きの会話（地球ボタン）。作業フォルダー、権限、その他のツールはありません。",
+    "zh": "可选网页搜索的对话（地球按钮）。没有工作文件夹、权限或其他工具。",
+    "ko": "웹 검색을 선택할 수 있는 대화 (지구 버튼). 작업 폴더, 권한, 기타 도구는 없습니다.",
+    "hi": "वैकल्पिक वेब खोज के साथ बातचीत (ग्लोब बटन)। कोई कार्य फ़ोल्डर, अनुमतियाँ या अन्य टूल नहीं।",
+    "id": "Percakapan dengan pencarian web opsional (tombol globe). Tanpa folder kerja, izin, atau alat lain.",
+    "vi": "Trò chuyện với tìm kiếm web tùy chọn (nút quả địa cầu). Không có thư mục làm việc, quyền hay công cụ khác.",
+    "th": "การสนทนาที่ค้นหาเว็บได้ตามต้องการ (ปุ่มลูกโลก) ไม่มีโฟลเดอร์ทำงาน สิทธิ์ หรือเครื่องมืออื่น",
+    "tr": "İsteğe bağlı web aramalı sohbet (dünya düğmesi). Çalışma klasörü, izin veya başka araç yok.",
+    "ar": "محادثة مع بحث اختياري على الويب (زر الكرة الأرضية). دون مجلد عمل أو أذونات أو أدوات أخرى."
+  },
+  "Modo Chat: sin carpeta de trabajo, permisos ni otras herramientas.": {
+    "en": "Chat mode: no working folder, permissions or other tools.",
+    "pt": "Modo Chat: sem pasta de trabalho, permissões nem outras ferramentas.",
+    "fr": "Mode Discussion : sans dossier de travail, autorisations ni autres outils.",
+    "de": "Chat-Modus: ohne Arbeitsordner, Berechtigungen oder andere Werkzeuge.",
+    "ja": "チャットモード: 作業フォルダー、権限、その他のツールはありません。",
+    "zh": "聊天模式：没有工作文件夹、权限或其他工具。",
+    "ko": "채팅 모드: 작업 폴더, 권한, 기타 도구가 없습니다.",
+    "hi": "चैट मोड: कोई कार्य फ़ोल्डर, अनुमतियाँ या अन्य टूल नहीं।",
+    "id": "Mode Chat: tanpa folder kerja, izin, atau alat lain.",
+    "vi": "Chế độ Trò chuyện: không có thư mục làm việc, quyền hay công cụ khác.",
+    "th": "โหมดแชต: ไม่มีโฟลเดอร์ทำงาน สิทธิ์ หรือเครื่องมืออื่น",
+    "tr": "Sohbet modu: çalışma klasörü, izin veya başka araç yok.",
+    "ar": "وضع المحادثة: دون مجلد عمل أو أذونات أو أدوات أخرى."
+  },
+  "Chat, Ligero, Estándar o Completo: cuánta autonomía y cuántas herramientas puede usar el agente.": {
+    "en": "Chat, Light, Standard or Full: how much autonomy and how many tools the agent can use.",
+    "pt": "Chat, Leve, Padrão ou Completo: quanta autonomia e quantas ferramentas o agente pode usar.",
+    "fr": "Discussion, Léger, Standard ou Complet : autonomie et nombre d’outils de l’agent.",
+    "de": "Chat, Leicht, Standard oder Vollständig: wie viel Autonomie und welche Werkzeuge der Agent nutzen darf.",
+    "ja": "チャット、ライト、標準、フル: エージェントの自律性と使えるツールの量。",
+    "zh": "聊天、轻量、标准或完整：智能体的自主程度和可用工具的多少。",
+    "ko": "채팅, 가벼움, 표준, 전체: 에이전트의 자율성과 사용할 수 있는 도구의 양.",
+    "hi": "चैट, हल्का, मानक या पूर्ण: एजेंट कितना स्वायत्त है और कितने टूल उपयोग कर सकता है।",
+    "id": "Chat, Ringan, Standar, atau Penuh: seberapa otonom agen dan berapa banyak alat yang bisa dipakainya.",
+    "vi": "Trò chuyện, Nhẹ, Tiêu chuẩn hoặc Đầy đủ: tác tử tự chủ đến đâu và dùng được bao nhiêu công cụ.",
+    "th": "แชต เบา มาตรฐาน หรือเต็ม: เอเจนต์มีอิสระแค่ไหนและใช้เครื่องมือได้มากเท่าใด",
+    "tr": "Sohbet, Hafif, Standart veya Tam: ajanın ne kadar özerk olduğu ve kaç araç kullanabildiği.",
+    "ar": "المحادثة أو خفيف أو قياسي أو كامل: مدى استقلالية الوكيل وعدد الأدوات التي يمكنه استخدامها."
   }
 }

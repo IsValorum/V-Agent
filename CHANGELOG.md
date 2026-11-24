@@ -4,6 +4,15 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.1.15
+
+Lighter tool prompts, a faster first reply, a Chat mode and a mode selector that draws right away.
+
+- **Lighter tool block in every mode (`agent/mcp_prompt.py`, `agent/agent.py`):** The tools sent to the model drop only repeated and empty schema text: the path sentence every file tool repeated (said once now), generated titles, null defaults and nullable twins, default-only keywords and empty lists. Every instruction and constraint stays. Measured with Inkling 2: 4171 → 3583 prompt tokens in Sandbox, 4416 → 4080 with full-PC access. An optional argument a model still sends as null is treated as left out.
+- **Faster first reply on Strata (`agent/desktop_runtime.py`):** Models loaded with Strata turn on `warm_start`: after loading, the engine reads in the background the system prompt and tools the last conversation started with, so the first message reads only itself. A message sent before that finishes stops it, and what was read is kept.
+- **Chat mode (`agent/agent_profiles.py`, `agent/tool_approvals.py`, `agent/ui/app/shell.js`):** A new first mode, **Chat**: conversation with optional web search and page reading (the globe button) and nothing else. The working folder, access and approvals, and the tools panel are locked while it is on; the globe button is the permission for its searches. A project's AGENTS.md, attachment working copies and file-based archiving are left out in this mode.
+- **Mode selector (`agent/ui/app/shell.js`):** The highlight of the chosen mode is drawn from the first frame instead of only after another window opened.
+
 ## 1.1.14
 
 Engine options and KV formats read from the installed engines, and more tool-call formats.

@@ -1,5 +1,6 @@
 """Small model-facing MCP contracts; the hub keeps its original schemas and routes."""
 import copy
+import re
 
 DESCRIPTIONS = {
     'pc__code_check': 'File: check syntax by default (returns structured JSON with ok:false when syntax issues exist). Directory: list project checks without executing. Run a listed check ID with run=true (full-PC only). Report verification scope; passing syntax or one check does not prove the task is complete.',
@@ -201,7 +202,12 @@ def validate_tool_arguments(schema, args, strict=True):
             if strict or schema.get('additionalProperties') is False:
                 allowed = ', '.join(sorted(properties))
                 raise ValueError(f'Unknown argument: {key}. Allowed arguments: {allowed}.')
-    for key in schema.get('required') or ():
+    required = set(schema.get('required') or ())
+    for key in [k for k, v in args.items() if v is None and k not in required and k in properties]:
+        # An optional argument sent as null is the same as leaving it out (its default applies). The schema the
+        # model sees no longer lists "null" (lean_tools), and small models still copy "find_in_page": null.
+        del args[key]
+    for key in required:
         if key not in args:
             raise ValueError(f'Missing required argument: {key}.')
     for key, value in list(args.items()):
@@ -270,3 +276,68 @@ def validate_tool_arguments(schema, args, strict=True):
                 for idx, item in enumerate(value):
                     if not _matches_kind(item, item_kind):
                         raise ValueError(f'Argument {key}[{idx}]: expected {item_kind}.')
+
+
+# The path rule every file tool used to repeat in its own "path" description (six to seven times a
+# request, twice with the sandbox note): tool_rule now says it once for all of them.
+_PATH_BOILERPLATE = re.compile(r'Relative to the working folder(?: \(default \.\))?(?: \(e\.g\. [^)]*\))?, or an absolute PC path '
+                               r'when Full-PC access is enabled\.\s*')
+
+
+def _lean_schema(schema):
+    """Drop what tells the model nothing: generated titles, null defaults, nullable twins of a type,
+    empty required lists and the repeated path sentence. Every instruction and constraint stays."""
+    if isinstance(schema, list):
+        return [_lean_schema(item) for item in schema]
+    if not isinstance(schema, dict):
+        return schema
+    out = {}
+    for key, value in schema.items():
+        if key in ('default', 'enum', 'const', 'examples') and value is not None:
+            out[key] = copy.deepcopy(value)                  # a value, not a schema: left exactly as it is
+            continue
+        if key == 'title' and isinstance(value, str):
+            continue
+        if key == 'default' and value is None:
+            continue
+        if key == 'required' and value == []:
+            continue
+        if key == 'properties' and isinstance(value, dict):
+            out[key] = {name: _lean_schema(child) for name, child in value.items()}
+            continue
+        out[key] = _lean_schema(value)
+    if out.get('additionalProperties') is True:              # JSON Schema's default
+        del out['additionalProperties']
+    if out.get('items') == {}:                               # any item: the default
+        del out['items']
+    variants = out.get('anyOf')
+    if isinstance(variants, list):
+        kept = [v for v in variants if v != {'type': 'null'}]
+        if len(kept) == 1 and isinstance(kept[0], dict) and not (set(kept[0]) & set(out) - {'anyOf'}):
+            del out['anyOf']
+            out.update(kept[0])                              # optional, so the null variant said nothing
+        elif kept and len(kept) < len(variants):
+            out['anyOf'] = kept
+    kind = out.get('type')
+    if isinstance(kind, list) and 'null' in kind and len(kind) == 2:
+        out['type'] = next(t for t in kind if t != 'null')      # optional already says "may be absent"
+    if isinstance(out.get('description'), str):
+        text = _PATH_BOILERPLATE.sub('', out['description']).strip()
+        if text:
+            out['description'] = text
+        else:
+            del out['description']
+    return out
+
+
+def lean_tools(tools):
+    """Same tools, same instructions, fewer tokens: applied in every agent mode and access level."""
+    lean = []
+    for tool in tools:
+        item = copy.deepcopy(tool)
+        fn = item.get('function') or {}
+        if isinstance(fn.get('parameters'), dict):
+            fn['parameters'] = _lean_schema(fn['parameters'])
+            fn['parameters'].setdefault('type', 'object')
+        lean.append(item)
+    return lean

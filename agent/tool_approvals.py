@@ -16,6 +16,9 @@ SENSITIVE=re.compile(r'(?i)(?:\.env|credential|secret|token|id_rsa|password|\.pe
 def needs_approval(mode,name,args,agent_profile=None,full_access=False):
     # "Automatic" (run) is the user's explicit choice: no profile adds prompts behind it.
     if mode=='run':return False
+    # Chat mode offers only web search and page reading, switched on with the globe button: that switch is the
+    # permission (the access and approval menu is locked in this mode).
+    if agent_profile=='text' and name.split('__')[-1] in ('web_search','web_visit'):return False
     if agent_profile=="light" and name=="pc__console" and args.get("action","run")=="run":return True
     if agent_profile=="light" and name=="pc__shell_run":return True
     if agent_profile=="light" and name=="pc__code_check" and args.get("run") and args.get("check") not in (None,"","syntax"):return True

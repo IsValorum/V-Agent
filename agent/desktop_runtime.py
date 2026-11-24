@@ -332,6 +332,15 @@ def install(a):
                 if rejected:raise ValueError(unsupported_message(rejected))
         if manager.kind=='strata':
             model=selected(name);saved=a.MODEL_PREFERENCES.load(name)
+            # "warm_start" (serve/server.py): after a load the engine reads, in the background, the system
+            # prompt and tools the last conversation started with, so the first message reads only itself
+            # (measured: 4271 tokens in 6.4 s before the first reply). A message arriving first stops that read.
+            try:
+                from ui_preferences import atomic_json
+                file=Path(model['config']);cfg=json.loads(file.read_text(encoding='utf-8-sig'))
+                if cfg.get('warm_start') is not True and not (health() or {}).get('loaded'):
+                    cfg['warm_start']=True;atomic_json(file,cfg)
+            except (OSError,ValueError,KeyError,TypeError):pass
             if saved and not (health() or {}).get('loaded'):
                 from load_settings import effective
                 from ui_preferences import atomic_json

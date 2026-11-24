@@ -30,7 +30,7 @@ class AppPreferences:
             language=data.get('language') if isinstance(data,dict) else None
             duration=data.get('animation_ms') if isinstance(data,dict) else None
             return {'language':language if language in LANGUAGES else 'es',
-                    'agent_profile':data.get('agent_profile','balanced') if isinstance(data,dict) and data.get('agent_profile','balanced') in ('light','balanced','advanced') else 'balanced',
+                    'agent_profile':data.get('agent_profile','balanced') if isinstance(data,dict) and data.get('agent_profile','balanced') in ('text','light','balanced','advanced') else 'balanced',
                     'windows':data.get('windows',{}) if isinstance(data,dict) else {},
                     'decoration':data.get('decoration',{}) if isinstance(data,dict) else {},
                     'animation_ms':duration if type(duration) is int and 100<=duration<=1600 else 620,
@@ -42,7 +42,7 @@ class AppPreferences:
         if 'tour_done' in body and type(body['tour_done']) is not bool:raise ValueError('Invalid tutorial state.')
         if 'animation_ms' in body and (type(body['animation_ms']) is not int or not 100<=body['animation_ms']<=1600):
             raise ValueError('Duración no admitida.')
-        if 'agent_profile' in body and body['agent_profile'] not in ('light','balanced','advanced'):raise ValueError('Perfil no admitido.')
+        if 'agent_profile' in body and body['agent_profile'] not in ('text','light','balanced','advanced'):raise ValueError('Perfil no admitido.')
         if 'windows' in body:
             windows=body['windows']
             if not isinstance(windows,dict) or len(windows)>12:raise ValueError('Invalid window settings.')

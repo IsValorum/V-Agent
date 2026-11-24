@@ -157,6 +157,7 @@ function updateToolCount() {
     (k!=='shell'||pcAccess.mode==='full_pc'||pcAccess.isolation?.available) &&
     (k!=='console'||pcAccess.mode==='full_pc') &&
     ((k!=='web'&&k!=='autobrowser')||profile!=='light') &&
+    (profile!=='text'||k==='search'||k==='visit') &&
     ((k!=='computer'&&k!=='admin')||(profile==='advanced'&&pcAccess.mode==='full_pc'))
   ).reduce((n,[k]) => n + (CUENTA[k]||1),0);
   consultarPresupuesto();

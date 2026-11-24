@@ -1003,11 +1003,15 @@ def tool_rule(tools, full_access=False):
     names = {t["function"]["name"].split("__")[-1] for t in tools or []}
     if not names:
         return ""
+    if names <= {"web_search", "web_visit"}:
+        return ("You can look things up on the web with the tools listed above. When the answer needs current or outside "
+                "information, search and read the sources instead of guessing; otherwise answer directly.")
     scope = (
         "You have full-PC access on the user's computer through the tools listed above: file tools accept both "
         "relative paths (in the working folder) and absolute paths anywhere on the PC (e.g. C:\\Users\\...)."
         if full_access else
-        "You work inside a folder on the user's computer through the tools listed above."
+        "You work inside a folder on the user's computer through the tools listed above: file tools take paths "
+        "relative to that working folder (e.g. notes.txt or src/app.py)."
     )
     if "fs_write" not in names:
         return (scope + " When the user's request needs one of them, "
@@ -1266,24 +1270,14 @@ def tools_for(fn, tpath=None, agent_profile="balanced"):
     HUB.wait(None)
     tools = compact_tools([t for t in HUB.openai_tools() if (t["function"]["name"].split("__")[-1] in enabled and t["function"]["name"].split("__")[0] in ("pc","hf","duckduckgo","web","autobrowser","admin","computer")) or t["function"]["name"].split("__")[0] in external])
     if not full_access:
-        sandbox_notes = {
-            'pc__shell_run': ' (Sandbox: only CMD built-ins and python run, offline; no PowerShell or background jobs.)',
-        }
-        path_notes = {'pc__fs_list', 'pc__fs_read', 'pc__doc_read', 'pc__fs_write', 'pc__fs_edit', 'pc__web_render'}
+        # The shell's own description already says what limited access allows ("only CMD built-ins and
+        # python run, offline"); the path rule for files is said once in tool_rule.
         for tool in tools:
             fn = tool['function']
-            if fn['name'] in sandbox_notes and 'sandbox' not in str(fn.get('description') or '').lower():
-                fn['description'] = str(fn.get('description') or '').rstrip() + sandbox_notes[fn['name']]
-            elif fn['name'] in path_notes and 'sandbox' not in str(fn.get('description') or '').lower():
-                fn['description'] = str(fn.get('description') or '').rstrip() + ' (Sandbox: use paths relative to the working folder.)'
-            if fn['name'] in path_notes:
-                prop = (fn.get('parameters', {}).get('properties') or {}).get('path')
-                if isinstance(prop, dict):
-                    existing = str(prop.get('description') or '').strip()
-                    if not existing:
-                        prop['description'] = 'Relative to the sandbox working folder, e.g. notes.txt or src/app.py.'
-                    elif 'sandbox' not in existing.lower():
-                        prop['description'] = existing.rstrip() + ' (Sandbox: relative to the working folder, e.g. notes.txt or src/app.py.)'
+            if fn['name'] == 'pc__shell_run' and 'limited access' not in str(fn.get('description') or '').lower():
+                fn['description'] = str(fn.get('description') or '').rstrip() + ' (Sandbox: only CMD built-ins and python run, offline; no PowerShell or background jobs.)'
+    from mcp_prompt import lean_tools
+    tools = lean_tools(tools)
     from agent_profiles import tools_for_profile,distinct_tools
     tools=distinct_tools(tools_for_profile(tools,agent_profile))
     # Presupuesto duro del bloque de tools (ver agent/tool_budget.py): mientras quede lejos del
@@ -1700,6 +1694,9 @@ def _run_chat_stream(body, control=None):
             project_root = None
     # Una sola regla fija (no rompe la caché): sin ella, tras leer paginas o salidas en ingles
     # los modelos pequeños contestan en ingles a quien escribio en español.
+    # Chat mode has no working folder: a project's AGENTS.md is not its business (the global one still applies).
+    if body.get("agent_profile") == "text":
+        project_root = None
     plugin_instructions = "\n\n".join(
         x for x in (language_rule(messages), prompt_block(), instructions.prompt_section(project_root)) if x
     )
@@ -1732,7 +1729,7 @@ def _run_chat_stream(body, control=None):
             raise RuntimeError('Las herramientas de este modelo no superaron la comprobación de plantilla: ' +
                                contract.get('error', 'protocolo incompatible') + '. El chat sin MCP sigue disponible.')
     import ask_user
-    if tools and body.get("ask_user") is True:
+    if tools and body.get("ask_user") is True and agent_profile != "text":
         # Only the interface can answer: API clients never get this tool.
         tools = tools + [ask_user.TOOL]
     if workspace is not ACCESS and any(t['function']['name'] == 'pc__draft_resume' for t in tools):
@@ -1762,7 +1759,8 @@ def _run_chat_stream(body, control=None):
             # turns, and a changed system prompt makes a local engine read the whole conversation again
             # (hybrid models cannot reuse anything after it; issue #2).
             messages = attach_turn_note(messages, recovery_state)
-    if workspace is not ACCESS and (body.get('functions') or {}).get('files'):
+    # Chat mode has no file tools: attachments stay in the message, with no note about tools it does not offer.
+    if workspace is not ACCESS and (body.get('functions') or {}).get('files') and agent_profile != "text":
         messages, _staged_attachments = _stage_user_attachments(messages, workspace, is_project=bool(project_root))
         from context_policy import project_messages
         messages,context_projection=project_messages(messages,workspace,block=8)
@@ -1819,7 +1817,7 @@ def _run_chat_stream(body, control=None):
     reasoning = ""
     import agent_resilience
     ventana = (ventana_contexto() or _entero(body.get("context_limit"))) if tools else 0
-    if workspace is not ACCESS and (body.get('functions') or {}).get('files'):
+    if workspace is not ACCESS and (body.get('functions') or {}).get('files') and agent_profile != "text":
         from context_policy import project_messages as _archivar
         archivar = lambda msgs, keep: _archivar(msgs, workspace, keep_batches=keep)  # noqa: E731
     else:
