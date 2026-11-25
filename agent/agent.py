@@ -2942,7 +2942,7 @@ class Handler(BaseHTTPRequestHandler):
                 from file_versions import VERSIONS
                 result=VERSIONS.restore(path,workspace.root,body['revision']) if body.get('revision') else VERSIONS.history(path,workspace.root)
                 self._json(200,{'result':result})
-            except (ValueError,OSError,KeyError) as error:self._json(400,{'error':str(error)})
+            except (ValueError,OSError,KeyError,TypeError) as error:self._json(400,{'error':str(error)})
             return
         if self.path in ('/api/v1/sessions/save','/api/v1/sessions/import','/api/v1/sessions/delete'):
             try:
@@ -2976,7 +2976,7 @@ class Handler(BaseHTTPRequestHandler):
                 from ui_preferences import atomic_json
                 atomic_json(SESSIONS.root/'conflicts'/(secrets.token_hex(16)+'.json'),body.get('session',body))
                 self._json(409,{'error':str(error)+' La copia en conflicto quedó guardada en el disco local.'})
-            except (ValueError,TypeError,KeyError) as error:self._json(400,{'error':str(error)})
+            except (ValueError,TypeError,KeyError,AttributeError) as error:self._json(400,{'error':str(error)})
             except OSError as error:self._json(500,{'error':str(error)})
             return
         if self.path in ('/api/draft', '/api/draft/resume'):
@@ -2995,6 +2995,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(400, {"error": str(error)})
             except FileNotFoundError:
                 self._json(404, {"error": "Este borrador no tiene copia en disco. Usa el texto conservado en la tarjeta."})
+            except (OSError, TypeError) as error:
+                self._json(500, {"error": str(error)})
             return
         if self.path in ('/api/save', '/api/verify'):
             # Guardar y verificar los las hace el harness: el modelo escribe codigo, pero la

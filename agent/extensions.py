@@ -95,6 +95,12 @@ def validate_servers(block):
         result[name]=cfg
     return result
 
+def _server_name(value):
+    """A registry name as a valid local MCP name (see validate_servers): a letter first, no '__', at most 36."""
+    name=re.sub('_+','_',re.sub('[^a-zA-Z0-9_-]','_',str(value or 'mcp'))).strip('_-')
+    if not name[:1].isalpha():name='mcp_'+name
+    return name[:36].rstrip('_-') or 'mcp'
+
 def public():
     return [{'name':n,'enabled':v.get('enabled',False),'transport':'http' if v['config'].get('url') else 'stdio','target':v['config'].get('url') or v['config'].get('command')} for n,v in configs().items()]
 def register(manifest):
@@ -150,7 +156,7 @@ class Catalog:
                         item={'name':record.get('name',''),'description':str(record.get('description',''))[:500],'source':kind,'version':record.get('version',''),'manifest':None,'packages':record.get('packages',[])}
                         if kind=='mcp':
                             remote=next((r for r in record.get('remotes',[]) if r.get('type')=='streamable-http' and r.get('url')),None)
-                            if remote and '{' not in remote['url']:item['manifest']={'mcpServers':{re.sub('[^a-zA-Z0-9_-]','_',str(record.get('name') or 'mcp'))[:34]:{'url':remote['url']}}}
+                            if remote and '{' not in remote['url']:item['manifest']={'mcpServers':{_server_name(record.get('name')):{'url':remote['url']}}}
                             item['compatibility']='Streamable HTTP' if item['manifest'] else 'Requires local configuration / dependencies'
                         else:
                             if isinstance(record.get('mcpServers'),dict):item['manifest']={'mcpServers':record['mcpServers']}
@@ -158,7 +164,10 @@ class Catalog:
                             item['homepage']=record.get('homepage');item['plugin_source']=record.get('source')
                         items.append(item)
                 except Exception as error:errors.append(kind+': '+str(error));items.extend(i for i in self.state.get('items',[]) if i.get('source')==kind)
-            with self.lock:self.state={'checked_at':time.time(),'items':items,'errors':errors};atomic_json(ROOT/'catalog.json',self.state);self.busy=False
+            with self.lock:
+                self.state={'checked_at':time.time(),'items':items,'errors':errors};self.busy=False
+                try:atomic_json(ROOT/'catalog.json',self.state)
+                except OSError as error:self.state['errors']=errors+['catalog: '+str(error)]
         threading.Thread(target=work,daemon=True).start();return self.snapshot()
 
 def prepare_plugin(item):
@@ -179,7 +188,7 @@ def prepare_plugin(item):
             cfg['args'].append(str(value))
         env={v['name']:v.get('default') or v.get('value') or 'REPLACE_ME' for v in package.get('environmentVariables',[]) if v.get('name')}
         if env:cfg['env']=env
-        return {'manifest':{'mcpServers':{re.sub('[^a-zA-Z0-9_-]','_',known['name'])[:34]:cfg}},'message':'Review pinned package and credentials. npx/uvx must be installed; activation may download and execute the package. Replace REPLACE_ME before adding.'}
+        return {'manifest':{'mcpServers':{_server_name(known['name']):cfg}},'message':'Review pinned package and credentials. npx/uvx must be installed; activation may download and execute the package. Replace REPLACE_ME before adding.'}
     source=known.get('plugin_source')
     if isinstance(source,str) and source.startswith('./') and '..' not in source.split('/'):
         base='https://raw.githubusercontent.com/anthropics/claude-plugins-official/main/'+source[2:].rstrip('/')
@@ -209,6 +218,6 @@ def search_registry(query):
     items=[]
     for entry in json.loads(raw).get('servers',[]):
         record=entry.get('server',{});remote=next((r for r in record.get('remotes',[]) if r.get('type')=='streamable-http' and r.get('url') and '{' not in r['url']),None)
-        manifest={'mcpServers':{re.sub('[^a-zA-Z0-9_-]','_',str(record.get('name') or 'mcp'))[:34]:{'url':remote['url']}}} if remote else None
+        manifest={'mcpServers':{_server_name(record.get('name')):{'url':remote['url']}}} if remote else None
         items.append({'name':record.get('name',''),'description':str(record.get('description',''))[:500],'source':'mcp','version':record.get('version',''),'manifest':manifest,'compatibility':'Streamable HTTP' if manifest else 'Requires local configuration / dependencies','packages':record.get('packages',[])})
     return items

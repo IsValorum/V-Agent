@@ -111,7 +111,8 @@ def serve(script, tools, name, version, timeout, protocol='2025-06-18',persisten
                     if worker is None or worker.process.poll() is not None:worker=_Worker(script)
                     process=worker.process
                 else:
-                    process = subprocess.Popen([sys.executable, str(script), '--mcp-worker'],
+                    # Same command as _Worker: in the installed app sys.executable is the core, not Python.
+                    process = subprocess.Popen(__import__('runtime_paths').command('hf' if Path(script).stem=='hf_mcp' else 'pc','--mcp-worker'),
                         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                         text=True, encoding='utf-8', errors='replace',
                         creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0,

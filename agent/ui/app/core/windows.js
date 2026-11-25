@@ -323,7 +323,7 @@
           const d=DEFAULTS[id];
           const w=migrated?box.width:Math.max(box.width,d.width);
           const h=migrated?box.height:Math.max(box.height,d.height);
-          if(!migrated&&(w!==box.width||h!==box.height)){pendingSave[id]={width:w,height:h};needsSave=true;}
+          if(!migrated&&(w!==box.width||h!==box.height)){dirtySizes.add(id);needsSave=true;}
           sizes[id]={width:w,height:h};
         }
         try{if(!migrated&&typeof localStorage!=='undefined')localStorage.setItem('valUiLayoutV2','1');}catch{}

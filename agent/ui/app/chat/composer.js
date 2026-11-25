@@ -76,7 +76,7 @@ function localPreparing(){return !!preparationState?.active&&activeEngine!=='api
 // A click that cannot act now says why (and returns true) instead of doing nothing.
 function refuseWhileBusy(){const why=busy?'Espera a que termine la respuesta en curso o detenla.':engineBusy?'Espera a que termine la operación del motor.':'';if(why)note(why);return !!why;}
 function modelIsReady(){return !localPreparing()&&modelStateKnown&&engineOnline===true&&loadedModel&&loadedModel===$('#model').value;}
-function requireModelForChat(){if(modelIsReady())return true;if(!loadedModel&&$('#model')?.value&&typeof openModelPromptDialog==='function'){openModelPromptDialog();return false;}note(loadedModel?'Descarga el modelo en memoria y carga el seleccionado en Motor.':'Selecciona un modelo y pulsa Cargar modelo en Motor.');if(!document.querySelector('dialog[open]'))setChatControls('model');return false;}
+function requireModelForChat(){if(modelIsReady())return true;if(!loadedModel&&$('#model')?.value&&typeof window.openModelPromptDialog==='function'){window.openModelPromptDialog();return false;}note(loadedModel?'Descarga el modelo en memoria y carga el seleccionado en Motor.':'Selecciona un modelo y pulsa Cargar modelo en Motor.');if(!document.querySelector('dialog[open]'))setChatControls('model');return false;}
 function updateControls() {
   const blocked=engineBusy||accessChanging||draftSaving||localPreparing();
   if($('#kvCache'))$('#kvCache').disabled=busy||blocked||!(modelKV[$('#model').value]?.options?.length);

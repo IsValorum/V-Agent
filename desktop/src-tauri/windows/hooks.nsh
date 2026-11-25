@@ -37,7 +37,9 @@ FunctionEnd
 ; locked), then remove the layout of 1.1.15 and earlier (core\strata-core.exe and core\_internal\, ~0.5 GB),
 ; which the new one (core\v-agent-core.exe and core\lib\) would otherwise leave behind on an update.
 !macro NSIS_HOOK_PREINSTALL
-  !insertmacro VAGENT_STOP_PROCESSES_IN "$INSTDIR"
+  ; Only V-Agent's own core\ folder: the install folder may be one the user picked that other programs share
+  ; (stopping everything under it closed them). The window itself is closed by the installer's own check.
+  !insertmacro VAGENT_STOP_PROCESSES_IN "$INSTDIR\core"
   Delete "$INSTDIR\core\strata-core.exe"
   RMDir /r "$INSTDIR\core\_internal"
   ; A scanner can hold a file a moment longer: one more try before installing.
@@ -48,7 +50,7 @@ FunctionEnd
 !macroend
 
 !macro NSIS_HOOK_PREUNINSTALL
-  !insertmacro VAGENT_STOP_PROCESSES_IN "$INSTDIR"
+  !insertmacro VAGENT_STOP_PROCESSES_IN "$INSTDIR\core"
 !macroend
 
 ; Uninstalling keeps chats, settings, downloaded engines and models in %LOCALAPPDATA%\V-Agent-Data (separate from the program folder),

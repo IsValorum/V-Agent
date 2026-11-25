@@ -363,7 +363,7 @@ def install(a):
                 previous=cfg.get('_val_engine_options') or []
                 if options or previous:
                     text=engine_options.help_text('strata',manager.executable())
-                    arch=kv_settings.describe(file).get('architecture')
+                    arch=a.kv_settings.describe(file).get('architecture')
                     args,applied=engine_options.apply('strata',cfg.get('args',[]),options,text,previous,arch=arch)
                     cfg['args']=args;cfg['_val_engine_options']=applied;atomic_json(file,cfg)
             try:return original['load_agent_model'](name,context)

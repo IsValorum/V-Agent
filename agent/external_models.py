@@ -349,6 +349,10 @@ def scan():
             continue
         for item in found:
             real = _real(item['path'])
+            if real.suffix.lower() != '.gguf':
+                # A Hugging Face cache link points at blobs/<hash>, a name with no .gguf and no part numbers:
+                # importing that path is refused and a model in parts loses its siblings. The link is kept.
+                real = Path(os.path.abspath(item['path']))
             item['path'] = str(real)
             item['folder'] = str(real.parent)
             source = _where(real, item['source'], lm_root)

@@ -542,8 +542,12 @@ class EngineManager:
         if process and getattr(process, 'stdin', None) and not process.stdin.closed:
             process.stdin.close()
         if process and process.poll() is None:
-            subprocess.run(['taskkill','/F','/T','/PID',str(process.pid)],capture_output=True,creationflags=subprocess.CREATE_NO_WINDOW,timeout=20)
-            process.wait(timeout=10)
+            try:
+                subprocess.run(['taskkill','/F','/T','/PID',str(process.pid)],capture_output=True,creationflags=subprocess.CREATE_NO_WINDOW,timeout=20)
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                # taskkill or the exit itself hung: stop the process directly rather than fail the unload.
+                process.kill()
         config = getattr(self, '_maya_run_config', None)
         if config:
             config.unlink(missing_ok=True)

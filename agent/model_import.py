@@ -277,7 +277,8 @@ def prepare_local_model(config_path):
     template = token_dir / 'chat_template.jinja'
     if not template.is_file():
         raise ValueError('Falta la plantilla de chat del modelo; vuelve a añadirlo.')
-    sys.path.insert(0, str(SOURCE_ROOT / 'tools'))
+    if str(SOURCE_ROOT / 'tools') not in sys.path:
+        sys.path.insert(0, str(SOURCE_ROOT / 'tools'))
     import strata_tokenizer as ST
     from serve.frontend import ChatTemplate
     with tempfile.TemporaryDirectory(dir=ASSETS, prefix='.prepare-') as scratch:
@@ -305,8 +306,14 @@ def prepare_local_model(config_path):
             raise ValueError('La plantilla no pudo preparar una conversación: ' + str(error)) from None
         if not token_dir.resolve().is_relative_to(ASSETS.resolve()):
             raise RuntimeError('Ruta del tokenizador no válida.')
-        shutil.rmtree(token_dir)
-        os.replace(fresh, token_dir)
+        # The old folder is moved aside first: if the new one cannot take its place, the old one goes back.
+        old = scratch / 'previous'
+        os.replace(token_dir, old)
+        try:
+            os.replace(fresh, token_dir)
+        except OSError:
+            os.replace(old, token_dir)
+            raise
     config.pop('_val_prepare_pending', None)
     _atomic_json(config_path, config)
     return True

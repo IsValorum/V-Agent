@@ -558,17 +558,31 @@ def _extract_pptx(source: pathlib.Path | bytes, pages: str | None, cfg: dict) ->
     }
 
 
+_ZIP_ENTRY_LIMIT = 64 * 1024 * 1024
+
+
+def _zip_read(zf, name, limit=_ZIP_ENTRY_LIMIT):
+    """One part of an ODF/EPUB file, refusing a part that unpacks to more than `limit` (a zip bomb)."""
+    if zf.getinfo(name).file_size > limit:
+        raise ValueError(f"{name} inside the document unpacks to more than {limit // 2**20} MB.")
+    with zf.open(name) as part:
+        data = part.read(limit + 1)
+    if len(data) > limit:
+        raise ValueError(f"{name} inside the document unpacks to more than {limit // 2**20} MB.")
+    return data
+
+
 def _extract_odf(source: pathlib.Path | bytes, ext: str, cfg: dict) -> dict:
     mode = cfg["extract_mode"]
     want_tables = bool(cfg["include_tables"] or mode == "tables")
     stream = io.BytesIO(source) if isinstance(source, (bytes, bytearray)) else str(source)
     with zipfile.ZipFile(stream) as zf:
-        root = ET.fromstring(zf.read("content.xml"))
+        root = ET.fromstring(_zip_read(zf, "content.xml"))
         title = ""
         meta: dict[str, object] = {}
         if "meta.xml" in zf.namelist():
             try:
-                mroot = ET.fromstring(zf.read("meta.xml"))
+                mroot = ET.fromstring(_zip_read(zf, "meta.xml"))
                 for elem in mroot.iter():
                     local = elem.tag.rsplit("}", 1)[-1]
                     if local == "title" and elem.text:
@@ -690,7 +704,7 @@ def _extract_epub(source: pathlib.Path | bytes, pages: str | None, cfg: dict) ->
         names = set(zf.namelist())
         opf_path = None
         if "META-INF/container.xml" in names:
-            croot = ET.fromstring(zf.read("META-INF/container.xml"))
+            croot = ET.fromstring(_zip_read(zf, "META-INF/container.xml"))
             for elem in croot.iter():
                 if elem.tag.rsplit("}", 1)[-1] == "rootfile" and elem.attrib.get("full-path"):
                     opf_path = elem.attrib["full-path"]
@@ -698,7 +712,7 @@ def _extract_epub(source: pathlib.Path | bytes, pages: str | None, cfg: dict) ->
         doc_paths: list[str] = []
         if opf_path and opf_path in names:
             opf_dir = pathlib.PurePosixPath(opf_path).parent
-            opf_root = ET.fromstring(zf.read(opf_path))
+            opf_root = ET.fromstring(_zip_read(zf, opf_path))
             manifest: dict[str, str] = {}
             for elem in opf_root.iter():
                 local = elem.tag.rsplit("}", 1)[-1]
@@ -722,7 +736,7 @@ def _extract_epub(source: pathlib.Path | bytes, pages: str | None, cfg: dict) ->
         for idx in selected:
             entry = doc_paths[idx - 1]
             if entry in names:
-                raw = zf.read(entry).decode("utf-8", errors="replace")
+                raw = _zip_read(zf, entry).decode("utf-8", errors="replace")
                 txt = _html_to_text(raw)
                 if txt:
                     header = f"[Section {idx}]" if mode == "text" else f"## Section {idx}"

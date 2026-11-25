@@ -1240,7 +1240,7 @@ def list_configs(root: Path | None) -> list[dict]:
             info = describe_config(file.resolve())
         except (ValueError, TypeError, OSError):
             continue
-        identifier = 'maya--' + hashlib.sha1(key.encode('utf-8')).hexdigest()[:12]
+        identifier = 'maya--' + hashlib.sha1(key.encode('utf-8'), usedforsecurity=False).hexdigest()[:12]
         info['id'] = identifier
         configs.append(info)
     return configs
