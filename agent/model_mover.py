@@ -225,6 +225,20 @@ class ModelMover:
         return self.snapshot()
 
     def _move_one(self, src, dest, size):
+        # A Hugging Face cache entry is a link to blobs/<hash>: the file it points at is moved and the link
+        # removed (moving the link itself left a link that points nowhere).
+        link = src if src.is_symlink() else None
+        if link is not None:
+            src = src.resolve()
+        moved = self._move_file(src, dest, size)
+        if link is not None and moved is not None:
+            try:
+                link.unlink(missing_ok=True)
+            except OSError:
+                pass
+        return moved
+
+    def _move_file(self, src, dest, size):
         dest.parent.mkdir(parents=True, exist_ok=True)
         try:
             if src.resolve() == dest.resolve():
@@ -232,15 +246,19 @@ class ModelMover:
                 return dest
         except OSError:
             pass
-        if dest.is_file():
+        if dest.exists():
+            # Only a byte-for-byte copy is a duplicate: two versions of a model often have the same size,
+            # and deleting the source on size alone lost the newer one.
+            import filecmp
             try:
-                if dest.stat().st_size == size:
-                    # Identical size already at destination: remove duplicate source only if different file.
-                    src.unlink(missing_ok=True)
-                    self._add_bytes(size)
-                    return dest
+                same = dest.is_file() and dest.stat().st_size == size and filecmp.cmp(src, dest, shallow=False)
             except OSError:
-                pass
+                same = False
+            if not same:
+                raise ValueError('Ya hay otro archivo llamado %s en %s; no se ha movido.' % (dest.name, dest.parent))
+            src.unlink(missing_ok=True)
+            self._add_bytes(size)
+            return dest
         # Try instant same-volume rename first.
         try:
             os.replace(src, dest)

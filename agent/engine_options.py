@@ -476,13 +476,15 @@ def without(kind, args, keys):
     for k in key_set:
         if _EXTRA_KEY_RE.fullmatch(str(k)):
             flags.add('--' + k[6:].replace('_', '-'))
-    kept, skip = [], False
-    for item in args:
-        if skip:
-            skip = False
-            continue
+    kept, index = [], 0
+    while index < len(args):
+        item = args[index]
+        index += 1
         if item in flags:
-            skip = item not in valueless
+            # An option found on the executable's help (flag__…) may take no value: what follows it is then
+            # the next flag, which must stay (dropping it lost e.g. --model).
+            if item not in valueless and index < len(args) and not str(args[index]).startswith('--'):
+                index += 1
             continue
         kept.append(item)
     return kept

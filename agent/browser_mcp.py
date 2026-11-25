@@ -28,6 +28,11 @@ READ = ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=T
 WRITE = ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True)
 STATE = {"process": None, "port": None, "cdp": None, "target": None, "pages": {}}
 LOCK = threading.RLock()
+# Every request of this browser carries this mark in its User-Agent, and V-Agent's own server refuses such
+# requests (agent.Handler.parse_request): otherwise a page of V-Agent's own address opened here would have the
+# interface's origin, and `evaluate` could change access or settings that only the user may change.
+AGENT_UA_MARK = "V-Agent-AutoBrowser"
+_USER_AGENTS = {}   # browser executable -> its own User-Agent plus the mark
 
 
 class CdpError(RuntimeError):
@@ -191,8 +196,10 @@ def _start() -> CdpPage:
         profile = DATA_ROOT / "cache" / "autobrowser"
         profile.mkdir(parents=True, exist_ok=True)
         headless = "--headless" if edge.name.lower().startswith("chrome-headless-shell") else "--headless=new"
+        known_agent = _USER_AGENTS.get(str(edge))
         argv = [
             str(edge), headless, f"--remote-debugging-port={port}",
+            *([f"--user-agent={known_agent}"] if known_agent else []),
             f"--user-data-dir={profile}", "--no-first-run", "--no-default-browser-check",
             "--disable-extensions", "--disable-sync", "--disable-component-update",
             "--disable-background-networking", "--window-size=1440,900", "about:blank",
@@ -209,6 +216,15 @@ def _start() -> CdpPage:
             try:
                 pages = _list_pages()
                 if pages:
+                    if not known_agent:
+                        # The browser's own User-Agent is known only once it runs: read it, then start again
+                        # with the mark added (once per browser for the life of this process).
+                        agent = str(_http_json(f"http://127.0.0.1:{port}/json/version").get("User-Agent") or "")
+                        if not agent:
+                            raise CdpError("The browser did not report its User-Agent.")
+                        _USER_AGENTS[str(edge)] = agent + " " + AGENT_UA_MARK
+                        _close_browser()
+                        return _start()
                     target = pages[0]
                     if "webSocketDebuggerUrl" not in target:
                         target = _http_json(f"http://127.0.0.1:{port}/json/list")[0]
@@ -978,6 +994,9 @@ def _close_browser():
             try:
                 subprocess.run(["taskkill", "/F", "/T", "/PID", str(process.pid)], capture_output=True, timeout=15,
                                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                # Gone before returning: a browser started right after on the same profile would otherwise
+                # hand its work to this one and exit.
+                process.wait(timeout=10)
             except Exception:
                 try:
                     process.terminate()

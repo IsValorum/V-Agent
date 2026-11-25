@@ -29,5 +29,56 @@ class DocumentParts(unittest.TestCase):
                 doc_extractor._zip_read(zf, 'content.xml', limit=1024)
 
 
+class ModelMoves(unittest.TestCase):
+    def test_a_different_file_with_the_same_name_and_size_is_never_deleted(self):
+        import tempfile
+        import model_mover
+        with tempfile.TemporaryDirectory() as folder:
+            src, dest = Path(folder) / 'a' / 'm.gguf', Path(folder) / 'b' / 'm.gguf'
+            src.parent.mkdir(); dest.parent.mkdir()
+            src.write_bytes(b'new version!'); dest.write_bytes(b'old version!')
+            mover = model_mover.ModelMover(lambda: folder, lambda *a: {})
+            with self.assertRaises(ValueError):
+                mover._move_one(src, dest, src.stat().st_size)
+            self.assertEqual(src.read_bytes(), b'new version!')
+            dest.write_bytes(b'new version!')
+            mover._move_one(src, dest, src.stat().st_size)    # a true duplicate: the source goes
+            self.assertFalse(src.exists())
+
+
+class FileVersionLimits(unittest.TestCase):
+    def test_versions_per_file_are_capped(self):
+        import tempfile
+        from file_versions import FileVersions
+        with tempfile.TemporaryDirectory() as folder:
+            store = FileVersions(Path(folder) / 'versions')
+            store.KEEP = 3
+            target = Path(folder) / 'w' / 'f.txt'
+            target.parent.mkdir()
+            for n in range(6):
+                target.write_text(str(n), encoding='utf-8')
+                store.capture(target, target.parent)
+            self.assertEqual(len(store.history(target, target.parent)), 3)
+
+
+class EngineOptionRemoval(unittest.TestCase):
+    def test_removing_a_flag_without_value_keeps_the_next_flag(self):
+        import engine_options
+        args = ['--model', 'm.gguf', '--no-mmap', '--kv', 'q8_0']
+        self.assertEqual(engine_options.without('strata', args, ['flag__no_mmap']), ['--model', 'm.gguf', '--kv', 'q8_0'])
+
+
+class ListeningPort(unittest.TestCase):
+    def test_the_listener_is_found_whatever_the_windows_language(self):
+        from unittest import mock
+        import agent
+        table = ('  TCP    0.0.0.0:135     0.0.0.0:0      ESCUCHANDO   1820\n'
+                 '  TCP    127.0.0.1:19382 0.0.0.0:0      ABHÖREN      4242\n'
+                 '  TCP    127.0.0.1:50000 127.0.0.1:19382 ESTABLISHED 77\n')
+        with mock.patch('subprocess.check_output', return_value=table):
+            self.assertEqual(agent.port_pid(19382), 4242)
+
+
+
 if __name__ == '__main__':
     unittest.main()

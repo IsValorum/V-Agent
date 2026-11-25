@@ -387,7 +387,8 @@ _TOKENIZADORES_MEDIDOS = {}   # id de modelo -> carpeta del tokenizador (o None)
 ENGINE_LOCK = threading.Lock()
 _SERVER_PROCESS = None
 SERVER_LOG = LOG_ROOT / "engine-server.log"
-DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+# English weekday for the model-facing date note (prompts are in English; strftime("%A") follows the locale).
+DIAS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 
 class ModelStateError(RuntimeError):
@@ -756,7 +757,7 @@ def stop_engine(force=False, clear_preparation=True):
                 PREPARATION.clear()
             return {"status": "stopped", "engine_online": False}
     if not is_engine_process(process):
-        raise RuntimeError("El puerto interno 8082 pertenece a otro programa; no se ha detenido.")
+        raise RuntimeError(f"El puerto interno {ENGINE_PORT} pertenece a otro programa; no se ha detenido.")
     if not force and engine_health():
         # The server refuses this when an inference is active; never kill it mid-answer.
         result = strata_post("/api/models/unload", {}, timeout=120)
@@ -796,8 +797,12 @@ def port_pid(port=ENGINE_PORT):
     try:
         out = subprocess.check_output(["netstat", "-ano"], text=True, encoding="utf-8", errors="replace", timeout=10, creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
         for line in out.splitlines():
-            if len(line.split()) >= 5 and line.split()[1].rsplit(":", 1)[-1] == str(port) and "LISTENING" in line:
-                return int(line.split()[-1])
+            # A listening TCP socket has no remote end (0.0.0.0:0 or [::]:0). The state word itself is
+            # translated by Windows ("ESCUCHANDO", "ABHÖREN"…), so it is not looked for.
+            parts = line.split()
+            if (len(parts) == 5 and parts[0].upper() == "TCP" and parts[1].rsplit(":", 1)[-1] == str(port)
+                    and parts[2] in ("0.0.0.0:0", "[::]:0") and parts[4].isdigit()):
+                return int(parts[4])
     except Exception:
         pass
     return None
@@ -1324,7 +1329,7 @@ def resolve_tool(name, routes, aliases):
 
 def unknown_tool_text(name, allowed=None):
     routes = allowed if allowed is not None else {}
-    names = ", ".join(sorted(routes)) or "(ninguna)"
+    names = ", ".join(sorted(routes)) or "(none)"
     return f"error: tool unavailable: {name!r}. Enabled tools: {names}"
 
 
@@ -2640,6 +2645,12 @@ class Handler(BaseHTTPRequestHandler):
             return False
         if not isinstance(self.rfile, _CountedBody):
             self.rfile = _CountedBody(self.rfile)      # what the handler reads of the body is counted
+        if 'V-Agent-AutoBrowser' in (self.headers.get('User-Agent') or ''):
+            # The agent's own browser (browser_mcp.AGENT_UA_MARK): a page of this address opened there would
+            # have the interface's origin and could change access or settings in the user's place.
+            self.close_connection = True
+            self._json(403, {'error': "V-Agent's interface is not available to the agent's browser."})
+            return False
         host = (self.headers.get('Host') or '').strip().lower()
         name = host.rsplit(':', 1)[0] if host.count(':') == 1 or host.startswith('[') and ']:' in host else host
         if name in ('127.0.0.1', 'localhost', '[::1]'):

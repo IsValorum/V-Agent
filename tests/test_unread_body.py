@@ -45,6 +45,24 @@ class UnreadBodyTests(unittest.TestCase):
             server.shutdown()
             server.server_close()
 
+class AgentBrowserTests(unittest.TestCase):
+    def test_the_agents_browser_cannot_reach_the_interface(self):
+        """browser_mcp marks its User-Agent; such a request never reaches a route (it could change access)."""
+        import browser_mcp
+        server = ThreadingHTTPServer(('127.0.0.1', 0), Quiet)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            connection = http.client.HTTPConnection('127.0.0.1', server.server_address[1], timeout=10)
+            connection.request('GET', '/y', headers={'User-Agent': 'Mozilla/5.0 HeadlessChrome/157 ' + browser_mcp.AGENT_UA_MARK})
+            self.assertEqual(connection.getresponse().status, 403)
+            connection = http.client.HTTPConnection('127.0.0.1', server.server_address[1], timeout=10)
+            connection.request('GET', '/y', headers={'User-Agent': 'Mozilla/5.0 HeadlessChrome/157'})
+            self.assertEqual(connection.getresponse().status, 200)
+        finally:
+            server.shutdown()
+            server.server_close()
+
+
 
 if __name__ == '__main__':
     unittest.main()

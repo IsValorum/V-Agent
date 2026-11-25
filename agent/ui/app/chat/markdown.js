@@ -179,8 +179,29 @@ function codeBlock(lang,code,partial=false){
   };
   wrap._setCode(lang,code,partial);return wrap;
 }
+// Notices the core appends to a reply (agent.py) are written in Spanish, the interface's base language. The
+// translator skips #chat, so only these known paragraphs are translated here; the model's own text never is.
+const CORE_NOTES=['Se alcanzó el límite de rondas de herramientas. Las llamadas pendientes quedaron sin ejecutar.',
+  'El modelo no pudo completar otra llamada. Las acciones pendientes quedaron sin ejecutar.',
+  'El archivo quedó como borrador. Ábrelo en la llamada Guardar archivo para copiarlo o descargarlo.',
+  'El modelo repitió el inicio de la llamada sin escribir argumentos. La llamada no se ejecutó.',
+  'La llamada quedó interrumpida por el límite de generación. La llamada no se ejecutó.',
+  'El modelo emitió una llamada con formato o argumentos inválidos. La llamada no se ejecutó.',
+  'No he ejecutado `{}` porque denegaste el permiso. Dime cómo quieres continuar.',
+  'No se pudo guardar el archivo. Puedes copiarlo o descargarlo desde la llamada Guardar archivo.',
+  'Borrador conservado en {}.'].map(key=>new RegExp('^'+key.split('{}').map(part=>part.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('[\\s\\S]+?')+'$'));
+const CORE_CUT=/^\(Se cortó la respuesta: ([\s\S]+?)\. ((?:No se guardó nada|Lo guardado en este turno)[\s\S]*)\)$/;
+function coreNote(block){
+  const i18n=globalThis.VALI18n,text=block.trim();
+  if(!i18n||i18n.language==='es'||!text)return block;
+  const cut=text.match(CORE_CUT);
+  if(cut){const T=value=>i18n.t(value);const motive=cut[1].replace(/^(\d+) /,'{} ');const count=cut[1].match(/^\d+/)?.[0]||'';
+    const said=T(motive).replace('{}',count);
+    return T('(Se cortó la respuesta: {}. {})').replace('{}',()=>said).replace('{}',()=>T(cut[2]));}
+  return CORE_NOTES.some(pattern=>pattern.test(text))?i18n.t(text):block;
+}
 function renderMarkdownProse(view,text){
-  const blocks=text.split(/\n[ \t]*\n/),previous=view.proseBlocks||[],next=[];
+  const blocks=text.split(/\n[ \t]*\n/).map(coreNote),previous=view.proseBlocks||[],next=[];
   view.node.className='markdown-prose';
   blocks.forEach((source,index)=>{
     const block=previous[index]||{node:document.createElement('div')};

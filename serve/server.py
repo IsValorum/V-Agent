@@ -81,8 +81,9 @@ IMAGE_PAD = "<|image_pad|>"
 def _temporal_block() -> str:
     import datetime
     now = datetime.datetime.now()
-    dias = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
-    return f"[Fecha y hora actual: {now.strftime('%Y-%m-%d %H:%M')} ({dias[now.weekday()]})]"
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    # Same wording as the agent's note (agent.date_line), which the file tools strip from written text.
+    return f"[System note, not part of the user's message: current date and time {now.strftime('%Y-%m-%d %H:%M')} ({days[now.weekday()]})]"
 
 
 def _inject_temporal(messages):

@@ -22,11 +22,20 @@ class FileVersions:
             with db:yield db
         finally:db.close()
     def identity(self, path, workspace):return os.path.normcase(str(Path(path).resolve())),os.path.normcase(str(Path(workspace).resolve()))
+    # Every write used to keep a full copy forever: the index grew without limit with large or often edited files.
+    KEEP=100                 # versions per file (history lists 100)
+    MAX_BYTES=32*2**20       # a larger file is not copied
     def capture(self, path, workspace):
         path,workspace=self.identity(path,workspace);target=Path(path)
-        content=target.read_bytes() if target.exists() else b''
+        try:
+            if target.is_file() and target.stat().st_size>self.MAX_BYTES:return None
+        except OSError:return None
+        content=target.read_bytes() if target.is_file() else b''
         ident=secrets.token_hex(16)
-        with self.connect() as db:db.execute('INSERT INTO revisions VALUES(?,?,?,?,?,?)',(ident,workspace,path,time.time(),content,int(target.exists())))
+        with self.connect() as db:
+            db.execute('INSERT INTO revisions VALUES(?,?,?,?,?,?)',(ident,workspace,path,time.time(),content,int(target.is_file())))
+            db.execute('DELETE FROM revisions WHERE path=? AND workspace=? AND id NOT IN (SELECT id FROM revisions WHERE path=? AND workspace=? ORDER BY created DESC LIMIT ?)',
+                       (path,workspace,path,workspace,self.KEEP))
         return ident
     def history(self, path, workspace):
         """Saved states of a file, newest first, each described so a model can pick the right one."""
