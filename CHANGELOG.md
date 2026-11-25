@@ -4,6 +4,20 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.1.16
+
+A tidier installation, much faster model imports, an installer in 14 languages and several fixes.
+
+- **Organized program folder (`scripts/core.spec`, `desktop/src-tauri/`):** The core is now `core\v-agent-core.exe` with its runtime in `core\lib\`; Python's compiled modules and their libraries live in `lib\python3.13\lib-dynload\`, and the Windows runtime copies that Windows 10/11 already have are no longer shipped. Updating from 1.1.15 or earlier removes the old layout (`strata-core.exe`, `_internal`) and, on the first start, updates any saved setting that named it. Chats, settings, engines and models are kept.
+- **Uninstaller (`desktop/src-tauri/windows/hooks.nsh`):** Stops V-Agent's background processes before deleting, so no locked file is left behind, and removes the core folder whole.
+- **Installer:** Its language selector offers all 14 interface languages, and new installs go to `%LOCALAPPDATA%\Programs\V-Agent` by default. Existing installs keep their folder.
+- **Models on this PC (`agent/external_models.py`, `agent/model_import.py`, `agent/ui/app/models/models.js`):** Importing a list of models is now quick: a model appears right away, and Strata prepares its tokenizer the first time it is loaded. Each model is shown in its real folder, so files reached through a link in LM Studio's folder are no longer labelled as LM Studio; the Hugging Face cache is its own source, and **Add folder…** searches any folder of yours. *Import and export* now sits right under the model selector.
+- **Fixed: "Invalid server response (501)" after switching modes (`agent/agent.py`):** A request whose body a handler did not read broke the next request on the same connection; the server now discards whatever was left unread.
+- **Engine card:** It follows the *This PC* / *APIs* tab and says when the chosen engine is not applied yet.
+- **Tutorial:** New steps for temporary chats, web search and keyboard shortcuts, and updated texts for agent modes, engines and settings. Strata Rust is no longer described as limited to Qwen3.5/3.6.
+- **Interface sources (`agent/ui/`):** Reorganized by area (core, chat, models, settings, agent) with the stylesheets as numbered layers; the built interface is unchanged.
+- **Repository:** English README with a clear download button; old test reports, internal notes and unused images removed.
+
 ## 1.1.15
 
 Lighter tool prompts, a faster first reply, a Chat mode and a mode selector that draws right away.
