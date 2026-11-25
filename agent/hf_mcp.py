@@ -87,6 +87,10 @@ def call(name,args,policy=POLICY,full_access=False):
             raise ValueError("repo_id must be 'owner/name' (not a full URL), e.g. 'org/model'.")
         common={'repo_id':repo_id,'repo_type':kind,'revision':args.get('revision') or 'main'}
         if args['action']=='download':
+            remote=str(args.get('filename') or '')
+            # The file lands at path/filename: a name with .. or a drive would write outside the working folder.
+            if remote and (Path(remote).is_absolute() or ':' in remote or '..' in re.split(r'[\\/]',remote)):
+                raise AccessDenied('filename must be a path inside the repository (no "..", drive or absolute path).')
             path.mkdir(parents=True,exist_ok=True)
             # Refuse existing links/junctions before the SDK writes into a directory.
             for parent,dirs,files in os.walk(path,followlinks=False):

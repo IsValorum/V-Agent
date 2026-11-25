@@ -234,7 +234,7 @@ def prompt_block():
             continue
         chunk = title + '\n' + body
         if len(chunk) > budget:
-            chunk = chunk[:max(0, budget - 20)].rstrip() + '\n[truncado]'
+            chunk = chunk[:max(0, budget - 20)].rstrip() + '\n[truncated]'
         chunks.append(chunk)
         budget -= len(chunk)
         if budget <= 0:
