@@ -7,11 +7,13 @@ admin helper and are out of scope for this basic layer.
 """
 from __future__ import annotations
 
+import atexit
 import ctypes
 from ctypes import wintypes
 import json
 import os
 import subprocess
+import threading
 import time
 from pathlib import Path
 
@@ -81,7 +83,93 @@ def _active_window() -> dict:
     return {"hwnd": int(hwnd), "pid": int(pid.value), "title": _window_text(hwnd)}
 
 
-def _ocr(path: Path) -> str:
+_OCR_LOCK = threading.Lock()
+_OCR_PROC: subprocess.Popen | None = None
+_OCR_WORKER_SCRIPT = r"""
+Add-Type -AssemblyName System.Runtime.WindowsRuntime
+$asTaskGeneric = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]
+function Await($WinRtTask, $ResultType) {
+  $asTask = $asTaskGeneric.MakeGenericMethod($ResultType)
+  $netTask = $asTask.Invoke($null, @($WinRtTask))
+  $netTask.Wait(-1) | Out-Null
+  $netTask.Result
+}
+[Windows.Storage.StorageFile,Windows.Storage,ContentType=WindowsRuntime] | Out-Null
+[Windows.Graphics.Imaging.BitmapDecoder,Windows.Graphics.Imaging,ContentType=WindowsRuntime] | Out-Null
+[Windows.Media.Ocr.OcrEngine,Windows.Foundation,ContentType=WindowsRuntime] | Out-Null
+$engine = [Windows.Media.Ocr.OcrEngine]::TryCreateFromUserProfileLanguages()
+if (-not $engine) { exit 2 }
+[Console]::InputEncoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+while ($null -ne ($line = [Console]::In.ReadLine())) {
+  if (-not $line) { continue }
+  try {
+    $file = Await ([Windows.Storage.StorageFile]::GetFileFromPathAsync($line)) ([Windows.Storage.StorageFile])
+    $stream = Await ($file.OpenAsync([Windows.Storage.FileAccessMode]::Read)) ([Windows.Storage.Streams.IRandomAccessStream])
+    try {
+      $decoder = Await ([Windows.Graphics.Imaging.BitmapDecoder]::CreateAsync($stream)) ([Windows.Graphics.Imaging.BitmapDecoder])
+      $bitmap = Await ($decoder.GetSoftwareBitmapAsync()) ([Windows.Graphics.Imaging.SoftwareBitmap])
+      $result = Await ($engine.RecognizeAsync($bitmap)) ([Windows.Media.Ocr.OcrResult])
+      $out = @{ ok = $true; text = [string]$result.Text } | ConvertTo-Json -Compress
+    } finally {
+      $stream.Dispose()
+    }
+  } catch {
+    $out = @{ ok = $false; text = "" } | ConvertTo-Json -Compress
+  }
+  [Console]::Out.WriteLine($out)
+  [Console]::Out.Flush()
+}
+"""
+
+
+def _stop_ocr_worker():
+    global _OCR_PROC
+    proc = _OCR_PROC
+    _OCR_PROC = None
+    if proc is not None:
+        try:
+            if proc.stdin:
+                proc.stdin.close()
+        except OSError:
+            pass
+        try:
+            if proc.poll() is None:
+                proc.terminate()
+                proc.wait(timeout=2)
+        except Exception:
+            try:
+                proc.kill()
+            except OSError:
+                pass
+
+
+atexit.register(_stop_ocr_worker)
+
+
+def _start_ocr_worker() -> subprocess.Popen | None:
+    global _OCR_PROC
+    if _OCR_PROC is not None and _OCR_PROC.poll() is None:
+        return _OCR_PROC
+    _stop_ocr_worker()
+    import base64
+    powershell = os.path.join(os.environ.get("SystemRoot", r"C:\Windows"),
+                              "System32", "WindowsPowerShell", "v1.0", "powershell.exe")
+    encoded = base64.b64encode(_OCR_WORKER_SCRIPT.encode("utf-16-le")).decode("ascii")
+    try:
+        _OCR_PROC = subprocess.Popen(
+            [powershell, "-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            text=True, encoding="utf-8", errors="replace",
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        return _OCR_PROC
+    except OSError:
+        _OCR_PROC = None
+        return None
+
+
+def _ocr_oneshot(path: Path) -> str:
     script = SOURCE_ROOT / "agent" / "ocr.ps1"
     if not script.is_file():
         return ""
@@ -95,6 +183,23 @@ def _ocr(path: Path) -> str:
         return (result.stdout or "")[:20_000]
     except (OSError, subprocess.TimeoutExpired):
         return ""
+
+
+def _ocr(path: Path) -> str:
+    with _OCR_LOCK:
+        proc = _start_ocr_worker()
+        if proc is not None and proc.stdin and proc.stdout:
+            try:
+                proc.stdin.write(str(path) + "\n")
+                proc.stdin.flush()
+                line = proc.stdout.readline()
+                if line:
+                    data = json.loads(line)
+                    if isinstance(data, dict) and data.get("ok"):
+                        return str(data.get("text") or "")[:20_000]
+            except (OSError, ValueError):
+                _stop_ocr_worker()
+    return _ocr_oneshot(path)
 
 
 def _screenshot() -> dict:
@@ -186,8 +291,12 @@ def window_focus(title_contains: str) -> str:
             _key(0x12, True)
         user32.BringWindowToTop(hwnd)
         user32.SetForegroundWindow(hwnd)
-        time.sleep(0.18)
-        active = _active_window()
+        focus_deadline = time.monotonic() + 0.18
+        while True:
+            active = _active_window()
+            if active.get("hwnd") == int(hwnd) or time.monotonic() >= focus_deadline:
+                break
+            time.sleep(0.02)
         if active.get("hwnd") == int(hwnd):
             break
     else:
@@ -246,18 +355,27 @@ def keyboard_type(text: str) -> str:
     """Type Unicode text into the focused control using SendInput."""
     if not isinstance(text, str) or not text:
         raise ValueError("text cannot be empty.")
+    payload = text[:4000]
+    batch: list[INPUT] = []
     count = 0
-    for char in text[:4000]:
+    for char in payload:
         if char == "\n":
-            _key(0x0D); _key(0x0D, True)
+            batch.append(INPUT(type=1, u=INPUTUNION(ki=KEYBDINPUT(0x0D, 0, 0, 0, 0))))
+            batch.append(INPUT(type=1, u=INPUTUNION(ki=KEYBDINPUT(0x0D, 0, 0x0002, 0, 0))))
         elif char == "\t":
-            _key(0x09); _key(0x09, True)
+            batch.append(INPUT(type=1, u=INPUTUNION(ki=KEYBDINPUT(0x09, 0, 0, 0, 0))))
+            batch.append(INPUT(type=1, u=INPUTUNION(ki=KEYBDINPUT(0x09, 0, 0x0002, 0, 0))))
         else:
             scan = ord(char)
-            _send(INPUT(type=1, u=INPUTUNION(ki=KEYBDINPUT(0, scan, 0x0004, 0, 0))),
-                  INPUT(type=1, u=INPUTUNION(ki=KEYBDINPUT(0, scan, 0x0004 | 0x0002, 0, 0))))
+            batch.append(INPUT(type=1, u=INPUTUNION(ki=KEYBDINPUT(0, scan, 0x0004, 0, 0))))
+            batch.append(INPUT(type=1, u=INPUTUNION(ki=KEYBDINPUT(0, scan, 0x0004 | 0x0002, 0, 0))))
         count += 1
-        time.sleep(0.01)
+        if len(batch) >= 32:
+            _send(*batch)
+            batch.clear()
+            time.sleep(0.002)
+    if batch:
+        _send(*batch)
     return json.dumps({"ok": True, "characters": count}, ensure_ascii=False)
 
 

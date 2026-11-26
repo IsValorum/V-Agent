@@ -6,6 +6,9 @@ from model_import import _atomic_json, _path, _metadata
 from draft_settings import argument
 
 
+_VISION_ARCHS = ('qwen35moe', 'gemma4', 'inkling2_loop', 'inkling2', 'clover_moe')
+
+
 def describe(config_path):
     path=Path(config_path);cfg=json.loads(path.read_text(encoding='utf-8-sig'))
     saved=cfg.get('vision') or cfg.get('agent_vision') or {}
@@ -15,7 +18,7 @@ def describe(config_path):
     arch=kv_settings.describe(path).get('architecture')
     return {'enabled':bool(cfg.get('vision')),'mmproj':saved.get('mmproj',''),'encoder':encoder,
             'encoder_available':Path(encoder).is_file(),'gpu':bool(saved.get('gpu')),
-            'supported':arch in ('qwen35moe','gemma4'),
+            'supported':arch in _VISION_ARCHS,
             'next_load':True}
 
 
@@ -34,7 +37,7 @@ def configure(config_path,body):
         # Registry configurations use model_type/backend depending on the pack.
         from serve.models import discover
         model=next((m for m in discover(path.parent) if Path(m['config'])==path),{})
-        if model.get('backend') not in ('qwen35moe','gemma4'):
+        if model.get('backend') not in _VISION_ARCHS:
             raise ValueError('La integración visual de este motor no está verificada para esta arquitectura.')
         if not mmproj:raise ValueError('Elige el mmproj correspondiente a este modelo.')
         if not Path(encoder).is_file() or Path(encoder).name.lower() not in ('strata-vision.exe','strata-vision'):

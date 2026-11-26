@@ -108,9 +108,12 @@ def details(repo):
         split = SPLIT.match(Path(name).name)
         key = str(Path(name).parent / split['base']) if split else name
         group = groups.get(key)
+        low_name = Path(name).name.lower()
+        is_mmproj = 'mmproj' in low_name
+        is_draft = any(tok in low_name for tok in ('dspark', 'dflash', 'eagle', 'draft', 'assistant')) or '-mtp-' in low_name or low_name.startswith('mtp-') or low_name.endswith('-mtp.gguf')
         if group is None:
             group = groups[key] = {'name': name, 'size': 0, 'parts': [], 'quant': _quant(split['base'] if split else name),
-                                   'mmproj': 'mmproj' in Path(name).name.lower()}
+                                   'mmproj': is_mmproj, 'auxiliary': is_mmproj or is_draft}
             files.append(group)
         group['parts'].append({'name': name, 'size': size, 'sha256': lfs.get('sha256')})
         group['size'] += size
@@ -179,7 +182,7 @@ class Downloads:
                 return self.snapshot()
             self.jobs[ident] = {'id': ident, 'repo': repo, 'name': group['name'], 'parts': group['parts'], 'total': group['size'],
                                 'received': 0, 'state': 'queued', 'error': '', 'path': '', 'model': None, 'started': time.time(),
-                                'mmproj': group['mmproj']}
+                                'mmproj': group['mmproj'], 'auxiliary': group.get('auxiliary', group['mmproj'])}
             self.queue.append(ident)
             if not self.worker or not self.worker.is_alive():
                 self.worker = threading.Thread(target=self._run, daemon=True)
@@ -213,7 +216,7 @@ class Downloads:
                     if job['state'] == 'cancelled':
                         continue
                     job['path'] = str(path)
-                if self.register and not job['mmproj']:
+                if self.register and not job.get('auxiliary', job['mmproj']):
                     model_id = self.register(path, job)
                     with self.lock:
                         if job['state'] != 'cancelled':

@@ -92,6 +92,10 @@ def _is_companion(filename):
         or low.endswith('-mtp.gguf')
         or low.endswith('_mtp.gguf')
         or 'draft' in low
+        or 'dspark' in low
+        or 'dflash' in low
+        or 'eagle' in low
+        or 'assistant' in low
     )
 
 

@@ -8,16 +8,40 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from model_import import _atomic_json
 
 
+_DRAFT_HINTS = ("mtp", "dspark", "dflash", "draft", "assistant")
+
+
 @lru_cache(maxsize=128)
 def _header(path, size, modified):
     from gguf_catalog import inspect
     info = inspect(path)
     meta = info['metadata']
     arch = meta.get("general.architecture")
+    embd = meta.get(str(arch) + ".embedding_length")
     return {
+        "path": path,
         "head": info['head'],
-        "signature": (arch, meta.get(str(arch) + ".embedding_length"), meta.get(str(arch) + ".expert_count")),
+        "arch": arch,
+        "embedding": embd,
+        "pre": meta.get("tokenizer.ggml.pre"),
+        "signature": (arch, embd, meta.get(str(arch) + ".expert_count")),
     }
+
+
+def _compatible(candidate, main):
+    """True when `candidate` is a valid MTP head or external draft model (e.g. DFlash/DSpark, Gemma 4 assistant) for `main`."""
+    if candidate["head"] and candidate["signature"] == main["signature"]:
+        return True
+    if candidate.get("arch") == "dflash":
+        if candidate.get("embedding") is None or candidate.get("embedding") != main.get("embedding"):
+            return False
+        c_pre, m_pre = candidate.get("pre"), main.get("pre")
+        if c_pre and m_pre and c_pre != m_pre:
+            return False
+        return True
+    if main.get("arch") == "gemma4" and candidate.get("arch") == "gemma4" and candidate.get("path") != main.get("path"):
+        return True
+    return False
 
 
 def header(path):
@@ -45,7 +69,11 @@ def describe(config_path):
         return {"integrated": False, "source": "", "tokens": 0, "files": [], "available": False}
     external = argument(args, "--draft-model", "")
     source = external or ("integrated" if main["head"] else "")
-    candidates = list(weight.parent.glob("*mtp*.gguf")) + list(weight.parent.glob("*MTP*.gguf"))
+    weight_resolved = str(weight.resolve()).lower()
+    candidates = [
+        p for p in weight.parent.glob("*.gguf")
+        if str(p.resolve()).lower() != weight_resolved and any(h in p.name.lower() for h in _DRAFT_HINTS)
+    ]
     if external:
         candidates.append(Path(external))
     files = []
@@ -59,7 +87,7 @@ def describe(config_path):
             candidate = header(path)
         except (OSError, ValueError, EOFError, KeyError):
             continue
-        if candidate["head"] and candidate["signature"] == main["signature"]:
+        if _compatible(candidate, main):
             files.append({"path": str(path), "name": path.name})
     tokens = 0 if "--no-draft" in args or not source else min(3, max(0, int(argument(args, "--window", 8)) - 1))
     return {"integrated": main["head"], "source": source, "tokens": tokens, "files": files, "available": True}
@@ -87,7 +115,7 @@ def save(config_path, source, tokens):
         if candidate.suffix.lower() != ".gguf" or not candidate.is_file():
             raise ValueError("Selecciona un archivo GGUF MTP existente.")
         metadata = header(candidate)
-        if not metadata["head"] or metadata["signature"] != header(main)["signature"]:
+        if not _compatible(metadata, header(main)):
             raise ValueError("El archivo no contiene una cabeza MTP con las dimensiones de este modelo.")
         source = str(candidate)
     if not source and tokens:

@@ -36,8 +36,13 @@ def _json(path):
 
 def _skip(path):
     name = path.name.lower()
-    return name.startswith('mmproj') or '-mtp-' in name or name.startswith('mtp-') or 'imatrix' in name or (
-        '-of-' in name and not name.split('-of-')[0].endswith('-00001'))
+    return (
+        name.startswith('mmproj') or '-mmproj' in name or '_mmproj' in name
+        or '-mtp-' in name or name.startswith('mtp-') or name.endswith('-mtp.gguf') or name.endswith('_mtp.gguf')
+        or 'dspark' in name or 'dflash' in name or 'eagle' in name or 'draft' in name or 'assistant' in name
+        or 'imatrix' in name
+        or ('-of-' in name and not name.split('-of-')[0].endswith('-00001'))
+    )
 
 
 def _value(field):

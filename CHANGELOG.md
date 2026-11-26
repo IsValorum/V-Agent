@@ -4,6 +4,18 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.1.17
+
+Faster web search and MCP tools, plus full support for DSpark / DFlash speculative draft models and companion files.
+
+- **Faster web search and page reading (`web_mcp/busqueda_local.py`, `web_mcp/buscador_mcp.py`):** Web search now queries fast backends in parallel and returns as soon as the first valid engine responds, puts blocked or failing engines on a short cooldown, caches repeated queries for 90 seconds, and uses multi-threaded fallback when needed. `web_visit` reuses persistent HTTP/TLS connections.
+- **Lower latency across MCP servers (`agent/browser_mcp.py`, `web_mcp/http_tools_mcp.py`, `agent/computer_mcp.py`, `agent/hf_mcp.py`):**
+  - The autonomous browser caches its User-Agent on disk so it launches once instead of twice on cold start, uses tighter navigation polling, and returns promptly after in-page clicks that do not navigate.
+  - HTTP tools reuse pooled keep-alive connections (clearing cookies between calls) and cache public DNS checks briefly.
+  - Desktop OCR keeps a reusable background Windows OCR worker instead of starting a new PowerShell process per screenshot; keyboard typing sends characters in batches and window focus returns as soon as the target window is active.
+  - Hugging Face tools reuse the API client and remember recently rejected tokens so public queries go straight to anonymous mode instead of running the CLI twice.
+- **DSpark / DFlash draft models and companion files (`agent/draft_settings.py`, `agent/draft_models.py`, `agent/gguf_catalog.py`, `agent/model_mover.py`, `agent/external_models.py`, `agent/model_hub.py`, `agent/vision_settings.py`):** DSpark and DFlash draft GGUF files (such as `dspark-Inkling-2-Mini`) are now validated and auto-detected as compatible speculative draft models, classified accurately as `draft-dspark`, moved alongside their main model, downloaded as auxiliary files, and hidden from the standalone chat model list. Multimodal vision projector detection now also covers Inkling 2 and Clover MoE architectures.
+
 ## 1.1.16
 
 A tidier installation, much faster model imports, an installer in 14 languages and several fixes.

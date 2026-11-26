@@ -31,6 +31,26 @@ MAX_PAGE_BYTES = 8 * 1024 * 1024
 MAX_DOC_BYTES = 24 * 1024 * 1024
 _pages = OrderedDict()
 _pages_lock = threading.Lock()
+_REAL_SESSION = requests.Session
+_http_local = threading.local()
+
+
+def _http_session():
+    if requests.Session is not _REAL_SESSION:
+        session = requests.Session()
+        if hasattr(session, 'headers') and hasattr(session.headers, 'update'):
+            session.headers.update(BROWSER_HEADERS)
+        return session
+    session = getattr(_http_local, 'session', None)
+    if session is None:
+        from requests.adapters import HTTPAdapter
+        session = requests.Session()
+        adapter = HTTPAdapter(pool_connections=16, pool_maxsize=16)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
+        session.headers.update(BROWSER_HEADERS)
+        _http_local.session = session
+    return session
 
 def validate_public_url(url):
     parsed = urlparse(url)
@@ -79,65 +99,64 @@ def hf_public_profile(url):
 
 
 def read_public_page(url, find_in_page=None):
-    with requests.Session() as session:
-        settings=options('duckduckgo')
-        session.headers.update(BROWSER_HEADERS)
-        language=settings['language']
-        if language!='auto': session.headers['Accept-Language']=language
-        else: session.headers.pop('Accept-Language',None)
-        current = url
-        for _ in range(10):
-            validate_public_url(current)
-            with session.get(current, timeout=(settings['timeout'], settings['timeout']), stream=True, allow_redirects=False) as response:
-                if response.is_redirect:
-                    current = urljoin(current, response.headers['Location'])
-                    continue
-                response.raise_for_status()
-                content_type = response.headers.get('Content-Type', '').lower()
-                url_path = urlparse(current).path
-                doc_ext = _infer_doc_ext(url_path, content_type)
-                is_binary_doc = doc_ext in ('.pdf', '.docx', '.xlsx', '.xlsm', '.pptx', '.odt', '.ods', '.odp', '.epub', '.rtf')
-                is_text_like = not content_type or any(t in content_type for t in ('text/', 'html', 'xml', 'json', 'javascript'))
-                if not is_binary_doc and not is_text_like and doc_ext not in _DOC_EXTS:
+    session = _http_session()
+    settings = options('duckduckgo')
+    language = settings['language']
+    req_headers = {'Accept-Language': language} if language != 'auto' else {}
+    connect_timeout = min(4, settings['timeout'])
+    current = url
+    for _ in range(10):
+        validate_public_url(current)
+        with session.get(current, headers=req_headers, timeout=(connect_timeout, settings['timeout']), stream=True, allow_redirects=False) as response:
+            if response.is_redirect:
+                current = urljoin(current, response.headers['Location'])
+                continue
+            response.raise_for_status()
+            content_type = response.headers.get('Content-Type', '').lower()
+            url_path = urlparse(current).path
+            doc_ext = _infer_doc_ext(url_path, content_type)
+            is_binary_doc = doc_ext in ('.pdf', '.docx', '.xlsx', '.xlsm', '.pptx', '.odt', '.ods', '.odp', '.epub', '.rtf')
+            is_text_like = not content_type or any(t in content_type for t in ('text/', 'html', 'xml', 'json', 'javascript'))
+            if not is_binary_doc and not is_text_like and doc_ext not in _DOC_EXTS:
+                raise ValueError('Only text/HTML pages or supported documents (PDF, DOCX, XLSX, PPTX, ODF, EPUB, RTF) can be read.')
+
+            max_bytes = MAX_DOC_BYTES if is_binary_doc else MAX_PAGE_BYTES
+            chunks = []
+            received = 0
+            for chunk in response.iter_content(65536):
+                received += len(chunk)
+                if received > max_bytes:
+                    limit_mib = max_bytes // (1024 * 1024)
+                    raise ValueError(f'Page exceeds the {limit_mib} MiB reading limit.')
+                chunks.append(chunk)
+
+            raw = b''.join(chunks)
+            if not is_binary_doc and not content_type:
+                sample = raw[:4096]
+                if any(b < 9 or (13 < b < 32) for b in sample):
                     raise ValueError('Only text/HTML pages or supported documents (PDF, DOCX, XLSX, PPTX, ODF, EPUB, RTF) can be read.')
+            looks_html = 'html' in content_type or raw.lstrip()[:64].lower().startswith((b'<!doctype html', b'<html'))
+            if is_binary_doc:
+                extracted = _extract_doc_bytes(raw, url_path, content_type)
+                text = extracted.get('text', '')
+            elif looks_html:
+                text = trafilatura.extract(raw, url=url, output_format='markdown',
+                                           include_links=settings['include_links'], include_tables=settings['include_tables'])
+                if not text:
+                    from bs4 import BeautifulSoup
+                    page = BeautifulSoup(raw, 'html.parser')
+                    for tag in page(['script', 'style', 'nav', 'footer']):
+                        tag.decompose()
+                    text = page.get_text('\n', strip=True)
+            else:
+                text = raw.decode(response.encoding or 'utf-8', errors='replace')
 
-                max_bytes = MAX_DOC_BYTES if is_binary_doc else MAX_PAGE_BYTES
-                chunks = []
-                received = 0
-                for chunk in response.iter_content(65536):
-                    received += len(chunk)
-                    if received > max_bytes:
-                        limit_mib = max_bytes // (1024 * 1024)
-                        raise ValueError(f'Page exceeds the {limit_mib} MiB reading limit.')
-                    chunks.append(chunk)
-
-                raw = b''.join(chunks)
-                if not is_binary_doc and not content_type:
-                    sample = raw[:4096]
-                    if any(b < 9 or (13 < b < 32) for b in sample):
-                        raise ValueError('Only text/HTML pages or supported documents (PDF, DOCX, XLSX, PPTX, ODF, EPUB, RTF) can be read.')
-                looks_html = 'html' in content_type or raw.lstrip()[:64].lower().startswith((b'<!doctype html', b'<html'))
-                if is_binary_doc:
-                    extracted = _extract_doc_bytes(raw, url_path, content_type)
-                    text = extracted.get('text', '')
-                elif looks_html:
-                    text = trafilatura.extract(raw, url=url, output_format='markdown',
-                                               include_links=settings['include_links'], include_tables=settings['include_tables'])
-                    if not text:
-                        from bs4 import BeautifulSoup
-                        page = BeautifulSoup(raw, 'html.parser')
-                        for tag in page(['script', 'style', 'nav', 'footer']):
-                            tag.decompose()
-                        text = page.get_text('\n', strip=True)
-                else:
-                    text = raw.decode(response.encoding or 'utf-8', errors='replace')
-
-                focused = relevant_sections(str(text or ''), find_in_page)
-                profile = hf_public_profile(current)
-                if profile:
-                    return profile if not find_in_page else profile + '\n\nPage text (not profile totals):\n' + focused
-                return focused
-        raise ValueError('Too many redirects.')
+            focused = relevant_sections(str(text or ''), find_in_page)
+            profile = hf_public_profile(current)
+            if profile:
+                return profile if not find_in_page else profile + '\n\nPage text (not profile totals):\n' + focused
+            return focused
+    raise ValueError('Too many redirects.')
 
 @mcp.tool(annotations=read_only)
 def web_search(query: str | None = None, url: str | None = None,

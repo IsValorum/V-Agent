@@ -185,6 +185,45 @@ def _connect_target(target: dict) -> CdpPage:
     return page
 
 
+def _ua_cache_path() -> Path:
+    return DATA_ROOT / "cache" / "autobrowser" / "ua_cache.json"
+
+
+def _load_cached_ua(edge: Path) -> str | None:
+    key = str(edge)
+    if key in _USER_AGENTS:
+        return _USER_AGENTS[key]
+    try:
+        st = edge.stat()
+        data = json.loads(_ua_cache_path().read_text(encoding="utf-8"))
+        entry = data.get(key)
+        if isinstance(entry, dict) and entry.get("mtime_ns") == st.st_mtime_ns and entry.get("size") == st.st_size and entry.get("ua"):
+            _USER_AGENTS[key] = str(entry["ua"])
+            return _USER_AGENTS[key]
+    except (OSError, ValueError, TypeError):
+        pass
+    return None
+
+
+def _save_cached_ua(edge: Path, ua: str):
+    key = str(edge)
+    _USER_AGENTS[key] = ua
+    try:
+        st = edge.stat()
+        path = _ua_cache_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(data, dict):
+                data = {}
+        except (OSError, ValueError):
+            data = {}
+        data[key] = {"mtime_ns": st.st_mtime_ns, "size": st.st_size, "ua": ua}
+        path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        pass
+
+
 def _start() -> CdpPage:
     with LOCK:
         process = STATE.get("process")
@@ -196,7 +235,7 @@ def _start() -> CdpPage:
         profile = DATA_ROOT / "cache" / "autobrowser"
         profile.mkdir(parents=True, exist_ok=True)
         headless = "--headless" if edge.name.lower().startswith("chrome-headless-shell") else "--headless=new"
-        known_agent = _USER_AGENTS.get(str(edge))
+        known_agent = _load_cached_ua(edge)
         argv = [
             str(edge), headless, f"--remote-debugging-port={port}",
             *([f"--user-agent={known_agent}"] if known_agent else []),
@@ -217,12 +256,12 @@ def _start() -> CdpPage:
                 pages = _list_pages()
                 if pages:
                     if not known_agent:
-                        # The browser's own User-Agent is known only once it runs: read it, then start again
-                        # with the mark added (once per browser for the life of this process).
+                        # The browser's own User-Agent is known only once it runs: read it, cache on disk,
+                        # and restart once with the mark added (never repeated on later sessions).
                         agent = str(_http_json(f"http://127.0.0.1:{port}/json/version").get("User-Agent") or "")
                         if not agent:
                             raise CdpError("The browser did not report its User-Agent.")
-                        _USER_AGENTS[str(edge)] = agent + " " + AGENT_UA_MARK
+                        _save_cached_ua(edge, agent + " " + AGENT_UA_MARK)
                         _close_browser()
                         return _start()
                     target = pages[0]
@@ -231,7 +270,7 @@ def _start() -> CdpPage:
                     return _connect_target(target)
             except (OSError, ValueError, IndexError):
                 pass
-            time.sleep(0.25)
+            time.sleep(0.04)
         raise CdpError("Browser did not open the debugging port.")
 
 
@@ -271,7 +310,7 @@ def _navigate(url: str, wait: bool = True):
             try:
                 state = page.evaluate("document.readyState")
                 if state == "complete":
-                    time.sleep(0.25)
+                    time.sleep(0.05)
                     break
                 if state == "interactive":
                     if interactive_since is None:
@@ -280,7 +319,7 @@ def _navigate(url: str, wait: bool = True):
                         break
             except CdpError:
                 pass
-            time.sleep(0.2)
+            time.sleep(0.05)
     return page
 
 
@@ -606,7 +645,10 @@ def text(max_chars: int = 12000) -> str:
 
 
 def _await_load(page: CdpPage, before_url: str, before_ids: set[str], timeout: float = 1.2) -> dict:
-    deadline = time.monotonic() + timeout
+    started_at = time.monotonic()
+    deadline = started_at + timeout
+    idle_bail = started_at + min(timeout, 0.30)
+    ev_start = len(page.events)
     while time.monotonic() < deadline:
         after_pages = _list_pages()
         new_pages = [item for item in after_pages if item.get("id") and item.get("id") not in before_ids]
@@ -620,7 +662,7 @@ def _await_load(page: CdpPage, before_url: str, before_ids: set[str], timeout: f
                         break
                 except CdpError:
                     pass
-                time.sleep(0.15)
+                time.sleep(0.05)
             try:
                 cur_url = new_page.evaluate("location.href") or target.get("url") or ""
                 cur_title = new_page.evaluate("document.title") or target.get("title") or ""
@@ -643,7 +685,7 @@ def _await_load(page: CdpPage, before_url: str, before_ids: set[str], timeout: f
                 try:
                     st = page.evaluate("document.readyState")
                     if st == "complete":
-                        time.sleep(0.15)
+                        time.sleep(0.05)
                         break
                     if st == "interactive":
                         if interactive_since is None:
@@ -652,7 +694,7 @@ def _await_load(page: CdpPage, before_url: str, before_ids: set[str], timeout: f
                             break
                 except CdpError:
                     pass
-                time.sleep(0.15)
+                time.sleep(0.05)
             try:
                 cur_url = page.evaluate("location.href") or cur_url
                 cur_title = page.evaluate("document.title") or ""
@@ -660,7 +702,15 @@ def _await_load(page: CdpPage, before_url: str, before_ids: set[str], timeout: f
                 cur_title = ""
             head, blen, links = _gate_body_info(page)
             return _with_gate_hint({"navigated": True, "url": cur_url, "title": cur_title}, head, link_count=links, body_len=blen)
-        time.sleep(0.15)
+        # If no navigation event started after a short settle window, don't burn the full timeout on in-page clicks.
+        if time.monotonic() >= idle_bail:
+            nav_started = any(
+                m in ("Page.frameStartedLoading", "Page.frameNavigated", "Page.navigatedWithinDocument")
+                for _, m, _ in page.events[ev_start:]
+            )
+            if not nav_started:
+                return {}
+        time.sleep(0.05)
     return {}
 
 

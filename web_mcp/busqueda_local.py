@@ -1,12 +1,21 @@
 """Local DuckDuckGo policy for Open WebUI 0.11.4 (text only)."""
 import asyncio
+from collections import OrderedDict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import os
 import re
+import threading
 import time
 import unicodedata
 import urllib.request
 from urllib.parse import urlparse
+
+_CACHE_LOCK = threading.Lock()
+_SEARCH_CACHE = OrderedDict()  # key -> (expires_at, results)
+_BACKEND_COOLDOWN = {}         # backend -> monotonic_until
+_CACHE_TTL_S = 90.0
+_COOLDOWN_S = 120.0
 
 STOPWORDS = set('a al algo ante con como cual cuando de del desde donde el ella en entre es esta este esto la las lo los mas para por que se sin sobre su sus un una unos unas y o the a an of for in on to and or is'.split())
 LOCAL_DOMAINS = {'elsalvador.com', 'laprensagrafica.com', 'diarioelsalvador.com', 'elsalvadorinfo.net', 'contrapunto.com.sv'}
@@ -98,14 +107,33 @@ def search(query, count=5, region=None, timelimit=None, filter_list=None, thread
         target_region = 'sv-es'
 
     raw = []
-    # "bing" is not a ddgs backend in current versions: it silently expands to
-    # all providers. Try the explicit Yahoo fallback before the multi-provider
-    # fallback, avoiding unnecessary latency and disclosure of the query.
-    attempts = [
-        ('duckduckgo', target_region),
-        ('yahoo', target_region),
-        ('auto', target_region),
-    ]
+    # Real ddgs network calls benefit from short caching, cooldown of failing backends,
+    # parallel primary racing (duckduckgo + yahoo), and multi-threaded auto fallback.
+    is_real_ddgs = getattr(DDGS, '__module__', '').startswith('ddgs')
+    cache_key = (query.strip().lower(), count, target_region, timelimit or '', safesearch, bool(filter_ads))
+    if is_real_ddgs and not filter_list:
+        now = time.monotonic()
+        with _CACHE_LOCK:
+            cached = _SEARCH_CACHE.get(cache_key)
+            if cached and cached[0] > now:
+                _SEARCH_CACHE.move_to_end(cache_key)
+                return [dict(item) for item in cached[1]]
+            elif cached:
+                _SEARCH_CACHE.pop(cache_key, None)
+
+    now = time.monotonic()
+    fast_engines = ('duckduckgo', 'yahoo', 'yandex')
+    if is_real_ddgs:
+        active_fast = [b for b in fast_engines if _BACKEND_COOLDOWN.get(b, 0) <= now]
+        if not active_fast:
+            active_fast = ['yahoo', 'yandex']
+        attempts = [(b, target_region) for b in active_fast] + [('auto', target_region)]
+    else:
+        attempts = [
+            ('duckduckgo', target_region),
+            ('yahoo', target_region),
+            ('auto', target_region),
+        ]
 
     failures = []
     completed = False
@@ -121,34 +149,82 @@ def search(query, count=5, region=None, timelimit=None, filter_list=None, thread
             seen.add(link);out.append(result)
         return out
 
+    def _call_one(search_query, backend_choice, reg, per_timeout, worker_threads, max_res=None):
+        with DDGS(proxy=proxy, timeout=per_timeout) as client:
+            client.threads = worker_threads
+            kwargs = {
+                'safesearch': safesearch,
+                'timelimit': timelimit or None,
+                'max_results': max_res if max_res is not None else candidates
+            }
+            if backend_choice:
+                kwargs['backend'] = backend_choice
+            if reg:
+                kwargs['region'] = reg
+            return usable(client.text(search_query, **kwargs))
+
     def run_attempts(search_query, pairs):
         nonlocal raw, completed
+        # On real ddgs, race the active fast single-engine backends concurrently
+        # so the first responder with usable results wins immediately.
+        if is_real_ddgs:
+            race_pairs = [p for p in pairs if p[0] in fast_engines]
+            rest_pairs = [p for p in pairs if p[0] not in fast_engines]
+            if len(race_pairs) >= 2:
+                fast_timeout = min(timeout, 5)
+                pool = ThreadPoolExecutor(max_workers=len(race_pairs))
+                futures = {pool.submit(_call_one, search_query, b, r, fast_timeout, 1): (b, r) for b, r in race_pairs}
+                winner = None
+                try:
+                    for fut in as_completed(futures):
+                        b, _r = futures[fut]
+                        try:
+                            rows = fut.result()
+                            completed = True
+                            if rows:
+                                winner = (b, rows)
+                                break
+                            with _CACHE_LOCK:
+                                _BACKEND_COOLDOWN[b] = time.monotonic() + _COOLDOWN_S
+                        except Exception as error:
+                            if _is_no_results_error(error):
+                                completed = True
+                                with _CACHE_LOCK:
+                                    _BACKEND_COOLDOWN[b] = time.monotonic() + _COOLDOWN_S
+                                continue
+                            failures.append(f'{b or "auto"}: {type(error).__name__}: {str(error)[:180]}')
+                            with _CACHE_LOCK:
+                                _BACKEND_COOLDOWN[b] = time.monotonic() + _COOLDOWN_S
+                finally:
+                    pool.shutdown(wait=False, cancel_futures=True)
+                if winner is not None:
+                    raw = winner[1]
+                    return True
+                pairs = rest_pairs
+
         for backend_choice, reg in pairs:
             try:
-                with DDGS(proxy=proxy, timeout=timeout) as client:
-                    client.threads = threads or 1
-                    kwargs = {
-                        'safesearch': safesearch,
-                        'timelimit': timelimit or None,
-                        'max_results': candidates
-                    }
-                    if backend_choice:
-                        kwargs['backend'] = backend_choice
-                    if reg:
-                        kwargs['region'] = reg
-
-                    raw = usable(client.text(search_query, **kwargs))
-                    completed = True
-                    if raw:
-                        return True
+                per_timeout = min(timeout, 5) if (is_real_ddgs and backend_choice in fast_engines) else timeout
+                worker_threads = (6 if backend_choice == 'auto' else 1) if is_real_ddgs else (threads or 1)
+                max_res = count if (is_real_ddgs and backend_choice == 'auto') else candidates
+                raw = _call_one(search_query, backend_choice, reg, per_timeout, worker_threads, max_res=max_res)
+                completed = True
+                if raw:
+                    return True
+                if is_real_ddgs and backend_choice in fast_engines:
+                    with _CACHE_LOCK:
+                        _BACKEND_COOLDOWN[backend_choice] = time.monotonic() + _COOLDOWN_S
             except Exception as error:
                 if _is_no_results_error(error):
-                    # ddgs raises DDGSException("No results found.") when every
-                    # backend responds cleanly with zero hits; do not misreport
-                    # that as a backend outage.
                     completed = True
+                    if is_real_ddgs and backend_choice in fast_engines:
+                        with _CACHE_LOCK:
+                            _BACKEND_COOLDOWN[backend_choice] = time.monotonic() + _COOLDOWN_S
                     continue
                 failures.append(f'{backend_choice or "auto"}: {type(error).__name__}: {str(error)[:180]}')
+                if is_real_ddgs and backend_choice in fast_engines:
+                    with _CACHE_LOCK:
+                        _BACKEND_COOLDOWN[backend_choice] = time.monotonic() + _COOLDOWN_S
         return False
 
     run_attempts(query, attempts)
@@ -159,7 +235,7 @@ def search(query, count=5, region=None, timelimit=None, filter_list=None, thread
         else:
             relaxed = query.strip()
         if not raw and target_region and target_region != 'wt-wt':
-            run_attempts(relaxed or query, [('auto', 'wt-wt')])
+            run_attempts(relaxed or query, [('yahoo', 'wt-wt'), ('yandex', 'wt-wt'), ('auto', 'wt-wt')] if is_real_ddgs else [('auto', 'wt-wt')])
 
     if strict_errors and not completed:
         summary = '; '.join(list(dict.fromkeys(failures))[:3])
@@ -175,8 +251,15 @@ def search(query, count=5, region=None, timelimit=None, filter_list=None, thread
     # Preserve search-engine ordering. No country-specific boosts.
     selected = raw[:count] if raw else []
 
-    return [{'title': r.get('title', ''), 'link': r.get('href') or r.get('url') or '',
-             'snippet': short_snippet(r.get('body') or r.get('snippet') or '')} for r in selected]
+    out = [{'title': r.get('title', ''), 'link': r.get('href') or r.get('url') or '',
+            'snippet': short_snippet(r.get('body') or r.get('snippet') or '')} for r in selected]
+    if is_real_ddgs and out and not filter_list:
+        with _CACHE_LOCK:
+            _SEARCH_CACHE[cache_key] = (time.monotonic() + _CACHE_TTL_S, [dict(item) for item in out])
+            _SEARCH_CACHE.move_to_end(cache_key)
+            while len(_SEARCH_CACHE) > 64:
+                _SEARCH_CACHE.popitem(last=False)
+    return out
 
 def relevant_sections(text, find_in_page):
     if not find_in_page:

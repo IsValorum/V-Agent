@@ -31,18 +31,20 @@ def validate(value, previous=None, require_file=False):
 def infer_type(path):
     """Read the draft GGUF architecture only; never load its weights."""
     feature = {}
+    meta = {}
     try:
         from gguf_catalog import inspect
         feature = inspect(Path(path))
-        architecture = str(feature.get('metadata', {}).get('general.architecture') or '').lower()
+        meta = feature.get('metadata') or {}
+        architecture = str(meta.get('general.architecture') or '').lower()
     except (OSError, ValueError, KeyError, EOFError):
         architecture = ''
+    if 'dspark' in architecture or any('dspark' in k.lower() for k in meta) or 'dspark' in Path(path).name.lower():
+        return 'draft-dspark'
     if 'dflash' in architecture:
         return 'draft-dflash'
     if 'eagle' in architecture:
         return 'draft-eagle3'
-    if 'dspark' in architecture:
-        return 'draft-dspark'
     if 'mtp' in architecture or feature.get('head'):
         return 'draft-mtp'
     return 'draft-simple'

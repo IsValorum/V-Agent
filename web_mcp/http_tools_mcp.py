@@ -11,11 +11,14 @@ import hashlib
 import json
 import os
 import tempfile
+import threading
+import time
 from pathlib import Path
 from typing import Literal
 from urllib.parse import urlparse, urljoin
 
 import requests
+from requests.adapters import HTTPAdapter
 import trafilatura
 from bs4 import BeautifulSoup
 from mcp.server.fastmcp import FastMCP
@@ -29,6 +32,37 @@ WRITE = ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint
 METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
 
+_REAL_SESSION = requests.Session
+_HTTP_LOCAL = threading.local()
+_DNS_LOCK = threading.Lock()
+_DNS_CACHE: dict[tuple[str, int], tuple[float, bool]] = {}
+_DNS_TTL_S = 60.0
+
+
+def _http_session(allow_private: bool) -> requests.Session:
+    if requests.Session is not _REAL_SESSION:
+        session = requests.Session()
+        session.trust_env = True
+        if hasattr(session, "hooks") and isinstance(session.hooks, dict) and "response" in session.hooks:
+            session.hooks["response"].append(_redirect_guard(allow_private))
+        return session
+    sessions = getattr(_HTTP_LOCAL, "sessions", None)
+    if sessions is None:
+        sessions = {}
+        _HTTP_LOCAL.sessions = sessions
+    key = bool(allow_private)
+    session = sessions.get(key)
+    if session is None:
+        session = requests.Session()
+        session.trust_env = True
+        adapter = HTTPAdapter(pool_connections=16, pool_maxsize=16)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+        session.hooks["response"].append(_redirect_guard(key))
+        sessions[key] = session
+    session.cookies.clear()
+    return session
+
 
 def _url(value: str, allow_private: bool) -> str:
     parsed = urlparse(str(value or "").strip())
@@ -37,14 +71,33 @@ def _url(value: str, allow_private: bool) -> str:
     if parsed.username or parsed.password:
         raise ValueError("Credentials inside the URL are not allowed.")
     if not allow_private:
-        import ipaddress
-        import socket
-        try:
-            addresses = socket.getaddrinfo(parsed.hostname, parsed.port or (443 if parsed.scheme == "https" else 80))
-        except OSError as error:
-            raise ValueError("Could not resolve host: " + str(error)) from None
-        if not addresses or any(not ipaddress.ip_address(item[4][0]).is_global for item in addresses):
+        host = parsed.hostname.lower()
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        cache_key = (host, port)
+        now = time.monotonic()
+        cached_public = None
+        with _DNS_LOCK:
+            entry = _DNS_CACHE.get(cache_key)
+            if entry and entry[0] > now:
+                cached_public = entry[1]
+            elif entry:
+                _DNS_CACHE.pop(cache_key, None)
+        if cached_public is False:
             raise ValueError("Only public URLs are allowed; pass allow_private=true for localhost/LAN.")
+        if cached_public is None:
+            import ipaddress
+            import socket
+            try:
+                addresses = socket.getaddrinfo(parsed.hostname, port)
+            except OSError as error:
+                raise ValueError("Could not resolve host: " + str(error)) from None
+            is_public = bool(addresses) and all(ipaddress.ip_address(item[4][0]).is_global for item in addresses)
+            with _DNS_LOCK:
+                if len(_DNS_CACHE) >= 128:
+                    _DNS_CACHE.clear()
+                _DNS_CACHE[cache_key] = (now + _DNS_TTL_S, is_public)
+            if not is_public:
+                raise ValueError("Only public URLs are allowed; pass allow_private=true for localhost/LAN.")
     return parsed.geturl()
 
 
@@ -197,14 +250,11 @@ def http_request(url: str, method: str = "GET", headers: dict | None = None,
     else:
         payload = None
     target = _url(url, allow_private)
-    session = requests.Session()
-    session.trust_env = True
-    session.hooks['response'].append(_redirect_guard(allow_private))
-    try:
-        with session.request(method, target, headers=request_headers, data=payload,
-                             cookies=cookies if isinstance(cookies, dict) else None,
-                             timeout=(min(10, timeout), timeout), stream=True,
-                             allow_redirects=bool(allow_redirects)) as response:
+    session = _http_session(allow_private)
+    with session.request(method, target, headers=request_headers, data=payload,
+                         cookies=cookies if isinstance(cookies, dict) else None,
+                         timeout=(min(5, timeout), timeout), stream=True,
+                         allow_redirects=bool(allow_redirects)) as response:
             content_type = response.headers.get("Content-Type", "")
             chunks = bytearray()
             byte_truncated = False
@@ -261,8 +311,6 @@ def http_request(url: str, method: str = "GET", headers: dict | None = None,
                 if gate:
                     payload_out.update(gate)
             return json.dumps(payload_out, ensure_ascii=False)
-    finally:
-        session.close()
 
 
 @mcp.tool(annotations=WRITE)
@@ -276,12 +324,10 @@ def download(url: str, path: str | None = None, headers: dict | None = None,
     digest = hashlib.sha256()
     total = 0
     request_headers = _build_headers(headers)
-    session = requests.Session()
-    session.trust_env = True
-    session.hooks['response'].append(_redirect_guard(allow_private))
+    session = _http_session(allow_private)
     temporary = None
     try:
-        with session.get(target, headers=request_headers, timeout=(min(15, timeout), timeout), stream=True) as response:
+        with session.get(target, headers=request_headers, timeout=(min(8, timeout), timeout), stream=True) as response:
             response.raise_for_status()
             with tempfile.NamedTemporaryFile(mode="wb",dir=destination.parent,prefix="."+destination.name+".",suffix=".part",delete=False) as output:
                 temporary=Path(output.name)
@@ -306,8 +352,6 @@ def download(url: str, path: str | None = None, headers: dict | None = None,
         except OSError:
             pass
         raise
-    finally:
-        session.close()
 
 
 if __name__ == "__main__":
