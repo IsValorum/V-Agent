@@ -48,7 +48,9 @@ flowchart LR
    `stdio_worker.py`). File writes are confined by `access_policy.py`; sandboxed commands run in a
    Windows process container (`sandbox_exec.py`).
 5. Results go back to the model until it answers; drafts of interrupted writes are kept
-   (`draft_store.py`, `draft_recovery.py`) and every file change is versioned (`file_versions.py`).
+   (`draft_store.py`, `draft_recovery.py`) and every file change is versioned (`file_versions.py`, the last 100
+   per file). Each reply is journaled in `runs/` (`local_store.RunJournal`) so an interrupted one can be recovered
+   into its chat; spent journals are removed after a day, and temporary chats (`tmp-…` identifiers) leave none.
 
 ## The core (`agent/`)
 

@@ -95,9 +95,11 @@ Your own MCP servers and local plugins can be added in *Tools* and *Extensions*.
 
 ## Interface
 
-- **Models window:** browse Hugging Face with GPU/RAM fit per quant, download with SHA-256 verification, and
-  import or export models and settings with LM Studio and Unsloth Studio without copying or changing your GGUF files.
-- **Conversations:** temporary chats, pinned chats, date groups, projects, a collapsible tool timeline,
+- **Models window:** browse Hugging Face with GPU/RAM fit per quant and download with SHA-256 verification.
+  *Models on this PC* finds the GGUF files you already have (LM Studio, Unsloth Studio, the Hugging Face cache
+  and any folder you add), shows each in its real folder and imports a whole list in seconds, with its settings;
+  settings can also be exported back to LM Studio and Unsloth Studio.
+- **Conversations:** temporary chats (never saved unless you choose **Save chat**), pinned chats, date groups, projects, a collapsible tool timeline,
   context compaction and persistent instructions (`AGENTS.md`).
 - **Productivity:** command palette (`Ctrl+K`), find in conversation (`Ctrl+F`), prompt library, keyboard
   shortcuts (`Ctrl+/`) and local usage statistics computed only from your own history.
@@ -149,9 +151,10 @@ See [RELEASING.md](RELEASING.md) for signing and publishing (maintainer only).
 ## Security and privacy
 
 - Every service listens on `127.0.0.1` only and checks local origins; engines use a per-session secret key.
-- GGUF model files are never copied or modified.
+- GGUF model files are never modified; they are moved into V-Agent's models folder only when you choose to.
 - Commands run in a Windows process sandbox in isolated and project scopes; full-PC access is opt-in.
 - Write, command and network actions are approved inside the core, not only in the interface.
+- The agent's own browser cannot open V-Agent's interface or API, so it cannot change access or settings.
 - Installers and minor updates are verified against the maintainer's Ed25519 key; engine and Hugging Face
   downloads by their official origin and SHA-256 digests.
 
