@@ -369,7 +369,7 @@ async function pollLiveContext(generation){
   try{
     const data=await requestJSON('/api/context/usage',{cache:'no-store',signal:AbortSignal.any([generation.controller.signal,AbortSignal.timeout(2500)])});
     const usage=data.usage;
-    if(activeGeneration===generation&&!generation.contextDone&&data.run_id===generation.runId&&data.conversation_id===currentId&&data.model===generation.provenance.model&&usage&&Number.isFinite(usage.used)){
+    if(activeGeneration===generation&&!generation.contextDone&&data.run_id===generation.runId&&data.conversation_id===activeChatId()&&data.model===generation.provenance.model&&usage&&Number.isFinite(usage.used)){
       if(usage.source==='live')generation.contextSeen=true;
       if(generation.contextSeen)raiseGenerationUsage(generation,{prompt_tokens:usage.prompt_tokens,completion_tokens:usage.completion_tokens,limit:usage.limit});
     }

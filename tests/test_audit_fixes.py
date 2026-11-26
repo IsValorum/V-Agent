@@ -79,6 +79,35 @@ class ListeningPort(unittest.TestCase):
             self.assertEqual(agent.port_pid(19382), 4242)
 
 
+class RunJournals(unittest.TestCase):
+    def test_a_temporary_chat_leaves_no_history_and_no_run(self):
+        import tempfile
+        from local_store import RunJournal, Sessions
+        with tempfile.TemporaryDirectory() as folder:
+            sessions = Sessions(Path(folder))
+            run = RunJournal({'conversation_id': 'tmp-abc', 'temporary': True,
+                              'messages': [{'role': 'user', 'content': 'hola'}]}, sessions)
+            run.append(b'data: {}\n\n')
+            run.close('closed')
+            self.assertIsNone(sessions.get('tmp-abc'))
+            self.assertFalse(run.root.exists())
+
+    def test_spent_runs_are_removed_after_a_day(self):
+        import json
+        import tempfile
+        import time
+        from local_store import RunJournal, Sessions
+        with tempfile.TemporaryDirectory() as folder:
+            sessions = Sessions(Path(folder))
+            run = RunJournal({'conversation_id': 'chat-1', 'messages': [{'role': 'user', 'content': 'hola'}]}, sessions)
+            run.close('closed')
+            meta = json.loads((run.root / 'meta.json').read_text(encoding='utf-8'))
+            meta.update(acknowledged=True, created=time.time() - 2 * 86400)
+            (run.root / 'meta.json').write_text(json.dumps(meta), encoding='utf-8')
+            sessions.recover_runs()
+            self.assertFalse(run.root.exists())
+
+
 
 if __name__ == '__main__':
     unittest.main()

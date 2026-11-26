@@ -2929,6 +2929,18 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(200,{'path':str(workspace.root)})
             except (ValueError, OSError, KeyError, TypeError, AccessDenied) as error:self._json(400,{'error':str(error)})
             return
+        if self.path == '/api/v1/temporary/discard':
+            # Leaving a temporary chat: its working folder goes with it (it was never in the history).
+            if not ui_origin_allowed(self.headers.get('Origin')):
+                self._json(403, {'error': 'Usa los controles de V-Agent.'});return
+            try:
+                size=int(self.headers.get('Content-Length') or 0)
+                if not 0<size<=1024:raise ValueError('Solicitud no válida.')
+                body=json.loads(self.rfile.read(size));ident=conversation_id(body.get('id'))
+                if not ident.startswith('tmp-') or SESSIONS.get(ident):raise ValueError('No es un chat temporal.')
+                self._json(200,{'removed':ACCESS.remove_conversation(ident)})
+            except (ValueError, OSError, TypeError, AttributeError) as error:self._json(400,{'error':str(error)})
+            return
         if self.path == '/api/v1/files/read':
             try:
                 size=int(self.headers.get('Content-Length') or 0)
@@ -3283,6 +3295,9 @@ class Handler(BaseHTTPRequestHandler):
                 # API clients that do not supply a conversation get a fresh scope.
                 body["conversation_id"] = "api-" + secrets.token_hex(16)
             conversation_id(body["conversation_id"])
+            if body.get("temporary") is not None and (body["temporary"] is not True
+                                                      or not body["conversation_id"].startswith("tmp-")):
+                raise ValueError("A temporary chat needs a tmp- identifier.")
         except ValueError as error:
             self._json(400, {"error": str(error)})
             return
@@ -3416,6 +3431,19 @@ def main():
         except Exception:
             print("AVISO: Strata no responde en", STRATA, "- puedes encenderlo desde Ajustes → Modelo.")
     threading.Thread(target=probe_engine, daemon=True, name="engine-probe").start()
+
+    def drop_temporary_folders():
+        """Temporary chats of an earlier session (the window closed without leaving them) leave no folder."""
+        try:
+            for folder in ACCESS.workspaces.glob("tmp-*"):
+                try:
+                    if folder.is_dir() and not SESSIONS.get(folder.name):
+                        ACCESS.remove_conversation(folder.name)
+                except (ValueError, OSError):
+                    continue
+        except OSError:
+            pass
+    threading.Thread(target=drop_temporary_folders, daemon=True, name="temporary-folders").start()
     print(f"V-Agent en http://127.0.0.1:{PORT}")
     if not os.environ.get("STRATA_AGENT_NO_OPEN"):
         threading.Timer(1.0, lambda: webbrowser.open(f"http://127.0.0.1:{PORT}")).start()

@@ -1,5 +1,17 @@
 /* ---------- conversaciones ---------- */
 let temporaryChat = false;
+// A temporary chat has its own identifier (tmp-…) so its working folder stays the same from one message to the
+// next; the core never writes it to the history, and the folder is removed when the chat is left.
+let temporaryId = null;
+/** The identifier the core knows this chat by (a temporary chat's own tmp-…, never null while it is open). */
+function activeChatId() { return temporaryChat ? temporaryId : currentId; }
+function leaveTemporary() {
+  if (temporaryChat && temporaryId) {
+    const id = temporaryId;
+    requestJSON('/api/v1/temporary/discard', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id})}).catch(() => {});
+  }
+  temporaryChat = false; temporaryId = null;
+}
 function selectedConversation() {
   return temporaryChat ? null : convs.find(chat => chat.id === currentId);
 }
@@ -18,7 +30,8 @@ async function confirmLeaveTemporary() {
 }
 async function promoteTemporaryChat() {
   if (!temporaryChat || !messages.length || busy) return;
-  temporaryChat = false;
+  // Saved under the same identifier: the files it wrote stay in its folder.
+  currentId = temporaryId; temporaryChat = false; temporaryId = null;
   persistConv();
   syncTemporaryBadge();
   note(uiText('Chat guardado en el historial.'));
@@ -223,7 +236,7 @@ function showConvMenu(anchor,chat){
 async function startProjectChat(project){
   if(busy){note(uiText('Espera a que termine la respuesta para abrir otra conversación.'));return;}
   if(!await confirmLeaveTemporary())return;
-  temporaryChat=false;
+  leaveTemporary();
   newConv(true);window.__chooseProject?.({project_id:project.id});
 }
 function showProjectMenu(anchor,project){
@@ -232,7 +245,7 @@ function showProjectMenu(anchor,project){
 async function openConv(id,remember=true) {
   if (busy) { note(uiText("Espera a que termine la respuesta para cambiar de conversación.")); return; }
   if (!await confirmLeaveTemporary()) return;
-  temporaryChat = false;
+  leaveTemporary();
   if(conflictedSessions.has(id)){try{const data=await requestJSON('/api/v1/sessions');const saved=data.sessions.find(c=>c.id===id);if(!saved)throw new Error('El chat ya no está disponible.');const idx=convs.findIndex(c=>c.id===id);if(idx>=0)convs[idx]=saved;else convs.unshift(saved);savedSessionBodies.set(id,JSON.stringify(sessionBody(saved)));conflictedSessions.delete(id);}catch(error){note(error.message);return;}}
   setSidebar(false); attachments = []; renderAttachments();
   const c = convs.find((x) => x.id === id); if (!c) return;
@@ -253,7 +266,7 @@ async function delConv(id) {
 async function newConv(skipConfirm=false) {
   if (busy) { note(uiText("Espera a que termine la respuesta para abrir otra conversación.")); return; }
   if (!skipConfirm && !await confirmLeaveTemporary()) return;
-  temporaryChat = false;
+  leaveTemporary();
   currentId = null; messages = []; attachments = []; renderAttachments();selectedProject=null;selectedProjectChat=null;
   chatTrail=[];chatTrailCursor=-1;syncChatTrail();
   const project=$('#projectBtn');if(project){project.querySelector('span').textContent=uiText('Sin proyecto');project.dataset.selected='false';project.title=uiText('Carpeta independiente de esta conversación');}
@@ -264,7 +277,8 @@ async function newConv(skipConfirm=false) {
 async function newTempConv() {
   if (busy) { note(uiText("Espera a que termine la respuesta para abrir otra conversación.")); return; }
   if (!await confirmLeaveTemporary()) return;
-  temporaryChat = true;
+  leaveTemporary();
+  temporaryChat = true; temporaryId = 'tmp-' + crypto.randomUUID();
   currentId = null; messages = []; attachments = []; renderAttachments();selectedProject=null;selectedProjectChat=null;
   chatTrail=[];chatTrailCursor=-1;syncChatTrail();
   const project=$('#projectBtn');if(project){project.querySelector('span').textContent=uiText('Sin proyecto');project.dataset.selected='false';project.title=uiText('Carpeta independiente de esta conversación');}

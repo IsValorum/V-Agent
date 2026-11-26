@@ -224,7 +224,7 @@ function draftActions(heading,call,text) {
       try {
         const result=await requestJSON('/api/save',{
           method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({path:file.filename,content:file.content,conversation_id:currentId,create_only:true})
+          body:JSON.stringify({path:file.filename,content:file.content,conversation_id:activeChatId(),create_only:true})
         });
         button.textContent=uiText('Guardado');
         button.title=result.path||file.filename;
@@ -253,7 +253,7 @@ function draftActions(heading,call,text) {
     try {
       const saved=await requestJSON('/api/draft',{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({conversation_id:currentId,draft_id:call.draft_id})
+        body:JSON.stringify({conversation_id:activeChatId(),draft_id:call.draft_id})
       });
       call.draftText=saved.raw;
       call.draftChars=saved.raw.length;
@@ -587,7 +587,7 @@ function renderMessageFiles(row,message) {
 async function openFileAttachment(file) {
   if(!currentId){note(uiText('Abre la conversación del archivo.'));return;}
   try{
-    const data=await requestJSON('/api/v1/files/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conversation_id:currentId,path:file.path})});
+    const data=await requestJSON('/api/v1/files/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conversation_id:activeChatId(),path:file.path})});
     const extension=(file.name.split('.').pop()||'').toLowerCase();
     openViewer(extension,data.text);
   }catch(error){if(file.text){const extension=(file.name.split('.').pop()||'').toLowerCase();openViewer(extension,file.text);}else note(error.message);}

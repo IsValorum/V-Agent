@@ -273,7 +273,7 @@ async function compactConversationContext() {
     const result=await requestJSON('/api/harness/context/compact',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({conversation_id:currentId,model:loadedModel,messages:toCompact})
+      body:JSON.stringify({conversation_id:activeChatId(),model:loadedModel,messages:toCompact})
     });
     const checkpoint={
       role:'assistant',
@@ -449,7 +449,7 @@ async function generateResponse(replaceIndex=null) {
     const resumeDraftId=autoResumeDraftId(history,functions);
     const modelMessages=cleanModelMessages(conversationForModel(history),Boolean(resumeDraftId));
     const sentAt=performance.now();
-    const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},signal:generation.controller.signal,body:JSON.stringify({model:requestModel,model_name:modelNames[requestModel]||requestModel,context_limit:contextCapacity||modelContexts[requestModel],conversation_id:temporaryChat?null:currentId,messages:modelMessages,resume_draft:resumeDraftId,effort:requestSettings.effort,functions,sampling:requestSettings.sampling,profile:requestSettings.profile||"custom",rounds:requestSettings.rounds,permission_mode:S.permissionMode||"ask",agent_profile:S.agentProfile||"balanced",ask_user:true,native_stream:true})});
+    const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},signal:generation.controller.signal,body:JSON.stringify({model:requestModel,model_name:modelNames[requestModel]||requestModel,context_limit:contextCapacity||modelContexts[requestModel],conversation_id:temporaryChat?temporaryId:currentId,...(temporaryChat?{temporary:true}:{}),messages:modelMessages,resume_draft:resumeDraftId,effort:requestSettings.effort,functions,sampling:requestSettings.sampling,profile:requestSettings.profile||"custom",rounds:requestSettings.rounds,permission_mode:S.permissionMode||"ask",agent_profile:S.agentProfile||"balanced",ask_user:true,native_stream:true})});
     if(!response.ok){let data;try{data=await response.json();}catch{}throw new Error(data?.error||'Error HTTP '+response.status);}
     if(!response.body||!response.headers.get('content-type')?.includes('text/event-stream'))throw new Error('El servidor no devolvió una respuesta de chat válida.');
     generation.runId=response.headers.get('X-Strata-Run-Id');

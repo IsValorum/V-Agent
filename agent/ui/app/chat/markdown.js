@@ -155,7 +155,7 @@ function codeBlock(lang,code,partial=false){
       go.disabled=true;salida.dataset.bad='';salida.textContent=uiText('Comprobando…');saveRow.querySelector('.save-fix-btn')?.remove();
       try{
         const r=await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({path:inp.value.trim(),content:wrap._codeSource.code,conversation_id:currentId})});
+          body:JSON.stringify({path:inp.value.trim(),content:wrap._codeSource.code,conversation_id:activeChatId()})});
         const d=await r.json();
         if(!r.ok||d.error){salida.dataset.bad='1';salida.textContent=uiText('No se guardó:')+' '+(d.error||r.status);return;}
         const v=d.verificacion||{};const ej=v.ejecucion||{};

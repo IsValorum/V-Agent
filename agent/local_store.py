@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import queue
 import secrets
+import shutil
 import sqlite3
 import threading
 import time
@@ -14,6 +15,7 @@ from runtime_paths import DATA_ROOT
 from ui_preferences import atomic_json
 
 DATA = Path(os.environ.get('STRATA_AGENT_DATA') or DATA_ROOT).resolve()
+RUN_KEEP_SECONDS = 24 * 3600
 
 class Conflict(ValueError):pass
 
@@ -68,7 +70,12 @@ class Sessions:
         for meta in records:
             try:
                 record=json.loads(meta.read_text(encoding='utf-8'))
-                if record.get('acknowledged') or record.get('pid')==os.getpid() and record.get('status')=='running':continue
+                if record.get('acknowledged'):
+                    # A run already in its chat is not read again. Each one holds the whole conversation as it was
+                    # sent (request.json): kept a day for diagnosis, then removed (they used to pile up forever).
+                    if time.time()-float(record.get('created') or 0)>RUN_KEEP_SECONDS:shutil.rmtree(meta.parent,ignore_errors=True)
+                    continue
+                if record.get('pid')==os.getpid() and record.get('status')=='running':continue
                 chat=self.get(record['conversation_id'])
                 if not chat or chat['revision']!=record.get('revision'):
                     record['acknowledged']=True;atomic_json(meta,record);continue
@@ -121,16 +128,19 @@ class Sessions:
 class RunJournal:
     def __init__(self, body, sessions):
         self.id=secrets.token_hex(16);self.root=sessions.root/'runs'/self.id;self.root.mkdir(parents=True)
+        # A temporary chat is never written to the history, and its run folder is removed when the run ends.
+        self.temporary=body.get('temporary') is True
         with sessions.connect() as db:row=db.execute('SELECT revision FROM chats WHERE id=? AND deleted=0',(body['conversation_id'],)).fetchone()
-        if row is None:
+        if row is None and not self.temporary:
             messages=body.get('messages') or []
             first=next((str(m.get('content','')) for m in messages if m.get('role')=='user'),'Chat')
             saved=sessions.save({'id':body['conversation_id'],'messages':messages,'title':first[:48],'ts':int(time.time()*1000)},api_fallback=True)
             row=(saved['revision'],)
         self.meta={'id':self.id,'conversation_id':body['conversation_id'],'revision':row[0] if row else None,
                    'pid':os.getpid(),'status':'running','model':body.get('model'),'model_name':body.get('model_name'),
-                   'context_limit':body.get('context_limit'),'created':time.time()}
-        atomic_json(self.root/'meta.json',self.meta);atomic_json(self.root/'request.json',body)
+                   'context_limit':body.get('context_limit'),'created':time.time(),**({'acknowledged':True} if self.temporary else {})}
+        atomic_json(self.root/'meta.json',self.meta)
+        if not self.temporary:atomic_json(self.root/'request.json',body)
         self.queue=queue.Queue(256);self.error=None
         self.thread=threading.Thread(target=self._write,daemon=True);self.thread.start()
     def _write(self):
@@ -152,6 +162,8 @@ class RunJournal:
         raise OSError(self.error or 'Local run journal stopped.')
     def close(self, status):
         if self.thread.is_alive():self.queue.put(None);self.thread.join(10)
+        if self.temporary:
+            shutil.rmtree(self.root,ignore_errors=True);return
         self.meta['status']=status;self.meta['error']=self.error;atomic_json(self.root/'meta.json',self.meta)
 
 SESSIONS=Sessions()
