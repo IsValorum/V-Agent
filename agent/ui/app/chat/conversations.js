@@ -17,8 +17,8 @@ function selectedConversation() {
 }
 function syncTemporaryBadge() {
   const badge = $('#tempChatBadge'), save = $('#promoteTempChat');
-  if (badge) badge.hidden = !temporaryChat;
-  if (save) save.hidden = !temporaryChat || !messages.length;
+  if (badge) { badge.hidden = !temporaryChat; const label = badge.querySelector('span'); if (label) label.textContent = uiText('Temporal'); }
+  if (save) { save.hidden = !temporaryChat || !messages.length; save.textContent = uiText('Guardar chat'); }
   const btn = $('#newTempChat');
   if (btn) btn.setAttribute('aria-pressed', String(temporaryChat));
   if (temporaryChat) $('#chatTitle').textContent = uiText('Chat temporal');
@@ -318,7 +318,9 @@ function persistConv() {
   if (temporaryChat) { syncTemporaryBadge(); return; }
   const firstUser = messages.find((m) => m.role === "user");
   const title = (firstUser ? userMessageRawText(firstUser) : "Conversación").replace(/\[Adjuntos\][\s\S]*/, "").slice(0, 48) || "Conversación";
-  if (!currentId) { currentId = crypto.randomUUID(); convs.push({ id: currentId, title, ts: Date.now(), messages: [] }); }
+  if (!currentId) currentId = crypto.randomUUID();
+  // A new chat, or a temporary one being saved under its own identifier: either way it is not listed yet.
+  if (!convs.some((x) => x.id === currentId)) convs.push({ id: currentId, title, ts: Date.now(), messages: [] });
   const c = convs.find((x) => x.id === currentId);
   if (c) { if(c.title==='Nuevo chat')c.title=title; c.messages = JSON.parse(JSON.stringify(messages)); c.ts = Date.now();if(messages.at(-1)?.run_id)c.last_run=messages.at(-1).run_id; }
   saveConvsLS(); renderConvs();

@@ -92,7 +92,7 @@ function selectResponseVersion(index,offset) {
   const response={role:'assistant',...variants[selected],variants,variantIndex:selected};
   if(index<messages.length-1){
     messages=JSON.parse(JSON.stringify(messages.slice(0,index)));messages.push(response);currentId=null;persistConv();
-    const branch=convs.find(c=>c.id===currentId);if(branch){branch.title+=' · variante';saveConvsLS();renderConvs();}
+    const branch=convs.find(c=>c.id===currentId);if(branch){branch.title+=' · '+uiText('variante');saveConvsLS();renderConvs();}
   }else {messages[index]=response;persistConv();}
   renderChat();
 }
@@ -218,7 +218,7 @@ function draftActions(heading,call,text) {
   const file=fileFromDraft(call);
   if(file){
     action('Guardar en este chat',async button=>{
-      if(!currentId){note('Abre la conversación para guardar su borrador.');return;}
+      if(!activeChatId()){note('Abre la conversación para guardar su borrador.');return;}
       button.disabled=true;
       button.textContent=uiText('Guardando…');
       try {
@@ -248,7 +248,7 @@ function draftActions(heading,call,text) {
     await sendMsg(call.draft_id);
   });
   if(call.draft_id)action('Recuperar del disco',async button=>{
-    if(!currentId){note('Abre la conversación del borrador.');return;}
+    if(!activeChatId()){note('Abre la conversación del borrador.');return;}
     button.disabled=true;button.textContent=uiText('Recuperando…');
     try {
       const saved=await requestJSON('/api/draft',{
@@ -269,8 +269,9 @@ function draftActions(heading,call,text) {
   heading.append(actions);
 }
 async function openFileHistory(path){
-  if(busy||!currentId){note('Espera a que termine la ejecución.');return;}
-  const chatId=currentId,dialog=document.createElement('dialog');dialog.style.cssText='max-width:min(700px,92vw);max-height:80vh;background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:20px';
+  if(busy){note('Espera a que termine la ejecución.');return;}
+  if(!activeChatId()){note(uiText('Abre la conversación del archivo.'));return;}
+  const chatId=activeChatId(),dialog=document.createElement('dialog');dialog.style.cssText='max-width:min(700px,92vw);max-height:80vh;background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:20px';
   const title=document.createElement('h3');title.textContent=path;dialog.append(title);
   const close=document.createElement('button');close.textContent=uiText('Cerrar');close.onclick=()=>dialog.close();dialog.append(close);
   dialog.addEventListener('close',()=>dialog.remove());document.body.append(dialog);dialog.showModal();
@@ -585,7 +586,7 @@ function renderMessageFiles(row,message) {
   }
 }
 async function openFileAttachment(file) {
-  if(!currentId){note(uiText('Abre la conversación del archivo.'));return;}
+  if(!activeChatId()){note(uiText('Abre la conversación del archivo.'));return;}
   try{
     const data=await requestJSON('/api/v1/files/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conversation_id:activeChatId(),path:file.path})});
     const extension=(file.name.split('.').pop()||'').toLowerCase();

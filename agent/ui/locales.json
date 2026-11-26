@@ -38023,5 +38023,20 @@
     "th": "มีไฟล์อื่นชื่อ {} อยู่แล้วใน {} จึงไม่ได้ย้าย",
     "tr": "{} adlı başka bir dosya zaten {} içinde var; taşınmadı.",
     "ar": "يوجد بالفعل ملف آخر باسم {} في {}؛ لم يُنقل."
+  },
+  "variante": {
+    "en": "variant",
+    "pt": "variante",
+    "fr": "variante",
+    "de": "Variante",
+    "ja": "別バージョン",
+    "zh": "变体",
+    "ko": "변형",
+    "hi": "संस्करण",
+    "id": "varian",
+    "vi": "biến thể",
+    "th": "รูปแบบอื่น",
+    "tr": "varyant",
+    "ar": "صيغة أخرى"
   }
 }

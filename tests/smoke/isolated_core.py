@@ -36,6 +36,14 @@ class IsolatedCore:
             raise SystemExit(f'Port {self.port} is already in use: stop that core first.')
         if self.data_parent:
             Path(self.data_parent).mkdir(parents=True, exist_ok=True)
+        # A core stopped by force (taskkill) never reaches __exit__: its folder stayed in %TEMP% for good.
+        # Folders of this kind older than six hours belong to no running core and are removed now.
+        for old in Path(self.data_parent or tempfile.gettempdir()).glob('va-quality-*'):
+            try:
+                if old.is_dir() and time.time() - old.stat().st_mtime > 6 * 3600:
+                    shutil.rmtree(old, ignore_errors=True)
+            except OSError:
+                pass
         self.data = Path(tempfile.mkdtemp(prefix='va-quality-', dir=self.data_parent))
         if self.engines_from:
             source = Path(os.path.expandvars(self.engines_from)) / 'engine-updates' / 'active.json'
