@@ -9,6 +9,7 @@ from model_import import _atomic_json
 
 
 _DRAFT_HINTS = ("mtp", "dspark", "dflash", "draft", "assistant")
+_STRATA_DSPARK_TYPES = frozenset(("F32", "F16", "BF16", "Q8_0"))
 
 
 @lru_cache(maxsize=128)
@@ -24,19 +25,27 @@ def _header(path, size, modified):
         "arch": arch,
         "embedding": embd,
         "pre": meta.get("tokenizer.ggml.pre"),
+        "markov_rank": meta.get(str(arch) + ".dspark.markov_rank"),
+        "types": list((info.get("types") or {}).keys()),
         "signature": (arch, embd, meta.get(str(arch) + ".expert_count")),
     }
 
 
+def _dspark_unsupported_types(candidate):
+    return [t for t in (candidate.get("types") or []) if t not in _STRATA_DSPARK_TYPES]
+
+
 def _compatible(candidate, main):
-    """True when `candidate` is a valid MTP head or external draft model (e.g. DFlash/DSpark, Gemma 4 assistant) for `main`."""
+    """True when `candidate` is a valid Strata MTP head, Q8_0/F16/BF16 DSpark drafter, or Gemma 4 assistant for `main`."""
     if candidate["head"] and candidate["signature"] == main["signature"]:
         return True
-    if candidate.get("arch") == "dflash":
+    if candidate.get("arch") == "dflash" and candidate.get("markov_rank"):
         if candidate.get("embedding") is None or candidate.get("embedding") != main.get("embedding"):
             return False
         c_pre, m_pre = candidate.get("pre"), main.get("pre")
         if c_pre and m_pre and c_pre != m_pre:
+            return False
+        if _dspark_unsupported_types(candidate):
             return False
         return True
     if main.get("arch") == "gemma4" and candidate.get("arch") == "gemma4" and candidate.get("path") != main.get("path"):
@@ -116,6 +125,14 @@ def save(config_path, source, tokens):
             raise ValueError("Selecciona un archivo GGUF MTP existente.")
         metadata = header(candidate)
         if not _compatible(metadata, header(main)):
+            if metadata.get("arch") == "dflash":
+                bad_types = _dspark_unsupported_types(metadata)
+                if metadata.get("markov_rank") and bad_types:
+                    raise ValueError(
+                        f"Strata requiere la versión Q8_0 (o F16/BF16) del borrador DSpark (por ejemplo dspark-Inkling-2-Mini-Q8_0.gguf); "
+                        f"este archivo está cuantizado en {', '.join(bad_types)}."
+                    )
+                raise ValueError("Este borrador DSpark/DFlash no es compatible con Strata para este modelo.")
             raise ValueError("El archivo no contiene una cabeza MTP con las dimensiones de este modelo.")
         source = str(candidate)
     if not source and tokens:
