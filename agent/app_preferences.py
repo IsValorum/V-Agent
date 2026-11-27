@@ -45,20 +45,21 @@ class AppPreferences:
         if 'agent_profile' in body and body['agent_profile'] not in ('text','light','balanced','advanced'):raise ValueError('Perfil no admitido.')
         if 'windows' in body:
             windows=body['windows']
-            if not isinstance(windows,dict) or len(windows)>12:raise ValueError('Invalid window settings.')
+            if not isinstance(windows,dict) or len(windows)>16:raise ValueError('Invalid window settings.')
             for key,box in windows.items():
-                if key not in ('settings','model','tools','project','import','console','browser','models') or not isinstance(box,dict) or set(box)!={'width','height'}:raise ValueError('Invalid window.')
+                if key not in ('settings','model','engineConfig','engineOptions','transfer','tools','project','import','console','browser','models') or not isinstance(box,dict) or set(box)!={'width','height'}:raise ValueError('Invalid window.')
                 if any(type(v) is not int or not 160<=v<=5000 for v in box.values()):raise ValueError('Invalid window size.')
         if 'decoration' in body:
             d=body['decoration']
-            if not isinstance(d,dict) or set(d)-{'style','intensity','color','palette','logo','motif','background','version','amoled','logoSize','appIcon','showGreeting','paletteThemes','uiStyle','buttonStyle'}:raise ValueError('Invalid decoration.')
+            if not isinstance(d,dict) or set(d)-{'style','intensity','color','palette','logo','motif','background','version','amoled','logoSize','appIcon','showGreeting','paletteThemes','uiStyle','liquidLevel','buttonStyle'}:raise ValueError('Invalid decoration.')
             if d.get('style') != 'none' or type(d.get('intensity')) is not int or not 0<=d['intensity']<=100:raise ValueError('Invalid decoration.')
             palettes=('gold','silver','jade','blue','rose','ruby','violet','ivory','gold-light','silver-light','jade-light','blue-light','rose-light','ruby-light','violet-light')
             for key,values in [('palette',(*palettes,'custom')),('logo',palettes),('appIcon',('follow',*palettes)),('motif',('corners','rays','steps')),('background',('collection','wallpaper'))]:
                 if key in d and d[key] not in values:raise ValueError('Invalid decoration option: '+key)
             if 'version' in d and (type(d['version']) is not int or d['version']!=2):raise ValueError('Invalid decoration version.')
             if 'showGreeting' in d and type(d['showGreeting']) is not bool:raise ValueError('Invalid greeting setting.')
-            if 'uiStyle' in d and d['uiStyle'] not in ('glass','soft','deco'):raise ValueError('Invalid interface style.')
+            if 'uiStyle' in d and d['uiStyle'] not in ('glass','liquid','soft','deco'):raise ValueError('Invalid interface style.')
+            if 'liquidLevel' in d and (type(d['liquidLevel']) is not int or not 0<=d['liquidLevel']<=100):raise ValueError('Invalid liquid glass level.')
             if 'buttonStyle' in d and d['buttonStyle'] not in ('tint','outline'):raise ValueError('Invalid button style.')
             if 'amoled' in d and type(d['amoled']) is not bool:raise ValueError('Invalid AMOLED setting.')
             if 'logoSize' in d and (type(d['logoSize']) is not int or not 64<=d['logoSize']<=360):raise ValueError('Invalid logo size.')

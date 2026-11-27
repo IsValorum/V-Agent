@@ -118,13 +118,13 @@
       '</div></div>'+
       '<footer class="models-foot"><span class="models-folder">'+icon(ICONS.down)+'<span id="hubFolder"></span></span><button id="hubFolderOpen" type="button" class="text-btn">Abrir carpeta</button><button id="hubFolderChange" type="button" class="text-btn">Cambiar carpeta</button><div id="hubJobs" class="hub-jobs"></div></footer>';
     document.body.append(win);
-    const transferSection=document.createElement('details');transferSection.id='modelTransfer';transferSection.className='settings-group model-transfer';
-    const transferTitle=document.createElement('summary');transferTitle.textContent=T('Importar y exportar');
-    transfer=win.querySelector('[data-pane="transfer"]');transfer.hidden=false;transferSection.append(transferTitle,transfer);
+    const transferWin=document.getElementById('transferWindow'),transferHost=document.getElementById('modelTransfer');
+    const transferTrigger=document.createElement('button');transferTrigger.id='openTransferWindow';transferTrigger.type='button';transferTrigger.className='engine-advanced-btn transfer-window-btn';transferTrigger.setAttribute('aria-controls','transferWindow');transferTrigger.setAttribute('aria-expanded','false');transferTrigger.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 19h16"/></svg><span>Importar y exportar</span><svg class="engine-advanced-go" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
+    transfer=win.querySelector('[data-pane="transfer"]');transfer.hidden=false;if(transferHost)transferHost.append(transfer);
     // Right under the model selector and "+ Add model", where bringing models in belongs, not at the panel's end.
     const libraryActions=document.querySelector('#controls-model .model-library-actions');
-    if(libraryActions)libraryActions.after(transferSection);else document.getElementById('controls-model').append(transferSection);
-    transferSection.addEventListener('toggle',()=>{if(transferSection.open){scan();fillExportModels();pollMove();}});
+    if(libraryActions)libraryActions.after(transferTrigger);else document.getElementById('controls-model').append(transferTrigger);
+    const syncTransferBtn=()=>transferTrigger.setAttribute('aria-expanded',String(!!window.VALWindows?.isOpen('transfer')));transferTrigger.onclick=()=>{if(window.VALWindows?.isOpen('transfer'))window.VALWindows.close('transfer');else window.VALWindows?.open('transfer');syncTransferBtn();};if(transferWin)window.VALWindows?.register('transfer',transferWin,{onOpen:()=>{scan();fillExportModels();pollMove();syncTransferBtn();},onClose:syncTransferBtn});
     window.VALWindows?.register('models',win,{onOpen:()=>{refreshJobs();if(!document.querySelector('#hubResults .hub-item'))search();},onClose:()=>clearInterval(poll)});
     const query=win.querySelector('#hubQuery');query.oninput=()=>{clearTimeout(searchTimer);searchTimer=setTimeout(search,380);};
     query.onkeydown=event=>{if(event.key==='Enter'){clearTimeout(searchTimer);search();}};
@@ -141,9 +141,9 @@
     transfer.querySelector('#exportFile').onclick=()=>exportTo('file');
     transfer.querySelector('#importFileBtn').onclick=()=>transfer.querySelector('#importFile').click();
     transfer.querySelector('#importFile').onchange=importFile;
-    window.VALI18n?.observe?.(win);window.VALI18n?.observe?.(transferSection);
+    window.VALI18n?.observe?.(win);window.VALI18n?.observe?.(transferTrigger);if(transferWin)window.VALI18n?.observe?.(transferWin);
   }
-  function open(tab){if(!win)build();if(tab==='transfer'){setChatControls('model');document.getElementById('modelTransfer').open=true;}else window.VALWindows?.open('models');}
+  function open(tab){if(!win)build();if(tab==='transfer'){window.VALWindows?.open('transfer');}else window.VALWindows?.open('models');}
 
   // ---------------------------------------------------------------- discover
   async function search(){

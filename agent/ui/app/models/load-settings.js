@@ -8,6 +8,8 @@ function shownCheckpoints(load){return activeEngine==='llama'&&load.auto&&load.c
 const LOAD_LLAMA_FIELDS=new Set(['gpu_layers','cpu_moe','fit_target']);
 const DRAFT_DEFAULTS={enabled:false,path:'',type:'auto',max:3,min:0};
 let loadCurrent={...LOAD_DEFAULTS},draftCurrent={...DRAFT_DEFAULTS},memoryTimer=0,memoryController=null,memoryKey='',memoryLast=null,loadCapabilities=null;
+function modelHasIntegratedMtp(id){return ['llama','rust'].includes(activeEngine)&&!!id&&!!modelDrafts[id]?.integrated;}
+function sameModelPath(a,b){if(!a||!b)return false;const norm=value=>String(value).replace(/\//g,'\\').toLowerCase();return norm(a)===norm(b);}
 function setupLoadSettings(){
   const group=document.createElement('section');group.id='modelLoadSettings';group.className='sec';group.innerHTML='<h4>Carga del motor</h4><div class="load-mode"><button type="button" data-load-auto="true">Automático</button><button type="button" data-load-auto="false">Personalizado</button></div>'+[['parallel','Slots paralelos','Un slot para un agente personal. Auto usa 1; más slots multiplican el contexto reservado.'],['batch','Tamaño de lote','Tokens máximos procesados juntos. Auto usa el valor del motor.'],['ubatch','Tamaño de microlote','Lote físico: bajarlo puede reducir memoria. No debe superar Batch.'],['checkpoints','Puntos de control del contexto','Estados reutilizables de contexto. Más checkpoints pueden consumir más memoria.'],['fit_target','Margen de VRAM (MiB)','Memoria que --fit deja libre en la GPU. Auto usa 1024 MiB.'],['gpu_layers','Capas en GPU','Cuántas capas van a la VRAM (-ngl). Escribe un número o Todas; Auto usa el ajuste del motor.'],['cpu_moe','Capas con expertos en la CPU','Capas cuyos expertos se quedan en la RAM (--n-cpu-moe). Ideal para modelos MoE en GPU pequeña.']].map(([key,label,help])=>'<div class="setting-row" data-load-field="'+key+'"><label for="load_'+key+'" title="'+help+'">'+label+' <span class="load-help" aria-hidden="true">?</span></label><input id="load_'+key+'" inputmode="numeric" autocomplete="off" placeholder="Auto" aria-label="'+label+'" title="'+help+'"></div>').join('')+'<p id="loadSettingsStatus" class="mini" role="status"></p>';
   const pane=document.getElementById('model-load-pane'),advanced=document.getElementById('loadAdvanced');if(advanced)advanced.before(group);else pane.append(group);
@@ -27,18 +29,75 @@ function setupLoadSettings(){
   }
   const draft=document.createElement('div');draft.id='modelDraftSettings';draft.className='draft-speculative';
   draft.innerHTML='<h5>Modelo borrador (especulativo)</h5><label class="chk"><input id="llamaDraftEnabled" type="checkbox"> Usar modelo borrador</label>'+
-    '<div class="draft-path"><input id="llamaDraftPath" type="text" readonly placeholder="Ningún GGUF draft" aria-label="Archivo draft"><button id="llamaDraftBrowse" type="button">Elegir…</button></div>'+
+    '<div class="draft-path"><input id="llamaDraftPath" type="text" readonly placeholder="Ningún GGUF draft" aria-label="Archivo draft"><button id="llamaDraftBrowse" type="button">Elegir…</button><button id="llamaDraftClear" type="button" hidden>Quitar</button></div>'+
     '<div class="setting-row"><label for="llamaDraftType">Tipo de borrador</label><select id="llamaDraftType"><option value="auto">Automático</option><option value="draft-simple">Simple</option><option value="draft-eagle3">Eagle3</option><option value="draft-mtp">MTP</option><option value="draft-dflash">DFlash</option><option value="draft-dspark">DSpark</option></select></div>'+
     '<div class="setting-row"><label for="llamaDraftMax">Tokens propuestos (máx.)</label><input id="llamaDraftMax" type="number" min="1" max="32" inputmode="numeric"></div>'+
     '<div class="setting-row"><label for="llamaDraftMin">Tokens propuestos (mín.)</label><input id="llamaDraftMin" type="number" min="0" inputmode="numeric"></div>'+
     '<p id="llamaDraftStatus" class="mini" role="status"></p>';
   document.getElementById('loadSettingsStatus').before(draft);
-  const draftChanged=()=>{draftCurrent={...draftCurrent,enabled:document.getElementById('llamaDraftEnabled').checked,type:document.getElementById('llamaDraftType').value,max:Number(document.getElementById('llamaDraftMax').value)||3,min:Number(document.getElementById('llamaDraftMin').value)||0};queueModelPreferences();syncLoadSettings();requestMemoryEstimate(true);};
-  document.getElementById('llamaDraftEnabled').onchange=()=>{draftCurrent.enabled=document.getElementById('llamaDraftEnabled').checked;if(draftCurrent.enabled&&!draftCurrent.path){document.getElementById('llamaDraftBrowse').click();return;}draftChanged();};
+  const saveDraftPreference=()=>{
+    const id=document.getElementById('model')?.value;
+    if(id)modelPreferences[id]={...modelPreferences[id],draft:structuredClone(draftCurrent)};
+    queueModelPreferences();syncLoadSettings();requestMemoryEstimate(true);
+  };
+  const draftChanged=()=>{
+    draftCurrent={...draftCurrent,enabled:document.getElementById('llamaDraftEnabled').checked,type:document.getElementById('llamaDraftType').value,max:Number(document.getElementById('llamaDraftMax').value)||3,min:Number(document.getElementById('llamaDraftMin').value)||0};
+    if(draftCurrent.enabled&&!draftCurrent.path&&draftCurrent.type!=='draft-mtp'){syncLoadSettings(false);return;}
+    saveDraftPreference();
+  };
+  document.getElementById('llamaDraftEnabled').onchange=()=>{
+    const checked=document.getElementById('llamaDraftEnabled').checked;
+    const id=document.getElementById('model')?.value;
+    draftCurrent.enabled=checked;
+    if(checked&&!draftCurrent.path){
+      if(modelHasIntegratedMtp(id)||draftCurrent.type==='draft-mtp'){
+        draftCurrent.type='draft-mtp';
+        document.getElementById('llamaDraftType').value='draft-mtp';
+        saveDraftPreference();
+        return;
+      }
+      document.getElementById('llamaDraftBrowse').click();
+      return;
+    }
+    draftChanged();
+  };
   document.getElementById('llamaDraftType').onchange=draftChanged;
-  document.getElementById('llamaDraftMax').onchange=()=>{const value=Math.max(1,Math.min(32,Math.round(Number(document.getElementById('llamaDraftMax').value)||3)));document.getElementById('llamaDraftMax').value=value;if(draftCurrent.min>value){draftCurrent.min=value;document.getElementById('llamaDraftMin').value=value;}draftChanged();};
+  document.getElementById('llamaDraftMax').onchange=()=>{const cap=activeEngine==='rust'?16:32;const value=Math.max(1,Math.min(cap,Math.round(Number(document.getElementById('llamaDraftMax').value)||3)));document.getElementById('llamaDraftMax').value=value;if(draftCurrent.min>value){draftCurrent.min=value;document.getElementById('llamaDraftMin').value=value;}draftChanged();};
   document.getElementById('llamaDraftMin').onchange=()=>{const max=Number(document.getElementById('llamaDraftMax').value)||3;const value=Math.max(0,Math.min(max,Math.round(Number(document.getElementById('llamaDraftMin').value)||0)));document.getElementById('llamaDraftMin').value=value;draftChanged();};
-  document.getElementById('llamaDraftBrowse').onclick=async()=>{if(refuseWhileBusy())return;try{const picked=await requestJSON('/api/models/pick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'draft'}),signal:AbortSignal.timeout(310000)});if(picked.path){draftCurrent={...draftCurrent,path:picked.path,enabled:true};document.getElementById('llamaDraftEnabled').checked=true;queueModelPreferences();syncLoadSettings();requestMemoryEstimate(true);}}catch(error){document.getElementById('llamaDraftStatus').textContent=error.message;}};
+  document.getElementById('llamaDraftClear').onclick=()=>{
+    if(refuseWhileBusy())return;
+    const id=document.getElementById('model')?.value;
+    if(modelHasIntegratedMtp(id)){
+      draftCurrent={...draftCurrent,path:'',type:'draft-mtp',enabled:true};
+    }else{
+      draftCurrent={...draftCurrent,path:'',enabled:false};
+    }
+    document.getElementById('llamaDraftEnabled').checked=draftCurrent.enabled;
+    document.getElementById('llamaDraftType').value=draftCurrent.type;
+    saveDraftPreference();
+  };
+  document.getElementById('llamaDraftBrowse').onclick=async()=>{
+    if(refuseWhileBusy())return;
+    try{
+      const picked=await requestJSON('/api/models/pick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'draft'}),signal:AbortSignal.timeout(310000)});
+      const id=document.getElementById('model')?.value;
+      const mainPath=modelCatalog.find(item=>item.id===id)?.path;
+      if(picked.path){
+        if(sameModelPath(picked.path,mainPath)){
+          draftCurrent={...draftCurrent,path:'',type:'draft-mtp',enabled:true};
+        }else{
+          draftCurrent={...draftCurrent,path:picked.path,enabled:true};
+        }
+        document.getElementById('llamaDraftEnabled').checked=true;
+        document.getElementById('llamaDraftType').value=draftCurrent.type;
+        saveDraftPreference();
+      }else if(!draftCurrent.path&&draftCurrent.type!=='draft-mtp'){
+        draftCurrent.enabled=false;
+        document.getElementById('llamaDraftEnabled').checked=false;
+        syncLoadSettings(false);
+      }
+    }catch(error){document.getElementById('llamaDraftStatus').textContent=error.message;}
+  };
   document.getElementById('composerControls').addEventListener('fw:open',()=>requestMemoryEstimate(true));
   document.getElementById('composerControls').addEventListener('fw:close',()=>{clearTimeout(memoryTimer);memoryController?.abort();});
   syncLoadSettings();
@@ -48,11 +107,44 @@ function setupLoadSettings(){
 function syncLoadSettings(estimate=true){
   const group=document.getElementById('modelLoadSettings');if(!group)return;
   const currentModel=document.getElementById('model').value;
-  loadCurrent={...LOAD_DEFAULTS,...modelPreferences[currentModel]?.load};draftCurrent={...DRAFT_DEFAULTS,...modelPreferences[currentModel]?.draft};
-  group.hidden=!['llama','strata'].includes(activeEngine);document.getElementById('modelMemoryEstimate').hidden=activeEngine==='api';
+  loadCurrent={...LOAD_DEFAULTS,...modelPreferences[currentModel]?.load};
+  const savedDraft=modelPreferences[currentModel]?.draft;
+  const hasIntegratedMtp=modelHasIntegratedMtp(currentModel);
+  if(savedDraft&&typeof savedDraft.enabled==='boolean'){
+    draftCurrent={...DRAFT_DEFAULTS,...savedDraft};
+  }else if(hasIntegratedMtp){
+    draftCurrent={...DRAFT_DEFAULTS,enabled:true,path:'',type:'draft-mtp'};
+  }else{
+    draftCurrent={...DRAFT_DEFAULTS};
+  }
+  const isRust=activeEngine==='rust';
+  group.hidden=!['llama','strata'].includes(activeEngine)&&!(isRust&&hasIntegratedMtp);
+  const loadGroup=document.getElementById('engineLoadGroup');if(loadGroup)loadGroup.hidden=group.hidden;
+  const loadMode=group.querySelector('.load-mode');if(loadMode)loadMode.hidden=isRust;
+  document.getElementById('modelMemoryEstimate').hidden=activeEngine==='api';
   const draftBox=document.getElementById('modelDraftSettings');
-  if(draftBox){draftBox.hidden=activeEngine!=='llama';const enabled=document.getElementById('llamaDraftEnabled'),path=document.getElementById('llamaDraftPath'),type=document.getElementById('llamaDraftType'),max=document.getElementById('llamaDraftMax'),min=document.getElementById('llamaDraftMin');enabled.checked=!!draftCurrent.enabled;path.value=draftCurrent.path||'';type.value=draftCurrent.type||'auto';max.value=draftCurrent.max||3;min.value=draftCurrent.min||0;enabled.disabled=busy||engineBusy;for(const input of [path,type,max,min])input.disabled=busy||engineBusy||!draftCurrent.enabled;const label=type.options[type.selectedIndex]?.textContent||uiText('Automático');const status=document.getElementById('llamaDraftStatus');status.textContent=!draftCurrent.enabled?uiText('Sin draft: el modelo principal responde solo.'):!draftCurrent.path?uiText('Elige un GGUF draft compatible.'):(draftCurrent.path.split(/[\\/]/).pop()+' · '+uiText(label)+' · '+draftCurrent.max+' tokens · '+uiText('suma memoria y debe ser compatible con el modelo principal.'));}
-  for(const key of ['parallel','batch','ubatch','checkpoints']){const input=document.getElementById('load_'+key);input.closest('.setting-row').hidden=activeEngine==='strata'&&key!=='checkpoints';if(document.activeElement!==input)input.value=loadCurrent.auto&&key!=='checkpoints'?uiText('Auto'):loadCurrent[key]===0&&key!=='checkpoints'?uiText('Auto'):key==='checkpoints'?shownCheckpoints(loadCurrent):loadCurrent[key];input.disabled=(loadCurrent.auto&&!(key==='checkpoints'&&activeEngine==='llama'))||busy||engineBusy||(key==='checkpoints'&&activeEngine==='llama'&&loadCapabilities?.checkpoints===false);}
+  if(draftBox){
+    draftBox.hidden=activeEngine!=='llama'&&!(isRust&&hasIntegratedMtp);
+    const enabled=document.getElementById('llamaDraftEnabled'),path=document.getElementById('llamaDraftPath'),clearBtn=document.getElementById('llamaDraftClear'),type=document.getElementById('llamaDraftType'),max=document.getElementById('llamaDraftMax'),min=document.getElementById('llamaDraftMin');
+    const pathRow=draftBox.querySelector('.draft-path'),typeRow=type.closest('.setting-row'),minRow=min.closest('.setting-row');
+    if(pathRow)pathRow.hidden=isRust;if(typeRow)typeRow.hidden=isRust;if(minRow)minRow.hidden=isRust;
+    max.max=isRust?'16':'32';
+    enabled.checked=!!draftCurrent.enabled;
+    path.value=draftCurrent.path||'';
+    path.placeholder=hasIntegratedMtp&&!draftCurrent.path?uiText('MTP integrado en el modelo'):uiText('Ningún GGUF draft');
+    if(clearBtn){clearBtn.hidden=isRust||!draftCurrent.path;clearBtn.disabled=busy||engineBusy;}
+    type.value=draftCurrent.type||'auto';max.value=draftCurrent.max||3;min.value=draftCurrent.min||0;
+    enabled.disabled=busy||engineBusy;
+    for(const input of [path,type,max,min])input.disabled=busy||engineBusy||!draftCurrent.enabled;
+    const label=type.options[type.selectedIndex]?.textContent||uiText('Automático');
+    const status=document.getElementById('llamaDraftStatus');
+    const builtInMtp=draftCurrent.enabled&&!draftCurrent.path&&draftCurrent.type==='draft-mtp';
+    status.textContent=!draftCurrent.enabled?uiText('Sin draft: el modelo principal responde solo.')
+      :builtInMtp?(uiText('MTP integrado')+' · '+draftCurrent.max+' '+uiText('tokens')+' · '+uiText('sin memoria adicional.'))
+      :!draftCurrent.path?uiText('Elige un GGUF draft compatible.')
+      :(draftCurrent.path.split(/[\\/]/).pop()+' · '+uiText(label)+' · '+draftCurrent.max+' '+uiText('tokens')+' · '+uiText('suma memoria y debe ser compatible con el modelo principal.'));
+  }
+  for(const key of ['parallel','batch','ubatch','checkpoints']){const input=document.getElementById('load_'+key);input.closest('.setting-row').hidden=isRust||(activeEngine==='strata'&&key!=='checkpoints');if(document.activeElement!==input)input.value=loadCurrent.auto&&key!=='checkpoints'?uiText('Auto'):loadCurrent[key]===0&&key!=='checkpoints'?uiText('Auto'):key==='checkpoints'?shownCheckpoints(loadCurrent):loadCurrent[key];input.disabled=(loadCurrent.auto&&!(key==='checkpoints'&&activeEngine==='llama'))||busy||engineBusy||(key==='checkpoints'&&activeEngine==='llama'&&loadCapabilities?.checkpoints===false);}
   // llama.cpp: the VRAM margin belongs to automatic (--fit); layers and MoE experts to manual.
   const layers=memoryLast?.memory?.block_count,moe=memoryLast?.memory?.moe!==false;
   for(const key of LOAD_LLAMA_FIELDS){const input=document.getElementById('load_'+key),row=input.closest('.setting-row');
@@ -61,8 +153,9 @@ function syncLoadSettings(estimate=true){
     input.placeholder=key==='gpu_layers'&&layers?uiText('Auto')+' · '+layers+' '+uiText('capas'):uiText('Auto');input.disabled=busy||engineBusy;}
   for(const button of group.querySelectorAll('[data-load-auto]')){button.setAttribute('aria-pressed',String(String(loadCurrent.auto)===button.dataset.loadAuto));button.disabled=busy||engineBusy;}
   const status=document.getElementById('loadSettingsStatus');
+  status.hidden=isRust;
   if(activeEngine==='llama')status.textContent=loadCurrent.auto?uiText('Automático: llama.cpp ajusta capas y contexto a tu memoria (--fit).'):uiText('Personalizado: tú eliges las capas (sin --fit). Se aplicará en la próxima carga.')+(layers?' '+uiText('El modelo tiene')+' '+layers+' '+uiText('capas')+'.':'');
-  else status.textContent=loadCurrent.auto?uiText('Automático: 1 slot, lotes del motor y 1 checkpoint.'):uiText('Se aplicará en la próxima carga manual.');
+  else if(activeEngine==='strata')status.textContent=loadCurrent.auto?uiText('Automático: 1 slot, lotes del motor y 1 checkpoint.'):uiText('Se aplicará en la próxima carga manual.');
   // A hybrid (SSM + attention) model with 0 or 1 checkpoint reads the whole conversation again every turn.
   if(activeEngine==='llama'&&(memoryLast?.memory?.recurrent||0)>0&&shownCheckpoints(loadCurrent)<=1)
     status.textContent+=' '+uiText('Este modelo es híbrido: con 1 checkpoint o menos vuelve a leer toda la conversación en cada turno. Usa 4 o más.');
@@ -107,68 +200,63 @@ function requestMemoryEstimate(force=false){
   if(!document.getElementById('modelMemoryEstimate'))return;
   clearTimeout(memoryTimer);const model=document.getElementById('model')?.value;if(!model||activeEngine==='api'||!document.getElementById('modelMemoryEstimate'))return;
   if(!window.VALWindows?.isOpen('model'))return;
-  const payload={model,context:Number(document.getElementById('ctxInput').value),kv:document.getElementById('kvCache').value,load:{...loadCurrent},draft:{...draftCurrent}};
+  const draftPayload=(!draftCurrent.enabled||!!draftCurrent.path||draftCurrent.type==='draft-mtp')?{...draftCurrent}:{...DRAFT_DEFAULTS};
+  const payload={model,context:Number(document.getElementById('ctxInput').value),kv:document.getElementById('kvCache').value,load:{...loadCurrent},draft:draftPayload};
   const key=JSON.stringify([activeEngine,engineSnapshot?.llama,payload]);if(!force&&key===memoryKey)return;
   memoryController?.abort();const controller=new AbortController();memoryController=controller;
   memoryTimer=setTimeout(async()=>{const warn=document.getElementById('memoryWarning');for(const id of ['memoryGpu','memoryTotal'])document.getElementById(id).textContent='—';document.getElementById('memoryBreakdown').replaceChildren();document.getElementById('memoryShape').textContent='';warn.textContent='';warn.hidden=true;document.getElementById('memoryHeadline').textContent=uiText('Calculando…');try{const result=await requestJSON('/api/harness/memory-estimate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:controller.signal});if(memoryController!==controller)return;memoryKey=key;paintMemory(result);}catch(error){if(error.name==='AbortError'||memoryController!==controller)return;paintMemory({memory:null,reason:error.message},false);}},240);
 }
 
-/* Engine options: everything else llama.cpp, Strata and Strata Rust accept (Flash Attention, threads,
-   RoPE, LoRA, expert placement…). The core sends the catalog of the installed executable; an empty
-   field is the engine's own default and passes nothing. Saved per model with the other preferences. */
+/* Engine options: everything else llama.cpp, Strata, Strata Rust and Project Maya accept (Flash Attention,
+   threads, RoPE, LoRA, expert placement…). Opens in its own floating window beside the Model window. */
 const ENGINE_OPTION_KINDS=['llama','strata','rust','maya'];
 const ENGINE_CHOICE_LABELS={auto:'Automático',on:'Activado',off:'Desactivado',none:'Ninguno',layer:'Por capas',row:'Por filas',
   tensor:'Por tensores',linear:'Lineal',yarn:'YaRN',distribute:'Distribuir',isolate:'Aislar',numactl:'numactl',dio:'DirectIO',
   cuda:'CUDA',vulkan:'Vulkan'};
+const ENGINE_OPTION_NAMES={llama:'llama.cpp',strata:'Strata',rust:'Strata Rust',maya:'Project Maya'};
 let engineOptionsCatalog=null,engineCurrent={};
 function engineOptionsChanged(){return Object.values(engineCurrent).filter(value=>value!==null&&value!==undefined).length;}
 function setupEngineOptions(){
-  if(document.getElementById('engineOptions'))return;
-  const box=document.createElement('details');box.id='engineOptions';box.className='settings-group engine-options';
-  box.innerHTML='<summary><span id="engineOptionsTitle"></span><span id="engineOptionsCount" class="mini"></span></summary>'+
-    '<div id="engineOptionsBody" class="engine-options-body"></div><p id="engineOptionsStatus" class="mini" role="status"></p>';
-  // In the Advanced tab, right after the engine's load settings, always listed (folded) for an engine that has
-  // options: it used to stay hidden until the small "Advanced settings" button of the engine card was found.
-  if(!placeEngineOptions(box))return;
-  box.addEventListener('toggle',()=>{if(box.open)loadEngineOptions();syncEngineOptionsButton();});
+  const win=document.getElementById('engineOptionsWindow');if(!win)return;
+  window.VALWindows?.register('engineOptions',win);
+  win.addEventListener('fw:open',()=>{loadEngineOptions();syncEngineOptionsButton();});
+  win.addEventListener('fw:close',()=>syncEngineOptionsButton());
   document.getElementById('composerControls')?.addEventListener('fw:open',()=>{engineOptionsCatalog=null;syncEngineOptions();});
   window.VALI18n?.onChange?.(()=>renderEngineOptions());
   syncEngineOptions();
 }
-const ENGINE_OPTION_NAMES={llama:'llama.cpp',strata:'Strata',rust:'Strata Rust',maya:'Project Maya'};
-function placeEngineOptions(box){
-  const after=document.getElementById('engineLoadGroup'),pane=document.getElementById('model-load-pane');
-  if(after){if(after.nextElementSibling!==box)after.after(box);return true;}
-  if(!pane)return false;
-  const advanced=document.getElementById('loadAdvanced');
-  if(advanced){if(advanced.previousElementSibling!==box)advanced.before(box);}else if(box.parentElement!==pane)pane.append(box);
-  return true;
-}
 function syncEngineOptionsButton(){
-  const box=document.getElementById('engineOptions'),button=document.getElementById('mayaQuickAdvanced');
-  if(box&&button)button.setAttribute('aria-expanded',String(!box.hidden&&box.open));
-  const badge=document.getElementById('engineOptionsBadge'),count=engineOptionsChanged();
+  const button=document.getElementById('mayaQuickAdvanced');
+  const open=!!window.VALWindows?.isOpen('engineOptions');
+  if(button)button.setAttribute('aria-expanded',String(open));
+  const count=engineOptionsChanged();
+  const badge=document.getElementById('engineOptionsBadge');
   if(badge){badge.hidden=!count;badge.textContent=count?String(count):'';badge.title=count?uiText('Cambiadas')+': '+count:'';}
+  const counter=document.getElementById('engineOptionsCount');
+  if(counter){counter.hidden=!count;counter.textContent=count?uiText('Cambiadas')+': '+count:'';}
 }
 function toggleEngineOptions(){
-  // The engine card's "Advanced settings": go to the Advanced tab and unfold the engine's options there.
-  const box=document.getElementById('engineOptions');if(!box||!ENGINE_OPTION_KINDS.includes(activeEngine))return;
-  placeEngineOptions(box);box.hidden=false;
-  if(typeof setModelSection==='function')setModelSection('load');
-  box.open=true;loadEngineOptions();syncEngineOptionsButton();
-  requestAnimationFrame(()=>box.scrollIntoView({block:'start',behavior:'smooth'}));
+  if(!ENGINE_OPTION_KINDS.includes(activeEngine))return;
+  if(window.VALWindows?.isOpen('engineOptions'))window.VALWindows.close('engineOptions');
+  else window.VALWindows?.open('engineOptions');
+  syncEngineOptionsButton();
 }
 function syncEngineOptions(){
   const box=document.getElementById('engineOptions');if(!box)return;
-  placeEngineOptions(box);box.hidden=!ENGINE_OPTION_KINDS.includes(activeEngine);
-  syncEngineOptionsButton();
+  if(!ENGINE_OPTION_KINDS.includes(activeEngine)){
+    if(window.VALWindows?.isOpen('engineOptions'))window.VALWindows.close('engineOptions');
+    syncEngineOptionsButton();
+    return;
+  }
   const model=document.getElementById('model')?.value;engineCurrent={...(modelPreferences[model]?.engine||{})};
+  syncEngineOptionsButton();
   if(engineOptionsCatalog&&(engineOptionsCatalog.engine!==activeEngine||activeEngine==='maya'&&(engineOptionsCatalog.model||'')!==(model||'')))engineOptionsCatalog=null;
   // Called on every memory estimate: redraw only when something shown changed, so a value being
   // typed, its focus and an "invalid" mark are not wiped out.
-  const signature=JSON.stringify([activeEngine,model,engineCurrent,!!engineOptionsCatalog,busy||engineBusy]);
+  const open=!!window.VALWindows?.isOpen('engineOptions');
+  const signature=JSON.stringify([activeEngine,model,engineCurrent,!!engineOptionsCatalog,busy||engineBusy,open]);
   if(box.dataset.signature===signature)return;
-  if(box.open&&!box.hidden)loadEngineOptions();else renderEngineOptions();
+  if(open)loadEngineOptions();else renderEngineOptions();
 }
 async function loadEngineOptions(){
   if(!ENGINE_OPTION_KINDS.includes(activeEngine))return;
@@ -176,31 +264,30 @@ async function loadEngineOptions(){
   const model=document.getElementById('model')?.value||'';
   const forModel=activeEngine==='maya'?model:'';
   if(engineOptionsCatalog?.engine===activeEngine&&(engineOptionsCatalog.model||'')===forModel){renderEngineOptions();return;}
-  const status=document.getElementById('engineOptionsStatus');status.textContent=uiText('Leyendo las opciones del motor…');
+  const status=document.getElementById('engineOptionsStatus');if(status)status.textContent=uiText('Leyendo las opciones del motor…');
   try{engineOptionsCatalog=await requestJSON('/api/harness/engine-options'+(forModel?'?model='+encodeURIComponent(forModel):''),{cache:'no-store',signal:AbortSignal.timeout(30000)});
     engineOptionsCatalog.model=forModel;}
-  catch(error){status.textContent=uiText('No se pudieron leer las opciones del motor.')+' '+error.message;return;}
+  catch(error){if(status)status.textContent=uiText('No se pudieron leer las opciones del motor.')+' '+error.message;return;}
   renderEngineOptions();
 }
 function engineOptionSet(option,value){
   engineCurrent={...engineCurrent,[option.key]:value};
   // The value is already on screen: mark it drawn so saving it does not redraw the list.
   const box=document.getElementById('engineOptions'),model=document.getElementById('model')?.value;
-  box.dataset.signature=JSON.stringify([activeEngine,model,engineCurrent,!!engineOptionsCatalog,busy||engineBusy]);
+  box.dataset.signature=JSON.stringify([activeEngine,model,engineCurrent,!!engineOptionsCatalog,busy||engineBusy,!!window.VALWindows?.isOpen('engineOptions')]);
   queueModelPreferences();
-  const count=engineOptionsChanged();
-  document.getElementById('engineOptionsCount').textContent=count?uiText('Cambiadas')+': '+count:'';syncEngineOptionsButton();
+  syncEngineOptionsButton();
   document.getElementById('engineOptionsStatus').textContent=uiText('Se aplicará en la próxima carga del modelo.');
 }
 function renderEngineOptions(){
   const body=document.getElementById('engineOptionsBody');if(!body)return;
   const box=document.getElementById('engineOptions'),model=document.getElementById('model')?.value;
-  box.dataset.signature=JSON.stringify([activeEngine,model,engineCurrent,!!engineOptionsCatalog,busy||engineBusy]);
-  document.getElementById('engineOptionsTitle').textContent=uiText('Opciones del motor')+(ENGINE_OPTION_NAMES[activeEngine]?' · '+ENGINE_OPTION_NAMES[activeEngine]:'');
+  box.dataset.signature=JSON.stringify([activeEngine,model,engineCurrent,!!engineOptionsCatalog,busy||engineBusy,!!window.VALWindows?.isOpen('engineOptions')]);
+  document.getElementById('engineOptionsTitle').textContent=uiText('Ajustes avanzados')+(ENGINE_OPTION_NAMES[activeEngine]?' · '+ENGINE_OPTION_NAMES[activeEngine]:'');
   const data=engineOptionsCatalog;body.replaceChildren();
-  const status=document.getElementById('engineOptionsStatus'),count=engineOptionsChanged();
-  document.getElementById('engineOptionsCount').textContent=count?uiText('Cambiadas')+': '+count:'';syncEngineOptionsButton();
-  if(!data||data.engine!==activeEngine){status.textContent='';return;}
+  const status=document.getElementById('engineOptionsStatus');
+  syncEngineOptionsButton();
+  if(!data||data.engine!==activeEngine){if(status)status.textContent='';return;}
   // Project Maya runs one binary per model: without a model, or before it is prepared, there is no binary to ask.
   if(!data.options.length){status.textContent=uiText(data.probed?'Este motor no ofrece más opciones.':activeEngine==='maya'?(model?'Prepara este modelo con Project Maya para ver las opciones de su binario.':'Elige un modelo de Project Maya para ver las opciones de su binario.'):'Instala el motor para ver sus opciones.');return;}
   status.textContent=uiText('Auto = el motor decide. Lo que cambies se guarda para este modelo y se aplica al cargarlo.');
@@ -244,4 +331,5 @@ function renderEngineOptions(){
       row.append(label,control,help);body.append(row);
     }
   }
+  if(window.VALWindows?.isOpen('engineOptions'))window.VALWindows.arrange();
 }

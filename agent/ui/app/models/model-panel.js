@@ -188,7 +188,8 @@ function queueModelPreferences(){
   // The KV cache exists only on local engines; with an API its select keeps the last local value.
   if(activeEngine!=='api'&&$('#kvCache')?.value)settings.kv=$('#kvCache').value;
   if(['llama','strata'].includes(activeEngine)&&document.getElementById('modelLoadSettings'))settings.load=structuredClone(loadCurrent);
-  if(activeEngine==='llama'&&document.getElementById('modelDraftSettings'))settings.draft=structuredClone(draftCurrent);
+  const draftValid=!draftCurrent.enabled||!!draftCurrent.path||draftCurrent.type==='draft-mtp';
+  if(['llama','rust'].includes(activeEngine)&&document.getElementById('modelDraftSettings')&&draftValid&&(modelPreferences[id]?.draft||draftCurrent.enabled))settings.draft=structuredClone(draftCurrent);
   // Every engine with options (Project Maya too: its load reads them, but they were never sent).
   if(ENGINE_OPTION_KINDS.includes(activeEngine)&&document.getElementById('engineOptions'))settings.engine=structuredClone(engineCurrent);
   modelPreferences[id]={...modelPreferences[id],...structuredClone(settings)};pendingPreferences.set(id,settings);updateCreatorNotice();requestMemoryEstimate();

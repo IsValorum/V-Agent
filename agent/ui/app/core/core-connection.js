@@ -35,7 +35,8 @@ async function watchAutomaticUpdates({requestJSON,uiText,note,setDrawer,selectSe
   const DISMISS_KEY='valDismissedAppUpdate';
   const readDismissed=()=>{try{return typeof localStorage!=='undefined'?(localStorage.getItem(DISMISS_KEY)||''):'';}catch{return '';}};
   const writeDismissed=v=>{try{if(typeof localStorage!=='undefined')localStorage.setItem(DISMISS_KEY,v);}catch{}};
-  let start=null,dismissed=readDismissed(),delay=1500,lastApp=null,lastMinor=null;
+  let start=null,dismissed=readDismissed(),delay=1500,lastApp=null,lastMinor=null,pollTimer=0,pollWake=null;
+  const wakePoll=(nextDelay=600)=>{delay=nextDelay;if(pollWake){clearTimeout(pollTimer);const fn=pollWake;pollWake=null;fn();}};
   const compactNotes=(notes,limit=160)=>{
     const clean=String(notes||'').replace(/\[([^\]]+)\]\([^)]+\)/g,'$1').replace(/^\s*(?:#{1,6}\s*|[-*+]\s+|\d+\.\s+)/gm,'').replace(/[`*_>~]+/g,'').replace(/\s+/g,' ').trim();
     return !clean?'':clean.length<=limit?clean:clean.slice(0,limit-1).trimEnd()+'…';
@@ -67,7 +68,7 @@ async function watchAutomaticUpdates({requestJSON,uiText,note,setDrawer,selectSe
     downloadBtn.disabled=true;
     try{
       const updated=await requestJSON('/api/harness/app-update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'download',language:typeof window!=='undefined'?(window.VALI18n?.language||'en'):'en'})});
-      lastApp=updated;delay=2000;
+      lastApp=updated;wakePoll(600);
       document.dispatchEvent(new CustomEvent('v-agent-app-update',{detail:updated}));
       renderNotice();
     }catch(error){note(uiText(error?.message||String(error)));downloadBtn.disabled=false;}
@@ -86,7 +87,7 @@ async function watchAutomaticUpdates({requestJSON,uiText,note,setDrawer,selectSe
       title.textContent=uiText('Nueva versión de V-Agent disponible');
       const downloading=Boolean(u.busy&&u.progress?.total&&!u.ready);
       const percent=downloading?Math.min(100,Math.round(u.progress.received/u.progress.total*100)):0;
-      detail.textContent=(u.version?u.version+' → ':'')+version+(u.ready?' · '+uiText('Actualización descargada y verificada.'):downloading?' · '+uiText('Descargando')+' '+percent+' %':'');
+      const mbText=downloading?' ('+(u.progress.received/1048576).toFixed(1)+' / '+(u.progress.total/1048576).toFixed(1)+' MB)':'';detail.textContent=(u.version?u.version+' → ':'')+version+(u.ready?' · '+uiText('Actualización descargada y verificada.'):downloading?' · '+uiText('Descargando')+' '+percent+' %'+mbText:'');
       progressBox.hidden=!downloading;progressBar.value=percent;
       errorEl.textContent=u.error&&!downloading?uiText(u.error):'';errorEl.hidden=!errorEl.textContent;
       installBtn.hidden=!u.ready;
@@ -121,9 +122,9 @@ async function watchAutomaticUpdates({requestJSON,uiText,note,setDrawer,selectSe
   };
   renderNotice();
   notice.append(title,detail,open,close,notesEl,notesBtn,downloadBtn,laterBtn,progressBox,errorEl,installBtn);document.body.append(notice);   // placed on screen by CSS order
-  if(typeof window!=='undefined'){window.VALI18n?.onChange?.(renderNotice);window.VALI18n?.observe?.(notice);}
+  if(typeof document!=='undefined'&&typeof document.addEventListener==='function')document.addEventListener('v-agent-app-state',event=>{if(!event.detail)return;lastApp=event.detail;renderNotice();if(lastApp.busy)wakePoll(800);});if(typeof window!=='undefined'){window.VALI18n?.onChange?.(renderNotice);window.VALI18n?.observe?.(notice);}
   for(;;){
-    await new Promise(resolve=>setTimeout(resolve,delay));
+    await new Promise(resolve=>{pollWake=resolve;pollTimer=setTimeout(()=>{pollWake=null;resolve();},delay);});
     try{
       const [componentResult,appResult]=await Promise.allSettled([requestJSON('/api/harness/components'),requestJSON('/api/harness/app-update')]);
       const c=componentResult.status==='fulfilled'?componentResult.value:null;
@@ -144,7 +145,7 @@ async function watchAutomaticUpdates({requestJSON,uiText,note,setDrawer,selectSe
       }
       document.dispatchEvent(new CustomEvent('v-agent-app-update',{detail:u}));
       renderNotice();
-      delay=(c?.busy||u.busy||(c&&!c.checked_at)||!u.checked_at||(c&&c.error&&!c.revision))?3000:60000;
+      delay=u.busy?800:(c?.busy||(c&&!c.checked_at)||!u.checked_at||(c&&c.error&&!c.revision))?3000:60000;
     }catch{delay=60000;}
   }
 }

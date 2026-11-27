@@ -27,8 +27,8 @@ const THEME_COLORS = ['accent','bg','panel','text','g1','g2','g3','codeBg','user
 const THEME_RANGES = {messageRadius:[0,36],composerRadius:[0,40],lineHeight:[130,210],blur:[0,48],alpha:[40,100],composerAlpha:[40,100],drawerAlpha:[60,100],radius:[0,28],strength:[0,100],angle:[0,360],backgroundBlur:[0,100],outsideOpacity:[0,100],textShadow:[0,100],responseOpacity:[0,100],responseBlur:[0,32],responseRadius:[0,36],grain:[0,30],border:[0,35],shadow:[0,100],sidebarWidth:[200,340],chatWidth:[560,1200],fontSize:[12,20]};
 const THEME_ENUMS = {gradient:['none','linear','radial','mesh'],font:['system','rounded','mono'],density:['compact','normal','airy']};
 const VISUAL_DEFAULTS = {messageRadius:12,composerRadius:24,lineHeight:165,codeBg:"#141a1e",userBg:"#263a34",blur:0,alpha:100,composerAlpha:100,drawerAlpha:100,radius:12,gradient:'none',strength:0,angle:135,backgroundBlur:56,outsideOpacity:70,textShadow:0,responseOpacity:82,responseBlur:8,responseRadius:16,grain:0,border:10,shadow:10,sidebarWidth:246,chatWidth:800,fontSize:14,font:'system',density:'normal',showMark:true};
-const COMPOSER_IDS=['attach','modelBtn','responseBtn','ctxBtn','mcpBtn','scopeBtn','send'];
-const COMPOSER_LABELS={attach:'Añadir',modelBtn:'Modelo',responseBtn:'Respuesta',ctxBtn:'Contexto',mcpBtn:'Tools',scopeBtn:'Acceso',send:'Enviar'};
+const COMPOSER_IDS=['attach','modelBtn','responseBtn','ctxBtn','searchToggle','mcpBtn','scopeBtn','send'];
+const COMPOSER_LABELS={attach:'Añadir',modelBtn:'Modelo',responseBtn:'Respuesta',ctxBtn:'Contexto',searchToggle:'Búsqueda web',mcpBtn:'Tools',scopeBtn:'Acceso',send:'Enviar'};
 const DEFAULT_COMPOSER={left:COMPOSER_IDS.slice(0,-1),right:['send'],emptyRaised:true};
 let draggingControl=null;
 function normalizeComposer(value){

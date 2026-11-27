@@ -41,20 +41,32 @@
   background:var(--accent);color:var(--bg,#111);font-size:10.5px;font-weight:700;}
 #composerControls .engine-advanced-badge[hidden]{display:none;}
 #composerControls #mayaQuickAdvanced[hidden]{display:none;}
-#composerControls #mayaModelSettings .maya-disclosure>summary,#mayaPrepareDialog .maya-disclosure>summary{
+#mayaModelSettings .maya-disclosure>summary,#mayaPrepareDialog .maya-disclosure>summary{
   min-height:32px;padding:6px 9px;border-radius:var(--control-radius);
   background:var(--soft-fill,color-mix(in srgb,var(--text) 6%,transparent));color:var(--text);
 }
 
-/* Engine options (Advanced): rows from the engine's catalog, styled with the theme's tokens. */
-#engineOptions>summary{display:flex;justify-content:space-between;gap:8px;cursor:pointer;}
-#engineOptions .engine-options-body h5{margin:12px 0 2px;font-size:11px;color:var(--accent);text-transform:none;}
+/* Engine options (floating side window): rows from the engine's catalog, styled with the theme's tokens. */
+#engineOptionsWindow .fw-body,#engineConfigWindow .fw-body,#transferWindow .fw-body{padding:12px 14px 16px;overflow-y:auto;}
+#engineOptionsWindow #mayaModelSettings{margin:0 0 12px;}
+#composerControls #openTransferWindow{display:flex;align-items:center;gap:8px;width:100%;margin-top:8px;padding:8px 11px;min-height:36px;border-radius:var(--control-radius);border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border));background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--text);font-size:12px;font-weight:600;text-align:left;cursor:pointer;}
+#composerControls #openTransferWindow:hover:not(:disabled){background:color-mix(in srgb,var(--accent) 20%,transparent);border-color:var(--accent);}
+#composerControls #openTransferWindow svg{width:15px;height:15px;flex:none;fill:none;stroke:var(--accent);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
+#composerControls #openTransferWindow>span:first-of-type{flex:1;}
+#composerControls #openTransferWindow .engine-advanced-go{width:14px;height:14px;stroke:var(--muted);}
+#composerControls #openTransferWindow[hidden]{display:none;}
+#engineOptionsWindow #engineOptionsStatus{margin:0 0 8px;color:var(--muted);}
+#engineOptions .engine-options-body h5{margin:12px 0 4px;font-size:11px;color:var(--accent);text-transform:none;}
+#engineOptions .engine-options-body h5:first-child{margin-top:2px;}
 #engineOptions .engine-option{flex-wrap:wrap;row-gap:2px;}
 #engineOptions .engine-option>label{flex:1 1 55%;min-width:0;}
 #engineOptions .engine-option input[type=text]{width:120px;min-width:0;font-size:11px;padding:5px 7px;}
 #engineOptions .engine-option select{max-width:150px;}
 #engineOptions .engine-option input[aria-invalid=true]{border-color:#e19b8d;}
 #engineOptions .engine-option-help{flex-basis:100%;margin:0 0 2px;color:var(--muted);line-height:1.35;}
+#modelDraftSettings .draft-path{display:flex;gap:6px;align-items:center;}
+#modelDraftSettings .draft-path input{flex:1;min-width:0;}
+#modelDraftSettings #llamaDraftClear[hidden]{display:none;}
 
 /* Layout review: nothing hidden in folds inside folds, targets easy to hit, names readable. */
 .block-title{margin:14px 0 6px;font-size:12px;font-weight:600;color:var(--text);}

@@ -1,7 +1,8 @@
 /* Floating, non-modal panels: automatic tiling, persisted sizes and motion. */
 (()=>{
   const MIN_WIDTH=240,MIN_HEIGHT=180,EDGE=12,GAP=12,TOP=64;
-  const DEFAULTS={settings:{width:860,height:660},model:{width:490,height:680},tools:{width:490,height:620},project:{width:420,height:420},import:{width:480,height:540},console:{width:680,height:450},browser:{width:540,height:700},models:{width:1080,height:720}};
+  const DEFAULTS={settings:{width:860,height:660},model:{width:490,height:680},engineConfig:{width:440,height:340},engineOptions:{width:440,height:420},transfer:{width:500,height:440},tools:{width:490,height:620},project:{width:420,height:420},import:{width:480,height:540},console:{width:680,height:450},browser:{width:540,height:700},models:{width:1080,height:720}};
+  const AUTO_HEIGHT=new Set(['engineConfig','engineOptions','transfer']);
   const entries=new Map(),sizes={},dirtySizes=new Set(),animationsMap=new WeakMap(),layoutAnims=new WeakMap(),reduce=matchMedia('(prefers-reduced-motion: reduce)');
   let layer=null,stack=75,saveTimer=0,saving=false,saveAgain=false,prefsLoaded=false,needsSave=false,retried=false,orderCounter=0,layoutTimer=0;
   let animateWindows=true;
@@ -33,9 +34,25 @@
     const left=startLeft(),top=startTop(),right=dockLeft()||(innerWidth-EDGE),bottom=innerHeight-EDGE;
     return {left,top,right:Math.max(left+MIN_WIDTH,right),bottom:Math.max(top+MIN_HEIGHT,bottom)};
   }
+  function naturalHeight(item){
+    const header=item.el.querySelector('.fw-head,.drawer-head,.controls-head,.dlg-head');
+    const body=item.el.querySelector('.fw-body');
+    if(!body)return null;
+    const prevElH=item.el.style.height,prevBodyH=body.style.height,prevBodyFlex=body.style.flex;
+    item.el.style.height='auto';body.style.height='auto';body.style.flex='0 0 auto';
+    const measured=Math.ceil((header?header.offsetHeight:44)+body.scrollHeight+10);
+    item.el.style.height=prevElH;body.style.height=prevBodyH;body.style.flex=prevBodyFlex;
+    return Number.isFinite(measured)&&measured>0?measured:null;
+  }
   function sizeFor(id){
     const box=sizes[id]||DEFAULTS[id]||{width:360,height:420};
-    return {width:clamp(Math.round(box.width),MIN_WIDTH,Math.max(MIN_WIDTH,innerWidth-EDGE*2)),height:clamp(Math.round(box.height),MIN_HEIGHT,Math.max(MIN_HEIGHT,innerHeight-EDGE*2))};
+    let h=box.height;
+    const item=entries.get(id);
+    if(AUTO_HEIGHT.has(id)&&item&&!item.userSized&&!sizes[id]&&!item.el.hidden){
+      const nat=naturalHeight(item);
+      if(nat)h=nat;
+    }
+    return {width:clamp(Math.round(box.width),MIN_WIDTH,Math.max(MIN_WIDTH,innerWidth-EDGE*2)),height:clamp(Math.round(h),MIN_HEIGHT,Math.max(MIN_HEIGHT,innerHeight-startTop()-EDGE))};
   }
   function motionDuration(){
     const raw=getComputedStyle(document.documentElement).getPropertyValue('--motion-duration').trim();

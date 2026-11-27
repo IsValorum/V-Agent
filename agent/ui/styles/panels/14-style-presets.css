@@ -32,6 +32,45 @@
   -webkit-backdrop-filter:var(--glass-filter);backdrop-filter:var(--glass-filter);
 }
 
+/* Liquid Glass: maximum transparency, clean specular rim, fast compositor-safe blur (no brightness filter,
+   no live blur on #sidebar or moving windows to avoid WebView2 tile artifacts and frame drops). */
+:root[data-ui-style=liquid]{
+  --glass-fill:color-mix(in srgb,var(--panel) 8%,transparent);
+  --glass-fill-strong:color-mix(in srgb,var(--panel) 12%,transparent);
+  --glass-filter:saturate(140%) blur(12px);
+  --glass-edge:color-mix(in srgb,var(--text) 18%,transparent);
+}
+:root[data-ui-style=liquid] body[data-theme-mode=day]{
+  --glass-fill:color-mix(in srgb,var(--panel) 20%,transparent);
+  --glass-fill-strong:color-mix(in srgb,var(--panel) 28%,transparent);
+  --glass-edge:color-mix(in srgb,var(--text) 16%,transparent);
+}
+:root[data-ui-style=liquid] :is(.fw,#drawer,#composerControls,#toolsWindow,#consoleWindow,#engineOptionsWindow,#engineConfigWindow,#transferWindow,#modelsWindow,#releaseNotesDialog,#editMessageDialog,#viewer,.agent-small-menu,#composerAddMenu,#helpCard,#updateStack .update-card,.update-more-row,.val-confirm,.tool-approval,#toast,.compose-surface){
+  background:var(--glass-fill)!important;
+  -webkit-backdrop-filter:var(--glass-filter)!important;
+  backdrop-filter:var(--glass-filter)!important;
+  border:1px solid var(--glass-edge)!important;
+  box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 22%,transparent),0 16px 40px rgb(0 0 0 / .24)!important;
+}
+:root[data-ui-style=liquid] #sidebar{
+  background:color-mix(in srgb,var(--panel) 10%,transparent)!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  border-inline-end:1px solid var(--glass-edge)!important;
+}
+:root[data-ui-style=liquid] :is(.settings-group,.model-card,.context-block,.context-compact-box,.engine-quick,.tool-group,.engine-recommendation,.market-item,.layout-item,.mcp-option-server,.transfer-block){
+  background:var(--glass-fill-strong)!important;
+  border-color:color-mix(in srgb,var(--text) 14%,transparent)!important;
+}
+:root[data-ui-style=liquid] :is(.fw,#drawer,#composerControls,dialog) :is(select:not(.model-native-hidden),input[type=text],input[type=search],input[type=number],input[type=url],input[type=password],textarea){
+  background:color-mix(in srgb,var(--panel) 32%,transparent)!important;
+  border-color:color-mix(in srgb,var(--text) 18%,transparent)!important;
+}
+:root[data-ui-style=liquid] .fw-head,:root[data-ui-style=liquid] .controls-head,:root[data-ui-style=liquid] .drawer-head{
+  background:transparent!important;
+  border-bottom-color:color-mix(in srgb,var(--text) 12%,transparent)!important;
+}
+
 /* Soft: opaque surfaces separated by fills and shadow rather than lines (the border control at 0). */
 :root[data-ui-style=soft] :is(.settings-group,.model-card,.context-block,.context-compact-box,.engine-quick,.tool-group){
   border-color:var(--soft-line)!important;
@@ -70,4 +109,166 @@
   [role=option],[aria-pressed],[aria-selected],.seg-pill button,.conv-more,.file-chip,.hub-item,.text-btn,[data-mode])):hover:not(:disabled){
   border-color:var(--accent)!important;
   background:color-mix(in srgb,var(--accent) 9%,transparent)!important;
+}
+
+/* ===================== Unified concentric radii for ALL dropdowns & menus =====================
+   Every popup menu (native customizable <select>, #composerAddMenu, .agent-small-menu, model picker)
+   uses the exact same outer radius (--menu-radius) and mathematically concentric item radius
+   (max(2px, --menu-radius - padding)) so corners always align cleanly regardless of item count. */
+:root{
+  --menu-radius:clamp(6px,var(--panel-radius,12px),14px);
+  --menu-pad:5px;
+  --menu-item-radius:max(2px,calc(var(--menu-radius) - var(--menu-pad)));
+}
+:root[data-ui-style=deco]{
+  --menu-radius:3px;
+  --menu-item-radius:2px;
+}
+:is(#composerAddMenu,.agent-small-menu){
+  border-radius:var(--menu-radius)!important;
+  padding:var(--menu-pad)!important;
+}
+:is(#composerAddMenu,.agent-small-menu) button{
+  border-radius:var(--menu-item-radius)!important;
+}
+:root:not([data-ui-style=deco]) :is(#modelSourceTabs,.section-tabs,.load-mode,.mode-toggle){
+  border-radius:var(--menu-radius)!important;
+  padding:4px!important;
+}
+:root:not([data-ui-style=deco]) :is(#modelSourceTabs,.section-tabs,.load-mode,.mode-toggle)>button{
+  border-radius:max(2px,calc(var(--menu-radius) - 4px))!important;
+}
+:root:not([data-ui-style=deco]) :is(.model-option,.hub-item,#settingsNav button){
+  border-radius:var(--menu-item-radius)!important;
+}
+#releaseNotesDialog{
+  border-radius:var(--panel-radius,14px)!important;
+  border-color:var(--border)!important;
+}
+:root[data-ui-style=glass] :is(#releaseNotesDialog,#editMessageDialog,#viewer){
+  background:var(--glass-fill,color-mix(in srgb,var(--panel) 84%,transparent))!important;
+  -webkit-backdrop-filter:saturate(170%) blur(18px);
+  backdrop-filter:saturate(170%) blur(18px);
+  border-color:var(--glass-edge,var(--border))!important;
+  box-shadow:var(--glass-shine),var(--panel-shadow)!important;
+}
+.fw-body,select:not(.model-native-hidden)::picker(select){
+  scrollbar-width:thin;
+  scrollbar-color:color-mix(in srgb,var(--text) 22%,transparent) transparent;
+}
+
+@supports (appearance: base-select){
+  select:not(.model-native-hidden),
+  select:not(.model-native-hidden)::picker(select){
+    appearance:base-select;
+  }
+  select:not(.model-native-hidden){
+    align-items:center;
+    gap:6px;
+  }
+  select:not(.model-native-hidden)::picker-icon{
+    content:"⌄";
+    color:var(--muted);
+    font-size:12px;
+    line-height:1;
+    margin-inline-start:auto;
+    transition:transform .16s ease,color .16s ease;
+  }
+  select:not(.model-native-hidden):open::picker-icon{
+    transform:rotate(180deg);
+    color:var(--accent);
+  }
+  select:not(.model-native-hidden)::picker(select){
+    margin-block:4px;
+    padding:var(--menu-pad);
+    min-width:max(anchor-size(width),150px);
+    max-height:min(340px,52vh);
+    overflow-y:auto;
+    border-radius:var(--menu-radius);
+    background:var(--panel);
+    color:var(--text);
+    border:1px solid var(--border);
+    box-shadow:var(--panel-shadow,0 14px 36px rgb(0 0 0 / .34));
+    opacity:1;
+    transform:translateY(0) scale(1);
+    transition:opacity .15s ease,transform .15s cubic-bezier(.2,.8,.2,1),overlay .15s allow-discrete,display .15s allow-discrete;
+  }
+  @starting-style{
+    select:not(.model-native-hidden):open::picker(select){
+      opacity:0;
+      transform:translateY(-4px) scale(.98);
+    }
+  }
+  :root[data-ui-style=glass] select:not(.model-native-hidden)::picker(select){
+    background:var(--glass-fill,color-mix(in srgb,var(--panel) 84%,transparent));
+    -webkit-backdrop-filter:saturate(170%) blur(18px);
+    backdrop-filter:saturate(170%) blur(18px);
+    border-color:var(--glass-edge,var(--border));
+    box-shadow:var(--glass-shine),var(--panel-shadow);
+  }
+  :root[data-ui-style=liquid] select:not(.model-native-hidden)::picker(select){
+    background:var(--glass-fill,color-mix(in srgb,var(--panel) 10%,transparent));
+    -webkit-backdrop-filter:saturate(140%) blur(12px);
+    backdrop-filter:saturate(140%) blur(12px);
+    border-color:var(--glass-edge,var(--border));
+    box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 22%,transparent),0 16px 40px rgb(0 0 0 / .28);
+  }
+  :root[data-ui-style=soft] select:not(.model-native-hidden)::picker(select){
+    background:var(--panel);
+    border-color:var(--soft-line,var(--border));
+    box-shadow:var(--soft-shadow,0 14px 32px rgb(0 0 0 / .22));
+  }
+  :root[data-ui-style=deco] select:not(.model-native-hidden)::picker(select){
+    border-radius:var(--menu-radius);
+    background:var(--panel);
+    border:1px solid color-mix(in srgb,var(--accent) 55%,var(--border));
+    box-shadow:0 8px 24px rgb(0 0 0 / .42);
+  }
+  select:not(.model-native-hidden) option{
+    padding:7px 10px;
+    border-radius:var(--menu-item-radius);
+    color:var(--text);
+    background:transparent;
+    gap:8px;
+    cursor:pointer;
+    transition:background-color .12s ease,color .12s ease;
+  }
+  select:not(.model-native-hidden) option:hover,
+  select:not(.model-native-hidden) option:focus-visible{
+    background:color-mix(in srgb,var(--accent) 16%,transparent);
+    outline:none;
+  }
+  select:not(.model-native-hidden) option:checked{
+    background:color-mix(in srgb,var(--accent) 22%,transparent);
+    color:var(--text);
+    font-weight:600;
+  }
+  select:not(.model-native-hidden) option::checkmark{
+    color:var(--accent);
+    font-size:12px;
+  }
+  select:not(.model-native-hidden) option:disabled{
+    opacity:.45;
+    cursor:default;
+  }
+  select:not(.model-native-hidden) optgroup{
+    padding:4px 0 2px;
+    margin-top:4px;
+    border-top:1px solid color-mix(in srgb,var(--border) 60%,transparent);
+    background:transparent;
+    color:var(--muted);
+  }
+  select:not(.model-native-hidden) optgroup:first-child{
+    margin-top:0;
+    padding-top:0;
+    border-top:0;
+  }
+  select:not(.model-native-hidden) optgroup legend{
+    padding:4px 10px 3px;
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    color:var(--accent);
+  }
 }

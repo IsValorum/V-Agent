@@ -21,6 +21,7 @@ const VAL_TOUR=(()=>{
     {sel:'#mcpBtn',title:'Tools',text:'Activa lo que el agente puede usar: internet, archivos, comandos, navegador, información del equipo y más.'},
     {sel:'#ctxBtn',title:'Contexto',text:'Cuánta memoria de la conversación usa el modelo. Al llenarse, conviene empezar un chat nuevo.'},
     {sel:'#send',title:'Enviar',text:'Envía el mensaje. Mientras el modelo responde, este botón lo detiene.'},
+    {sel:'.composer-tools',title:'Ordena los botones',text:'Puedes arrastrar cualquier botón de esta barra para reordenarlo o moverlo entre la izquierda y la derecha. También puedes ajustarlos o restablecerlos desde Configuración → Personalización → Distribución.'},
     {title:'Atajos',text:'Ctrl+K abre la paleta de comandos para buscar acciones, chats y modelos; Ctrl+F busca en la conversación y Ctrl+/ muestra todos los atajos.'},
     {sel:'#openConsole',title:'Consola',text:'Una terminal compartida con el agente cuando le das acceso a todo el equipo.'},
     {sel:'#openBrowser',title:'Navegador',text:'Un navegador integrado que tú y el agente pueden usar.'},
@@ -189,7 +190,7 @@ const VAL_TOUR=(()=>{
       if(s.error&&!s.available){status.textContent=uiText('No se pudo comprobar')+': '+uiText(s.error);}
       else if(s.error&&!s.busy&&!s.ready){status.textContent=uiText('Nueva versión disponible')+': '+s.available.version+' · '+uiText('La descarga falló')+': '+uiText(s.error);go.textContent=uiText('Reintentar descarga');go.hidden=false;go.dataset.action='download';}
       else if(s.ready){status.textContent=uiText('Actualización descargada y verificada.')+(s.available?.notes?' · '+s.available.notes.slice(0,140):'');go.textContent=uiText('Instalar y reiniciar');go.hidden=false;go.dataset.action='launch';}
-      else if(s.busy&&s.progress){status.textContent=uiText('Descargando')+(s.progress.total?' · '+Math.round(s.progress.received/s.progress.total*100)+' %':'');}
+      else if(s.busy&&s.progress){status.textContent=uiText('Descargando')+(s.progress.total?' · '+Math.round(s.progress.received/s.progress.total*100)+' % · '+(s.progress.received/1048576).toFixed(1)+' / '+(s.progress.total/1048576).toFixed(1)+' MB':'');}
       else if(s.available){status.textContent=uiText('Nueva versión disponible')+': '+s.available.version+(s.available.notes?' · '+s.available.notes.slice(0,140):'');go.textContent=uiText('Descargar versión')+' '+s.available.version;go.hidden=false;go.dataset.action='download';}
       else status.textContent=uiText('Versión')+' '+label(s.version)+(s.checked_at?' · '+uiText('Estás al día.'):'');
       syncNotesButton();
@@ -240,15 +241,16 @@ const VAL_TOUR=(()=>{
     });
     cApply.onclick=async()=>{cApply.disabled=true;try{paintComponents(await cPost('apply'));}catch(e){cStatus.textContent=e.message;}finally{cApply.disabled=false;}};
     cReset.onclick=async()=>{if(!await valConfirm({title:'¿Volver a los componentes originales?',message:'Se quitarán las mejoras menores instaladas. Se aplicará al reiniciar V-Agent.',confirm:'Volver a los originales'}))return;try{paintComponents(await cPost('reset'));}catch(e){cStatus.textContent=e.message;}};
-    box.querySelector('#appUpdateCheck').onclick=async()=>{const btn=box.querySelector('#appUpdateCheck');btn.disabled=true;status.textContent=uiText('Comprobando…');try{paint(await post('check'));paintComponents(await cPost('check'));}catch(e){status.textContent=e.message;}finally{btn.disabled=false;}};
+    box.querySelector('#appUpdateCheck').onclick=async()=>{const btn=box.querySelector('#appUpdateCheck');btn.disabled=true;status.textContent=uiText('Comprobando…');try{const appState=await post('check');paint(appState);document.dispatchEvent(new CustomEvent('v-agent-app-state',{detail:appState}));paintComponents(await cPost('check'));}catch(e){status.textContent=e.message;}finally{btn.disabled=false;}};
     go.onclick=async()=>{
       try{
         if(go.dataset.action==='launch'){go.disabled=true;const r=await post('launch');if(r.launched){const ver=r.available?.version||'';status.textContent=uiText('Cerrando V-Agent para instalar la actualización…');showUpdateOverlay(ver);setTimeout(()=>window.__TAURI__?.window?.getCurrentWindow?.().close(),700);}else go.disabled=false;return;}
         go.disabled=true;
-        paint(await post('download'));
+        const started=await post('download');
+        paint(started);document.dispatchEvent(new CustomEvent('v-agent-app-state',{detail:started}));
         // One poll at a time; a failed request ends it instead of leaving the bar frozen forever.
         clearTimeout(go._poll);
-        const poll=async()=>{try{const s=await requestJSON('/api/harness/app-update');paint(s);if(s.busy)go._poll=setTimeout(poll,800);}catch(e){status.textContent=e.message;}};
+        const poll=async()=>{try{const s=await requestJSON('/api/harness/app-update');paint(s);document.dispatchEvent(new CustomEvent('v-agent-app-state',{detail:s}));if(s.busy)go._poll=setTimeout(poll,800);}catch(e){status.textContent=e.message;}};
         go._poll=setTimeout(poll,800);
       }catch(e){go.disabled=false;status.textContent=e.message;}
     };

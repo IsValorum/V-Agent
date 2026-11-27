@@ -123,18 +123,21 @@ def save(config_path, source, tokens):
             main = Path(cfg.get("cwd") or path.parent) / main
         if candidate.suffix.lower() != ".gguf" or not candidate.is_file():
             raise ValueError("Selecciona un archivo GGUF MTP existente.")
-        metadata = header(candidate)
-        if not _compatible(metadata, header(main)):
-            if metadata.get("arch") == "dflash":
-                bad_types = _dspark_unsupported_types(metadata)
-                if metadata.get("markov_rank") and bad_types:
-                    raise ValueError(
-                        f"Strata requiere la versión Q8_0 (o F16/BF16) del borrador DSpark (por ejemplo dspark-Inkling-2-Mini-Q8_0.gguf); "
-                        f"este archivo está cuantizado en {', '.join(bad_types)}."
-                    )
-                raise ValueError("Este borrador DSpark/DFlash no es compatible con Strata para este modelo.")
-            raise ValueError("El archivo no contiene una cabeza MTP con las dimensiones de este modelo.")
-        source = str(candidate)
+        if info["integrated"] and str(candidate).lower() == str(main.resolve()).lower():
+            source = "integrated"
+        else:
+            metadata = header(candidate)
+            if not _compatible(metadata, header(main)):
+                if metadata.get("arch") == "dflash":
+                    bad_types = _dspark_unsupported_types(metadata)
+                    if metadata.get("markov_rank") and bad_types:
+                        raise ValueError(
+                            f"Strata requiere la versión Q8_0 (o F16/BF16) del borrador DSpark (por ejemplo dspark-Inkling-2-Mini-Q8_0.gguf); "
+                            f"este archivo está cuantizado en {', '.join(bad_types)}."
+                        )
+                    raise ValueError("Este borrador DSpark/DFlash no es compatible con Strata para este modelo.")
+                raise ValueError("El archivo no contiene una cabeza MTP con las dimensiones de este modelo.")
+            source = str(candidate)
     if not source and tokens:
         raise ValueError("Selecciona primero una fuente MTP.")
     before = json.loads(json.dumps(cfg))

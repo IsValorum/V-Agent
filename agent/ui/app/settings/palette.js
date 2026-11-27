@@ -19,14 +19,14 @@ window.VALPalette=(()=>{
     'violet-light':{name:'Morado',surface:'light',night:['#b468bf','#17111b','#241a2b','#efe6f5','#19121f','#3a2645'],day:['#833a8c','#f4edf8','#fdfaff','#3c2745','#ece1f3','#e6d6f0']},
     ivory:{name:'Oscuro',surface:'light',night:['#d8dce2','#111214','#1c1e21','#eff1f4','#111214','#2c2f35'],day:['#2b3036','#f5f6f8','#ffffff','#1f2328','#eceef2','#e2e5eb']}
   };
-  const keys=Object.keys(palettes),defaults={style:'none',intensity:0,color:'#daaa69',palette:'gold',logo:'gold',motif:'corners',amoled:false,logoSize:216,appIcon:'follow',showGreeting:true,uiStyle:'glass',buttonStyle:'tint',version:2};
+  const keys=Object.keys(palettes),defaults={style:'none',intensity:0,color:'#daaa69',palette:'gold',logo:'gold',motif:'corners',amoled:false,logoSize:216,appIcon:'follow',showGreeting:true,uiStyle:'liquid',buttonStyle:'tint',version:2};
   let current={...defaults},queue=Promise.resolve(),bootIconAtStart=null,restartDialogOpen=false;
   function effectiveIcon(d){return d.appIcon==='follow'?d.logo:d.appIcon;}
   // Each interface style is a real starting point: it sets the appearance controls (transparency, blur, borders,
   // shadow, corners) for day and night, which the user can then fine-tune. Before, the style changed almost
   // nothing because those controls kept their values and overrode it.
   const STYLE_PRESETS={
-    glass:{blur:24,alpha:70,composerAlpha:68,drawerAlpha:82,radius:16,border:14,shadow:45,messageRadius:12,composerRadius:18},
+    liquid:{blur:12,alpha:40,composerAlpha:40,drawerAlpha:60,radius:20,border:18,shadow:36,messageRadius:14,composerRadius:22},
     soft:{blur:0,alpha:100,composerAlpha:100,drawerAlpha:100,radius:14,border:0,shadow:24,messageRadius:12,composerRadius:16},
     deco:{blur:0,alpha:100,composerAlpha:100,drawerAlpha:100,radius:3,border:30,shadow:0,messageRadius:12,composerRadius:12}};
   function applyStylePreset(style){
@@ -37,7 +37,7 @@ window.VALPalette=(()=>{
     const status=document.getElementById('decoIconStatus');
     if(status)status.textContent=uiText('Estilo aplicado. Puedes afinar la transparencia, el desenfoque, los bordes, la sombra y la redondez en Colores y en Distribución y formas.');
   }
-  function normalize(value={}){const d={...defaults,...value};delete d.background;d.style='none';d.palette=[...keys,'custom'].includes(d.palette)?d.palette:'gold';d.logo=keys.includes(d.logo)?d.logo:'gold';d.appIcon=['follow',...keys].includes(d.appIcon)?d.appIcon:'follow';d.amoled=d.amoled===true;d.showGreeting=d.showGreeting!==false;d.logoSize=Math.round(Math.max(64,Math.min(360,Number(d.logoSize)||216)));d.uiStyle=['glass','soft','deco'].includes(d.uiStyle)?d.uiStyle:'glass';d.buttonStyle=d.buttonStyle==='outline'?'outline':'tint';return d;}
+  function normalize(value={}){const d={...defaults,...value};delete d.background;delete d.liquidLevel;d.style='none';d.palette=[...keys,'custom'].includes(d.palette)?d.palette:'gold';d.logo=keys.includes(d.logo)?d.logo:'gold';d.appIcon=['follow',...keys].includes(d.appIcon)?d.appIcon:'follow';d.amoled=d.amoled===true;d.showGreeting=d.showGreeting!==false;d.logoSize=Math.round(Math.max(64,Math.min(360,Number(d.logoSize)||216)));d.uiStyle=['liquid','soft','deco'].includes(d.uiStyle)?d.uiStyle:'liquid';d.buttonStyle=d.buttonStyle==='outline'?'outline':'tint';return d;}
   function tone(id,mode){const [accent,bg,panel,text,codeBg,userBg]=palettes[id][mode];return {accent,bg,panel,text,codeBg,userBg,g1:accent,g2:panel,g3:bg,gradient:'none',strength:0};}
   const toneFields=['accent','bg','panel','text','codeBg','userBg','g1','g2','g3','gradient','strength'];
   function rememberPalette(){
@@ -111,7 +111,7 @@ window.VALPalette=(()=>{
   function resetPalette(id){if(!palettes[id])return;rememberPalette();const saved={...(current.paletteThemes||{})};delete saved[id];current={...current,paletteThemes:saved};if(id===current.palette){for(const mode of ['night','day'])Object.assign(TH[mode],tone(id,mode));current.color=TH[TH.mode].accent;applyTheme();syncThemeControls();}apply(current);persist();}
   function setup(){
     const host=document.getElementById('settings-appearance'),section=document.createElement('section');section.id='paletteSettings';section.className='palette-settings';
-    section.innerHTML='<div class="deco-collection-heading"><h4>Colores y logotipos</h4></div><div id="decoThemeMode"></div><div id="decoPaletteGrid" role="group" aria-label="Colores y logotipos"></div><div id="decoRestartNotice" class="deco-restart-notice" hidden><span>Reinicia V-Agent para aplicar los nuevos logotipos.</span><button id="decoRestartNow" type="button" class="soft-btn primary">Reiniciar ahora</button></div><div class="setting-row app-icon-setting"><label for="decoAppIcon">Icono de la aplicación</label><select id="decoAppIcon"><option value="follow">Seguir el logo elegido</option></select></div><div class="setting-row"><label for="decoUiStyle">Estilo de la interfaz</label><select id="decoUiStyle"><option value="glass">Cristal</option><option value="soft">Suave</option><option value="deco">Art Déco</option></select></div><div class="setting-row"><label for="decoButtonStyle">Botones</label><select id="decoButtonStyle"><option value="tint">Con tinte suave</option><option value="outline">Con borde</option></select></div><p id="decoIconStatus" class="mini" role="status"></p><p class="mini" id="decoSaveState" role="status"></p>';
+    section.innerHTML='<div class="deco-collection-heading"><h4>Colores y logotipos</h4></div><div id="decoThemeMode"></div><div id="decoPaletteGrid" role="group" aria-label="Colores y logotipos"></div><div id="decoRestartNotice" class="deco-restart-notice" hidden><span>Reinicia V-Agent para aplicar los nuevos logotipos.</span><button id="decoRestartNow" type="button" class="soft-btn primary">Reiniciar ahora</button></div><div class="setting-row app-icon-setting"><label for="decoAppIcon">Icono de la aplicación</label><select id="decoAppIcon"><option value="follow">Seguir el logo elegido</option></select></div><div class="setting-row"><label for="decoUiStyle">Estilo de la interfaz</label><select id="decoUiStyle"><option value="liquid">Cristal líquido</option><option value="soft">Suave</option><option value="deco">Art Déco</option></select></div><div class="setting-row"><label for="decoButtonStyle">Botones</label><select id="decoButtonStyle"><option value="tint">Con tinte suave</option><option value="outline">Con borde</option></select></div><p id="decoIconStatus" class="mini" role="status"></p><p class="mini" id="decoSaveState" role="status"></p>';
     host.querySelector('h3').after(section);const modes=host.querySelector('.mode-toggle');if(modes)section.querySelector('#decoThemeMode').append(modes);
     const gridHost=section.querySelector('#decoPaletteGrid');
     const iconSelect=document.getElementById('decoAppIcon');

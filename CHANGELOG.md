@@ -4,6 +4,23 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.2.0
+
+Built-in MTP speculative decoding across all supported engines, dedicated auto-sizing floating side windows, Liquid Glass interface style, unified concentric dropdown menus, fluid composer button reordering, and reliable live update notifications.
+
+- **Built-in MTP speculative decoding (`agent/draft_models.py`, `agent/draft_settings.py`, `agent/engine_manager.py`, `agent/desktop_runtime.py`, `agent/ui/app/models/load-settings.js`, `tests/test_draft_models.py`):**
+  - Models whose GGUF already ships MTP / NextN layers now automatically enable built-in speculative decoding (`--spec-type draft-mtp` in `llama.cpp`, `--mtp <N>` in `Strata Rust`, integrated MTP in `Strata`) with zero extra memory.
+  - Turning the draft off explicitly (`enabled: false`) is remembered and respected; pointing the draft path at the main model itself is treated as the built-in MTP head rather than loading weights twice; added a **Remove** button to clear a selected external draft file.
+- **Floating side windows with automatic content sizing (`agent/ui/v-agent.html`, `agent/ui/app/core/windows.js`, `agent/ui/app/models/load-settings.js`, `agent/ui/app/models/engine-controls.js`, `agent/ui/app/models/models.js`, `agent/ui/app/settings/settings-hub.js`, `agent/app_preferences.py`):**
+  - **Advanced settings** (for all 4 local engines, including Project Maya's family settings and `MAYA_*` env vars), **Engine and connection**, and **Import and export** now open in dedicated side-by-side floating windows that size themselves to their content automatically.
+- **Liquid Glass style & unified UI polish (`agent/ui/app/settings/palette.js`, `agent/ui/styles/panels/14-style-presets.css`, `agent/ui/v-agent.html`):**
+  - Replaced the duplicate Glass mode with **Liquid Glass** (maximum transparency, clean specular rim, fast compositor-safe blur with zero startup delay or tile artifacts).
+  - Styled all `<select>` dropdowns across the entire app using customizable `base-select` + `::picker(select)` with mathematically concentric corners across every dropdown, popover, segmented tab bar, list item, and modal dialog.
+- **Intuitive composer button reordering & onboarding tour (`agent/ui/app/settings/settings.js`, `agent/ui/app/core/startup.js`, `agent/ui/app/agent/agent-controls.js`, `agent/ui/app/core/tour.js`, `agent/ui/styles/base/02-workspace.css`):**
+  - Included **Web Search** (`#searchToggle`) in the reorderable composer buttons, added a full-size glowing drop placeholder with live FLIP shifting as you drag across left/right sides or wrapped rows, and added a dedicated step in the initial onboarding tour (translated across all 14 languages).
+- **Reliable app update downloads & live notifications (`agent/app_updates.py`, `agent/desktop_runtime.py`, `agent/ui/app/core/core-connection.js`, `agent/ui/app/core/tour.js`):**
+  - Fixed a startup race condition on download start (`AppUpdates.start_download()`), woke the floating notification poller immediately at 800 ms intervals while downloading, showed live MB progress, and synchronized download state between Settings → General and the floating update notice.
+
 ## 1.1.18
 
 Live context tracking across all four engines, Models window defaulting to All, and comprehensive stability and reliability fixes across the runtime, engines, MCP servers, UI, and desktop shell.

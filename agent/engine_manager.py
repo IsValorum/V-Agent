@@ -685,7 +685,7 @@ class EngineManager:
             argv+=arguments(load,context,capabilities(exe))
             argv+=['--api-key',self.llama_key]
             from draft_models import arguments as draft_arguments
-            argv+=draft_arguments(model.get('preferences',{}).get('draft') or {})
+            argv+=draft_arguments(model.get('preferences',{}).get('draft'),model.get('path'))
             import engine_options
             options=dict(model.get('preferences',{}).get('engine') or {})
             problem=engine_options.conflicts('llama',options,llama_kv)
@@ -705,7 +705,11 @@ class EngineManager:
                 self.think_opens=opens_think(_metadata(model['path']).get('tokenizer.chat_template'))
             except (ValueError,OSError):self.think_opens=False
             import engine_options
-            argv+=engine_options.arguments('rust',model.get('preferences',{}).get('engine') or {},engine_options.help_text('rust',exe))
+            from draft_models import rust_arguments
+            rust_opts=model.get('preferences',{}).get('engine') or {}
+            rust_help=engine_options.help_text('rust',exe)
+            argv+=rust_arguments(model.get('preferences',{}).get('draft'),model.get('path'),rust_help,explicit_mtp=rust_opts.get('mtp'))
+            argv+=engine_options.arguments('rust',rust_opts,rust_help)
         saved=model.get('llama_settings',{})
         if self.kind=='llama' and saved.get('mmproj'):argv+=['--mmproj',saved['mmproj']]
         if self.kind=='llama' and saved.get('template'):argv+=['--chat-template-file',saved['template']]

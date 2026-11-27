@@ -78,7 +78,7 @@ function setupAgentProfilesAndUpdates(){
           actions.append(updateBtn);
         }
         const manage=document.createElement('button');manage.type='button';manage.textContent=uiText('Gestionar en Motor');
-        manage.onclick=()=>{setDrawer(false);setChatControls('model');const eo=$('#modelEngineOptions');if(eo)eo.open=true;$('#engineKind')?.focus({preventScroll:true});};
+        manage.onclick=()=>{setDrawer(false);setChatControls('model');window.openEngineConfigWindow?.(false);};
         actions.append(manage);
         if(installedHere){
           const remove=document.createElement('button');remove.type='button';remove.className='soft-btn danger';remove.textContent=uiText('Eliminar');remove.disabled=!!state.busy||busy||localModelLoaded();
@@ -172,7 +172,7 @@ function setupAgentProfilesAndUpdates(){
           actions.append(updateBtn);
         }
         const openBtn=document.createElement('button');openBtn.textContent=uiText('Gestionar en Motor');
-        openBtn.onclick=()=>{setDrawer(false);setChatControls('model');const eo=$('#modelEngineOptions');if(eo)eo.open=true;$('#engineKind')?.focus({preventScroll:true});};
+        openBtn.onclick=()=>{setDrawer(false);setChatControls('model');window.openEngineConfigWindow?.(false);};
         actions.append(openBtn);
         if(installedHere){
           const remove=document.createElement('button');remove.className='soft-btn danger';remove.textContent=uiText('Eliminar');remove.disabled=state.busy||busy||localModelLoaded();

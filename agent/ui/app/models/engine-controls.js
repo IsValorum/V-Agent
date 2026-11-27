@@ -102,7 +102,7 @@ function setupEngineControls(){
       <div class="api-connect-footer"><span id="apiConnectionHelp" class="mini"></span><button id="connectApi" type="button">Guardar y conectar</button></div></div><p id="engineHint" class="mini" role="status"></p>`;
   $('#controls-model').prepend(host);const power=$('#engineToggle').closest('.power-row');if(power)host.append(power);
   const mayaModelBox=document.createElement('section');mayaModelBox.id='mayaModelSettings';mayaModelBox.className='maya-model-settings';mayaModelBox.hidden=true;
-  ($('#model-load-pane')||$('#controls-model')).prepend(mayaModelBox);
+  ($('#engineOptions')||$('#model-load-pane')||$('#controls-model')).prepend(mayaModelBox);
   let lastMayaStatus=null,mayaPollTimer=0;
   const syncMayaActionButtons=()=>{
     const p=lastMayaStatus?.prerequisites||lastMayaStatus||{};
@@ -152,7 +152,7 @@ function setupEngineControls(){
         if(!build.building){await refreshMayaPrereqs(true);await loadModels();}
       }catch(error){if(st)st.textContent=uiText(error.message);}
     },2000);
-    window.VALI18n?.observe(host);
+    window.VALI18n?.observe(host);if(window.VALWindows?.isOpen('engineOptions'))window.VALWindows.arrange();
   };
   async function refreshMayaPrereqs(fullStatus=false){
     try{
@@ -189,7 +189,7 @@ function setupEngineControls(){
   window.refreshMayaStatusPanel=refreshMayaPrereqs;
   window.prepareMayaModel=async()=>{
     if(busy||engineBusy||loadedModel||document.getElementById('mayaPrepareDialog'))return;
-    if($('#modelEngineOptions'))$('#modelEngineOptions').open=true;
+    window.openEngineConfigWindow?.(false);
     await refreshMayaPrereqs(true);
     if(document.getElementById('mayaPrepareDialog')||busy||engineBusy||loadedModel)return;
     if(lastMayaStatus?.build?.building){$('#mayaActionStatus').scrollIntoView({block:'nearest'});return;}
@@ -280,12 +280,12 @@ function setupEngineControls(){
     $('#load').disabled=busy||engineBusy||!modelStateKnown||!$('#model').value||!!loadedModel||engineFormDirty();
     $('#engineHint').textContent=engineFormDirty()?(loadedModel?uiText(activeEngine==='api'?'Deja de usar el modelo actual antes de cambiar la conexión.':'Descarga el modelo actual antes de cambiar de motor.'):uiText('Pendiente de aplicar.')):(kind==='rust'?uiText('Strata Rust: cada versión amplía las familias de modelos que admite; si un modelo no es compatible, se indica al cargarlo.'):kind==='maya'?uiText('Project Maya: GLM-5.3, DeepSeek-V4.1, MiniMax-M3.1 y Qwen-3.8 locales.'):'');
     const power=$('#engineToggle').closest('.power-row');if(power)power.hidden=['llama','rust','maya'].includes(activeEngine)||engineFormDirty();
-    $('#composerControls').dataset.source=kind==='api'?'api':'local';
+    $('#composerControls').dataset.source=kind==='api'?'api':'local';if(window.VALWindows?.isOpen('engineConfig'))window.VALWindows.arrange();
   };
   $('#engineKind').onchange=form;$('#llamaVariant').onchange=()=>{if($('#llamaVariant').value==='custom')$('#engineAdvanced').open=true;form();};if($('#strataVariant'))$('#strataVariant').onchange=form;if($('#rustVariant'))$('#rustVariant').onchange=form;
   $('#mayaBackend').onchange=()=>{form();if($('#engineKind').value==='maya')refreshMayaPrereqs(false);};
   $('#mayaRoot').addEventListener('input',()=>form());
-  $('#modelSourceTabs').querySelectorAll('button').forEach(button=>button.onclick=()=>{$('#engineKind').value=button.dataset.source==='api'?'api':(activeEngine==='api'?'strata':activeEngine);$('#modelEngineOptions').open=true;form();syncSettingsSummary();});
+  $('#modelSourceTabs').querySelectorAll('button').forEach(button=>button.onclick=()=>{$('#engineKind').value=button.dataset.source==='api'?'api':(activeEngine==='api'?'strata':activeEngine);window.openEngineConfigWindow?.(false);form();syncSettingsSummary();});
   $('#engineKind').addEventListener('change',()=>syncSettingsSummary());
   for(const id of ['strataExecutable','rustExecutable','mayaExecutable','llamaLayers','llamaExecutable','apiBase','apiName','apiKey','apiOrganization','apiProject','apiVersion','apiAnthropicBeta','apiAzureVersion','apiUserAgent','apiHttpReferer','apiXTitle','apiExtraHeaders','apiTimeout','apiVision','apiUsage','apiSampling','apiAuthMode','apiSessionMode'])$('#'+id)?.addEventListener('input',()=>{syncApiProtocol();form();});
   const defaultBases={'openai':'https://api.openai.com/v1','anthropic':'https://api.anthropic.com/v1','openrouter':'https://openrouter.ai/api/v1','opencode':'https://opencode.ai/zen/go/v1','opencode-zen':'https://opencode.ai/zen/v1'};
@@ -455,8 +455,8 @@ function syncMayaModelSettings(){
       const status=$('#mayaModelStatus');if(status)status.textContent=uiText(res.pending_reload?'Guardado. Se aplicará al recargar.':'Configuración de Maya guardada.');
     }catch(error){$('#mayaModelStatus').textContent=uiText(error.message);}
   };
-  host.querySelectorAll('details').forEach((item,i)=>item.open=!!openSections[i]);
-  window.VALI18n?.observe(host);
+  host.querySelectorAll('details').forEach((item,i)=>item.open=openSections.length?!!openSections[i]:i===0);
+  window.VALI18n?.observe(host);if(window.VALWindows?.isOpen('engineOptions'))window.VALWindows.arrange();
 }
 async function restoreEngine(){
   engineSnapshot=await requestJSON('/api/harness/state');activeEngine=engineSnapshot.active;
@@ -466,7 +466,7 @@ function syncEngineCapabilities(){
   if(!$('#engineSettings'))return;
   syncLoadSettings();
   const remote=activeEngine==='api',strata=activeEngine==='strata',maya=activeEngine==='maya';
-  $('#controls-context').hidden=remote;if($('#contextBlock'))$('#contextBlock').hidden=remote;if($('#loadAdvanced'))$('#loadAdvanced').hidden=remote||maya;if($('#modelTransfer'))$('#modelTransfer').hidden=remote;if($('#modelSectionTabs'))$('#modelSectionTabs').hidden=remote;if(remote)setModelSection('generation');$('#effort').closest('.row').hidden=false;$('#kvSettings').hidden=remote||maya;$('#draftSettings').hidden=!strata;$('#visionSettings').hidden=remote||activeEngine==='rust'||maya;
+  $('#controls-context').hidden=remote;if($('#contextBlock'))$('#contextBlock').hidden=remote;if($('#loadAdvanced'))$('#loadAdvanced').hidden=remote||maya;if($('#openTransferWindow'))$('#openTransferWindow').hidden=remote;if(remote&&window.VALWindows?.isOpen('transfer'))window.VALWindows.close('transfer');if($('#modelSectionTabs'))$('#modelSectionTabs').hidden=remote;if(remote)setModelSection('generation');$('#effort').closest('.row').hidden=false;$('#kvSettings').hidden=remote||maya;$('#draftSettings').hidden=!strata;$('#visionSettings').hidden=remote||activeEngine==='rust'||maya;
   $('#templateRow').hidden=!strata;if($('#templateSettings'))$('#templateSettings').hidden=!strata;
   const power=$('#engineToggle').closest('.power-row');if(power)power.hidden=['llama','rust','maya'].includes(activeEngine)||engineFormDirty();
   for(const id of ['p_topk','p_minp','p_rep','p_presence','p_frequency','p_seed'])if($('#'+id)?.closest('.row'))$('#'+id).closest('.row').hidden=remote;

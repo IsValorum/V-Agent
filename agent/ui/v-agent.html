@@ -12,7 +12,7 @@ try {
   const theme=window.strataSavedAppearance?.theme||JSON.parse(localStorage.getItem('strataTheme2')||'null');
   const mode=theme?.mode==='day'?'day':'night',colors=theme?.[mode];
   const [uiStyle,buttonStyle]=String(localStorage.getItem('valUiStyle')||'').split(' ');
-  document.documentElement.dataset.uiStyle=['glass','soft','deco'].includes(uiStyle)?uiStyle:'glass';document.documentElement.dataset.buttonStyle=buttonStyle==='outline'?'outline':'tint';
+  document.documentElement.dataset.uiStyle=['liquid','soft','deco'].includes(uiStyle)?uiStyle:'liquid';document.documentElement.dataset.buttonStyle=buttonStyle==='outline'?'outline':'tint';
   if(colors){for(const key of ['accent','bg','panel','text'])if(/^#[0-9a-f]{6}$/i.test(colors[key]))document.documentElement.style.setProperty('--'+key,colors[key]);document.documentElement.style.colorScheme=mode==='day'?'light':'dark';}
   document.documentElement.dataset.bootMode=mode;
 } catch {}
@@ -206,6 +206,21 @@ try{
 <section id="toolsWindow" class="fw" role="dialog" aria-label="Tools" hidden>
   <header class="fw-head"><h2>Tools</h2><button class="icon-btn" type="button" data-fw-close aria-label="Cerrar herramientas" title="Cerrar">×</button></header>
   <div class="fw-body" id="toolsHost"></div>
+</section>
+<section id="engineOptionsWindow" class="fw" role="dialog" aria-labelledby="engineOptionsTitle" hidden>
+  <header class="fw-head"><h2 id="engineOptionsTitle">Ajustes avanzados</h2><span id="engineOptionsCount" class="fw-state" hidden></span><button class="icon-btn" type="button" data-fw-close aria-label="Cerrar ajustes avanzados" title="Cerrar">×</button></header>
+  <div class="fw-body" id="engineOptions">
+    <p id="engineOptionsStatus" class="mini" role="status"></p>
+    <div id="engineOptionsBody" class="engine-options-body"></div>
+  </div>
+</section>
+<section id="engineConfigWindow" class="fw" role="dialog" aria-labelledby="engineConfigTitle" hidden>
+  <header class="fw-head"><h2 id="engineConfigTitle">Motor y conexión</h2><button class="icon-btn" type="button" data-fw-close aria-label="Cerrar motor y conexión" title="Cerrar">×</button></header>
+  <div class="fw-body" id="modelEngineOptions"></div>
+</section>
+<section id="transferWindow" class="fw" role="dialog" aria-labelledby="transferWindowTitle" hidden>
+  <header class="fw-head"><h2 id="transferWindowTitle">Importar y exportar</h2><button class="icon-btn" type="button" data-fw-close aria-label="Cerrar importar y exportar" title="Cerrar">×</button></header>
+  <div class="fw-body model-transfer" id="modelTransfer"></div>
 </section>
 <section id="consoleWindow" class="fw" role="dialog" aria-label="Consola" hidden>
   <header class="fw-head"><h2>Consola</h2><span id="consoleState" class="fw-state">Inactiva</span><button class="icon-btn" type="button" data-fw-close aria-label="Cerrar consola" title="Cerrar">×</button></header>

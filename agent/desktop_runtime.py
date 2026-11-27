@@ -247,6 +247,7 @@ def install(a):
                 sources=imported+[item for item in sources if not item.get('path') or os.path.normcase(str(Path(item['path']).resolve())) not in imported_paths]
         else:sources=[{**item,'id':manager.remote_identifier(item),'remote_id':item['id'],'display_name':item.get('display_name') or item['id'],'path':None,'backend':manager.settings.get('api',{}).get('name','API'),'remote':True} for item in manager.remote_models]
         ignored=set(_read_json(a.PROFILE_PATH,{}).get('ignored_models',[]))
+        from draft_models import has_head as draft_has_head
         for source in sources:
             original_id=source['id'];identifier=(('rust--' if manager.kind=='rust' else 'llama--')+original_id) if manager.kind in ('llama','rust') else original_id
             if original_id in ignored or identifier in ignored:continue
@@ -266,7 +267,7 @@ def install(a):
             entries.append({**source,'id':identifier,'config':str(config),'gguf_name':name,'display_name':name,'context':pref['context'] if manager.kind in ('llama','rust') else source.get('context'),
                 'status':'loaded' if manager.loaded==identifier else 'available','current':manager.loaded==identifier,'agent_profiles':default_profiles,'preferences':pref,
                 'kv':{'current':kv_cur,'options':kv_opts},
-                'draft':{'integrated':False,'available':False,'files':[],'tokens':0,'source':'off'},'vision_settings':{'enabled':bool(saved.get('mmproj')),'mmproj':saved.get('mmproj',''),'supported':manager.kind=='llama','encoder_available':True,'encoder':'Integrado en llama.cpp'},'llama_settings':saved})
+                'draft':{'integrated':(draft_has_head(path) if manager.kind in ('llama','rust') and path else False),'available':False,'files':[],'tokens':0,'source':'off'},'vision_settings':{'enabled':bool(saved.get('mmproj')),'mmproj':saved.get('mmproj',''),'supported':manager.kind=='llama','encoder_available':True,'encoder':'Integrado en llama.cpp'},'llama_settings':saved})
         return {'models':entries,'data':entries,'loaded':bool(manager.loaded),'loaded_model':manager.loaded,'engine_online':manager.online or manager.kind in ('llama','rust'),
                 'manual_loading':True,'current':manager.loaded,'profiles':default_profiles,'profile_version':1,'preparation':a.PREPARATION.snapshot()}
 
@@ -763,11 +764,11 @@ def install(a):
                                 loaded_layers='auto' if manager.kind=='strata' else '0' if cfg.get('variant')=='cpu' else gpu_layers(loaded_load,cfg.get('gpu_layers','auto'))
                                 loaded_ctx=(a.engine_context() if manager.kind=='strata' else getattr(manager,'loaded_context',None)) or loaded_item.get('context') or 16384
                                 loaded_est=estimate_facts(inspect(Path(loaded_item['path'])),int(loaded_ctx),loaded_pref.get('kv','fp16'),loaded_load,manager.kind,loaded_layers,caps)
-                                reclaimable=int(loaded_est.get('gpu_full_offload') or 0)+weight_bytes(validate_draft(loaded_pref.get('draft') or {}))
+                                reclaimable=int(loaded_est.get('gpu_full_offload') or 0)+weight_bytes(loaded_pref.get('draft'),loaded_item.get('path'))
                         except (ValueError,OSError,KeyError,TypeError):reclaimable=0
                     result=estimate(model,context,kv,load,manager.kind,layers,caps,reclaimable_bytes=reclaimable,engine_pids=engine_pids)
-                    draft=validate_draft(body.get('draft') or model.get('preferences',{}).get('draft') or {})
-                    draft_size=weight_bytes(draft)
+                    raw_draft=body.get('draft') if 'draft' in body else model.get('preferences',{}).get('draft')
+                    draft_size=weight_bytes(raw_draft,model.get('path'))
                     if draft_size:
                         result['draft']=draft_size;result['weights']=int(result.get('weights') or 0)+draft_size
                         if result.get('total') is not None:result['total']+=draft_size
@@ -895,8 +896,7 @@ def install(a):
                     action=body.get('action')
                     if action=='check':result=app_update.check()
                     elif action=='download':
-                        if not app_update.snapshot().get('available'):raise ValueError('No hay una actualización verificada.')
-                        threading.Thread(target=_safe,args=(app_update.download,),daemon=True).start();result=app_update.snapshot()
+                        result=app_update.start_download()
                     elif action=='launch':
                         if local_model_loaded():raise ValueError('Descarga el modelo antes de instalar la actualización.')
                         lang=body.get('language') or body.get('lang') or preferences.get().get('language') or 'en'

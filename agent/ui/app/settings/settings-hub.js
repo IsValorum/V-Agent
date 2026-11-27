@@ -81,22 +81,31 @@ function setupSettingsHub(){
     if(matches.length&&!matches.some(button=>button.dataset.category===settingsCategory))selectSettingsCategory(matches[0].dataset.category);
   };
   $('#openModelSettings').onclick=()=>setChatControls('model');
-  const engineOptions=document.createElement('details');engineOptions.id='modelEngineOptions';engineOptions.className='settings-group';engineOptions.innerHTML='<summary>Motor y conexión</summary>';engineOptions.append($('#engineSettings'));
-  const quick=document.createElement('div');quick.className='engine-quick';quick.innerHTML='<span class="engine-quick-label">Motor</span><span id="engineQuickName"></span><button id="engineQuickSettings" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg><span>Cambiar motor</span></button>';
+  const engineConfigWin=$('#engineConfigWindow'),engineOptions=$('#modelEngineOptions');
+  if(engineOptions)engineOptions.append($('#engineSettings'));
+  const syncEngineConfigBtn=()=>$('#engineQuickSettings')?.setAttribute('aria-expanded',String(!!window.VALWindows?.isOpen('engineConfig')));
+  window.openEngineConfigWindow=(toggle=false)=>{
+    if(toggle&&window.VALWindows?.isOpen('engineConfig')){window.VALWindows.close('engineConfig');syncEngineConfigBtn();return;}
+    window.VALWindows?.open('engineConfig');syncEngineConfigBtn();
+    $('#engineKind')?.focus({preventScroll:true});
+  };
+  if(engineConfigWin){
+    window.VALWindows?.register('engineConfig',engineConfigWin,{onOpen:syncEngineConfigBtn,onClose:()=>{cancelPendingEngineEdits();syncEngineConfigBtn();}});
+  }
+  const quick=document.createElement('div');quick.className='engine-quick';quick.innerHTML='<span class="engine-quick-label">Motor</span><span id="engineQuickName"></span><button id="engineQuickSettings" type="button" aria-controls="engineConfigWindow" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg><span>Cambiar motor</span></button>';
   const mayaAdvanced=document.createElement('button');
   mayaAdvanced.id='mayaQuickAdvanced';mayaAdvanced.type='button';mayaAdvanced.hidden=true;
   mayaAdvanced.className='engine-advanced-btn';
   // Easy to see (icon, accent border, count of changed options): it used to be a faint text button.
   mayaAdvanced.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>Ajustes avanzados</span><span id="engineOptionsBadge" class="engine-advanced-badge" hidden></span><svg class="engine-advanced-go" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
-  mayaAdvanced.setAttribute('aria-controls','engineOptions');
+  mayaAdvanced.setAttribute('aria-controls','engineOptionsWindow');
   mayaAdvanced.setAttribute('aria-expanded','false');
   quick.append(mayaAdvanced);
-  // Every engine (Project Maya too) opens its options in the Advanced tab; Maya's installation settings stay
-  // under "Engine and connection".
+  // Every engine (Project Maya too) opens its options in the floating side window.
   mayaAdvanced.onclick=()=>{if(typeof toggleEngineOptions==='function')toggleEngineOptions();};
   const powerHome=document.createElement('div');powerHome.id='modelPowerHome';powerHome.append(engineOptions.querySelector('#engineToggle').closest('.power-row'));
   const sourceTabs=engineOptions.querySelector('#modelSourceTabs');
-  $('#controls-model').prepend(sourceTabs,quick,engineOptions,powerHome);$('#engineQuickSettings').onclick=()=>{engineOptions.open=!engineOptions.open;if(engineOptions.open){engineOptions.scrollIntoView({block:'nearest'});$('#engineKind').focus({preventScroll:true});}};
+  $('#controls-model').prepend(sourceTabs,quick,powerHome);$('#engineQuickSettings').onclick=()=>window.openEngineConfigWindow(true);
   const remoteInfo=$('#remoteModelInfo');if(remoteInfo)$('#controls-model .model-top').after(remoteInfo);
   const advanced=document.createElement('section');advanced.id='loadAdvanced';advanced.className='load-advanced';advanced.innerHTML='<h4 class="block-title">Opciones avanzadas</h4>';
   $('#model-load-pane').append(advanced);for(const id of ['draftSettings','visionSettings','templateSettings'])advanced.append($('#'+id));
@@ -140,7 +149,7 @@ function restoreInspectorContent(){
 function syncSettingsSummary(){
   if(!$('#engineQuickName')||!engineSnapshot)return;
   $('#mayaQuickAdvanced').hidden=!['maya','llama','strata','rust'].includes(activeEngine);
-  $('#mayaQuickAdvanced').setAttribute('aria-controls','engineOptions');
+  $('#mayaQuickAdvanced').setAttribute('aria-controls','engineOptionsWindow');
   // The card follows the tab and the engine chosen in the form; until it is applied it says so, instead of
   // showing the engine still in use under the other tab.
   const chosen=$('#engineKind')?.value||activeEngine,kind=chosen,builds=engineSnapshot.builds||{},info=kind==='strata'?builds.strata:kind==='rust'?builds.rust:kind==='maya'?builds.maya:builds[$('#llamaVariant')?.value||engineSnapshot.llama?.variant||'cuda'];
