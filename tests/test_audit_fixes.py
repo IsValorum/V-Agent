@@ -108,6 +108,16 @@ class RunJournals(unittest.TestCase):
             self.assertFalse(run.root.exists())
 
 
+class KvCacheRefused(unittest.TestCase):
+    def test_a_refused_kv_format_is_named_not_the_architecture(self):
+        from engine_manager import load_failure
+        log = ("E llama_init_from_model: FP8 cache is not supported for architecture 'bailingmoe3'\n"
+               "E cmn  common_init_: failed to create context with model 'm.gguf'\n")
+        message = load_failure('llama.cpp', log)
+        self.assertIn('no admite la caché KV FP8', message)
+        self.assertIn('Q8_0', message)
+
+
 
 if __name__ == '__main__':
     unittest.main()

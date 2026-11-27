@@ -38038,5 +38038,35 @@
     "th": "รูปแบบอื่น",
     "tr": "varyant",
     "ar": "صيغة أخرى"
+  },
+  "{} no admite la caché KV {} con la arquitectura «{}». Elige otra caché KV (Q8_0 o FP16) en Modelo y vuelve a cargarlo.": {
+    "en": "{} does not support the {} KV cache with the «{}» architecture. Choose another KV cache (Q8_0 or FP16) in Model and load it again.",
+    "pt": "{} não suporta o cache KV {} com a arquitetura «{}». Escolha outro cache KV (Q8_0 ou FP16) em Modelo e carregue de novo.",
+    "fr": "{} ne prend pas en charge le cache KV {} avec l'architecture « {} ». Choisissez un autre cache KV (Q8_0 ou FP16) dans Modèle et rechargez-le.",
+    "de": "{} unterstützt den KV-Cache {} mit der Architektur „{}“ nicht. Wähle unter Modell einen anderen KV-Cache (Q8_0 oder FP16) und lade erneut.",
+    "ja": "{} は KV キャッシュ {} をアーキテクチャ「{}」ではサポートしていません。モデルで別の KV キャッシュ（Q8_0 または FP16）を選び、もう一度読み込んでください。",
+    "zh": "{} 不支持将 KV 缓存 {} 用于架构「{}」。请在“模型”中选择其他 KV 缓存（Q8_0 或 FP16）后重新加载。",
+    "ko": "{}은(는) KV 캐시 {}을(를) 아키텍처 「{}」에서 지원하지 않습니다. 모델에서 다른 KV 캐시(Q8_0 또는 FP16)를 선택하고 다시 불러오세요.",
+    "hi": "{} KV कैश {} को «{}» आर्किटेक्चर के साथ सपोर्ट नहीं करता। मॉडल में दूसरा KV कैश (Q8_0 या FP16) चुनें और फिर से लोड करें।",
+    "id": "{} tidak mendukung cache KV {} dengan arsitektur «{}». Pilih cache KV lain (Q8_0 atau FP16) di Model lalu muat ulang.",
+    "vi": "{} không hỗ trợ bộ nhớ đệm KV {} với kiến trúc «{}». Hãy chọn bộ nhớ đệm KV khác (Q8_0 hoặc FP16) trong Mô hình rồi tải lại.",
+    "th": "{} ไม่รองรับแคช KV {} กับสถาปัตยกรรม «{}» เลือกแคช KV อื่น (Q8_0 หรือ FP16) ในโมเดลแล้วโหลดใหม่",
+    "tr": "{}, {} KV önbelleğini «{}» mimarisiyle desteklemiyor. Model bölümünde başka bir KV önbelleği (Q8_0 veya FP16) seçip yeniden yükleyin.",
+    "ar": "لا يدعم {} ذاكرة KV المؤقتة {} مع البنية «{}». اختر ذاكرة KV أخرى (Q8_0 أو FP16) في النموذج وأعد التحميل."
+  },
+  "llama.cpp no admite la caché KV {} con este modelo; se ha cargado con {}.": {
+    "en": "llama.cpp does not support the {} KV cache with this model; it was loaded with {}.",
+    "pt": "O llama.cpp não suporta o cache KV {} com este modelo; foi carregado com {}.",
+    "fr": "llama.cpp ne prend pas en charge le cache KV {} avec ce modèle ; il a été chargé avec {}.",
+    "de": "llama.cpp unterstützt den KV-Cache {} mit diesem Modell nicht; es wurde mit {} geladen.",
+    "ja": "llama.cpp はこのモデルで KV キャッシュ {} をサポートしていません。{} で読み込みました。",
+    "zh": "llama.cpp 不支持此模型使用 KV 缓存 {}；已改用 {} 加载。",
+    "ko": "llama.cpp는 이 모델에서 KV 캐시 {}을(를) 지원하지 않아 {}(으)로 불러왔습니다.",
+    "hi": "llama.cpp इस मॉडल के साथ KV कैश {} को सपोर्ट नहीं करता; इसे {} के साथ लोड किया गया।",
+    "id": "llama.cpp tidak mendukung cache KV {} dengan model ini; model dimuat dengan {}.",
+    "vi": "llama.cpp không hỗ trợ bộ nhớ đệm KV {} với mô hình này; đã tải bằng {}.",
+    "th": "llama.cpp ไม่รองรับแคช KV {} กับโมเดลนี้ จึงโหลดด้วย {} แทน",
+    "tr": "llama.cpp bu modelle {} KV önbelleğini desteklemiyor; {} ile yüklendi.",
+    "ar": "لا يدعم llama.cpp ذاكرة KV المؤقتة {} مع هذا النموذج؛ تم التحميل باستخدام {}."
   }
 }

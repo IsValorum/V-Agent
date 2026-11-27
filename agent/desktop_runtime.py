@@ -368,10 +368,23 @@ def install(a):
                     cfg['args']=args;cfg['_val_engine_options']=applied;atomic_json(file,cfg)
             try:return original['load_agent_model'](name,context)
             finally:_clear_hw_cache()
-        model=selected(name)
-        try:manager.load(model,context or model['preferences']['context'],a.PREPARATION)
+        model=selected(name);notice=None
+        try:
+            try:manager.load(model,context or model['preferences']['context'],a.PREPARATION)
+            except ValueError as error:
+                # llama.cpp offers a KV format (e.g. f8_e4m3) that this architecture refuses: load again with the
+                # nearest one it takes, keep it for this model and say so, instead of a model that never loads.
+                options=[item['value'] for item in (model.get('kv') or {}).get('options',[])]
+                current=(model.get('preferences') or {}).get('kv')
+                fallback='q8_0' if 'q8_0' in options and current!='q8_0' else 'fp16'
+                if manager.kind!='llama' or 'no admite la caché KV' not in str(error) or current==fallback or a.PREPARATION.cancelled.is_set():raise
+                a.MODEL_PREFERENCES.save(name,{'kv':fallback})
+                model=selected(name)
+                manager.load(model,context or model['preferences']['context'],a.PREPARATION)
+                notice='llama.cpp no admite la caché KV {} con este modelo; se ha cargado con {}.'.format(str(current).upper(),fallback.upper())
         finally:_clear_hw_cache()
-        return {'status':'loaded','model':model,'loaded':True,'loaded_model':name,'engine_online':True,'preparation':a.PREPARATION.snapshot()}
+        return {'status':'loaded','model':model,'loaded':True,'loaded_model':name,'engine_online':True,'preparation':a.PREPARATION.snapshot(),
+                **({'notice':notice} if notice else {})}
 
     def context(tokens,name=None):
         if manager.kind=='strata':return original['change_context'](tokens,name)

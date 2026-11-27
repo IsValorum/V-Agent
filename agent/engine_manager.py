@@ -47,6 +47,11 @@ def load_failure(engine, log):
     if match:
         return ('Esta compilación de %s no reconoce la arquitectura «%s». Actualiza el motor o usa otro.'
                 % (engine, match[1]))
+    # llama.cpp lists a KV cache format in its help (e.g. f8_e4m3) that some architectures cannot use.
+    match = re.search(r"(\S+) cache is not supported for architecture '([^']+)'", log)
+    if match:
+        return ('%s no admite la caché KV %s con la arquitectura «%s». Elige otra caché KV (Q8_0 o FP16) en '
+                'Modelo y vuelve a cargarlo.' % (engine, match[1], match[2]))
     lower = log.lower()
     if re.search(r'out of memory|failed to allocate|cudamalloc failed|unable to allocate|not enough memory', lower):
         return ('%s se quedó sin memoria al cargar el modelo. Baja el contexto o elige una cuantización más '

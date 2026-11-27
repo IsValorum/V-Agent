@@ -212,7 +212,8 @@ async function loadModel() {
     pendingModelContexts.delete(selected);
     updatePreparation(result.preparation);setEngineState(true);setLoadedModel(actual,true,result.context??null);await loadModels();$('#modelStatus').textContent=result.preparation?.mode==='on_demand'?uiText(result.preparation.message):uiText('Modelo listo.');note(result.preparation?.mode==='on_demand'?'Modelo cargado con lectura bajo demanda.':'Modelo listo.');
     pintarPlantilla(result.template);
-    if(result.warning)note(uiText('Plantilla jinja:')+' '+uiText(result.warning));
+    if(result.notice)note(uiText(result.notice));
+    else if(result.warning)note(uiText('Plantilla jinja:')+' '+uiText(result.warning));
     else if(result.template&&result.template.reaplicacion)note(uiText('Plantilla jinja:')+' '+uiText(result.template.reaplicacion));
   }catch(error){await loadModels();$('#modelStatus').textContent=uiText('No se pudo cargar:')+' '+uiText(error.message);note($('#modelStatus').textContent);}
   finally{clearInterval(timer);loadingModelId=null;syncModelSelectionSummary();clearTimeout(preparationTimer);preparationTimer=null;modelStateRevision++;syncModelPicker();setEngineBusy(false);syncEngineCapabilities();pollStats();}
