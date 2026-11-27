@@ -38368,5 +38368,20 @@
     "th": "เลือกโมเดล Project Maya เพื่อดูตัวเลือกของไฟล์โปรแกรม",
     "tr": "İkili dosyasının seçeneklerini görmek için bir Project Maya modeli seçin.",
     "ar": "اختر نموذج Project Maya لرؤية خيارات ملفه التنفيذي."
+  },
+  "Estilo aplicado. Puedes afinar la transparencia, el desenfoque, los bordes, la sombra y la redondez en Colores y en Distribución y formas.": {
+    "en": "Style applied. You can fine-tune transparency, blur, borders, shadow and corners in Colors and in Layout and shapes.",
+    "pt": "Estilo aplicado. Você pode ajustar a transparência, o desfoque, as bordas, a sombra e o arredondamento em Cores e em Layout e formas.",
+    "fr": "Style appliqué. Vous pouvez affiner la transparence, le flou, les bordures, l’ombre et l’arrondi dans Couleurs et dans Disposition et formes.",
+    "de": "Stil angewendet. Transparenz, Unschärfe, Ränder, Schatten und Rundung kannst du unter Farben und unter Layout und Formen feinjustieren.",
+    "ja": "スタイルを適用しました。透明度、ぼかし、枠線、影、角の丸みは「色」と「レイアウトと形」で微調整できます。",
+    "zh": "已应用样式。你可以在“颜色”和“布局与形状”中微调透明度、模糊、边框、阴影和圆角。",
+    "ko": "스타일을 적용했습니다. 투명도, 흐림, 테두리, 그림자, 모서리는 색상과 레이아웃 및 모양에서 조정할 수 있습니다.",
+    "hi": "शैली लागू हुई। पारदर्शिता, धुंधलापन, बॉर्डर, छाया और कोनों को रंग तथा लेआउट और आकार में बारीकी से बदल सकते हैं।",
+    "id": "Gaya diterapkan. Anda dapat menyetel transparansi, blur, garis tepi, bayangan, dan sudut di Warna serta Tata letak dan bentuk.",
+    "vi": "Đã áp dụng kiểu. Bạn có thể tinh chỉnh độ trong suốt, độ mờ, viền, bóng và bo góc trong Màu sắc và Bố cục và hình dạng.",
+    "th": "ใช้สไตล์แล้ว ปรับความโปร่งใส ความเบลอ เส้นขอบ เงา และความโค้งมุมได้ในสีและเลย์เอาต์และรูปทรง",
+    "tr": "Stil uygulandı. Şeffaflık, bulanıklık, kenarlıklar, gölge ve köşeleri Renkler ile Düzen ve şekiller bölümünde ince ayarlayabilirsiniz.",
+    "ar": "تم تطبيق النمط. يمكنك ضبط الشفافية والتمويه والحدود والظل والزوايا في الألوان وفي التخطيط والأشكال."
   }
 }

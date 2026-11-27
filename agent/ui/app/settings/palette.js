@@ -22,6 +22,21 @@ window.VALPalette=(()=>{
   const keys=Object.keys(palettes),defaults={style:'none',intensity:0,color:'#daaa69',palette:'gold',logo:'gold',motif:'corners',amoled:false,logoSize:216,appIcon:'follow',showGreeting:true,uiStyle:'glass',buttonStyle:'tint',version:2};
   let current={...defaults},queue=Promise.resolve(),bootIconAtStart=null,restartDialogOpen=false;
   function effectiveIcon(d){return d.appIcon==='follow'?d.logo:d.appIcon;}
+  // Each interface style is a real starting point: it sets the appearance controls (transparency, blur, borders,
+  // shadow, corners) for day and night, which the user can then fine-tune. Before, the style changed almost
+  // nothing because those controls kept their values and overrode it.
+  const STYLE_PRESETS={
+    glass:{blur:24,alpha:70,composerAlpha:68,drawerAlpha:82,radius:16,border:14,shadow:45,messageRadius:12,composerRadius:18},
+    soft:{blur:0,alpha:100,composerAlpha:100,drawerAlpha:100,radius:14,border:0,shadow:24,messageRadius:12,composerRadius:16},
+    deco:{blur:0,alpha:100,composerAlpha:100,drawerAlpha:100,radius:3,border:30,shadow:0,messageRadius:12,composerRadius:12}};
+  function applyStylePreset(style){
+    const preset=STYLE_PRESETS[style];if(!preset||typeof TH!=='object')return;
+    for(const mode of ['night','day'])if(TH[mode])Object.assign(TH[mode],preset);
+    if(typeof applyTheme==='function')applyTheme();
+    if(typeof syncThemeControls==='function')syncThemeControls();
+    const status=document.getElementById('decoIconStatus');
+    if(status)status.textContent=uiText('Estilo aplicado. Puedes afinar la transparencia, el desenfoque, los bordes, la sombra y la redondez en Colores y en Distribución y formas.');
+  }
   function normalize(value={}){const d={...defaults,...value};delete d.background;d.style='none';d.palette=[...keys,'custom'].includes(d.palette)?d.palette:'gold';d.logo=keys.includes(d.logo)?d.logo:'gold';d.appIcon=['follow',...keys].includes(d.appIcon)?d.appIcon:'follow';d.amoled=d.amoled===true;d.showGreeting=d.showGreeting!==false;d.logoSize=Math.round(Math.max(64,Math.min(360,Number(d.logoSize)||216)));d.uiStyle=['glass','soft','deco'].includes(d.uiStyle)?d.uiStyle:'glass';d.buttonStyle=d.buttonStyle==='outline'?'outline':'tint';return d;}
   function tone(id,mode){const [accent,bg,panel,text,codeBg,userBg]=palettes[id][mode];return {accent,bg,panel,text,codeBg,userBg,g1:accent,g2:panel,g3:bg,gradient:'none',strength:0};}
   const toneFields=['accent','bg','panel','text','codeBg','userBg','g1','g2','g3','gradient','strength'];
@@ -134,6 +149,7 @@ window.VALPalette=(()=>{
       input.onchange=()=>{
         const prevIcon=effectiveIcon(current);
         apply({...current,[key]:input.value});persist();
+        if(key==='uiStyle')applyStylePreset(input.value);
         if(key==='appIcon'&&effectiveIcon(current)!==prevIcon)promptLogoRestart();
       };
     }

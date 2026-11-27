@@ -1,0 +1,73 @@
+/* ===================== Interface styles that follow the appearance controls =====================
+   Glass, Soft and Art Deco used to look almost alike: fixed !important values overrode the transparency,
+   blur, border and shadow controls, and corners could not go under 14 px. Each style now applies a preset
+   to those controls (palette.js, STYLE_PRESETS) and these rules read them, so a style changes what it says
+   and every control keeps working afterwards. Large windows still get no live blur (it flickered on
+   hybrid-GPU laptops, see 07-glass-switches-and-fields.css). */
+
+/* Corners and hairlines from the controls, in every style but Art Deco (which draws its own frames). */
+:root:not([data-ui-style=deco]),
+:root:not([data-ui-style=deco]) body{
+  --control-radius:clamp(2px,calc(var(--radius) * .8),20px);
+  --panel-radius:max(2px,var(--radius));
+  --soft-line:color-mix(in srgb,var(--text) var(--border-strength,9%),transparent);
+  --soft-shadow:var(--panel-shadow,0 18px 48px rgb(0 0 0 / .20));
+}
+
+/* Glass: translucent layers whose opacity, blur and edge come from the controls. */
+:root[data-ui-style=glass]{
+  --glass-fill:color-mix(in srgb,var(--panel) calc(var(--drawer-alpha,.82) * 100%),transparent);
+  --glass-fill-strong:color-mix(in srgb,var(--panel) calc(var(--composer-alpha,.68) * 100%),transparent);
+  --glass-filter:saturate(170%) blur(var(--blur,24px));
+  --glass-edge:color-mix(in srgb,var(--text) calc(var(--border-strength,14%) + 4%),transparent);
+}
+:root[data-ui-style=glass] :is(.agent-small-menu,#composerAddMenu,#helpCard,#updateStack .update-card,.update-more-row,.val-confirm,.tool-approval,#toast),
+:root[data-ui-style=glass] :is(.fw,#drawer,#composerControls){
+  box-shadow:var(--glass-shine),var(--panel-shadow)!important;
+}
+:root[data-ui-style=glass] .compose-surface{box-shadow:var(--glass-shine),var(--panel-shadow)!important;}
+/* The sidebar and top bar show the chat behind them through the same glass. */
+:root[data-ui-style=glass] #sidebar{
+  background:color-mix(in srgb,var(--panel) calc(var(--alpha,.7) * 100%),transparent)!important;
+  -webkit-backdrop-filter:var(--glass-filter);backdrop-filter:var(--glass-filter);
+}
+
+/* Soft: opaque surfaces separated by fills and shadow rather than lines (the border control at 0). */
+:root[data-ui-style=soft] :is(.settings-group,.model-card,.context-block,.context-compact-box,.engine-quick,.tool-group){
+  border-color:var(--soft-line)!important;
+  background:color-mix(in srgb,var(--text) 3.5%,var(--panel))!important;
+}
+:root[data-ui-style=soft] .compose-surface{box-shadow:var(--panel-shadow)!important;}
+
+/* ===================== Buttons =====================
+   "Soft tint" and "Outline" now reach the ordinary buttons of windows and dialogs (the rule they had was
+   :where(), so any component style won and the choice barely showed). Toggles, tabs, menu items, icon
+   buttons and buttons with their own design (primary actions, the engine card) keep their look. */
+:root[data-button-style] :is(#drawer,#composerControls,.fw,.val-confirm,.tool-approval,#toolsWindow,#consoleWindow) button:not(:is(
+  .icon-btn,.primary,.danger,.engine-advanced-btn,#engineQuickSettings,[role=tab],[role=switch],[role=menuitem],[role=menuitemradio],
+  [role=option],[aria-pressed],[aria-selected],.seg-pill button,.conv-more,.file-chip,.hub-item,.text-btn,[data-mode])){
+  transition:background-color .15s ease,border-color .15s ease;
+}
+:root[data-button-style=tint] :is(#drawer,#composerControls,.fw,.val-confirm,.tool-approval,#toolsWindow,#consoleWindow) button:not(:is(
+  .icon-btn,.primary,.danger,.engine-advanced-btn,#engineQuickSettings,[role=tab],[role=switch],[role=menuitem],[role=menuitemradio],
+  [role=option],[aria-pressed],[aria-selected],.seg-pill button,.conv-more,.file-chip,.hub-item,.text-btn,[data-mode])){
+  background:var(--soft-fill,color-mix(in srgb,var(--text) 7%,transparent))!important;
+  border:1px solid transparent!important;
+}
+:root[data-button-style=tint] :is(#drawer,#composerControls,.fw,.val-confirm,.tool-approval,#toolsWindow,#consoleWindow) button:not(:is(
+  .icon-btn,.primary,.danger,.engine-advanced-btn,#engineQuickSettings,[role=tab],[role=switch],[role=menuitem],[role=menuitemradio],
+  [role=option],[aria-pressed],[aria-selected],.seg-pill button,.conv-more,.file-chip,.hub-item,.text-btn,[data-mode])):hover:not(:disabled){
+  background:var(--soft-fill-hover,color-mix(in srgb,var(--text) 12%,transparent))!important;
+}
+:root[data-button-style=outline] :is(#drawer,#composerControls,.fw,.val-confirm,.tool-approval,#toolsWindow,#consoleWindow) button:not(:is(
+  .icon-btn,.primary,.danger,.engine-advanced-btn,#engineQuickSettings,[role=tab],[role=switch],[role=menuitem],[role=menuitemradio],
+  [role=option],[aria-pressed],[aria-selected],.seg-pill button,.conv-more,.file-chip,.hub-item,.text-btn,[data-mode])){
+  background:transparent!important;
+  border:1px solid color-mix(in srgb,var(--text) 30%,transparent)!important;
+}
+:root[data-button-style=outline] :is(#drawer,#composerControls,.fw,.val-confirm,.tool-approval,#toolsWindow,#consoleWindow) button:not(:is(
+  .icon-btn,.primary,.danger,.engine-advanced-btn,#engineQuickSettings,[role=tab],[role=switch],[role=menuitem],[role=menuitemradio],
+  [role=option],[aria-pressed],[aria-selected],.seg-pill button,.conv-more,.file-chip,.hub-item,.text-btn,[data-mode])):hover:not(:disabled){
+  border-color:var(--accent)!important;
+  background:color-mix(in srgb,var(--accent) 9%,transparent)!important;
+}
