@@ -128,6 +128,8 @@ function setupEngineControls(){
         const name=document.createElement('strong');name.textContent=uiText(chk.label||'');
         const detail=document.createElement('small');detail.textContent=uiText(chk.detail||'');
         li.append(badge,name,detail);list.append(li);
+        // A required item missing: unfold the installation section so the list the note points to is in view.
+        if(!chk.ok&&chk.required&&$('#mayaEngineAdvanced'))$('#mayaEngineAdvanced').open=true;
       }
     }
     const verBadge=$('#mayaVersionBadge');

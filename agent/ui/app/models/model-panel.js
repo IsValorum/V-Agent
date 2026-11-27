@@ -189,7 +189,8 @@ function queueModelPreferences(){
   if(activeEngine!=='api'&&$('#kvCache')?.value)settings.kv=$('#kvCache').value;
   if(['llama','strata'].includes(activeEngine)&&document.getElementById('modelLoadSettings'))settings.load=structuredClone(loadCurrent);
   if(activeEngine==='llama'&&document.getElementById('modelDraftSettings'))settings.draft=structuredClone(draftCurrent);
-  if(['llama','strata','rust'].includes(activeEngine)&&document.getElementById('engineOptions'))settings.engine=structuredClone(engineCurrent);
+  // Every engine with options (Project Maya too: its load reads them, but they were never sent).
+  if(ENGINE_OPTION_KINDS.includes(activeEngine)&&document.getElementById('engineOptions'))settings.engine=structuredClone(engineCurrent);
   modelPreferences[id]={...modelPreferences[id],...structuredClone(settings)};pendingPreferences.set(id,settings);updateCreatorNotice();requestMemoryEstimate();
   clearTimeout(preferencesTimer);preferencesTimer=setTimeout(()=>flushModelPreferences().catch(error=>note(error.message)),350);
 }

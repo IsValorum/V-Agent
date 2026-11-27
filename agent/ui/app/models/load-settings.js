@@ -201,8 +201,9 @@ function renderEngineOptions(){
   const status=document.getElementById('engineOptionsStatus'),count=engineOptionsChanged();
   document.getElementById('engineOptionsCount').textContent=count?uiText('Cambiadas')+': '+count:'';syncEngineOptionsButton();
   if(!data||data.engine!==activeEngine){status.textContent='';return;}
-  if(!data.options.length){status.textContent=uiText(data.probed?'Este motor no ofrece más opciones.':'Instala el motor para ver sus opciones.');return;}
-  status.textContent=uiText('Vacío = valor por defecto del motor. Se aplica al cargar el modelo.');
+  // Project Maya runs one binary per model: without a model, or before it is prepared, there is no binary to ask.
+  if(!data.options.length){status.textContent=uiText(data.probed?'Este motor no ofrece más opciones.':activeEngine==='maya'?(model?'Prepara este modelo con Project Maya para ver las opciones de su binario.':'Elige un modelo de Project Maya para ver las opciones de su binario.'):'Instala el motor para ver sus opciones.');return;}
+  status.textContent=uiText('Auto = el motor decide. Lo que cambies se guarda para este modelo y se aplica al cargarlo.');
   const locked=busy||engineBusy;
   const arch=(modelKV[model]?.architecture||'').toLowerCase();
   for(const group of data.groups){
@@ -213,19 +214,19 @@ function renderEngineOptions(){
       const id='engopt_'+option.key,label=document.createElement('label');label.htmlFor=id;label.textContent=uiText(option.label);
       const help=document.createElement('p');help.className='mini engine-option-help';help.textContent=uiText(option.help);
       const current=engineCurrent[option.key];let control;
-      if(option.kind==='bool'){
-        control=document.createElement('input');control.type='checkbox';control.checked=current===true;
-        control.onchange=()=>engineOptionSet(option,control.checked?true:null);
-      }else if(option.kind==='switch'||option.kind==='choice'){
+      // Every option starts at "Auto": nothing is passed and the engine (or V-Agent) decides. A switch the user
+      // can only turn on is a list too, so it has that state; an engine's own "auto" value is the same Auto.
+      if(option.kind==='bool'||option.kind==='switch'||option.kind==='choice'){
         control=document.createElement('select');
-        const values=option.kind==='switch'?[['',uiText('Por defecto')],['true',uiText('Activado')],['false',uiText('Desactivado')]]
-          :[['',uiText('Por defecto')],...option.choices.map(value=>[value,uiText(option.labels?.[value]||ENGINE_CHOICE_LABELS[value]||value)])];
+        const values=option.kind==='bool'?[['',uiText('Auto')],['true',uiText('Activado')]]
+          :option.kind==='switch'?[['',uiText('Auto')],['true',uiText('Activado')],['false',uiText('Desactivado')]]
+          :[['',uiText('Auto')],...option.choices.filter(value=>value!=='auto').map(value=>[value,uiText(option.labels?.[value]||ENGINE_CHOICE_LABELS[value]||value)])];
         for(const [value,text] of values){const item=document.createElement('option');item.value=value;item.textContent=text;control.append(item);}
-        control.value=current===null||current===undefined?'':String(current);
-        control.onchange=()=>engineOptionSet(option,control.value===''?null:option.kind==='switch'?control.value==='true':control.value);
+        control.value=current===null||current===undefined||current==='auto'||current===false&&option.kind==='bool'?'':String(current);
+        control.onchange=()=>engineOptionSet(option,control.value===''?null:option.kind==='choice'?control.value:control.value==='true');
       }else{
         control=document.createElement('input');control.type='text';control.spellcheck=false;
-        control.placeholder=uiText('Por defecto');control.value=current===null||current===undefined?'':String(current);
+        control.placeholder=uiText('Auto');control.value=current===null||current===undefined?'':String(current);
         if(option.kind!=='text')control.inputMode=option.kind==='int'?'numeric':'decimal';
         control.onchange=()=>{
           let text=control.value.trim();

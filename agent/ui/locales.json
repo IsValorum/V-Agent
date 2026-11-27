@@ -38323,5 +38323,50 @@
     "th": "การติดตั้ง Project Maya",
     "tr": "Project Maya kurulumu",
     "ar": "تثبيت Project Maya"
+  },
+  "Auto = el motor decide. Lo que cambies se guarda para este modelo y se aplica al cargarlo.": {
+    "en": "Auto = the engine decides. What you change is saved for this model and applied when it loads.",
+    "pt": "Auto = o motor decide. O que você mudar é salvo para este modelo e aplicado ao carregá-lo.",
+    "fr": "Auto = le moteur décide. Ce que vous changez est enregistré pour ce modèle et appliqué au chargement.",
+    "de": "Auto = die Engine entscheidet. Was du änderst, wird für dieses Modell gespeichert und beim Laden angewendet.",
+    "ja": "Auto = エンジンが決めます。変更した内容はこのモデルに保存され、読み込み時に適用されます。",
+    "zh": "Auto = 由引擎决定。你更改的内容会为此模型保存，并在加载时应用。",
+    "ko": "Auto = 엔진이 결정합니다. 변경한 내용은 이 모델에 저장되고 불러올 때 적용됩니다.",
+    "hi": "Auto = इंजन तय करता है। आप जो बदलते हैं वह इस मॉडल के लिए सहेजा जाता है और लोड होने पर लागू होता है।",
+    "id": "Auto = mesin yang menentukan. Yang Anda ubah disimpan untuk model ini dan diterapkan saat dimuat.",
+    "vi": "Auto = công cụ tự quyết định. Những gì bạn thay đổi được lưu cho mô hình này và áp dụng khi tải.",
+    "th": "Auto = ให้เอนจินตัดสินใจ สิ่งที่คุณเปลี่ยนจะถูกบันทึกไว้สำหรับโมเดลนี้และใช้เมื่อโหลด",
+    "tr": "Auto = motor karar verir. Değiştirdiğiniz şey bu model için kaydedilir ve yüklenirken uygulanır.",
+    "ar": "Auto = يقرر المحرك. ما تغيّره يُحفظ لهذا النموذج ويُطبّق عند تحميله."
+  },
+  "Prepara este modelo con Project Maya para ver las opciones de su binario.": {
+    "en": "Prepare this model with Project Maya to see its binary’s options.",
+    "pt": "Prepare este modelo com o Project Maya para ver as opções do seu binário.",
+    "fr": "Préparez ce modèle avec Project Maya pour voir les options de son binaire.",
+    "de": "Bereite dieses Modell mit Project Maya vor, um die Optionen seines Programms zu sehen.",
+    "ja": "このモデルを Project Maya で準備すると、そのバイナリのオプションが表示されます。",
+    "zh": "用 Project Maya 准备此模型后即可查看其程序的选项。",
+    "ko": "이 모델을 Project Maya로 준비하면 바이너리 옵션을 볼 수 있습니다.",
+    "hi": "इसके बाइनरी के विकल्प देखने के लिए इस मॉडल को Project Maya से तैयार करें।",
+    "id": "Siapkan model ini dengan Project Maya untuk melihat opsi biner-nya.",
+    "vi": "Hãy chuẩn bị mô hình này bằng Project Maya để xem các tùy chọn của tệp chạy.",
+    "th": "เตรียมโมเดลนี้ด้วย Project Maya เพื่อดูตัวเลือกของไฟล์โปรแกรม",
+    "tr": "İkili dosyasının seçeneklerini görmek için bu modeli Project Maya ile hazırlayın.",
+    "ar": "جهّز هذا النموذج باستخدام Project Maya لرؤية خيارات ملفه التنفيذي."
+  },
+  "Elige un modelo de Project Maya para ver las opciones de su binario.": {
+    "en": "Choose a Project Maya model to see its binary’s options.",
+    "pt": "Escolha um modelo do Project Maya para ver as opções do seu binário.",
+    "fr": "Choisissez un modèle Project Maya pour voir les options de son binaire.",
+    "de": "Wähle ein Project-Maya-Modell, um die Optionen seines Programms zu sehen.",
+    "ja": "Project Maya のモデルを選ぶと、そのバイナリのオプションが表示されます。",
+    "zh": "选择一个 Project Maya 模型即可查看其程序的选项。",
+    "ko": "Project Maya 모델을 선택하면 바이너리 옵션을 볼 수 있습니다.",
+    "hi": "इसके बाइनरी के विकल्प देखने के लिए Project Maya मॉडल चुनें।",
+    "id": "Pilih model Project Maya untuk melihat opsi biner-nya.",
+    "vi": "Hãy chọn một mô hình Project Maya để xem các tùy chọn của tệp chạy.",
+    "th": "เลือกโมเดล Project Maya เพื่อดูตัวเลือกของไฟล์โปรแกรม",
+    "tr": "İkili dosyasının seçeneklerini görmek için bir Project Maya modeli seçin.",
+    "ar": "اختر نموذج Project Maya لرؤية خيارات ملفه التنفيذي."
   }
 }
