@@ -56,6 +56,10 @@ LLAMA = [
      'label': 'Caché de prompts en RAM (MiB)', 'help': 'Memoria para conservar prompts anteriores y retomarlos sin releerlos. 0 la desactiva.'},
     {'key': 'cache_reuse', 'flag': '--cache-reuse', 'kind': 'int', 'min': 0, 'max': 1048576, 'group': 'memory',
      'label': 'Reutilizar caché desde (tokens)', 'help': 'Tamaño mínimo de un trozo de prompt repetido para reutilizarlo desplazando la caché.'},
+    {'key': 'cache_idle_slots', 'flag': '--cache-idle-slots', 'off': '--no-cache-idle-slots', 'kind': 'switch', 'group': 'memory',
+     'label': 'Guardar slots inactivos', 'help': 'Guarda en la caché de prompts las conversaciones que quedan en espera (necesita la caché de prompts en RAM).'},
+    {'key': 'checkpoint_min_step', 'flag': '--checkpoint-min-step', 'kind': 'int', 'min': 0, 'max': 1048576, 'group': 'memory',
+     'label': 'Separación mínima entre checkpoints (tokens)', 'help': 'Distancia mínima entre los puntos de contexto guardados. Menos separación retoma antes, con más memoria. 0 = sin mínimo.'},
     {'key': 'context_shift', 'flag': '--context-shift', 'off': '--no-context-shift', 'kind': 'switch', 'group': 'memory',
      'label': 'Desplazar contexto al llenarse', 'help': 'Descarta lo más antiguo en vez de cortar la respuesta cuando se llena el contexto.'},
     # GPU
@@ -86,6 +90,17 @@ LLAMA = [
      'label': 'YaRN: factor de extrapolación', 'help': '-1 usa el valor del modelo.'},
     {'key': 'yarn_attn_factor', 'flag': '--yarn-attn-factor', 'kind': 'float', 'min': -1, 'max': 100, 'group': 'context',
      'label': 'YaRN: factor de atención', 'help': '-1 usa el valor del modelo.'},
+    {'key': 'cpu_range', 'flag': '--cpu-range', 'kind': 'text', 'pattern': r'\d{1,4}-\d{1,4}', 'group': 'gpu',
+     'label': 'Rango de CPUs al generar', 'help': 'Núcleos en los que corre el motor al escribir, como 0-7. Complementa la máscara de CPU.'},
+    {'key': 'cpu_range_batch', 'flag': '--cpu-range-batch', 'kind': 'text', 'pattern': r'\d{1,4}-\d{1,4}', 'group': 'gpu',
+     'label': 'Rango de CPUs al leer el prompt', 'help': 'Núcleos en los que corre el motor al procesar el prompt, como 0-7.'},
+    # Vision (with an mmproj file)
+    {'key': 'mmproj_offload', 'flag': '--mmproj-offload', 'off': '--no-mmproj-offload', 'kind': 'switch', 'group': 'vision',
+     'label': 'Visión en la GPU', 'help': 'Desactívalo para procesar las imágenes en la CPU y dejar más VRAM al modelo (más lento).'},
+    {'key': 'image_min_tokens', 'flag': '--image-min-tokens', 'kind': 'int', 'min': 1, 'max': 65536, 'group': 'vision',
+     'label': 'Tokens mínimos por imagen', 'help': 'Solo modelos de visión con resolución variable: más tokens ven más detalle y ocupan más contexto.'},
+    {'key': 'image_max_tokens', 'flag': '--image-max-tokens', 'kind': 'int', 'min': 1, 'max': 65536, 'group': 'vision',
+     'label': 'Tokens máximos por imagen', 'help': 'Límite de tokens que puede ocupar cada imagen en modelos de visión con resolución variable.'},
     # Adapters and reasoning
     {'key': 'lora', 'flag': '--lora', 'kind': 'text', 'pattern': r'[^"\r\n]{1,600}', 'group': 'adapters',
      'label': 'Adaptadores LoRA', 'help': 'Ruta de uno o varios archivos LoRA GGUF, separados por comas.'},
@@ -204,7 +219,7 @@ CATALOG = {'llama': LLAMA, 'strata': STRATA, 'rust': RUST}
 DISCOVERED_ONLY = {'maya': frozenset(MAYA_MANAGED)}
 ENGINES = tuple(CATALOG) + tuple(DISCOVERED_ONLY)
 GROUPS = [('performance', 'Rendimiento'), ('memory', 'Memoria y caché'), ('gpu', 'GPU y CPU'),
-          ('context', 'Contexto extendido (RoPE)'), ('adapters', 'Adaptadores y razonamiento'),
+          ('vision', 'Visión'), ('context', 'Contexto extendido (RoPE)'), ('adapters', 'Adaptadores y razonamiento'),
           ('experimental', 'Experimental'), ('extra', 'Otras opciones del motor')]
 KEYS = {option['key'] for options in CATALOG.values() for option in options}
 

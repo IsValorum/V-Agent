@@ -80,7 +80,7 @@ function setupEngineControls(){
         <button id="mayaCancelSetup" type="button" class="soft-btn">Cancelar</button>
       </div>
       <details id="mayaSetupLog" class="settings-group" hidden><summary>Registro de preparación</summary><pre id="mayaSetupLogText" data-user-content></pre></details>
-      <div id="mayaEngineAdvanced" class="maya-disclosure-body" hidden>
+      <details id="mayaEngineAdvanced" class="settings-group maya-disclosure"><summary>Instalación de Project Maya</summary><div class="maya-disclosure-body">
       <div class="maya-setup-grid">
         <label>Carpeta de Project Maya<div class="path-picker"><input id="mayaRoot" type="text" placeholder="Automático (datos locales de V-Agent)" aria-label="Carpeta de Project Maya"><button id="browseMaya" type="button">Elegir…</button></div></label>
         <label>Binario compilado (opcional)<div class="path-picker"><input id="mayaExecutable" type="text" placeholder="maya.exe / maya-ds4.exe (si ya está compilado)" aria-label="Binario compilado de Project Maya"><button id="browseMayaExe" type="button">Elegir…</button></div></label>
@@ -94,7 +94,7 @@ function setupEngineControls(){
         <button id="mayaClonePull" type="button" class="soft-btn">Clonar / Actualizar</button>
         <button id="mayaUninstall" type="button" class="soft-btn">Desvincular</button>
       </div>
-      </div>
+      </div></details>
     </section>
     <div id="apiOptions" hidden><div class="api-connection-row"><select id="apiConnection" aria-label="Conexión API guardada"><option value="">Nueva conexión</option></select><button id="newApiConnection" type="button" title="Añadir API">+</button></div>
       <details id="apiConnectionEditor" open><summary>Añadir o editar conexión</summary><div class="api-form-grid"><label>Proveedor / Preset<select id="apiPreset"><option value="auto">Auto (según URL)</option><option value="openai">OpenAI compatible</option><option value="anthropic">Claude · Anthropic</option><option value="openrouter">OpenRouter</option><option value="opencode">OpenCode Go / Go Plus</option><option value="opencode-zen">OpenCode Zen</option><option value="azure">Azure OpenAI</option></select></label><label>Protocolo<select id="apiProtocol"><option value="openai">OpenAI compatible</option><option value="anthropic">Claude · Anthropic</option></select></label><label class="api-wide">Nombre<input id="apiName" maxlength="100" placeholder="Mi conexión"></label><label class="api-wide">URL base<input id="apiBase" type="url" placeholder="https://api.openai.com/v1" autocomplete="off"></label><label class="api-wide">Clave API<input id="apiKey" type="password" placeholder="Clave API" autocomplete="new-password"></label></div>

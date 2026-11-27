@@ -146,7 +146,9 @@ function placeEngineOptions(box){
 }
 function syncEngineOptionsButton(){
   const box=document.getElementById('engineOptions'),button=document.getElementById('mayaQuickAdvanced');
-  if(box&&button&&activeEngine!=='maya')button.setAttribute('aria-expanded',String(!box.hidden&&box.open));
+  if(box&&button)button.setAttribute('aria-expanded',String(!box.hidden&&box.open));
+  const badge=document.getElementById('engineOptionsBadge'),count=engineOptionsChanged();
+  if(badge){badge.hidden=!count;badge.textContent=count?String(count):'';badge.title=count?uiText('Cambiadas')+': '+count:'';}
 }
 function toggleEngineOptions(){
   // The engine card's "Advanced settings": go to the Advanced tab and unfold the engine's options there.
@@ -187,7 +189,7 @@ function engineOptionSet(option,value){
   box.dataset.signature=JSON.stringify([activeEngine,model,engineCurrent,!!engineOptionsCatalog,busy||engineBusy]);
   queueModelPreferences();
   const count=engineOptionsChanged();
-  document.getElementById('engineOptionsCount').textContent=count?uiText('Cambiadas')+': '+count:'';
+  document.getElementById('engineOptionsCount').textContent=count?uiText('Cambiadas')+': '+count:'';syncEngineOptionsButton();
   document.getElementById('engineOptionsStatus').textContent=uiText('Se aplicará en la próxima carga del modelo.');
 }
 function renderEngineOptions(){
@@ -197,7 +199,7 @@ function renderEngineOptions(){
   document.getElementById('engineOptionsTitle').textContent=uiText('Opciones del motor')+(ENGINE_OPTION_NAMES[activeEngine]?' · '+ENGINE_OPTION_NAMES[activeEngine]:'');
   const data=engineOptionsCatalog;body.replaceChildren();
   const status=document.getElementById('engineOptionsStatus'),count=engineOptionsChanged();
-  document.getElementById('engineOptionsCount').textContent=count?uiText('Cambiadas')+': '+count:'';
+  document.getElementById('engineOptionsCount').textContent=count?uiText('Cambiadas')+': '+count:'';syncEngineOptionsButton();
   if(!data||data.engine!==activeEngine){status.textContent='';return;}
   if(!data.options.length){status.textContent=uiText(data.probed?'Este motor no ofrece más opciones.':'Instala el motor para ver sus opciones.');return;}
   status.textContent=uiText('Vacío = valor por defecto del motor. Se aplica al cargar el modelo.');

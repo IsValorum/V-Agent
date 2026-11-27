@@ -85,26 +85,15 @@ function setupSettingsHub(){
   const quick=document.createElement('div');quick.className='engine-quick';quick.innerHTML='<span class="engine-quick-label">Motor</span><span id="engineQuickName"></span><button id="engineQuickSettings" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg><span>Cambiar motor</span></button>';
   const mayaAdvanced=document.createElement('button');
   mayaAdvanced.id='mayaQuickAdvanced';mayaAdvanced.type='button';mayaAdvanced.hidden=true;
-  mayaAdvanced.className='soft-btn';
-  mayaAdvanced.textContent='Ajustes avanzados';
-  mayaAdvanced.setAttribute('aria-controls','mayaEngineAdvanced');
+  mayaAdvanced.className='engine-advanced-btn';
+  // Easy to see (icon, accent border, count of changed options): it used to be a faint text button.
+  mayaAdvanced.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>Ajustes avanzados</span><span id="engineOptionsBadge" class="engine-advanced-badge" hidden></span><svg class="engine-advanced-go" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
+  mayaAdvanced.setAttribute('aria-controls','engineOptions');
   mayaAdvanced.setAttribute('aria-expanded','false');
   quick.append(mayaAdvanced);
-  const mayaDetails=engineOptions.querySelector('#mayaEngineAdvanced');
-  const syncMayaShortcut=()=>mayaAdvanced.setAttribute('aria-expanded',String(engineOptions.open&&!mayaDetails.hidden));
-  engineOptions.addEventListener('toggle',syncMayaShortcut);
-  mayaAdvanced.onclick=()=>{
-    // llama.cpp, Strata and Strata Rust: their engine options, in the same place as Maya's settings.
-    if(activeEngine!=='maya'&&typeof toggleEngineOptions==='function'){toggleEngineOptions();return;}
-    const open=!(engineOptions.open&&!mayaDetails.hidden);
-    if(open){
-      if($('#engineKind').value!=='maya'){$('#engineKind').value='maya';$('#engineKind').onchange();}
-      engineOptions.open=true;
-    }
-    mayaDetails.hidden=!open;
-    syncMayaShortcut();
-    if(open){mayaDetails.scrollIntoView({block:'nearest'});mayaDetails.querySelector('input').focus({preventScroll:true});}
-  };
+  // Every engine (Project Maya too) opens its options in the Advanced tab; Maya's installation settings stay
+  // under "Engine and connection".
+  mayaAdvanced.onclick=()=>{if(typeof toggleEngineOptions==='function')toggleEngineOptions();};
   const powerHome=document.createElement('div');powerHome.id='modelPowerHome';powerHome.append(engineOptions.querySelector('#engineToggle').closest('.power-row'));
   const sourceTabs=engineOptions.querySelector('#modelSourceTabs');
   $('#controls-model').prepend(sourceTabs,quick,engineOptions,powerHome);$('#engineQuickSettings').onclick=()=>{engineOptions.open=!engineOptions.open;if(engineOptions.open){engineOptions.scrollIntoView({block:'nearest'});$('#engineKind').focus({preventScroll:true});}};
@@ -151,7 +140,7 @@ function restoreInspectorContent(){
 function syncSettingsSummary(){
   if(!$('#engineQuickName')||!engineSnapshot)return;
   $('#mayaQuickAdvanced').hidden=!['maya','llama','strata','rust'].includes(activeEngine);
-  $('#mayaQuickAdvanced').setAttribute('aria-controls',activeEngine==='maya'?'mayaEngineAdvanced':'engineOptions');
+  $('#mayaQuickAdvanced').setAttribute('aria-controls','engineOptions');
   // The card follows the tab and the engine chosen in the form; until it is applied it says so, instead of
   // showing the engine still in use under the other tab.
   const chosen=$('#engineKind')?.value||activeEngine,kind=chosen,builds=engineSnapshot.builds||{},info=kind==='strata'?builds.strata:kind==='rust'?builds.rust:kind==='maya'?builds.maya:builds[$('#llamaVariant')?.value||engineSnapshot.llama?.variant||'cuda'];

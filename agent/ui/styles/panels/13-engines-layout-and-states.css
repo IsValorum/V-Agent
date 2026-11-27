@@ -27,7 +27,19 @@
 
 .maya-options[hidden],.maya-model-settings[hidden],.maya-progress[hidden],#mayaEngineAdvanced[hidden]{display:none;}
 
-#composerControls #mayaQuickAdvanced{grid-column:1 / -1;justify-self:start;margin-top:6px;}
+/* The engine's advanced settings: a full-width, accent-bordered row under the engine's name (it was a faint text
+   button that was easy to miss), with the number of options changed. */
+#composerControls #mayaQuickAdvanced{grid-column:1 / -1;display:flex;align-items:center;gap:8px;width:100%;margin-top:9px;
+  padding:8px 11px;min-height:36px;border-radius:var(--control-radius);border:1px solid color-mix(in srgb,var(--accent) 55%,transparent);
+  background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--text);font-size:12.5px;font-weight:600;text-align:left;cursor:pointer;}
+#composerControls #mayaQuickAdvanced:hover:not(:disabled){background:color-mix(in srgb,var(--accent) 22%,transparent);border-color:var(--accent);}
+#composerControls #mayaQuickAdvanced:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+#composerControls #mayaQuickAdvanced svg{width:16px;height:16px;flex:none;fill:none;stroke:var(--accent);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
+#composerControls #mayaQuickAdvanced>span:first-of-type{flex:1;}
+#composerControls #mayaQuickAdvanced .engine-advanced-go{width:14px;height:14px;stroke:var(--muted);}
+#composerControls .engine-advanced-badge{min-width:18px;height:18px;padding:0 5px;border-radius:9px;display:inline-grid;place-items:center;
+  background:var(--accent);color:var(--bg,#111);font-size:10.5px;font-weight:700;}
+#composerControls .engine-advanced-badge[hidden]{display:none;}
 #composerControls #mayaQuickAdvanced[hidden]{display:none;}
 #composerControls #mayaModelSettings .maya-disclosure>summary,#mayaPrepareDialog .maya-disclosure>summary{
   min-height:32px;padding:6px 9px;border-radius:var(--control-radius);
