@@ -144,8 +144,11 @@ def _launch(root,command,timeout):
                                   stdout=stdout_file,stderr=stderr_file,creationflags=_NO_WINDOW)
             try:proc.wait(timeout=timeout+5)
             except subprocess.TimeoutExpired:
-                subprocess.run(['taskkill','/F','/T','/PID',str(proc.pid)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=10,creationflags=_NO_WINDOW)
-                proc.wait(timeout=10);raise TimeoutError('Isolated command timed out.')
+                try:subprocess.run(['taskkill','/F','/T','/PID',str(proc.pid)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=10,creationflags=_NO_WINDOW)
+                except (OSError,subprocess.TimeoutExpired):proc.kill()
+                try:proc.wait(timeout=10)
+                except subprocess.TimeoutExpired:proc.kill()
+                raise TimeoutError('Isolated command timed out.')
             def read(stream):
                 stream.seek(0);data=stream.read(64001)
                 return data[:64000].decode('utf-8','replace')+('\n[Output truncated.]' if len(data)>64000 else '')

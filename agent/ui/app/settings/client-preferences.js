@@ -24,5 +24,11 @@ async function restoreClientPreferences(){
 
 function cancelPendingEngineEdits(){
   if(!engineSnapshot||engineBusy||!engineFormDirty())return;
-  const cfg=engineSnapshot.llama||{};$('#engineKind').value=activeEngine;$('#llamaVariant').value=cfg.variant||'cuda';$('#llamaExecutable').value=cfg.executable||'';$('#llamaLayers').value=cfg.gpu_layers||'auto';syncApiConnections();$('#engineKind').onchange();syncEngineCapabilities();
+  const cfg=engineSnapshot.llama||{},strata=engineSnapshot.strata||{},rust=engineSnapshot.rust||{},maya=engineSnapshot.maya||{};
+  $('#engineKind').value=activeEngine;
+  $('#llamaVariant').value=cfg.variant||'cuda';$('#llamaExecutable').value=cfg.executable||'';$('#llamaLayers').value=cfg.gpu_layers||'auto';
+  if($('#strataVariant'))$('#strataVariant').value=strata.variant||'official';if($('#strataExecutable'))$('#strataExecutable').value=strata.executable||'';
+  if($('#rustVariant'))$('#rustVariant').value=rust.variant||'official';if($('#rustExecutable'))$('#rustExecutable').value=rust.executable||'';
+  if($('#mayaRoot'))$('#mayaRoot').value=maya.root||'';if($('#mayaExecutable'))$('#mayaExecutable').value=maya.executable||'';if($('#mayaBackend'))$('#mayaBackend').value=maya.backend||'auto';
+  syncApiConnections();$('#engineKind').onchange();syncEngineCapabilities();
 }

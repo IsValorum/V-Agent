@@ -194,7 +194,8 @@ class Sesion:
                       "--enable-unsafe-swiftshader", "--use-gl=angle", "--use-angle=swiftshader",
                       "--window-size=%d,%d" % VENTANA, "about:blank"]
         try:
-            self.proceso = subprocess.Popen(argumentos, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            self.proceso = subprocess.Popen(argumentos, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
             threading.Thread(target=_vigilante, name="render-inactivo", daemon=True).start()
         except OSError as error:
             self.fallo = "Could not launch %s: %s" % (pathlib.Path(ruta).name, str(error)[:120])
@@ -495,7 +496,8 @@ def render(url, espera_ms=TIEMPO_CARGA_MS, captura=False, pintura=False, mantene
         if not mantener:
             _SESION.cierra()
     if "_error" in resultado:
-        _SESION.cierra()
+        with _CANDADO:
+            _SESION.cierra()
         return {"ok": False, "error": resultado["_error"]}
     info = resultado.get("info") or {}
     reales = [e for e in (resultado.get("errores") or []) if not any(x in e.lower() for x in RUIDO)]

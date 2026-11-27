@@ -10,7 +10,7 @@
   const icon=path=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+path+'</svg>';
   const ICONS={models:'<path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3Z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/>',down:'<path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/>',heart:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/>',
     clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',chip:'<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 3v3m6-3v3M9 18v3m6-3v3M3 9h3m-3 6h3m12-6h3m-3 6h3"/>',ext:'<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',search:'<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/>'};
-  let win=null,transfer=null,current=null,hardware={vram_mib:0,ram_gib:0},jobs=[],folder='',poll=0,searchTimer=0,scanData=null,searchSeq=0;
+  let win=null,transfer=null,current=null,hardware={vram_mib:0,ram_gib:0},jobs=[],folder='',poll=0,searchTimer=0,scanData=null,searchSeq=0,detailSeq=0;
 
   // ---------------------------------------------------------------- README rendering (safe subset)
   const TAGS=new Set(['p','div','span','a','img','br','hr','h1','h2','h3','h4','h5','h6','ul','ol','li','table','thead','tbody','tr','th','td','strong','em','b','i','u','s','del','code','pre','blockquote','details','summary','sup','sub','center','picture','source','kbd','small']);
@@ -99,7 +99,7 @@
       '<div class="models-body">'+
       '<div class="models-pane" data-pane="discover">'+
         '<aside class="hub-list"><div class="hub-search"><span class="hub-search-icon">'+icon(ICONS.search)+'</span><input id="hubQuery" type="search" placeholder="Buscar en Hugging Face…" aria-label="Buscar modelos GGUF en Hugging Face" autocomplete="off"></div>'+
-        '<div class="hub-filters"><select id="hubKind" aria-label="Tipo de modelo"><option value="text">Texto</option><option value="vision">Visión</option><option value="all">Todos</option></select>'+
+        '<div class="hub-filters"><select id="hubKind" aria-label="Tipo de modelo"><option value="all" selected>Todos</option><option value="text">Texto</option><option value="vision">Visión</option></select>'+
         '<select id="hubSort" aria-label="Ordenar"><option value="downloads">Más descargados</option><option value="trending">Tendencia</option><option value="likes">Más valorados</option><option value="updated">Actualizados</option></select></div>'+
         '<div id="hubResults" class="hub-results" role="listbox" aria-label="Resultados"></div></aside>'+
         '<article id="hubDetail" class="hub-detail"><div class="hub-empty">'+icon(ICONS.models)+'<p>Elige un modelo para ver sus estadísticas, archivos y ficha.</p></div></article>'+
@@ -168,12 +168,12 @@
     if(size<=vram*0.85+ram*0.55)return ['mixed',vram?T('GPU + RAM'):T('Cabe en RAM')];
     return ['big',T('Demasiado grande')];
   }
-  async function show(repo){
+  async function show(repo){const seq=++detailSeq;
     win.querySelectorAll('.hub-item').forEach(item=>item.setAttribute('aria-selected',String(item.dataset.repo===repo)));
     const box=win.querySelector('#hubDetail');box.setAttribute('aria-busy','true');
     box.innerHTML='<div class="hub-empty"><p>'+esc(T('Cargando ficha…'))+'</p></div>';
     try{
-      const data=await api('/api/harness/hub/model?repo='+encodeURIComponent(repo));
+      const data=await api('/api/harness/hub/model?repo='+encodeURIComponent(repo));if(seq!==detailSeq)return;
       current=data;hardware=data.hardware||hardware;
       const chips=[[ICONS.down,count(data.downloads)+' '+T('descargas')],[ICONS.heart,count(data.likes)],[ICONS.clock,date(data.updated)],
         data.architecture&&[ICONS.chip,data.architecture],data.context&&[null,count(data.context)+' '+T('de contexto')],data.parameters&&[null,count(data.parameters).replace(' ','')+' '+T('parámetros')],data.license&&[null,data.license]].filter(Boolean);
@@ -191,8 +191,8 @@
       box.querySelectorAll('[data-download]').forEach(button=>button.onclick=()=>download(data.id,button.closest('tr').dataset.file));
       box.querySelectorAll('[data-cancel]').forEach(button=>button.onclick=()=>cancel(button.dataset.cancel));
       box.scrollTop=0;
-    }catch(error){box.innerHTML='<div class="hub-empty"><p data-error="1">'+esc(T(error.message))+'</p></div>';}
-    finally{box.removeAttribute('aria-busy');}
+    }catch(error){if(seq===detailSeq)box.innerHTML='<div class="hub-empty"><p data-error="1">'+esc(T(error.message))+'</p></div>';}
+    finally{if(seq===detailSeq)box.removeAttribute('aria-busy');}
   }
   function downloadCell(job){
     if(!job||job.state==='cancelled')return '<button type="button" data-download>'+icon(ICONS.down)+'<span>'+esc(T('Descargar GGUF'))+'</span></button>';

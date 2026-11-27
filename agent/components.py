@@ -207,6 +207,7 @@ class Components:
             if not update or self.state['busy']:
                 raise ValueError('There are no verified components to apply.')
             self.state['busy'] = True
+        staging = None
         try:
             data = validate(update['manifest'].encode('utf-8'), update['signature'])
             staging = ROOT / ('r%d.part' % data['revision'])
@@ -218,6 +219,7 @@ class Components:
                 (staging / item['name']).write_bytes(body)
             final = ROOT / ('r%d' % data['revision'])
             shutil.rmtree(final, ignore_errors=True); staging.replace(final)
+            staging = None
             record = {'manifest': update['manifest'], 'signature': update['signature'], 'applied_at': time.time()}
             tmp = _active_file().with_suffix('.tmp'); tmp.write_text(json.dumps(record), encoding='utf-8'); tmp.replace(_active_file())
             for old in ROOT.glob('r*'):
@@ -233,6 +235,8 @@ class Components:
                 self.state['error'] = str(error)[:300]
             raise
         finally:
+            if staging is not None and staging.exists():
+                shutil.rmtree(staging, ignore_errors=True)
             with self.lock:
                 self.state['busy'] = False
         return self.snapshot()

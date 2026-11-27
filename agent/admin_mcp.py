@@ -27,6 +27,7 @@ WRITE = ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=
 READ = ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False)
 LOCK = threading.RLock()
 START_LOCK = threading.Lock()
+REQ_LOCK = threading.Lock()
 STATE = {"client": None, "listener": None, "process": None, "pipe": None, "key": None, "status": None}
 
 
@@ -126,17 +127,18 @@ def _request(payload: dict, timeout: float = 120, auto_start: bool = True) -> di
             client = STATE.get("client")
     if client is None:
         raise RuntimeError("Administrator helper is not started.")
-    try:
-        client.send(payload)
-        if not client.poll(timeout):
-            raise TimeoutError("The elevated helper did not respond in time.")
-        reply = client.recv()
-        if not isinstance(reply, dict):
-            raise RuntimeError("Invalid response from the elevated helper.")
-        return reply
-    except (EOFError, OSError) as error:
-        _reset()
-        raise RuntimeError("The elevated helper closed unexpectedly: " + str(error)) from None
+    with REQ_LOCK:
+        try:
+            client.send(payload)
+            if not client.poll(timeout):
+                raise TimeoutError("The elevated helper did not respond in time.")
+            reply = client.recv()
+            if not isinstance(reply, dict):
+                raise RuntimeError("Invalid response from the elevated helper.")
+            return reply
+        except (EOFError, OSError) as error:
+            _reset()
+            raise RuntimeError("The elevated helper closed unexpectedly: " + str(error)) from None
 
 
 def _status_text(reply) -> str:
@@ -175,8 +177,9 @@ def run(command: str, shell: str = "powershell", timeout: int = 120, cwd: str | 
         raise ValueError("shell must be 'powershell' or 'cmd'.")
     if not isinstance(command, str) or not command.strip():
         raise ValueError("command cannot be empty.")
+    run_timeout = max(1, min(int(timeout), 3600))
     reply = _request({"action": "run", "command": command, "shell": shell,
-                      "timeout": max(1, min(int(timeout), 3600)), "cwd": cwd})
+                      "timeout": run_timeout, "cwd": cwd}, timeout=run_timeout + 15)
     return _status_text(reply)
 
 

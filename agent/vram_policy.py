@@ -28,7 +28,7 @@ import urllib.request
 # techo 768 (mas cache no se paga con contextos cortos y el escritorio necesita aire).
 RESERVE_TABLE = ((32768, 256), (65536, 384), (98304, 448), (131072, 512), (262144, 768))
 FLOOR_MIB, CEIL_MIB = 256, 768
-KV_BYTES_PER_TOKEN = {"q8_0": 11968, "fp16": 22528, "int8": 11264, "int8k": 11552}
+KV_BYTES_PER_TOKEN = {"q8_0": 11968, "fp16": 22528, "fp8": 11264, "q4_0": 6400, "int8": 11264, "int8k": 11552}
 KV_CHUNK_ROWS = 4096                     # cover() crece de 4096 en 4096 filas + 1024 por delante
 
 DROP_ARGS = ("--stage-mib", "--stage-read-mib")     # se deja el default del motor (128 + 2048)
@@ -106,25 +106,29 @@ def apply_to_args(args: list, p: dict) -> list:
     return out
 
 
+def _write_json_atomic(path: str, cfg: dict) -> None:
+    from pathlib import Path
+    target = Path(path)
+    tmp = target.with_suffix(target.suffix + ".tmp")
+    tmp.write_text(json.dumps(cfg, indent=1) + "\n", encoding="utf-8")
+    tmp.replace(target)
+
+
 def apply_to_config(path: str, p: dict) -> dict:
     """Aplica el plan a un `strata-*.json` y devuelve {antes, despues} para poder revertir."""
-    with open(path, encoding="utf-8") as h:
+    with open(path, encoding="utf-8-sig") as h:
         cfg = json.load(h)
     before = list(cfg.get("args") or [])
     cfg["args"] = apply_to_args(before, p)
-    with open(path, "w", encoding="utf-8") as h:
-        json.dump(cfg, h, indent=1)
-        h.write("\n")
+    _write_json_atomic(path, cfg)
     return {"config": path, "before": before, "after": cfg["args"]}
 
 
 def restore_config(info: dict) -> None:
-    with open(info["config"], encoding="utf-8") as h:
+    with open(info["config"], encoding="utf-8-sig") as h:
         cfg = json.load(h)
     cfg["args"] = info["before"]
-    with open(info["config"], "w", encoding="utf-8") as h:
-        json.dump(cfg, h, indent=1)
-        h.write("\n")
+    _write_json_atomic(info["config"], cfg)
 
 
 def resize(port: int, reserve_mib: int | None, timeout: float = 60.0) -> dict:

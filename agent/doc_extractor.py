@@ -239,6 +239,7 @@ def _ocr_pdf_page(source: pathlib.Path | bytes, page_index_0: int) -> str:
             encoding="utf-8",
             errors="replace",
             timeout=30,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
         if proc.returncode == 0:
             return _clean_text_block(proc.stdout)
@@ -835,11 +836,12 @@ def _extract_rtf(raw_bytes: bytes, cfg: dict) -> dict:
                 out.append(special[word])
             elif word == "uc":
                 ucskip = max(0, int(arg)) if arg else 1
-            elif word == "u":
+            elif word == "u" and arg is not None:
                 code = int(arg)
                 if code < 0:
                     code += 0x10000
-                out.append(chr(code))
+                if 0 <= code <= 0x10FFFF:
+                    out.append(chr(code))
                 curskip = ucskip
         elif hexch:
             if curskip > 0:

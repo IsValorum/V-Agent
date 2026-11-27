@@ -367,9 +367,11 @@ def keyboard_type(text: str) -> str:
             batch.append(INPUT(type=1, u=INPUTUNION(ki=KEYBDINPUT(0x09, 0, 0, 0, 0))))
             batch.append(INPUT(type=1, u=INPUTUNION(ki=KEYBDINPUT(0x09, 0, 0x0002, 0, 0))))
         else:
-            scan = ord(char)
-            batch.append(INPUT(type=1, u=INPUTUNION(ki=KEYBDINPUT(0, scan, 0x0004, 0, 0))))
-            batch.append(INPUT(type=1, u=INPUTUNION(ki=KEYBDINPUT(0, scan, 0x0004 | 0x0002, 0, 0))))
+            raw_u16 = char.encode("utf-16-le")
+            for idx in range(0, len(raw_u16), 2):
+                scan = int.from_bytes(raw_u16[idx:idx + 2], "little")
+                batch.append(INPUT(type=1, u=INPUTUNION(ki=KEYBDINPUT(0, scan, 0x0004, 0, 0))))
+                batch.append(INPUT(type=1, u=INPUTUNION(ki=KEYBDINPUT(0, scan, 0x0004 | 0x0002, 0, 0))))
         count += 1
         if len(batch) >= 32:
             _send(*batch)
@@ -394,10 +396,17 @@ def keyboard_key(keys: str) -> str:
         if code is None:
             raise ValueError("Unsupported key: " + part)
         codes.append(code)
-    for code in codes:
-        _key(code)
-    for code in reversed(codes):
-        _key(code, True)
+    pressed = []
+    try:
+        for code in codes:
+            _key(code)
+            pressed.append(code)
+    finally:
+        for code in reversed(pressed):
+            try:
+                _key(code, True)
+            except OSError:
+                pass
     return json.dumps({"ok": True, "keys": keys}, ensure_ascii=False)
 
 

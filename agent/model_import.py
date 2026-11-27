@@ -22,7 +22,9 @@ FAMILY_NAMES = {'qwen35moe':'Qwen MoE','clover_moe':'Clover MoE','glm5-next':'GL
 
 
 def _metadata(path):
-    sys.path.insert(0, str(SOURCE_ROOT / 'tools'))
+    tools_dir = str(SOURCE_ROOT / 'tools')
+    if tools_dir not in sys.path:
+        sys.path.insert(0, tools_dir)
     from gguf_reader import GGUFFile
     try:
         # The vocabulary arrays are skipped (the chat template is kept): reading them was most of an import.
@@ -270,7 +272,7 @@ def prepare_local_model(config_path):
     if not config.get('_val_prepare_pending'):
         return False
     args = config.get('args') or []
-    model = Path(args[args.index('--model') + 1]) if '--model' in args else None
+    model = Path(args[args.index('--model') + 1]) if '--model' in args[:-1] else None
     token_dir = Path(config.get('tokenizer') or '')
     if not model or not model.is_file():
         raise ValueError('No se encontró el archivo del modelo: ' + str(model or ''))

@@ -688,11 +688,20 @@ def cancel_setup() -> dict:
             raise ValueError('No hay una preparación de Maya que se pueda cancelar.')
         process = _SETUP_PROCESS
         if process and process.poll() is None:
-            result = subprocess.run(['taskkill', '/F', '/T', '/PID', str(process.pid)],
-                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                    creationflags=_WIN_FLAGS, timeout=10)
-            if result.returncode and process.poll() is None:
-                raise ValueError('No se pudo cancelar la preparación de Maya.')
+            try:
+                result = subprocess.run(['taskkill', '/F', '/T', '/PID', str(process.pid)],
+                                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                        creationflags=_WIN_FLAGS, timeout=10)
+            except (OSError, subprocess.TimeoutExpired):
+                result = None
+            if (result is None or result.returncode) and process.poll() is None:
+                try:
+                    process.kill()
+                    process.wait(timeout=5)
+                except (OSError, subprocess.TimeoutExpired):
+                    pass
+                if process.poll() is None:
+                    raise ValueError('No se pudo cancelar la preparación de Maya.')
         _BUILD_STATE['cancelled'] = True
     return build_status()
 

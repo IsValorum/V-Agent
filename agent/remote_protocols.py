@@ -371,7 +371,8 @@ def iter_http_lines(response):
             buf += dec.decompress(chunk)
         except zlib.error:
             if enc == 'deflate' and wbits == zlib.MAX_WBITS:
-                dec = zlib.decompressobj(-zlib.MAX_WBITS)
+                wbits = -zlib.MAX_WBITS
+                dec = zlib.decompressobj(wbits)
                 buf += dec.decompress(chunk)
             else:
                 raise
@@ -472,7 +473,7 @@ def build_provider_headers(cfg, api_key='', *, stream=False, session_id=None, de
 
     if protocol == 'anthropic':
         headers['anthropic-version'] = str(cfg.get('api_version') or DEFAULT_ANTHROPIC_VERSION).strip() or DEFAULT_ANTHROPIC_VERSION
-        merged_beta = _merge_csv_tokens(cfg.get('anthropic_beta'), (extra_headers or {}).get('anthropic-beta'))
+        merged_beta = _merge_csv_tokens(cfg.get('anthropic_beta'))
         if merged_beta:
             headers['anthropic-beta'] = merged_beta
     else:

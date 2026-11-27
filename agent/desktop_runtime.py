@@ -454,7 +454,7 @@ def install(a):
         finally:_clear_hw_cache()
     a.unload_agent_model=_unload
     a.stop_engine=_stop
-    a.start_engine=lambda name=None:original['start_engine'](name) if manager.kind=='strata' else ({'status':'ready','engine_online':True} if manager.kind in ('llama','maya') else manager.connect())
+    a.start_engine=lambda name=None:original['start_engine'](name) if manager.kind=='strata' else ({'status':'ready','engine_online':True} if manager.kind in ('llama','rust','maya') else manager.connect())
     a.tokenizer_del_modelo=lambda *args:original['tokenizer_del_modelo'](*args) if manager.kind=='strata' else None
     a.engine_context=lambda:original['engine_context']() if manager.kind=='strata' else manager.metrics()['engine'].get('max_context')
     old_validate=a.kv_settings.validate
@@ -490,7 +490,7 @@ def install(a):
         return import_external_model(path,name,settings,engine or manager.kind,a.MODEL_PREFERENCES)
 
     def hub_register(path,job):
-        return add_gguf(path,Path(job['name']).stem,engine='llama' if manager.kind=='api' else manager.kind)['id']
+        return add_gguf(path,Path(job['name']).stem,engine='llama' if manager.kind in ('api','maya') else manager.kind)['id']
     hub_downloads=model_hub.Downloads(register=hub_register)
     model_moves=model_mover.ModelMover(hub_downloads.folder,add_gguf)
 
@@ -630,7 +630,7 @@ def install(a):
             if self.path.startswith('/api/harness/hub/') or self.path.startswith('/api/harness/external/'):
                 parts=urllib.parse.urlsplit(self.path);query=urllib.parse.parse_qs(parts.query);arg=lambda key:(query.get(key) or [''])[0]
                 try:
-                    if parts.path=='/api/harness/hub/search':self._json(200,{'models':model_hub.search(arg('q'),arg('sort') or 'downloads',arg('kind') or 'text')})
+                    if parts.path=='/api/harness/hub/search':self._json(200,{'models':model_hub.search(arg('q'),arg('sort') or 'downloads',arg('kind') or 'all')})
                     elif parts.path=='/api/harness/hub/model':
                         from hardware_stats import profile_snapshot
                         hardware=profile_snapshot();gpu=hardware.get('primary_gpu') or {}
@@ -946,7 +946,7 @@ def install(a):
                             except (ValueError,OSError,KeyError,TypeError) as error:done.append({'path':item.get('path'),'error':str(error)[:200]})
                         result={'results':done}
                     elif self.path=='/api/harness/external/move':
-                        if manager.kind!='api' and manager.loaded:raise ValueError('Descarga el modelo en memoria antes de mover archivos.')
+                        if local_model_loaded():raise ValueError('Descarga el modelo en memoria antes de mover archivos.')
                         result=model_moves.start(body.get('items'))
                     elif self.path=='/api/harness/external/folders':
                         action=body.get('action')

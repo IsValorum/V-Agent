@@ -63,26 +63,30 @@ class CdpPage:
                     continue
                 message = json.loads(raw)
                 if "id" in message:
-                    slot = self.pending.get(int(message["id"]))
+                    with self.lock:
+                        slot = self.pending.get(int(message["id"]))
                     if slot:
                         slot["result"] = message
                         slot["event"].set()
                 elif message.get("method"):
                     method = message["method"]
                     params = message.get("params") or {}
-                    if method == "Network.requestWillBeSent":
-                        req_id = params.get("requestId")
-                        req_url = (params.get("request") or {}).get("url")
-                        if req_id and req_url:
-                            self.request_urls[str(req_id)] = str(req_url)
-                            if len(self.request_urls) > 400:
-                                self.request_urls.pop(next(iter(self.request_urls)))
-                    self.events.append((time.time(), method, params))
-                    if len(self.events) > 300:
-                        self.events = self.events[-300:]
+                    with self.lock:
+                        if method == "Network.requestWillBeSent":
+                            req_id = params.get("requestId")
+                            req_url = (params.get("request") or {}).get("url")
+                            if req_id and req_url:
+                                self.request_urls[str(req_id)] = str(req_url)
+                                if len(self.request_urls) > 400:
+                                    self.request_urls.pop(next(iter(self.request_urls)))
+                        self.events.append((time.time(), method, params))
+                        if len(self.events) > 300:
+                            self.events = self.events[-300:]
         except Exception:
             if not self.closed:
-                for slot in list(self.pending.values()):
+                with self.lock:
+                    slots = list(self.pending.values())
+                for slot in slots:
                     slot["event"].set()
             return
 

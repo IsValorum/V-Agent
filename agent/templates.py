@@ -312,6 +312,8 @@ def aplicar(modelo, config_path, dry_run=False):
                                              bool(re.search(r"tool", cuerpo.decode("utf-8", "replace"), re.I)))})
     if e is None:
         registro.append(fila)
+    else:
+        e.update(fila)
     escribir_registro(sorted(registro, key=lambda x: (x.get("model") or "").lower()))
     resultado["accion"] = "aplicada la plantilla del repo (%d B, sha %s, revision %s)" % (len(cuerpo), sha[:12], (commit or "main")[:12])
     resultado["aplicada"] = True

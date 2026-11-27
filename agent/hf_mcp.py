@@ -97,16 +97,18 @@ def call(name,args,policy=POLICY,full_access=False):
         timeout=max(5,min(300,int(args.get('timeout') or options('hf')['command_timeout'])))
         cmd=__import__('runtime_paths').command('hf-cli',*argv)
         flags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0
-        run_env=None
+        run_env={k:v for k,v in os.environ.items() if k!='STRATA_PC_ACCESS_KEY'}
+        anonymous=False
         if argv[:1]!=['auth'] and _token_known_invalid():
-            run_env={k:v for k,v in os.environ.items() if k not in ('HF_TOKEN','HUGGING_FACE_HUB_TOKEN')}
+            run_env={k:v for k,v in run_env.items() if k not in ('HF_TOKEN','HUGGING_FACE_HUB_TOKEN')}
             run_env['HF_HUB_DISABLE_IMPLICIT_TOKEN']='1'
+            anonymous=True
         process=subprocess.run(cmd,cwd=policy.root,stdin=subprocess.DEVNULL,capture_output=True,text=True,
                                encoding='utf-8',errors='replace',timeout=timeout,env=run_env,creationflags=flags)
         output=redact(process.stdout+process.stderr)
-        if process.returncode and run_env is None and 'Invalid user token' in output and argv[:1]!=['auth']:
+        if process.returncode and not anonymous and 'Invalid user token' in output and argv[:1]!=['auth']:
             _mark_token_invalid()
-            anon_env={k:v for k,v in os.environ.items() if k not in ('HF_TOKEN','HUGGING_FACE_HUB_TOKEN')}
+            anon_env={k:v for k,v in run_env.items() if k not in ('HF_TOKEN','HUGGING_FACE_HUB_TOKEN')}
             anon_env['HF_HUB_DISABLE_IMPLICIT_TOKEN']='1'
             process=subprocess.run(cmd,cwd=policy.root,stdin=subprocess.DEVNULL,capture_output=True,text=True,
                                    encoding='utf-8',errors='replace',timeout=timeout,env=anon_env,creationflags=flags)

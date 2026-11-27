@@ -78,7 +78,7 @@ def _file(value):
 KINDS = {'text': 'text-generation', 'vision': 'image-text-to-text'}
 
 
-def search(query='', sort='downloads', kind='text', limit=40):
+def search(query='', sort='downloads', kind='all', limit=40):
     params = {'filter': 'gguf', 'sort': SORTS.get(sort, 'downloads'), 'direction': '-1', 'limit': str(max(1, min(int(limit), 100)))}
     if kind in KINDS:
         params['pipeline_tag'] = KINDS[kind]
@@ -162,7 +162,9 @@ class Downloads:
             raise ValueError('Elige una carpeta completa.')
         folder.mkdir(parents=True, exist_ok=True)
         SETTINGS.parent.mkdir(parents=True, exist_ok=True)
-        SETTINGS.write_text(json.dumps({'folder': str(folder)}, ensure_ascii=False), encoding='utf-8')
+        tmp = SETTINGS.with_suffix('.json.tmp')
+        tmp.write_text(json.dumps({'folder': str(folder)}, ensure_ascii=False), encoding='utf-8')
+        tmp.replace(SETTINGS)
         return self.snapshot()
 
     def snapshot(self):
@@ -250,43 +252,54 @@ class Downloads:
         for part in job['parts']:
             final = target_dir / Path(part['name']).name
             first = first or final
-            if final.is_file() and final.stat().st_size == part['size']:
+            if final.is_file() and part['size'] and final.stat().st_size == part['size']:
                 done += part['size']
                 with self.lock:
                     job['received'] = done
                 continue
             partial = final.with_name(final.name + '.part')
             have = partial.stat().st_size if partial.exists() else 0
+            if part['size'] and have > part['size']:
+                partial.unlink(missing_ok=True)
+                have = 0
             digest = hashlib.sha256()
             if have:
                 with partial.open('rb') as stream:
                     while chunk := stream.read(2**22):
                         digest.update(chunk)
-            url = HUB + '/' + job['repo'] + '/resolve/main/' + urllib.parse.quote(part['name'])
-            headers = {'User-Agent': USER_AGENT}
-            if token:
-                headers['Authorization'] = 'Bearer ' + token
-            if have:
-                headers['Range'] = 'bytes=%d-' % have
-            try:
-                response = _OPENER.open(urllib.request.Request(url, headers=headers), timeout=60)
-            except urllib.error.HTTPError as error:
-                if error.code in (401, 403):
-                    raise ValueError('Este modelo requiere aceptar sus condiciones en Hugging Face e iniciar sesión (hf auth login).') from None
-                raise
-            with response:
-                if have and response.status != 206:
-                    have, digest = 0, hashlib.sha256()
-                with partial.open('ab' if have else 'wb') as output:
-                    size = have
-                    while chunk := response.read(2**20):
-                        with self.lock:
-                            if job['state'] == 'cancelled':
-                                raise ValueError('Descarga cancelada.')
-                            job['received'] = done + size + len(chunk)
-                        output.write(chunk)
-                        digest.update(chunk)
-                        size += len(chunk)
+            if part['size'] and have == part['size']:
+                size = have
+            else:
+                url = HUB + '/' + job['repo'] + '/resolve/main/' + urllib.parse.quote(part['name'])
+                headers = {'User-Agent': USER_AGENT}
+                if token:
+                    headers['Authorization'] = 'Bearer ' + token
+                if have:
+                    headers['Range'] = 'bytes=%d-' % have
+                try:
+                    response = _OPENER.open(urllib.request.Request(url, headers=headers), timeout=60)
+                except urllib.error.HTTPError as error:
+                    if error.code in (401, 403):
+                        raise ValueError('Este modelo requiere aceptar sus condiciones en Hugging Face e iniciar sesión (hf auth login).') from None
+                    if error.code == 416 and have:
+                        have, digest = 0, hashlib.sha256()
+                        headers.pop('Range', None)
+                        response = _OPENER.open(urllib.request.Request(url, headers=headers), timeout=60)
+                    else:
+                        raise
+                with response:
+                    if have and response.status != 206:
+                        have, digest = 0, hashlib.sha256()
+                    with partial.open('ab' if have else 'wb') as output:
+                        size = have
+                        while chunk := response.read(2**20):
+                            with self.lock:
+                                if job['state'] == 'cancelled':
+                                    raise ValueError('Descarga cancelada.')
+                                job['received'] = done + size + len(chunk)
+                            output.write(chunk)
+                            digest.update(chunk)
+                            size += len(chunk)
             if part['size'] and size != part['size']:
                 raise ValueError('La descarga quedó incompleta; vuelve a intentarlo para continuarla.')
             with self.lock:

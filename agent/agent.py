@@ -718,7 +718,7 @@ def is_engine_process(process):
     expected = os.path.normcase(str((SOURCE_ROOT / "serve" / "server.py").resolve()))
     try:
         return ("strata-server" in process.cmdline() and Path(process.exe()).resolve()==Path(sys.executable).resolve()) or any(os.path.normcase(os.path.abspath(arg)) == expected for arg in process.cmdline()[1:] if not arg.startswith("--"))
-    except (OSError, ValueError):
+    except Exception:
         return False
 
 
@@ -727,10 +727,13 @@ def stop_engine(force=False, clear_preparation=True):
     import psutil
     pid = port_pid()
     process = None
-    if pid:
-        process = psutil.Process(pid)
-    elif _SERVER_PROCESS is not None and _SERVER_PROCESS.poll() is None:
-        process = psutil.Process(_SERVER_PROCESS.pid)
+    try:
+        if pid:
+            process = psutil.Process(pid)
+        elif _SERVER_PROCESS is not None and _SERVER_PROCESS.poll() is None:
+            process = psutil.Process(_SERVER_PROCESS.pid)
+    except psutil.NoSuchProcess:
+        process = None
     if process is None:
         # Windows can report PID 0 for a live listener. Never treat that as
         # proof that Strata stopped: recover only an unambiguous, verified
@@ -2695,7 +2698,14 @@ class Handler(BaseHTTPRequestHandler):
         headers = {key: value for key, value in self.headers.items()
                    if key.lower() not in ("host", "connection", "content-length", "origin", "referer")}
         headers.update(Origin=STRATA, Referer=STRATA + "/")
-        length = int(self.headers.get("Content-Length") or 0)
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            self._json(400, {"error": "Content-Length no válido."})
+            return
+        if not 0 <= length <= 64 * 1024 * 1024:
+            self._json(413, {"error": "Solicitud demasiado grande o inválida."})
+            return
         body = self.rfile.read(length) if self.command == "POST" else None
         request = urllib.request.Request(STRATA + self.path, data=body, headers=headers, method=self.command)
         try:
@@ -3005,6 +3015,8 @@ class Handler(BaseHTTPRequestHandler):
         if self.path in ('/api/draft', '/api/draft/resume'):
             try:
                 size = int(self.headers.get("Content-Length") or 0)
+                if not 0 < size <= 65536:
+                    raise ValueError("Solicitud no válida.")
                 body = json.loads(self.rfile.read(size) or b"{}")
                 if not isinstance(body, dict) or not body.get("conversation_id"):
                     raise ValueError("Abre la conversación del borrador.")
@@ -3026,6 +3038,8 @@ class Handler(BaseHTTPRequestHandler):
             # comprobacion de que arranca no puede depender de que el modelo acierte.
             try:
                 n = int(self.headers.get("Content-Length") or 0)
+                if not 0 < n <= 32 * 1024 * 1024:
+                    raise ValueError('Solicitud vacía o demasiado grande.')
                 body = json.loads(self.rfile.read(n) or b"{}")
             except Exception:
                 self._json(400, {'error': 'JSON no valido'})

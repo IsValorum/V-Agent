@@ -481,6 +481,7 @@ async function generateResponse(replaceIndex=null) {
       else if(['tool_draft','tool','tool_state','tool_result'].includes(event.type)){
         recordToolEvent(toolTrace,event);
         traceDirty = true;
+        if(event.type==='tool_result'&&event.notice?.kind==='context')generation.usage=null;
         if(!finalText)streamNote=uiText(event.type==='tool_draft'?'Redactando llamada…':event.type==='tool_result'?'Preparando respuesta…':'Consultando herramienta…');
       }
       else if(event.type==='usage'){

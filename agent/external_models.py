@@ -113,9 +113,9 @@ def scan_lmstudio():
 
 
 def export_lmstudio(path, settings):
-    root, gguf = lmstudio_root(), Path(path)
+    root, gguf = lmstudio_root().resolve(), Path(path).resolve()
     try:
-        gguf.resolve().relative_to(root.resolve())
+        gguf.relative_to(root)
     except ValueError:
         raise ValueError('LM Studio solo ve los modelos que están dentro de su carpeta (%s).' % root) from None
     target = _lm_config_path(root, gguf)

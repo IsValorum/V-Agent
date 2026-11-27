@@ -126,8 +126,14 @@ class Console:
 
     def _kill(self, process, reader):
         if process is not None and process.poll() is None:
-            subprocess.run(['taskkill', '/F', '/T', '/PID', str(process.pid)], capture_output=True,
-                           creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0), timeout=8)
+            try:
+                subprocess.run(['taskkill', '/F', '/T', '/PID', str(process.pid)], capture_output=True,
+                               creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0), timeout=8)
+            except (OSError, subprocess.TimeoutExpired):
+                try:
+                    process.kill()
+                except OSError:
+                    pass
             try:
                 process.wait(timeout=5)
             except subprocess.TimeoutExpired:
@@ -142,7 +148,8 @@ class Console:
             reader.join(timeout=3)
 
     def _start_session(self, shell, cwd):
-        environment = {**os.environ, 'PYTHONUTF8': '1', 'PYTHONIOENCODING': 'utf-8'}
+        environment = {k: v for k, v in os.environ.items() if k != 'STRATA_PC_ACCESS_KEY'}
+        environment.update({'PYTHONUTF8': '1', 'PYTHONIOENCODING': 'utf-8'})
         if shell == 'powershell':
             argv = ['powershell.exe', '-NoLogo', '-NoProfile', '-NoExit', '-Command', '-']
         else:

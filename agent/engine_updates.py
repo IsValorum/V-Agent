@@ -303,8 +303,8 @@ class Updates:
                     suffix=(' ('+detail[-1][:180]+')') if detail else f' (código {result.returncode})'
                     raise ValueError('El precompilado no puede iniciarse; se conserva el motor anterior.'+suffix)
                 record={'tag':release['tag'],'executable':str(exe),'repository':FEEDS[key][0],'files':files}
-                active=active_installations();active[key]=record;atomic_json(self.root/'active.json',active)
                 with self.lock:
+                    active=active_installations();active[key]=record;atomic_json(self.root/'active.json',active)
                     entry=self.state.setdefault('releases',{}).setdefault(key,{})
                     entry['current']=release['tag'];entry['available']=False;entry.pop('error',None)
                     if self.progress:self.progress['phase']='complete'

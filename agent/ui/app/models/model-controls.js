@@ -361,21 +361,26 @@ let contextCapacity=null;
 // shown (llama.cpp counts its live tokens slightly differently) must not move the meter backwards.
 // The exact final count is shown when the reply ends.
 function raiseGenerationUsage(generation,usage){
+  if(!usage||!Number.isFinite(usage.prompt_tokens))return;
+  const norm={...usage,prompt_tokens:usage.prompt_tokens,completion_tokens:Number.isFinite(usage.completion_tokens)?usage.completion_tokens:0,limit:usage.limit??generation.usage?.limit};
   const total=value=>value?(value.prompt_tokens||0)+(value.completion_tokens||0):0;
-  if(generation.usage&&total(usage)<total(generation.usage))return;
-  generation.usage={...usage,limit:usage.limit??generation.usage?.limit};syncContextMeter();
+  generation.contextSeen=true;
+  if(generation.usage&&total(norm)<total(generation.usage))return;
+  generation.usage=norm;syncContextMeter();
 }
 async function pollLiveContext(generation){
   if(activeGeneration!==generation||generation.stopped||generation.contextDone)return;
   try{
-    const data=await requestJSON('/api/context/usage',{cache:'no-store',signal:AbortSignal.any([generation.controller.signal,AbortSignal.timeout(2500)])});
+    const signal=typeof AbortSignal!=='undefined'&&typeof AbortSignal.any==='function'&&typeof AbortSignal.timeout==='function'
+      ?AbortSignal.any([generation.controller.signal,AbortSignal.timeout(2500)]):generation.controller.signal;
+    const data=await requestJSON('/api/context/usage',{cache:'no-store',signal});
     const usage=data.usage;
     if(activeGeneration===generation&&!generation.contextDone&&data.run_id===generation.runId&&data.conversation_id===activeChatId()&&data.model===generation.provenance.model&&usage&&Number.isFinite(usage.used)){
       if(usage.source==='live')generation.contextSeen=true;
       if(generation.contextSeen)raiseGenerationUsage(generation,{prompt_tokens:usage.prompt_tokens,completion_tokens:usage.completion_tokens,limit:usage.limit});
     }
   }catch{}
-  finally{if(activeGeneration===generation&&!generation.stopped&&!generation.contextDone)generation.contextTimer=setTimeout(()=>pollLiveContext(generation),700);}
+  finally{if(activeGeneration===generation&&!generation.stopped&&!generation.contextDone)generation.contextTimer=setTimeout(()=>pollLiveContext(generation),350);}
 }
 function formatTokens(value) {return Math.round(value).toLocaleString(window.VALI18n?.locale||'es-ES');}
 function syncContextMeter() {

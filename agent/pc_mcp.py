@@ -354,9 +354,16 @@ def job_list(args):
 def job_stop(args):
     job = _job(args.get("job_id"))
     if job["process"].poll() is None:
-        subprocess.run([os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32", "taskkill.exe"),
-                        "/F", "/T", "/PID", str(job["process"].pid)],
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15)
+        try:
+            subprocess.run([os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32", "taskkill.exe"),
+                            "/F", "/T", "/PID", str(job["process"].pid)],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15,
+                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        except (OSError, subprocess.TimeoutExpired):
+            try:
+                job["process"].kill()
+            except OSError:
+                pass
     with JOBS_LOCK:
         return json.dumps(_job_view(job), ensure_ascii=False)
 
@@ -471,9 +478,12 @@ def shell_run(args, policy=None):
             p.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
             timed_out = True
-            subprocess.run([os.path.join(windows, "System32", "taskkill.exe"), "/F", "/T", "/PID", str(p.pid)],
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10,
-                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            try:
+                subprocess.run([os.path.join(windows, "System32", "taskkill.exe"), "/F", "/T", "/PID", str(p.pid)],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10,
+                               creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            except (OSError, subprocess.TimeoutExpired):
+                pass
             p.kill()
             try:
                 p.wait(timeout=2)

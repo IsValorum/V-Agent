@@ -13,6 +13,7 @@ Flags V-Agent already sets from its own controls (context, KV format, layers, ba
 checkpoints, draft model, MTP for Strata, vision, template, VRAM reserve) are deliberately not here.
 """
 from functools import lru_cache
+import math
 import re
 import subprocess
 
@@ -383,7 +384,7 @@ def _check(option, value):
             raise ValueError(f"Valor no válido para «{option['label']}».")
         return value
     if kind in ('int', 'float'):
-        if isinstance(value, bool) or not isinstance(value, (int, float)) or (kind == 'int' and int(value) != value):
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or (kind == 'int' and int(value) != value):
             raise ValueError(f"«{option['label']}» debe ser un número{' entero' if kind == 'int' else ''}.")
         value = int(value) if kind == 'int' else float(value)
         if not option['min'] <= value <= option['max']:

@@ -550,7 +550,7 @@ class EngineManager:
             try:
                 subprocess.run(['taskkill','/F','/T','/PID',str(process.pid)],capture_output=True,creationflags=subprocess.CREATE_NO_WINDOW,timeout=20)
                 process.wait(timeout=10)
-            except subprocess.TimeoutExpired:
+            except (OSError, subprocess.TimeoutExpired):
                 # taskkill or the exit itself hung: stop the process directly rather than fail the unload.
                 process.kill()
         config = getattr(self, '_maya_run_config', None)
@@ -811,12 +811,23 @@ class EngineManager:
         req_headers=self.headers(stream=bool(body.get('stream',True)),session_id=session_id)
         connection=(http.client.HTTPSConnection(target.hostname,target.port or 443,timeout=timeout,context=ssl.create_default_context())
                     if target.scheme=='https' else http.client.HTTPConnection(target.hostname,target.port or 80,timeout=timeout))
-        self.live=True;self.last_usage={}
+        if conv_id != getattr(self,'_last_conv_id',None):
+            self.last_usage={};self._last_conv_id=conv_id
+        self.live=True;self._req_seq=getattr(self,'_req_seq',0)+1;req_seq=self._req_seq
         # What the engine itself reports during this request (never a guess): llama-server's per-chunk
         # timings and prompt progress, a provider's usage when it sends it before the end (Claude's
-        # message_start, providers that stream usage). Strata Rust and Maya are asked directly (metrics()).
-        self.live_usage={};self.live_timing={};self.live_progress=None;self.live_reading=True
+        # message_start, providers that stream usage), and Strata Rust's own /v1/messages/count_tokens + /api/stats.
+        self.live_usage={};self.live_timing={};self.live_progress=None;self.live_reading=True;self.live_prompt_tokens=None
         self._live_chars=len(json.dumps(body.get('messages') or [],ensure_ascii=False))+len(json.dumps(body.get('tools') or [],ensure_ascii=False))
+        if self.kind=='rust' and self.loaded:
+            req_msgs=body.get('messages') or [];req_tools=body.get('tools') or None
+            def _count_live_prompt(seq=req_seq,msgs=req_msgs,tls=req_tools):
+                try:
+                    counted=self.count_prompt_tokens(msgs,tls)
+                    if isinstance(counted,int) and counted>=0 and getattr(self,'_req_seq',0)==seq and self.live:
+                        self.live_prompt_tokens=counted
+                except Exception:pass
+            threading.Thread(target=_count_live_prompt,daemon=True,name='engine-live-count').start()
         try:
             if control.cancelled.is_set():return
             try:connection.connect()
@@ -909,7 +920,7 @@ class EngineManager:
                 # fragment, not an answer, and must not be shown as complete.
                 raise ValueError('La respuesta del proveedor se cortó antes de terminar (la conexión se cerró a mitad). '
                                  'Vuelve a intentarlo; si se repite, revisa la conexión o el estado del proveedor.')
-        finally:self.live=False;self.live_reading=False;control.detach(connection);connection.close()
+        finally:self.live=False;self.live_reading=False;self.live_prompt_tokens=None;control.detach(connection);connection.close()
     def _engine_json(self,path,body=None,timeout=1.5):
         """A local engine's own JSON endpoint (port 19383, its private key), or None."""
         try:
@@ -965,10 +976,11 @@ class EngineManager:
             tok_s=self._counter_rate(generated if busy else None)
             timing=strata_rust_timings(newest)
             requests=[{'prompt_tokens':newest.get('prompt_tokens'),'output_tokens':newest.get('completion_tokens')}] if newest else []
-            # The prompt of the request being written is counted by the engine only when it ends: until then
-            # the meter shows the last measured request, not a guess.
+            live_prompt=number(getattr(self,'live_prompt_tokens',None)) if busy else None
+            if live_prompt is not None and generated is None and busy:
+                generated=0
             return {'engine':{'max_context':number(data.get('ctx')) or getattr(self,'loaded_context',None)},
-                    'live':{'state':state,'prompt_tokens':None,'generated':generated,'tok_s':tok_s},
+                    'live':{'state':state,'prompt_tokens':int(live_prompt) if live_prompt is not None else None,'generated':generated,'tok_s':tok_s},
                     'requests':requests,'last':{'decode':timing.get('predicted_per_second'),'prefill':timing.get('prompt_per_second')}}
         limit=(self.selected_remote() or {}).get('context') if self.kind=='api' else getattr(self,'loaded_context',None) if self.kind in ('rust','maya') and self.loaded else None
         prompt=self.last_usage.get('prompt_tokens');generated=self.last_usage.get('completion_tokens')
@@ -985,18 +997,21 @@ class EngineManager:
             if self.live:
                 timing=getattr(self,'live_timing',{}) or {};progress=getattr(self,'live_progress',None) or {}
                 if timing:
-                    live_prompt=(timing.get('prompt_n') or 0)+(timing.get('cache_n') or 0);live_generated=timing.get('predicted_n') or 0
+                    t_prompt=(timing.get('prompt_n') or 0)+(timing.get('cache_n') or 0)
+                    if t_prompt>0:live_prompt=t_prompt
+                    live_generated=timing.get('predicted_n') or 0
                     if live_generated>0:tok_s=number(timing.get('predicted_per_second'))
                     elif number(timing.get('prompt_per_second')):prefill=round(timing['prompt_per_second'],1)
                 if progress:
                     prompt_total=number(progress.get('total'));prompt_read=number(progress.get('processed'))
-                    if prompt_total is not None and not live_generated:live_prompt=prompt_total
-                if not timing and slot.get('is_processing'):
-                    # Before the first chunk: the slot's own counters.
+                    if prompt_total is not None and prompt_total>0 and (live_prompt is None or not live_generated):live_prompt=prompt_total
+                if live_prompt is None and slot.get('is_processing'):
+                    # Before the first chunk (or before timings report prompt_n/cache_n): the slot's own counters.
                     next_token=slot.get('next_token') or {}
                     if isinstance(next_token,list):next_token=next(iter(next_token),{})
-                    live_prompt=slot.get('n_prompt_tokens') if isinstance(slot.get('n_prompt_tokens'),int) else (next_token or {}).get('n_prompt_tokens')
-                    live_generated=(next_token or {}).get('n_decoded')
+                    slot_prompt=slot.get('n_prompt_tokens') if isinstance(slot.get('n_prompt_tokens'),int) else (next_token or {}).get('n_prompt_tokens')
+                    if isinstance(slot_prompt,int) and slot_prompt>0:live_prompt=slot_prompt
+                    if live_generated is None:live_generated=(next_token or {}).get('n_decoded')
                 if tok_s is not None:tok_s=round(tok_s,1)
         elif self.kind=='api' and self.live:
             live_prompt=(getattr(self,'live_usage',{}) or {}).get('prompt_tokens')
@@ -1028,7 +1043,12 @@ class EngineManager:
             return counted.get('count') if counted and isinstance(counted.get('count'),int) else None
         claude_messages=[{'role':m.get('role'),'content':m.get('content')} for m in messages if isinstance(m,dict) and m.get('role') in ('user','assistant')]
         if self.kind=='rust' and self.loaded:
-            counted=self._engine_json('/v1/messages/count_tokens',{'model':str(self.loaded),'messages':claude_messages,**({'tools':claude_tools} if claude_tools else {})},timeout=15)
+            try:
+                req=claude_payload({'model':str(self.loaded),'messages':messages,**({'tools':openai_tools} if openai_tools else {})},DEFAULT_ANTHROPIC_VERSION)
+                req.pop('max_tokens',None);req.pop('stream',None);req.pop('tool_choice',None)
+            except Exception:
+                req={'model':str(self.loaded),'messages':claude_messages,**({'tools':claude_tools} if claude_tools else {})}
+            counted=self._engine_json('/v1/messages/count_tokens',req,timeout=15)
             return counted.get('input_tokens') if counted and isinstance(counted.get('input_tokens'),int) else None
         if self.kind=='api' and self.settings.get('api',{}).get('protocol')=='anthropic' and self.selected_remote():
             try:

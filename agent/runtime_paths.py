@@ -176,19 +176,22 @@ def bootstrap():
         if cfg.get('vision'):cfg['vision']['exe']=_managed_vision_encoder(cfg['vision'].get('exe'))
         if cfg.get('agent_vision'):cfg['agent_vision']['exe']=_managed_vision_encoder(cfg['agent_vision'].get('exe'))
         args=cfg.get('args',[])
-        if '--expert-profile' in args:
+        if '--expert-profile' in args[:-1]:
             old=Path(args[args.index('--expert-profile')+1]);profile=assets/identifier/'expert-profile.txt'
             args[args.index('--expert-profile')+1]=str(profile if profile.exists() else old)
         dest.write_text(json.dumps(cfg,ensure_ascii=False,indent=2),encoding='utf8')
     for dest in CONFIG_ROOT.glob('strata-*.json'):
-        cfg=json.loads(dest.read_text(encoding='utf8'))
-        if cfg.get('_val_managed_engine'):
+        try:
+            cfg=json.loads(dest.read_text(encoding='utf-8-sig'))
+        except (OSError,ValueError):
+            continue
+        if isinstance(cfg,dict) and cfg.get('_val_managed_engine') and cfg.get('model_name'):
             active_exe=active_engine_executable('strata',RUNTIME_ROOT/'strata/strata-poly.exe')
             changed={**cfg,'exe':str(active_exe),'lib_dirs':[str(active_exe.parent/'lib'),str(active_exe.parent)],'cwd':str(CONFIG_ROOT),'port':19382}
             identifier=cfg['model_name'];changed['tokenizer']=str(assets/identifier/'tokenizer')
             changed['log']=str(LOG_ROOT/(dest.stem+'.log'))
             args=list(cfg.get('args',[]));profile=assets/identifier/'expert-profile.txt'
-            if '--expert-profile' in args and profile.exists():args[args.index('--expert-profile')+1]=str(profile)
+            if '--expert-profile' in args[:-1] and profile.exists():args[args.index('--expert-profile')+1]=str(profile)
             changed['args']=args
             for key in ('vision','agent_vision'):
                 if cfg.get(key):changed[key]={**cfg[key],'exe':_managed_vision_encoder(cfg[key].get('exe'))}
@@ -200,7 +203,11 @@ def bootstrap():
         servers[name]={'command':argv[0],'args':argv[1:],'cwd':str(DATA_ROOT),
             'timeout_ms':900000 if role=='hf' else 315000 if role=='pc' else 60000,
             'env':{'PYTHONUTF8':'1','PYTHONIOENCODING':'utf-8','STRATA_AGENT_DATA':str(DATA_ROOT)}}
-    existing=json.loads(mcp.read_text(encoding='utf8')) if mcp.exists() else {'mcpServers':{}}
+    try:
+        existing=json.loads(mcp.read_text(encoding='utf-8-sig')) if mcp.exists() else {'mcpServers':{}}
+        if not isinstance(existing,dict):existing={'mcpServers':{}}
+    except (OSError,ValueError):
+        existing={'mcpServers':{}}
     # Refresh bundled worker locations after moving/updating the portable app;
     # keep manually registered servers and their options intact.
     for name,entry in servers.items():

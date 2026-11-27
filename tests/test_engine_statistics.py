@@ -139,6 +139,43 @@ class LlamaStream(unittest.TestCase):
         self.assertEqual(sum(b'"timings"' in line for line in out), 1)
         self.assertEqual(m.metrics()['last'], {'decode': 118.0, 'prefill': 1100.0})
 
+    def test_rust_live_prompt_tokens_use_full_engine_count_only(self):
+        import agent
+        rust = manager('rust', live=True)
+        rust.loaded_context = 32768
+        rust.live_prompt_tokens = 2048
+        with patch.object(EngineManager, '_engine_json', return_value={'busy': True, 'live_tokens': 37, 'ctx': 32768, 'recent': []}):
+            u = agent.context_usage(rust.metrics(), True)
+        self.assertEqual((u['prompt_tokens'], u['completion_tokens'], u['used'], u['source']), (2048, 37, 2085, 'live'))
+
+        # When idle, live_prompt_tokens is never reported as live.
+        with patch.object(EngineManager, '_engine_json', return_value={'busy': False, 'live_tokens': 0, 'ctx': 32768, 'recent': []}):
+            u_idle = agent.context_usage(rust.metrics(), True)
+        self.assertIsNone(u_idle['used'])
+
+        # Without an engine count, Strata Rust never invents a prompt token count.
+        rust.live_prompt_tokens = None
+        with patch.object(EngineManager, '_engine_json', return_value={'busy': True, 'live_tokens': 37, 'ctx': 32768, 'recent': []}):
+            u_none = agent.context_usage(rust.metrics(), True)
+        self.assertIsNone(u_none['used'])
+
+        # count_prompt_tokens on Strata Rust preserves system prompt and tool messages (never drops them).
+        captured = {}
+        def fake_json(path, body=None, timeout=15):
+            captured['path'] = path; captured['body'] = body
+            return {'input_tokens': 1234}
+        with patch.object(EngineManager, '_engine_json', side_effect=fake_json):
+            n = rust.count_prompt_tokens([
+                {'role': 'system', 'content': 'Be helpful.'},
+                {'role': 'user', 'content': 'Check files'},
+                {'role': 'assistant', 'content': '', 'tool_calls': [{'id': 'c1', 'type': 'function', 'function': {'name': 'fs_list', 'arguments': '{}'}}]},
+                {'role': 'tool', 'tool_call_id': 'c1', 'content': 'a.txt'},
+            ])
+        self.assertEqual(n, 1234)
+        self.assertEqual(captured['path'], '/v1/messages/count_tokens')
+        self.assertIn('system', captured['body'])
+        self.assertTrue(any(isinstance(b, dict) and b.get('type') == 'tool_result' for m in captured['body']['messages'] for b in m['content']))
+
 
 if __name__ == '__main__':
     unittest.main()

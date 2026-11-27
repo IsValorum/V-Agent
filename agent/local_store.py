@@ -161,7 +161,10 @@ class RunJournal:
             except queue.Full:continue
         raise OSError(self.error or 'Local run journal stopped.')
     def close(self, status):
-        if self.thread.is_alive():self.queue.put(None);self.thread.join(10)
+        if self.thread.is_alive():
+            try:self.queue.put(None,timeout=2)
+            except queue.Full:pass
+            self.thread.join(10)
         if self.temporary:
             shutil.rmtree(self.root,ignore_errors=True);return
         self.meta['status']=status;self.meta['error']=self.error;atomic_json(self.root/'meta.json',self.meta)

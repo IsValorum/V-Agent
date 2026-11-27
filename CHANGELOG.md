@@ -4,6 +4,16 @@ All notable changes to V-Agent are listed here. Versions follow [Semantic Versio
 Minor updates delivered through the signed components channel are numbered per version:
 **1.0.0 C1**, **1.0.0 C2**… They change only the listed parts and never the version number.
 
+## 1.1.18
+
+Live context tracking across all four engines, Models window defaulting to All, and comprehensive stability and reliability fixes across the runtime, engines, MCP servers, UI, and desktop shell.
+
+- **Live context meter during tool execution (`agent/engine_manager.py`, `agent/ui/app/models/model-controls.js`, `agent/ui/app/chat/composer.js`):** The chat context indicator now updates live in real time even while tools are running across all 4 engines (llama.cpp, Strata, Strata Rust, Project Maya) and APIs, using only real token usage reported by the engines.
+- **Models window default filter (`agent/ui/app/models/models.js`, `agent/model_hub.py`, `agent/desktop_runtime.py`):** The Models browser now defaults to **All** (`Todos`) instead of Text-only.
+- **Engine options, UI styles, and settings reliability (`agent/ui/app/settings/client-preferences.js`, `agent/ui/app/models/models.js`):** Unified engine options across all engines starting at Auto, applied Glass/Soft/Art Deco appearance presets, prevented stale async responses from overwriting the selected model card, and ensured closing Settings without applying properly resets pending Strata, Strata Rust, and Maya edits.
+- **Core runtime, engines, and storage hardening (`agent/agent.py`, `agent/desktop_runtime.py`, `agent/local_store.py`, `agent/engine_manager.py`, `agent/engine_options.py`, `agent/vram_policy.py`, `agent/maya_engine.py`, `agent/templates.py`, `agent/remote_protocols.py`, `agent/model_hub.py`, `agent/model_import.py`, `agent/external_models.py`, `agent/engine_updates.py`, `agent/components.py`, `agent/runtime_paths.py`):** Atomic writes for `hub.json`, `active.json`, and VRAM configs; safer `.part` download resumption (including HTTP 416 handling); finite-number validation for engine options; non-blocking journal shutdown; request body size guards; and safer process termination fallbacks.
+- **MCP servers, sandbox, and desktop shell (`agent/admin_mcp.py`, `agent/pc_mcp.py`, `agent/computer_mcp.py`, `agent/browser_mcp.py`, `agent/hf_mcp.py`, `agent/sandbox_exec.py`, `agent/local_console.py`, `agent/render_check.py`, `agent/doc_extractor.py`, `desktop/src-tauri/src/main.rs`):** Serialized admin named-pipe requests with matching command timeouts, UTF-16 surrogate pair support and guaranteed key-release in desktop typing, thread-safe CDP state in autonomous browser, stripped internal access keys from subprocess environments, single-JSON argument passing in `browser_tab_dom`, finite bounds validation for new browser tabs, and guaranteed child process cleanup on exit.
+
 ## 1.1.17
 
 Faster web search and MCP tools, plus full support for DSpark / DFlash speculative draft models and companion files.

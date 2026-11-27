@@ -193,6 +193,7 @@ fn set_bounds(view:&Webview,x:f64,y:f64,w:f64,h:f64)->Result<(),String>{
 #[tauri::command]
 async fn browser_tab_open(app:AppHandle,label:String,url:String,x:f64,y:f64,w:f64,h:f64)->Result<BrowserState,String>{
  if !valid_label(&label){return Err("Identificador de pestaña no válido.".into());}
+ if ![x,y,w,h].iter().all(|value|value.is_finite()){return Err("Medidas de navegador no válidas.".into());}
  let target=web_url(&url)?;
  if let Some(view)=tab(&app,&label){
   set_bounds(&view,x,y,w,h)?;
@@ -272,14 +273,9 @@ async fn browser_tab_dom(app:AppHandle,label:String,action:String,selector:Optio
  const ACTIONS:[&str;6]=["snapshot","text","click","fill","press","eval"];
  if !ACTIONS.contains(&action.as_str()){return Err("Acción de navegador no admitida.".into());}
  let view=tab(&app,&label).ok_or("La pestaña del navegador no existe.")?;
- let js=r#"(() => {
+ let args=serde_json::json!({"action":action,"selector":selector,"text":text,"key":key,"script":script,"maxChars":max_chars.unwrap_or(12000).clamp(500,20000)}).to_string();
+ let js=r#"(({action, selector, text, key, script, maxChars}) => {
   try {
-    const action = __ACTION__;
-    const selector = __SELECTOR__;
-    const text = __TEXT__;
-    const key = __KEY__;
-    const script = __SCRIPT__;
-    const maxChars = __MAX__;
     const clean = value => String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
     const visible = el => {
       const style = (el.ownerDocument.defaultView || window).getComputedStyle(el);
@@ -431,13 +427,8 @@ async fn browser_tab_dom(app:AppHandle,label:String,action:String,selector:Optio
   } catch (error) {
     return {ok: false, error: String(error && error.stack || error)};
   }
-})()"#
- .replace("__ACTION__",&serde_json::to_string(&action).unwrap())
- .replace("__SELECTOR__",&serde_json::to_string(&selector).unwrap())
- .replace("__TEXT__",&serde_json::to_string(&text).unwrap())
- .replace("__KEY__",&serde_json::to_string(&key).unwrap())
- .replace("__SCRIPT__",&serde_json::to_string(&script).unwrap())
- .replace("__MAX__",&max_chars.unwrap_or(12000).clamp(500,20000).to_string());
+})(__ARGS__)"#
+ .replace("__ARGS__",&args);
  let (sender,receiver)=std::sync::mpsc::channel::<String>();
  view.eval_with_callback(js,move|value|{let _=sender.send(value);}).map_err(|error|error.to_string())?;
  let value=std::thread::spawn(move||receiver.recv_timeout(Duration::from_secs(15))).join()
@@ -631,7 +622,7 @@ fn main(){
   if let Some(mut process)=owned.lock().unwrap().take(){
    // Allow disconnected streams to save their final draft before closing our tree.
    std::thread::sleep(Duration::from_millis(700));
-   if matches!(process.try_wait(),Ok(None)){let _=Command::new("taskkill").args(["/F","/T","/PID",&process.id().to_string()]).creation_flags(0x08000000).stdout(Stdio::null()).stderr(Stdio::null()).status();let _=process.wait();}
+   if matches!(process.try_wait(),Ok(None)){let killed=Command::new("taskkill").args(["/F","/T","/PID",&process.id().to_string()]).creation_flags(0x08000000).stdout(Stdio::null()).stderr(Stdio::null()).status().map(|s|s.success()).unwrap_or(false);if !killed{let _=process.kill();}let _=process.wait();}
   }
  }});
 }
