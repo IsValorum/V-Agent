@@ -127,27 +127,38 @@ function setupEngineOptions(){
   const box=document.createElement('details');box.id='engineOptions';box.className='settings-group engine-options';
   box.innerHTML='<summary><span id="engineOptionsTitle"></span><span id="engineOptionsCount" class="mini"></span></summary>'+
     '<div id="engineOptionsBody" class="engine-options-body"></div><p id="engineOptionsStatus" class="mini" role="status"></p>';
-  // Under the engine card, opened by its "Advanced settings" button, like Project Maya's settings.
-  box.hidden=true;
-  const quick=document.querySelector('#controls-model .engine-quick'),pane=document.getElementById('model-load-pane');
-  if(quick)quick.after(box);else if(pane)pane.append(box);else return;
+  // In the Advanced tab, right after the engine's load settings, always listed (folded) for an engine that has
+  // options: it used to stay hidden until the small "Advanced settings" button of the engine card was found.
+  if(!placeEngineOptions(box))return;
   box.addEventListener('toggle',()=>{if(box.open)loadEngineOptions();syncEngineOptionsButton();});
   document.getElementById('composerControls')?.addEventListener('fw:open',()=>{engineOptionsCatalog=null;syncEngineOptions();});
   window.VALI18n?.onChange?.(()=>renderEngineOptions());
   syncEngineOptions();
+}
+const ENGINE_OPTION_NAMES={llama:'llama.cpp',strata:'Strata',rust:'Strata Rust',maya:'Project Maya'};
+function placeEngineOptions(box){
+  const after=document.getElementById('engineLoadGroup'),pane=document.getElementById('model-load-pane');
+  if(after){if(after.nextElementSibling!==box)after.after(box);return true;}
+  if(!pane)return false;
+  const advanced=document.getElementById('loadAdvanced');
+  if(advanced){if(advanced.previousElementSibling!==box)advanced.before(box);}else if(box.parentElement!==pane)pane.append(box);
+  return true;
 }
 function syncEngineOptionsButton(){
   const box=document.getElementById('engineOptions'),button=document.getElementById('mayaQuickAdvanced');
   if(box&&button&&activeEngine!=='maya')button.setAttribute('aria-expanded',String(!box.hidden&&box.open));
 }
 function toggleEngineOptions(){
+  // The engine card's "Advanced settings": go to the Advanced tab and unfold the engine's options there.
   const box=document.getElementById('engineOptions');if(!box||!ENGINE_OPTION_KINDS.includes(activeEngine))return;
-  const open=box.hidden||!box.open;box.hidden=!open;box.open=open;syncEngineOptionsButton();
-  if(open){loadEngineOptions();box.scrollIntoView({block:'nearest'});}
+  placeEngineOptions(box);box.hidden=false;
+  if(typeof setModelSection==='function')setModelSection('load');
+  box.open=true;loadEngineOptions();syncEngineOptionsButton();
+  requestAnimationFrame(()=>box.scrollIntoView({block:'start',behavior:'smooth'}));
 }
 function syncEngineOptions(){
   const box=document.getElementById('engineOptions');if(!box)return;
-  if(!ENGINE_OPTION_KINDS.includes(activeEngine))box.hidden=true;
+  placeEngineOptions(box);box.hidden=!ENGINE_OPTION_KINDS.includes(activeEngine);
   syncEngineOptionsButton();
   const model=document.getElementById('model')?.value;engineCurrent={...(modelPreferences[model]?.engine||{})};
   if(engineOptionsCatalog&&(engineOptionsCatalog.engine!==activeEngine||activeEngine==='maya'&&(engineOptionsCatalog.model||'')!==(model||'')))engineOptionsCatalog=null;
@@ -183,7 +194,7 @@ function renderEngineOptions(){
   const body=document.getElementById('engineOptionsBody');if(!body)return;
   const box=document.getElementById('engineOptions'),model=document.getElementById('model')?.value;
   box.dataset.signature=JSON.stringify([activeEngine,model,engineCurrent,!!engineOptionsCatalog,busy||engineBusy]);
-  document.getElementById('engineOptionsTitle').textContent=uiText('Opciones del motor');
+  document.getElementById('engineOptionsTitle').textContent=uiText('Opciones del motor')+(ENGINE_OPTION_NAMES[activeEngine]?' · '+ENGINE_OPTION_NAMES[activeEngine]:'');
   const data=engineOptionsCatalog;body.replaceChildren();
   const status=document.getElementById('engineOptionsStatus'),count=engineOptionsChanged();
   document.getElementById('engineOptionsCount').textContent=count?uiText('Cambiadas')+': '+count:'';

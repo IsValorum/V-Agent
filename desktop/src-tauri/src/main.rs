@@ -490,9 +490,19 @@ fn open_engine_folder(app:AppHandle,folder:String)->Result<(),String>{
  let dir=match folder.as_str(){
   "bundled"=>std::env::current_exe().map_err(|e|e.to_string())?.parent().ok_or("No se encontró la carpeta del ejecutable.")?.join("core/lib/runtime"),
   "updates"=>user_data().join("engine-updates"),
+  // The models folder: the one chosen in the Models window (hub.json), else the default. Created when missing,
+  // and opened only if it is a folder (never a file named there).
+  "models"=>{
+   let data=user_data();
+   let chosen=std::fs::read_to_string(data.join("hub.json")).ok().and_then(|text|serde_json::from_str::<serde_json::Value>(&text).ok())
+    .and_then(|value|value["folder"].as_str().map(PathBuf::from)).filter(|path|path.is_absolute());
+   let dir=chosen.unwrap_or_else(||data.join("models"));
+   if !dir.exists(){let _=std::fs::create_dir_all(&dir);}
+   dir
+  },
   _=>return Err("Carpeta desconocida.".into()),
  };
- if !dir.is_dir(){return Err("La carpeta de motores no está disponible.".into());}
+ if !dir.is_dir(){return Err(if folder=="models"{"La carpeta de modelos no está disponible."}else{"La carpeta de motores no está disponible."}.into());}
  show_folder(&app,&dir)
 }
 

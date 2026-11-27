@@ -116,7 +116,7 @@
         '<div class="transfer-export"><input type="file" id="importFile" accept=".json,application/json" hidden><button id="importFileBtn" type="button" class="text-btn">Importar archivo de ajustes…</button></div>'+
         '<p id="exportStatus" class="mini" role="status"></p></section>'+
       '</div></div>'+
-      '<footer class="models-foot"><span class="models-folder">'+icon(ICONS.down)+'<span id="hubFolder"></span></span><button id="hubFolderChange" type="button" class="text-btn">Cambiar carpeta</button><div id="hubJobs" class="hub-jobs"></div></footer>';
+      '<footer class="models-foot"><span class="models-folder">'+icon(ICONS.down)+'<span id="hubFolder"></span></span><button id="hubFolderOpen" type="button" class="text-btn">Abrir carpeta</button><button id="hubFolderChange" type="button" class="text-btn">Cambiar carpeta</button><div id="hubJobs" class="hub-jobs"></div></footer>';
     document.body.append(win);
     const transferSection=document.createElement('details');transferSection.id='modelTransfer';transferSection.className='settings-group model-transfer';
     const transferTitle=document.createElement('summary');transferTitle.textContent=T('Importar y exportar');
@@ -130,6 +130,7 @@
     query.onkeydown=event=>{if(event.key==='Enter'){clearTimeout(searchTimer);search();}};
     win.querySelector('#hubSort').onchange=search;win.querySelector('#hubKind').onchange=search;
     win.querySelector('#hubFolderChange').onclick=changeFolder;
+    win.querySelector('#hubFolderOpen').onclick=openFolder;
     transfer.querySelector('#transferScan').onclick=scan;
     transfer.querySelector('#transferAddFolder').onclick=addFolder;
     transfer.querySelector('#transferAll').onchange=event=>{transfer.querySelectorAll('#transferList input[type=checkbox]:not(:disabled)').forEach(box=>box.checked=event.target.checked);syncTransfer();};
@@ -222,6 +223,15 @@
   }
   async function refreshJobs(){try{applyJobs(await api('/api/harness/hub/downloads'));if(jobs.some(job=>['queued','downloading','verifying'].includes(job.state)))startPolling();}catch{}}
   function startPolling(){clearInterval(poll);poll=setInterval(refreshJobs,1000);}
+  // The models folder in use, default or chosen: the desktop window opens it in front (as its other folders);
+  // the browser interface asks the core.
+  async function openFolder(){
+    try{
+      const invoke=window.__TAURI__?.core?.invoke;
+      if(invoke)await invoke('open_engine_folder',{folder:'models'});
+      else await api('/api/harness/hub/open-folder',{});
+    }catch(error){note(T(typeof error==='string'?error:(error?.message||String(error))));}
+  }
   async function changeFolder(){
     try{const picked=await requestJSON('/api/models/pick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'models'}),signal:AbortSignal.timeout(310000)});
       if(picked.path)applyJobs(await api('/api/harness/hub/folder',{path:picked.path}));}catch(error){note(error.message);}

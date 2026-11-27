@@ -172,6 +172,8 @@ def install(a):
     def _notes_summary(notes,limit=160):
         text=str(notes or '').strip()
         if not text:return ''
+        # Release notes mix HTML (llama.cpp's start with <details open>…<summary>): tags are not summary text.
+        text=re.sub(r'<[^>\n]{1,200}>',' ',text)
         text=re.sub(r'\[([^\]]+)\]\([^)]+\)',r'\1',text)
         text=re.sub(r'(?m)^\s*(?:#{1,6}\s*|[-*+]\s+|\d+\.\s+)','',text)
         text=re.sub(r'[`*_>~]+','',text)
@@ -929,6 +931,11 @@ def install(a):
                     if self.path=='/api/harness/hub/download':result=hub_downloads.start(body.get('repo'),body.get('file'))
                     elif self.path=='/api/harness/hub/cancel':result=hub_downloads.cancel(body.get('id'))
                     elif self.path=='/api/harness/hub/folder':result=hub_downloads.set_folder(body.get('path'))
+                    elif self.path=='/api/harness/hub/open-folder':
+                        # Without the desktop window (the browser interface): the core opens the models folder itself.
+                        folder=hub_downloads.folder();folder.mkdir(parents=True,exist_ok=True)
+                        if not folder.is_dir():raise ValueError('La carpeta de modelos no está disponible.')
+                        os.startfile(str(folder));result={'folder':str(folder)}
                     elif self.path=='/api/harness/external/import':
                         items=body.get('items')
                         if not isinstance(items,list) or not 0<len(items)<=200:raise ValueError('Elige al menos un modelo.')

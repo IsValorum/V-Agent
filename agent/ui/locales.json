@@ -38068,5 +38068,35 @@
     "th": "llama.cpp ไม่รองรับแคช KV {} กับโมเดลนี้ จึงโหลดด้วย {} แทน",
     "tr": "llama.cpp bu modelle {} KV önbelleğini desteklemiyor; {} ile yüklendi.",
     "ar": "لا يدعم llama.cpp ذاكرة KV المؤقتة {} مع هذا النموذج؛ تم التحميل باستخدام {}."
+  },
+  "Abrir carpeta": {
+    "en": "Open folder",
+    "pt": "Abrir pasta",
+    "fr": "Ouvrir le dossier",
+    "de": "Ordner öffnen",
+    "ja": "フォルダーを開く",
+    "zh": "打开文件夹",
+    "ko": "폴더 열기",
+    "hi": "फ़ोल्डर खोलें",
+    "id": "Buka folder",
+    "vi": "Mở thư mục",
+    "th": "เปิดโฟลเดอร์",
+    "tr": "Klasörü aç",
+    "ar": "فتح المجلد"
+  },
+  "La carpeta de modelos no está disponible.": {
+    "en": "The models folder is not available.",
+    "pt": "A pasta de modelos não está disponível.",
+    "fr": "Le dossier des modèles n'est pas disponible.",
+    "de": "Der Modellordner ist nicht verfügbar.",
+    "ja": "モデルフォルダーを利用できません。",
+    "zh": "模型文件夹不可用。",
+    "ko": "모델 폴더를 사용할 수 없습니다.",
+    "hi": "मॉडल फ़ोल्डर उपलब्ध नहीं है।",
+    "id": "Folder model tidak tersedia.",
+    "vi": "Thư mục mô hình không khả dụng.",
+    "th": "ไม่สามารถใช้โฟลเดอร์โมเดลได้",
+    "tr": "Model klasörü kullanılamıyor.",
+    "ar": "مجلد النماذج غير متاح."
   }
 }
