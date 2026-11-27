@@ -118,6 +118,17 @@ class KvCacheRefused(unittest.TestCase):
         self.assertIn('Q8_0', message)
 
 
+class SearchSchema(unittest.TestCase):
+    def test_the_model_sees_the_valid_timelimit_values(self):
+        from mcp_prompt import compact_tools, lean_tools
+        raw = [{'type': 'function', 'function': {'name': 'duckduckgo__web_search', 'description': 'Search.',
+                'parameters': {'type': 'object', 'properties': {name: {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None}
+                                                                 for name in ('query', 'url', 'region', 'timelimit')}}}}]
+        props = lean_tools(compact_tools(raw))[0]['function']['parameters']['properties']
+        self.assertEqual(props['timelimit']['enum'], ['d', 'w', 'm', 'y'])
+        self.assertNotIn('url', props)
+
+
 
 if __name__ == '__main__':
     unittest.main()

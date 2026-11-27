@@ -7,6 +7,7 @@ admin helper and are out of scope for this basic layer.
 """
 from __future__ import annotations
 
+from typing import Literal
 import atexit
 import ctypes
 from ctypes import wintypes
@@ -316,7 +317,7 @@ def mouse_move(x: int, y: int) -> str:
 
 
 @mcp.tool(annotations=WRITE)
-def mouse_click(x: int, y: int, button: str = "left", clicks: int = 1) -> str:
+def mouse_click(x: int, y: int, button: Literal["left", "right", "middle"] = "left", clicks: int = 1) -> str:
     """Click at absolute screen coordinates."""
     count = int(clicks)
     if not 1 <= count <= 3:

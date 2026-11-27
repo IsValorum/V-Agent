@@ -7,6 +7,7 @@ stealing the user's window. Windows ships Edge; no Chromium bundle is required.
 """
 from __future__ import annotations
 
+from typing import Literal
 import atexit
 import base64
 import json
@@ -958,7 +959,7 @@ def browser_download(url: str, path: str | None = None, timeout: int = 120) -> s
 
 
 @mcp.tool(annotations=WRITE)
-def tabs(action: str = "list", url: str | None = None, index: int | None = None, switch: bool = True) -> str:
+def tabs(action: Literal["list", "new", "switch", "close"] = "list", url: str | None = None, index: int | None = None, switch: bool = True) -> str:
     """Manage autonomous browser tabs: list, new (returns active_index; set switch=false to keep current tab), switch, close."""
     port = STATE["port"]
     pages = _list_pages()
