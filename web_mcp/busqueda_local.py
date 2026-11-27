@@ -184,13 +184,11 @@ def search(query, count=5, region=None, timelimit=None, filter_list=None, thread
                             if rows:
                                 winner = (b, rows)
                                 break
-                            with _CACHE_LOCK:
-                                _BACKEND_COOLDOWN[b] = time.monotonic() + _COOLDOWN_S
+                            # No results says something about this query (often a short timelimit), not about
+                            # the engine: only a failure puts an engine aside for a while.
                         except Exception as error:
                             if _is_no_results_error(error):
                                 completed = True
-                                with _CACHE_LOCK:
-                                    _BACKEND_COOLDOWN[b] = time.monotonic() + _COOLDOWN_S
                                 continue
                             failures.append(f'{b or "auto"}: {type(error).__name__}: {str(error)[:180]}')
                             with _CACHE_LOCK:
@@ -211,15 +209,9 @@ def search(query, count=5, region=None, timelimit=None, filter_list=None, thread
                 completed = True
                 if raw:
                     return True
-                if is_real_ddgs and backend_choice in fast_engines:
-                    with _CACHE_LOCK:
-                        _BACKEND_COOLDOWN[backend_choice] = time.monotonic() + _COOLDOWN_S
             except Exception as error:
                 if _is_no_results_error(error):
                     completed = True
-                    if is_real_ddgs and backend_choice in fast_engines:
-                        with _CACHE_LOCK:
-                            _BACKEND_COOLDOWN[backend_choice] = time.monotonic() + _COOLDOWN_S
                     continue
                 failures.append(f'{backend_choice or "auto"}: {type(error).__name__}: {str(error)[:180]}')
                 if is_real_ddgs and backend_choice in fast_engines:

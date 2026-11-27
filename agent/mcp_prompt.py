@@ -138,6 +138,13 @@ def compact_tools(tools):
                 fn['parameters'] = {'type': 'object', 'properties': {
                     k: copy.deepcopy(props[k]) for k in ('query', 'region', 'timelimit') if k in props
                 }, 'required': ['query']}
+                # The server's own description (which said "timelimit: d/w/m/y") is replaced above, and the bare
+                # string left models guessing values such as "10s" that the server refuses.
+                fn['parameters']['properties']['timelimit'] = {
+                    'type': 'string', 'enum': ['d', 'w', 'm', 'y'],
+                    'description': 'Only results from the past day, week, month or year; omit for any date.'}
+                fn['parameters']['properties']['region'] = {
+                    'type': 'string', 'description': 'Results region, e.g. wt-wt (global), us-en, es-es; omit for the default.'}
         output.append(item)
     return output
 
