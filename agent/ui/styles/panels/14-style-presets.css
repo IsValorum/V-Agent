@@ -83,29 +83,31 @@
    :where(), so any component style won and the choice barely showed). Toggles, tabs, menu items, icon
    buttons and buttons with their own design (primary actions, the engine card) keep their look. */
 :root[data-button-style] :is(#drawer,#composerControls,.fw,.val-confirm,.tool-approval,#toolsWindow,#consoleWindow) button:not(:is(
-  .icon-btn,.primary,.danger,.engine-advanced-btn,#engineQuickSettings,[role=tab],[role=switch],[role=menuitem],[role=menuitemradio],
+  .icon-btn,.primary,[data-primary=true],.danger,.engine-advanced-btn,#engineQuickSettings,#ctxApply,#ctxCompact,#transferImport,.update-install,[data-online=false],[role=tab],[role=switch],[role=menuitem],[role=menuitemradio],
   [role=option],[aria-pressed],[aria-selected],.seg-pill button,.conv-more,.file-chip,.hub-item,.text-btn,[data-mode])){
   transition:background-color .15s ease,border-color .15s ease;
 }
 :root[data-button-style=tint] :is(#drawer,#composerControls,.fw,.val-confirm,.tool-approval,#toolsWindow,#consoleWindow) button:not(:is(
-  .icon-btn,.primary,.danger,.engine-advanced-btn,#engineQuickSettings,[role=tab],[role=switch],[role=menuitem],[role=menuitemradio],
+  .icon-btn,.primary,[data-primary=true],.danger,.engine-advanced-btn,#engineQuickSettings,#ctxApply,#ctxCompact,#transferImport,.update-install,[data-online=false],[role=tab],[role=switch],[role=menuitem],[role=menuitemradio],
   [role=option],[aria-pressed],[aria-selected],.seg-pill button,.conv-more,.file-chip,.hub-item,.text-btn,[data-mode])){
   background:var(--soft-fill,color-mix(in srgb,var(--text) 7%,transparent))!important;
+  color:var(--text)!important;
   border:1px solid transparent!important;
 }
 :root[data-button-style=tint] :is(#drawer,#composerControls,.fw,.val-confirm,.tool-approval,#toolsWindow,#consoleWindow) button:not(:is(
-  .icon-btn,.primary,.danger,.engine-advanced-btn,#engineQuickSettings,[role=tab],[role=switch],[role=menuitem],[role=menuitemradio],
+  .icon-btn,.primary,[data-primary=true],.danger,.engine-advanced-btn,#engineQuickSettings,#ctxApply,#ctxCompact,#transferImport,.update-install,[data-online=false],[role=tab],[role=switch],[role=menuitem],[role=menuitemradio],
   [role=option],[aria-pressed],[aria-selected],.seg-pill button,.conv-more,.file-chip,.hub-item,.text-btn,[data-mode])):hover:not(:disabled){
   background:var(--soft-fill-hover,color-mix(in srgb,var(--text) 12%,transparent))!important;
 }
 :root[data-button-style=outline] :is(#drawer,#composerControls,.fw,.val-confirm,.tool-approval,#toolsWindow,#consoleWindow) button:not(:is(
-  .icon-btn,.primary,.danger,.engine-advanced-btn,#engineQuickSettings,[role=tab],[role=switch],[role=menuitem],[role=menuitemradio],
+  .icon-btn,.primary,[data-primary=true],.danger,.engine-advanced-btn,#engineQuickSettings,#ctxApply,#ctxCompact,#transferImport,.update-install,[data-online=false],[role=tab],[role=switch],[role=menuitem],[role=menuitemradio],
   [role=option],[aria-pressed],[aria-selected],.seg-pill button,.conv-more,.file-chip,.hub-item,.text-btn,[data-mode])){
   background:transparent!important;
+  color:var(--text)!important;
   border:1px solid color-mix(in srgb,var(--text) 30%,transparent)!important;
 }
 :root[data-button-style=outline] :is(#drawer,#composerControls,.fw,.val-confirm,.tool-approval,#toolsWindow,#consoleWindow) button:not(:is(
-  .icon-btn,.primary,.danger,.engine-advanced-btn,#engineQuickSettings,[role=tab],[role=switch],[role=menuitem],[role=menuitemradio],
+  .icon-btn,.primary,[data-primary=true],.danger,.engine-advanced-btn,#engineQuickSettings,#ctxApply,#ctxCompact,#transferImport,.update-install,[data-online=false],[role=tab],[role=switch],[role=menuitem],[role=menuitemradio],
   [role=option],[aria-pressed],[aria-selected],.seg-pill button,.conv-more,.file-chip,.hub-item,.text-btn,[data-mode])):hover:not(:disabled){
   border-color:var(--accent)!important;
   background:color-mix(in srgb,var(--accent) 9%,transparent)!important;
